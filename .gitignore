@@ -3,3 +3,4 @@ obj/
 
 # Could obviously contain sensitive data
 .vscode/
+.idea/
