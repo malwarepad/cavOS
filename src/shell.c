@@ -31,6 +31,10 @@ void launch_shell(int n)
 		    {
 				test(ch);
 		    }
+			else if(cmdEql(ch, "snake"))
+			{
+				//snake();
+			}
 			else if(cmdEql(ch,"obama"))
 		    {
 		    	echo();
@@ -64,9 +68,36 @@ void launch_shell(int n)
 
 void test(string ch) {
 	printf("\n");
-	printf("b");
+	string null;
+	uint8 res = whereSpace1(ch);
 	printf("\n");
 }
+
+/*
+void snake() {
+	printf("\n");
+	uint8 moves = 4;
+	string position;
+	uint8 continuePlaying = 1;
+
+	while (continuePlaying != 0) {
+		if (continuePlaying != 0) {
+			clearScreen();
+			char quitornot = readWASD();
+			if (quitornot == 'q') {
+				clearScreen();
+				continuePlaying = 0;
+			} else {
+				clearScreen();
+				char choice = readWASD();
+				if (choice == 'w') {
+					printf("w");
+				}
+			}
+		}
+	}
+}
+*/
 
 void echo()
 {
