@@ -66,3 +66,37 @@ uint8 cmdEql(string ch1, string ch2) {
 
         return res;
 }
+
+uint8 whereSpace1(string ch1) {
+        uint8 size = strlength(ch1);
+        uint8 position = 0;
+        uint8 foundAnything = 0;
+
+        for (uint8 i = 0; i <= size; i++) {
+                if (foundAnything == 0) {
+                        if (ch1[i] == ' ') {
+                                position = i;
+                                foundAnything = 1;
+                        }
+                }
+        }
+
+        if (foundAnything == 0) {
+                return 0;
+        } else {return position;}
+}
+
+uint8 searchArg1(string ch1, string ch2) {
+        uint8 sizeScnd = strlength(ch2);
+        uint8 res = 1;
+        uint8 starts = whereSpace1(ch1) + 1;
+        uint8 end = strlength(ch1);
+        uint8 times = end - starts;
+        string data;
+
+        for (uint8 i = 0; i <= times; i++) {
+                data[i] = ch1[starts + i];
+        }
+
+        printf(data);
+}
