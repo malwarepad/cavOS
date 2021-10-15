@@ -1,4 +1,4 @@
-# cavOS Internal Documents
+## cavOS Internal Documents
 
 - Build enviroment:
     - Compile the docker enviroment: ``docker build docker -t os-dev``
@@ -16,7 +16,7 @@
 - Clean the temporary compiled binaries
     - Use ``make clear``
 
-## Development commands
+### Development commands
 
 If for whatever reason you decide to modify cavOS you could run the ``build.bat`` script from the docker folder for a quick build and execution of the OS:
 
