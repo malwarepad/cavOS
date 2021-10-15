@@ -1,7 +1,7 @@
 COMPILER = gcc
 LINKER = ld
 ASSEMBLER = nasm
-CFLAGS = -m32 -c -ffreestanding
+CFLAGS = -m32 -c -ffreestanding -w
 ASFLAGS = -f elf32
 LDFLAGS = -m elf_i386 -T src/link.ld
 EMULATOR = qemu-system-i386
