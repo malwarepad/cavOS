@@ -3,7 +3,8 @@
 #include "../include/idt.h"
 #include "../include/util.h"
 #include "../include/shell.h"
-kmain()
+
+int kmain()
 {
 	isr_install();
 	clearScreen();
