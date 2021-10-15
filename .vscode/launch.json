@@ -1,0 +1,10 @@
+{
+    "configurations": [
+    {
+        "command": ".\\docker\\build.bat",
+        "name": "Compile and run",
+        "request": "launch",
+        "type": "node-terminal"
+    }
+    ]
+}
