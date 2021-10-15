@@ -3,10 +3,12 @@ void launch_shell(int n)
 {
 	string ch = (string) malloc(200); // util.h
 	int store = (string) malloc(200);
+	string prompt = "$ ";
 	int counter = 0;
 	do
 	{
-			printf("$ ");
+			//printf("$ ");
+			printf(prompt);
 			//printf(int_to_string(n));
 			//printf(")> ");
 		    ch = readStr(); //memory_copy(readStr(), ch,100);
@@ -25,7 +27,7 @@ void launch_shell(int n)
 		    }
 		    else if(cmdEql(ch,"echo"))
 		    {
-		    	echo();
+		    	echo(ch);
 		    }
 			else if(cmdEql(ch,"test"))
 		    {
@@ -37,7 +39,7 @@ void launch_shell(int n)
 			}
 			else if(cmdEql(ch,"obama"))
 		    {
-		    	echo();
+		    	echo(ch);
 		    }
 		    else if(cmdEql(ch,"help"))
 		    {
@@ -66,10 +68,34 @@ void launch_shell(int n)
 	} while (!cmdEql(ch,"exit"));
 }
 
+uint8 changePromptInteractively(string ch1) {
+	printf("\nWelcome to the prompt changer! \n");
+	if (ch1[0] != '$' && ch1[1] != ' ') {
+		printf("You have changed the default prompt: $ \n");
+	}
+
+	printf("What do you want your new prompt to look like? \n> ");
+	string newPrompt = readStr();
+	printf("\n");
+	if (!isStringEmpty(newPrompt)) {
+		printf("Okay! Changing prompt to ");
+		printf(newPrompt);
+		printf("\n");
+		return newPrompt;
+	} else {
+		printf("Nothing entered. No changes applied. \n");
+		return 0;
+	}
+}
+
 void test(string ch) {
 	printf("\n");
-	string null;
-	uint8 res = whereSpace1(ch);
+	/*if (searchArg1(ch, "test")) {
+		printf("Works! \n");
+	}*/
+	string arg = whatIsArgMain(ch);
+	printf(arg);
+
 	printf("\n");
 }
 
@@ -99,12 +125,12 @@ void snake() {
 }
 */
 
-void echo()
+void echo(string ch)
 {
+	string arg = whatIsArgMain(ch);
+
 	printf("\n");
-	string str = readStr();
-	printf("\n");
-	printf(str);
+	printf(arg);
 	printf("\n");
 }
 
