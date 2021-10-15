@@ -16,7 +16,6 @@ start:
         hlt             ; halt the cpu(pause it from executing from this address
 
 Shutdown:
-    .fnstart
     mov ax, 0x1000
     mov ax, ss
     mov sp, 0xf000
@@ -24,7 +23,6 @@ Shutdown:
     mov bx, 0x0001
     mov cx, 0x0003
     int 0x15
-    .fnend
 
 WaitForEnter:
     mov ah, 0
