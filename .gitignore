@@ -2,5 +2,5 @@
 obj/
 
 # Could obviously contain sensitive data
-.vscode/
+# .vscode/ no harmful data lmfao
 .idea/
