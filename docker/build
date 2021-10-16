@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if [[ $1 == "build" ]]; then
+    docker run --rm -it -v "$(pwd)":/root/env os-dev make build
+fi
+
+if [[ $1 == "test" ]]; then
+    qemu-system-x86_64 -cdrom cavOS.iso -m 512M
+fi
+
+if [[ $1 == "all" ]]; then
+    docker run --rm -it -v "$(pwd)":/root/env os-dev make build
+    qemu-system-x86_64 -cdrom cavOS.iso -m 512M
+fi
