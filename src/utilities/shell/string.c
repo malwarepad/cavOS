@@ -1,6 +1,6 @@
-#include "../include/string.h"
-#include "../include/screen.h"
-#include "../include/util.h"
+#include "../../../include/string.h"
+#include "../../../include/screen.h"
+#include "../../../include/util.h"
 
 uint16 strlength(string ch)
 {

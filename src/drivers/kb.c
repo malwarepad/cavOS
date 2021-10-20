@@ -1,5 +1,4 @@
-
-#include "../include/kb.h"
+#include "../../include/kb.h"
 string readStr()
 {
     char buff;
