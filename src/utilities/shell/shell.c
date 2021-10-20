@@ -1,4 +1,5 @@
-#include "../include/shell.h"
+#include "../../../include/shell.h"
+
 void launch_shell(int n)
 {
 	string ch = (string) malloc(200); // util.h

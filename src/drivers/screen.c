@@ -1,4 +1,5 @@
-#include "../include/screen.h"
+#include "../../include/screen.h"
+
 int cursorX = 0, cursorY = 0;
 const uint8 sw = 80,sh = 25,sd = 2; 
 int color = 0x0F;
