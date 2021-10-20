@@ -1,7 +1,7 @@
 {
     "configurations": [
     {
-        "command": ".\\docker\\build.bat",
+        "command": "./docker/build all",
         "name": "Compile and run",
         "request": "launch",
         "type": "node-terminal"
