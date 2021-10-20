@@ -4,3 +4,6 @@ obj/*
 # Could obviously contain sensitive data
 # .vscode/ no harmful data lmfao
 .idea/
+
+# Could leak plans
+notes/
