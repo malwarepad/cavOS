@@ -2,7 +2,6 @@
 void launch_shell(int n)
 {
 	string ch = (string) malloc(200); // util.h
-	int store = (string) malloc(200);
 	string prompt = "$ ";
 	int counter = 0;
 	do
@@ -93,8 +92,10 @@ void test(string ch) {
 	/*if (searchArg1(ch, "test")) {
 		printf("Works! \n");
 	}*/
-	string arg = whatIsArgMain(ch);
-	printf(arg);
+	string str;
+	str = "hey!";
+
+	printf(str);
 
 	printf("\n");
 }
