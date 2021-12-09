@@ -3,6 +3,7 @@
 void launch_shell(int n)
 {
 	string ch = (string) malloc(200); // util.h
+    string data[64];
 	string prompt = "$ ";
 	int counter = 0;
 	do
@@ -37,18 +38,18 @@ void launch_shell(int n)
 			{
 				//snake();
 			}
-			else if(cmdEql(ch,"obama"))
-		    {
-		    	echo(ch);
-		    }
 		    else if(cmdEql(ch,"help"))
 		    {
 		    	help();
 		    }
-		    else if(cmdEql(ch,"spam"))
-		    {
-		    	joke_spam();
-		    }
+            else if(cmdEql(ch,"ted"))
+            {
+                ted_editor(ch, data);
+            }
+            else if(cmdEql(ch,"ted.echo"))
+            {
+                ted_echo(ch, data);
+            }
 		    else if(cmdEql(ch,"color"))
 		    {
 		    	set_background_color();
@@ -68,7 +69,23 @@ void launch_shell(int n)
 	} while (!cmdEql(ch,"exit"));
 }
 
-uint8 changePromptInteractively(string ch1) {
+void ted_editor(string cmd, string data[]) {
+    string arg = whatIsArgMain(cmd);
+    int arg_int = str_to_int(arg);
+
+    data[arg_int] = readStr();
+}
+
+void ted_echo(string cmd, string data[]) {
+    string arg = whatIsArgMain(cmd);
+    int arg_int = str_to_int(arg);
+
+	printf("\n");
+    printf(data[arg_int]);
+    printf("\n");
+}
+
+void changePromptInteractively(string ch1) {
 	printf("\nWelcome to the prompt changer! \n");
 	if (ch1[0] != '$' && ch1[1] != ' ') {
 		printf("You have changed the default prompt: $ \n");
@@ -212,11 +229,13 @@ void set_background_color()
 	clearScreen();
 }
 
+/*
 void joke_spam() {
 	for (int i = 1; i <= 100; i++) {
 		printf("A M O G U S\n");
 	}
 }
+*/
 
 void fetch() {
 	printf("\nname: cavOS");
@@ -231,9 +250,10 @@ void help()
 	printf("\nexit      : Quits the current shell");
 	printf("\ncolor     : Changes the colors of the terminal");
 	printf("\nfetch     : Brings you some system information");
-
+/*
 	printf("\n\nJoke Commands:");
 	printf("\nspam      : Spam amogus to the shell");
+*/
 
 	printf("\n");
 }
