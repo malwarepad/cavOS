@@ -17,7 +17,8 @@ void updateCursor()
 {
     unsigned temp;
 
-    temp = cursorY * sw + cursorX-1;                                                      // Position = (y * width) +  x
+    //temp = cursorY * sw + cursorX-1;                                                      // Position = (y * width) +  x
+    temp = cursorY * sw + cursorX;                                                      // Position = (y * width) +  x
 
     outportb(0x3D4, 14);                                                                // CRT Control Register: Select Cursor Location
     outportb(0x3D5, temp >> 8);                                                         // Send the high byte across the bus
