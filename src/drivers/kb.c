@@ -75,12 +75,13 @@ string readStr()
                 printfch('=');
                 buffstr[i] = '=';
                 i++;
+                printf(int_to_string(i));
                 break;
         case 14:
-                printfch('\b');
                 if (i == 0) {
                         break;
                 } else {
+                        printfch('\b');
                         i--;
                         buffstr[i+1] = 0;
                         buffstr[i] = 0;
