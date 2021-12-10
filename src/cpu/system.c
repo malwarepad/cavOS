@@ -11,3 +11,9 @@ void outportb (uint16 _port, uint8 _data)
 {
 	__asm__ __volatile__ ("outb %1, %0" : : "dN" (_port), "a" (_data));
 }
+
+void sleep(uint8 times) {
+	for (uint8 i = 0; i < times * 1; i++) {
+		asm("hlt");
+	}
+}
