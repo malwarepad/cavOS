@@ -2,6 +2,7 @@
     "files.associations": {
         "idt.h": "c",
         "shell.h": "c",
-        "system.h": "c"
+        "system.h": "c",
+        "util.h": "c"
     }
 }

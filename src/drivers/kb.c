@@ -9,6 +9,7 @@ string readStr()
     {
         if(inportb(0x64) & 0x1)
         {
+            printf(int_to_string(inportb(0x60)));
             switch(inportb(0x60))
             {
       /*case 1:
@@ -233,12 +234,19 @@ string readStr()
                 buffstr[i] = (char)44;
                 i++;
                 break;
-     /* case 42:                                 Left shift
-                printfch('q');
-                buffstr[i] = 'q';
-                i++;
-                break;
-        case 43:                                 \ (< for somekeyboards)
+        case 42:                                 //Left shift
+                /*do {
+                        printfch('Q');
+                } if (inportb(0x60) != 170);
+                break;*/
+
+                while (inportb(0x60) != 170) {
+                        if (inportb(0x60) == 16) {
+                                printfch('Q');
+                        }
+                }
+
+        /*case 43:                                 \ (< for somekeyboards)
                 printfch((char)92);
                 buffstr[i] = 'q';
                 i++;
