@@ -75,7 +75,6 @@ string readStr()
                 printfch('=');
                 buffstr[i] = '=';
                 i++;
-                printf(int_to_string(i));
                 break;
         case 14:
                 if (i == 0) {

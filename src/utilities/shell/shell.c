@@ -1,4 +1,5 @@
 #include "../../../include/shell.h"
+#include "../../../include/math.h"
 
 void launch_shell(int n)
 {
@@ -110,10 +111,8 @@ void test(string ch) {
 	/*if (searchArg1(ch, "test")) {
 		printf("Works! \n");
 	}*/
-	string str;
-	str = "hey!";
-
-	printf(str);
+	
+	printf(int_to_string(math_add(2, 2)));
 
 	printf("\n");
 }
@@ -228,14 +227,6 @@ void set_background_color()
 	set_screen_color(text_color,bg_color);
 	clearScreen();
 }
-
-/*
-void joke_spam() {
-	for (int i = 1; i <= 100; i++) {
-		printf("A M O G U S\n");
-	}
-}
-*/
 
 void fetch() {
 	printf("\nname: cavOS");
