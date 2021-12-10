@@ -1,8 +1,7 @@
 #include "../../include/kb.h"
 #include "../../include/system.h"
 
-string readStr()
-{
+string readStr() {
     char buff;
     string buffstr = (string) malloc(200);
     uint8 i = 0;
@@ -626,3 +625,48 @@ string readStr()
     buffstr[i-1] = 0;
     return buffstr;
 }
+
+/*string readWASD() {
+    char buff;
+    string buffstr = (string) malloc(200);
+    uint8 i = 0;
+    uint8 reading = 1;
+    uint8 readTmp = 1;
+    while(reading)
+    {
+        if(inportb(0x64) & 0x1)
+        {
+            //printf(int_to_string(inportb(0x60)));
+            switch(inportb(0x60))
+            {
+                case 17:
+                        buffstr[i] = 'w';
+                        i++;
+                        reading--;
+                        break;
+
+                case 30:
+                        buffstr[i] = 'a';
+                        i++;
+                        reading--;
+                        break;
+                
+                case 31:
+                        buffstr[i] = 's';
+                        i++;
+                        reading--;
+                        break;
+
+                case 32:
+                        buffstr[i] = 'd';
+                        i++;
+                        reading--;
+                        break;
+            }
+        }
+    }
+
+    buffstr[i-1] = 0;
+    return buffstr;
+}
+*/

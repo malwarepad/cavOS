@@ -3,6 +3,7 @@
         "idt.h": "c",
         "shell.h": "c",
         "system.h": "c",
-        "util.h": "c"
+        "util.h": "c",
+        "kb.h": "c"
     }
 }
