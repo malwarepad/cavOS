@@ -1,10 +1,12 @@
 #include "../../include/kb.h"
+#include "../../include/system.h"
 string readStr()
 {
     char buff;
     string buffstr = (string) malloc(200);
     uint8 i = 0;
     uint8 reading = 1;
+    uint8 readTmp = 1;
     while(reading)
     {
         if(inportb(0x64) & 0x1)
