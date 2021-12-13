@@ -37,8 +37,8 @@ void launch_shell(int n)
 		    }
 			else if(cmdEql(ch, "snake"))
 			{
-				clearScreen();
-				snake(80, 25);
+				//clearScreen();
+				//snake(80, 25);
 			}
 		    else if(cmdEql(ch,"help"))
 		    {
