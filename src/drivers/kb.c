@@ -11,7 +11,7 @@ string readStr() {
     {
         if(inportb(0x64) & 0x1)
         {
-            //printf(int_to_string(inportb(0x60)));
+            //printf_arr(int_to_string(inportb(0x60)));
             switch(inportb(0x60))
             {
                 /*case 1:
@@ -636,7 +636,7 @@ string readWASD() {
     {
         if(inportb(0x64) & 0x1)
         {
-            //printf(int_to_string(inportb(0x60)));
+            //printf_arr(int_to_string(inportb(0x60)));
             switch(inportb(0x60))
             {
                 case 17:

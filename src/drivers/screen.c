@@ -103,7 +103,7 @@ void printfch(char c)
     newLineCheck();
 }
 
-void printf (string ch)
+void printf_arr (string ch)
 {
         uint16 i = 0;
         uint8 length = strlength(ch);              //Updated (Now we store string length on a variable to call the function only once)
@@ -116,7 +116,7 @@ void printf (string ch)
         
 }
 
-void printf_list(const char* format, ...)
+void printf(const char* format, ...)
 {
 	va_list ap;
 	va_start(ap, format);

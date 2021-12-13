@@ -10,7 +10,7 @@ void launch_shell(int n)
 	do
 	{
 			//printf("$ ");
-			printf(prompt);
+			printf("%s", prompt);
 			//printf(int_to_string(n));
 			//printf(")> ");
 		    ch = readStr(); //memory_copy(readStr(), ch,100);
@@ -44,14 +44,6 @@ void launch_shell(int n)
 		    {
 		    	help();
 		    }
-            else if(cmdEql(ch,"ted"))
-            {
-                ted_editor(ch, data);
-            }
-            else if(cmdEql(ch,"ted.echo"))
-            {
-                ted_echo(ch, data);
-            }
 		    else if(cmdEql(ch,"color"))
 		    {
 		    	set_background_color();
@@ -63,61 +55,14 @@ void launch_shell(int n)
 
 		    else
 		    {
-				printf("\n");
-				printf(ch);
-		        printf(" isn't a valid command\n");
+				printf("\n%s isn't a valid command\n", ch);
 		        //printf("$ ");
 		    }
 	} while (!cmdEql(ch,"exit"));
 }
 
-void ted_editor(string cmd, string data[]) {
-    string arg = whatIsArgMain(cmd);
-    int arg_int = str_to_int(arg);
-
-    data[arg_int] = readStr();
-}
-
-void ted_echo(string cmd, string data[]) {
-    string arg = whatIsArgMain(cmd);
-    int arg_int = str_to_int(arg);
-
-	printf("\n");
-    printf(data[arg_int]);
-    printf("\n");
-}
-
-void changePromptInteractively(string ch1) {
-	printf("\nWelcome to the prompt changer! \n");
-	if (ch1[0] != '$' && ch1[1] != ' ') {
-		printf("You have changed the default prompt: $ \n");
-	}
-
-	printf("What do you want your new prompt to look like? \n> ");
-	string newPrompt = readStr();
-	printf("\n");
-	if (!isStringEmpty(newPrompt)) {
-		printf("Okay! Changing prompt to ");
-		printf(newPrompt);
-		printf("\n");
-		return newPrompt;
-	} else {
-		printf("Nothing entered. No changes applied. \n");
-		return 0;
-	}
-}
-
 void test(string ch) {
-	printf("\n");
-	/*if (searchArg1(ch, "test")) {
-		printf("Works! \n");
-	}*/
-	
-	char test = readWASD();
-	//printf("\n");
-	printf(char_to_string(test));
-
-	printf("\n");
+	//a
 }
 
 /*void snake(uint8 rows, uint8 cols) {
@@ -135,7 +80,7 @@ void test(string ch) {
 		cursorCurrent[1] = prefixR;
 
 		clearScreen();
-		printf(cursorCurrent);
+		printf("%s", cursorCurrent);
 		char test = readWASD();
 
 		if (test == 'q') {
@@ -149,37 +94,8 @@ void echo(string ch)
 {
 	string arg = whatIsArgMain(ch);
 
-	printf("\n");
-	printf(arg);
-	printf("\n");
+	printf("\n%s\n", arg);
 }
-
-void fill_array(int arr[],int n)
-{
-	int i = 0;
-	for (i = 0;i<n;i++)
-	{
-		printf("ARR[");
-		printf(int_to_string(i));
-		printf("]: ");
-		arr[i] = str_to_int(readStr());
-		printf("\n");
-	}
-}
-void printfay(int arr[],int n)
-{
-	int i = 0;
-	for (i = 0;i<n;i++)
-	{
-		/*printf("ARR[");
-		printf(int_to_string(i));
-		printf("]: ");*/
-		printf(int_to_string(arr[i]));
-		printf("   ");
-	}
-	printf("\n");
-}
-
 
 int fibo(int n)
 {
