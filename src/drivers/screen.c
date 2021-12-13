@@ -1,4 +1,5 @@
 #include "../../include/screen.h"
+#include <stdarg.h>
 
 int cursorX = 0, cursorY = 0;
 const uint8 sw = 80,sh = 25,sd = 2; 
@@ -114,6 +115,38 @@ void printf (string ch)
                 printf(ch[i++]);*/
         
 }
+
+void printf_list(const char* format, ...)
+{
+	va_list ap;
+	va_start(ap, format);
+
+	uint8 *ptr;
+
+	for (ptr = format; *ptr != '\0'; ptr++) {
+		if (*ptr == '%') {
+			ptr++;
+			switch (*ptr) {
+				case 's':
+					printf(va_arg(ap, uint8 *));
+					break;
+				//case 'c':
+					//printf(char_to_string(va_arg(ap, uint8 *)));
+				case 'd':
+					printf(int_to_string(va_arg(ap, uint8 *)));
+					break;
+				case '%':
+					printfch('%');
+					break;
+			}
+		} else {
+			printfch(*ptr);
+		}
+	}
+
+	va_end(ap);
+}
+
 void set_screen_color(int text_color,int bg_color)
 {
 	color =  (bg_color << 4) | text_color;;
