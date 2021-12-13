@@ -10,6 +10,4 @@ int str_to_int(string ch)  ;
 string char_to_string(char ch);
 void * malloc(int nbytes);      
 
-void printf_list(const char* fmt, ...);
-
 #endif

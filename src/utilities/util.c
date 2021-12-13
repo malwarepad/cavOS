@@ -1,6 +1,5 @@
 #include "../../include/util.h"
 #include "../../include/screen.h"
-#include <stdarg.h>
 
 void memory_copy(char *source, char *dest, int nbytes) {
     int i;
@@ -74,35 +73,4 @@ void * malloc(int nbytes)
 {
 	char variable[nbytes];
 	return &variable;
-}
-
-void printf_list(const char* format, ...)
-{
-	va_list ap;
-	va_start(ap, format);
-
-	uint8 *ptr;
-
-	for (ptr = format; *ptr != '\0'; ptr++) {
-		if (*ptr == '%') {
-			ptr++;
-			switch (*ptr) {
-				case 's':
-					printf(va_arg(ap, uint8 *));
-					break;
-				//case 'c':
-					//printf(char_to_string(va_arg(ap, uint8 *)));
-				case 'd':
-					printf(int_to_string(va_arg(ap, uint8 *)));
-					break;
-				case '%':
-					printfch('%');
-					break;
-			}
-		} else {
-			printfch(*ptr);
-		}
-	}
-
-	va_end(ap);
 }
