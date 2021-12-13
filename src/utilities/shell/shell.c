@@ -166,7 +166,7 @@ void fill_array(int arr[],int n)
 		printf("\n");
 	}
 }
-void printf_array(int arr[],int n)
+void printfay(int arr[],int n)
 {
 	int i = 0;
 	for (i = 0;i<n;i++)
