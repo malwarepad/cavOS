@@ -1,4 +1,4 @@
-## cavOS
+## cavOS: Formally "Cave-Like Operating System"
 ### Purpose:
 This is an OS I am making in my free time purely for fun. I learnt a bunch of things about OS developement while writting it. 
 
