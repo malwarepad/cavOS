@@ -60,6 +60,14 @@ int str_to_int(string ch)
 	}
 	return n;
 }
+
+string char_to_string(char ch) {
+	string str;
+	str[0] = ch;
+
+	return str;
+}
+
 void * malloc(int nbytes)
 {
 	char variable[nbytes];
