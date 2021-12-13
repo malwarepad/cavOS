@@ -37,7 +37,8 @@ void launch_shell(int n)
 		    }
 			else if(cmdEql(ch, "snake"))
 			{
-				//snake();
+				clearScreen();
+				snake(80, 25);
 			}
 		    else if(cmdEql(ch,"help"))
 		    {
@@ -112,36 +113,37 @@ void test(string ch) {
 		printf("Works! \n");
 	}*/
 	
-	printf(int_to_string(math_add(2, 2)));
+	char test = readWASD();
+	//printf("\n");
+	printf(char_to_string(test));
 
 	printf("\n");
 }
 
-/*
-void snake() {
-	printf("\n");
-	uint8 moves = 4;
-	string position;
-	uint8 continuePlaying = 1;
+/*void snake(uint8 rows, uint8 cols) {
+	uint8 isPlaying = 1;
 
-	while (continuePlaying != 0) {
-		if (continuePlaying != 0) {
+	while (isPlaying) {
+		char prefixR = '>';
+		char prefixL = '<';
+		char seperator = '=';
+
+		uint8 posX = 1; // Horizontal angle
+		uint8 posY = 1; // Vertical angle
+		string cursorCurrent;
+		cursorCurrent[0] = seperator;
+		cursorCurrent[1] = prefixR;
+
+		clearScreen();
+		printf(cursorCurrent);
+		char test = readWASD();
+
+		if (test == 'q') {
+			isPlaying--;
 			clearScreen();
-			char quitornot = readWASD();
-			if (quitornot == 'q') {
-				clearScreen();
-				continuePlaying = 0;
-			} else {
-				clearScreen();
-				char choice = readWASD();
-				if (choice == 'w') {
-					printf("w");
-				}
-			}
 		}
 	}
-}
-*/
+}*/
 
 void echo(string ch)
 {

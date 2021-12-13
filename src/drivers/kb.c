@@ -626,7 +626,7 @@ string readStr() {
     return buffstr;
 }
 
-/*string readWASD() {
+string readWASD() {
     char buff;
     string buffstr = (string) malloc(200);
     uint8 i = 0;
@@ -640,33 +640,38 @@ string readStr() {
             switch(inportb(0x60))
             {
                 case 17:
-                        buffstr[i] = 'w';
+                        //printfch('w');
+                        buffstr[0] = 'w';
                         i++;
                         reading--;
                         break;
-
                 case 30:
-                        buffstr[i] = 'a';
+                        //printfch('a');
+                        buffstr[0] = 'a';
                         i++;
                         reading--;
                         break;
-                
                 case 31:
-                        buffstr[i] = 's';
+                        //printfch('s');
+                        buffstr[0] = 's';
                         i++;
                         reading--;
                         break;
-
                 case 32:
-                        buffstr[i] = 'd';
+                        //printfch('d');
+                        buffstr[0] = 'd';
+                        i++;
+                        reading--;
+                        break;
+                case 16:
+                        //printfch('q');
+                        buffstr[0] = 'q';
                         i++;
                         reading--;
                         break;
             }
         }
     }
-
-    buffstr[i-1] = 0;
-    return buffstr;
+    //buffstr[i-1] = 0;
+    return buffstr[0];
 }
-*/

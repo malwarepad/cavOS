@@ -4,6 +4,6 @@
 #include "util.h"
 
 string readStr();
-//string readWASD();
+string readWASD();
 
 #endif
