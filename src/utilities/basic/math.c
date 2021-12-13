@@ -43,3 +43,16 @@ uint8 math_get_current_equation(string str) {
 
 	return res;
 }
+
+uint8 math_check_possible_equations(string str) {
+	uint8 res = 0;
+	uint8 size = strlength(str);
+
+	for (uint8 i = 0; i < size; i++) {
+		if (str[i] == '+' || str[i] == '-' || str[i] == '*' || str[i] == '/') {
+			res = 1;
+		}
+	}
+
+	return res;
+}
