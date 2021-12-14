@@ -56,3 +56,71 @@ uint8 math_check_possible_equations(string str) {
 
 	return res;
 }
+
+uint8 math_check_possible_equations_advanced(string str, uint8 type) {
+	/*
+		Documentation for type:
+		0: +
+		1: -
+		2: *
+		3: /
+	*/
+
+	uint8 position = -1;
+	uint8 size = strlength(str);
+
+	for (uint8 i = 0; i < size; i++) {
+		switch (type)
+		{
+			case 0:
+				if (str[i] == '+') {
+					position = i;
+				}
+				break;
+
+			case 1:
+				if (str[i] == '-') {
+					position = i;
+				}
+				break;
+
+			case 2:
+				if (str[i] == '*') {
+					position = i;
+				}
+				break;
+
+			case 3:
+				if (str[i] == '/') {
+					position = i;
+				}
+				break;
+		
+			default:
+				break;
+			}
+	}
+
+	return position; // position is -1 if it found nothing existing
+}
+
+uint8 math_check_previous_equations(string str, uint8 position) {
+	uint8 res = 0;
+	//uint8 size = strlength(str);
+
+	for (uint8 i = 0; i < position; i++) {
+		if (str[i] == '+' || str[i] == '-' || str[i] == '*' || str[i] == '/') {
+			res = 1;
+		}
+	}
+
+	return res;
+}
+
+/*uint8 math_check_previous_equations_advanced(string str, uint8 position) {
+	uint8 returnPosition = -1;
+
+	for (uint8 i = 0; i < position; i++) {
+		if (position - i)
+	}
+}*/
