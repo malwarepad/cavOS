@@ -5,6 +5,16 @@
         "system.h": "c",
         "util.h": "c",
         "kb.h": "c",
-        "cstdio": "c"
-    }
+        "cstdio": "c",
+        "array": "c",
+        "hash_map": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "utility": "c",
+        "valarray": "c",
+        "isr.h": "c"
+    },
+    "cSpell.words": [
+        "positionf"
+    ]
 }
