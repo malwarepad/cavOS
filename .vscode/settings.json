@@ -12,7 +12,9 @@
         "initializer_list": "c",
         "utility": "c",
         "valarray": "c",
-        "isr.h": "c"
+        "isr.h": "c",
+        "string.h": "c",
+        "math.h": "c"
     },
     "cSpell.words": [
         "positionf"

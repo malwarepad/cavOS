@@ -4,7 +4,7 @@
 #include "../../include/util.h"
 #include "../../include/shell.h"
 
-#include "../../include/math.h"
+#include "../../include/mathf.h"
 
 int kmain()
 {
