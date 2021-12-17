@@ -23,7 +23,7 @@ uint8 math_get_current_equation(string str) {
 	uint8 track = 0;
 	uint8 res = -1;
 
-	for (uint8 i = 0; i < size; i++) {
+	for (uint8 i = 0; i <= size; i++) {
 		if (track == 0) {
 			if (str[i] == '+') {
 				track++;
@@ -48,7 +48,7 @@ uint8 math_check_possible_equations(string str) {
 	uint8 res = 0;
 	uint8 size = strlength(str);
 
-	for (uint8 i = 0; i < size; i++) {
+	for (uint8 i = 0; i <= size; i++) {
 		if (str[i] == '+' || str[i] == '-' || str[i] == '*' || str[i] == '/') {
 			res = 1;
 		}
@@ -69,7 +69,7 @@ uint8 math_check_possible_equations_advanced(string str, uint8 type) {
 	uint8 position = -1;
 	uint8 size = strlength(str);
 
-	for (uint8 i = 0; i < size; i++) {
+	for (uint8 i = 0; i <= size; i++) {
 		switch (type)
 		{
 			case 0:
@@ -116,11 +116,3 @@ uint8 math_check_previous_equations(string str, uint8 position) {
 
 	return res;
 }
-
-/*uint8 math_check_previous_equations_advanced(string str, uint8 position) {
-	uint8 returnPosition = -1;
-
-	for (uint8 i = 0; i < position; i++) {
-		if (position - i)
-	}
-}*/
