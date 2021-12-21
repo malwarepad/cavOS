@@ -5,5 +5,7 @@ obj/*
 # .vscode/ no harmful data lmfao
 .idea/
 
+Session.vim
+
 # Could leak plans
 notes/
