@@ -1,5 +1,6 @@
 #include "../../../include/shell.h"
 #include "../../../include/math.h"
+#include "../../../include/mathf.h"
 
 void launch_shell(int n)
 {
@@ -52,7 +53,10 @@ void launch_shell(int n)
 		    {
 				fetch();
 		    }
-
+			else if(cmdEql(ch,"mathf"))
+		    {
+				mathf_interactive_shell(0);
+		    }
 		    else
 		    {
 				printf("\n%s isn't a valid command\n", ch);
@@ -159,10 +163,9 @@ void help()
 	printf("\nexit      : Quits the current shell");
 	printf("\ncolor     : Changes the colors of the terminal");
 	printf("\nfetch     : Brings you some system information");
-/*
-	printf("\n\nJoke Commands:");
-	printf("\nspam      : Spam amogus to the shell");
-*/
+
+	printf("\n\nShell modes:");
+	printf("\nmathf     : Start a simple math shell");
 
 	printf("\n");
 }
