@@ -40,6 +40,18 @@ void mathf_interactive_shell(uint8 id) {
 		} else if (cmdEql(tmp, "ret")) {
 			isReading = 0;
 			printf("\n");
+		} else if (cmdEql(tmp, "help")) {
+			printf("\nBasic Commands:");
+			printf("\nchoose    : Choose a number as a base");
+			printf("\nret       : Return back to the regular shell");
+
+			printf("\n\nMathematical equations:");
+			printf("\nadd       : +");
+			printf("\nremove    : -");
+			printf("\nmultiply  : *");
+			printf("\ndia       : /");
+
+			printf("\n");
 		} else {
 			printf("\n(MATHF) %s isn't a valid command\n", tmp);
 		}
