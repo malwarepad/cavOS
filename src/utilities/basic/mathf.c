@@ -23,8 +23,13 @@ void mathf_interactive_shell(uint8 id) {
 			printf("\n%d\n", res);
 		} else if (cmdEql(tmp, "remove")) {
 			uint8 tmp_first = str_to_int(whatIsArgMain(tmp));
-			res = chosen - tmp_first;
-			printf("\n%d\n", res);
+			if (chosen >= tmp_first) {
+				res = chosen - tmp_first;
+				printf("\n%d\n", res);
+			} else if (chosen < tmp_first) {
+				res = tmp_first - chosen;
+				printf("\n-%d\n", res);
+			}
 		} else if (cmdEql(tmp, "multiply")) {
 			uint8 tmp_first = str_to_int(whatIsArgMain(tmp));
 			res = chosen * tmp_first;

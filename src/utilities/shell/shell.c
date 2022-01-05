@@ -59,7 +59,11 @@ void launch_shell(int n)
 		    }
 		    else
 		    {
-				printf("\n%s isn't a valid command\n", ch);
+				if(check_string(ch)) {
+					printf("\n%s isn't a valid command\n", ch);
+				} else {
+					printf("\n");
+				}
 		        //printf("$ ");
 		    }
 	} while (!cmdEql(ch,"exit"));
