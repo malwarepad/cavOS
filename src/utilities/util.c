@@ -16,7 +16,7 @@ void memory_set(uint8 *dest, uint8 val, uint32 len) {
 /**
  * K&R implementation
  */
-void int_to_ascii(int n, char str[]) {          
+string int_to_ascii(int n, char str[]) {          
     int i, sign;
     if ((sign = n) < 0) n = -n;
     i = 0;
@@ -69,6 +69,111 @@ string char_to_string(char ch) {
 	return str;
 }
 
+uint8 check_string(string str) {
+	uint8 size = strlength(str);
+	uint8 res = 0;
+	for (uint8 i = 0; i <= size; i++) {
+		if (
+			str[i] == '1' ||
+			str[i] == '2' ||
+			str[i] == '3' ||
+			str[i] == '4' ||
+			str[i] == '5' ||
+			str[i] == '6' ||
+			str[i] == '7' ||
+			str[i] == '8' ||
+			str[i] == '9' ||
+			str[i] == '-' ||
+			str[i] == '=' ||
+			str[i] == '0' ||
+			str[i] == '!' ||
+			str[i] == '@' ||
+			str[i] == '#' ||
+			str[i] == '$' ||
+			str[i] == '%' ||
+			str[i] == '^' ||
+			str[i] == '&' ||
+			str[i] == '*' ||
+			str[i] == '(' ||
+			str[i] == ')' ||
+			str[i] == '_' ||
+			str[i] == '+' ||
+			str[i] == 'q' ||
+			str[i] == 'w' ||
+			str[i] == 'e' ||
+			str[i] == 'r' ||
+			str[i] == 't' ||
+			str[i] == 'y' ||
+			str[i] == 'u' ||
+			str[i] == 'i' ||
+			str[i] == 'o' ||
+			str[i] == 'p' ||
+			str[i] == '[' ||
+			str[i] == ']' ||
+			str[i] == '\\' ||
+			str[i] == 'Q' ||
+			str[i] == 'W' ||
+			str[i] == 'E' ||
+			str[i] == 'R' ||
+			str[i] == 'T' ||
+			str[i] == 'Y' ||
+			str[i] == 'U' ||
+			str[i] == 'I' ||
+			str[i] == 'O' ||
+			str[i] == 'P' ||
+			str[i] == '{' ||
+			str[i] == '}' ||
+			str[i] == '|' ||
+			str[i] == 'a' ||
+			str[i] == 's' ||
+			str[i] == 'd' ||
+			str[i] == 'f' ||
+			str[i] == 'g' ||
+			str[i] == 'h' ||
+			str[i] == 'j' ||
+			str[i] == 'k' ||
+			str[i] == 'l' ||
+			str[i] == ';' ||
+			str[i] == '\'' ||
+			str[i] == 'A' ||
+			str[i] == 'S' ||
+			str[i] == 'D' ||
+			str[i] == 'F' ||
+			str[i] == 'G' ||
+			str[i] == 'H' ||
+			str[i] == 'J' ||
+			str[i] == 'K' ||
+			str[i] == 'L' ||
+			str[i] == ':' ||
+			str[i] == '"' ||
+			str[i] == 'z' ||
+			str[i] == 'x' ||
+			str[i] == 'c' ||
+			str[i] == 'v' ||
+			str[i] == 'b' ||
+			str[i] == 'n' ||
+			str[i] == 'm' ||
+			str[i] == ',' ||
+			str[i] == '.' ||
+			str[i] == '/' ||
+			str[i] == 'Z' ||
+			str[i] == 'X' ||
+			str[i] == 'C' ||
+			str[i] == 'V' ||
+			str[i] == 'B' ||
+			str[i] == 'N' ||
+			str[i] == 'M' ||
+			str[i] == '<' ||
+			str[i] == '>' ||
+			str[i] == '?'
+		) {
+			res = 1;
+		}
+	}
+
+	return res;
+}
+
 uint8 check_string_numbers(string str) {
 	uint8 size = strlength(str);
 	uint8 res = 0;
@@ -89,16 +194,6 @@ uint8 check_string_numbers(string str) {
 		}
 	}
 	return res;
-}
-
-uint8 string_to_int_corr(const char *str) {
-    uint8 value = 0;
-
-    for(int counter = strlength(str)-1, multiplier = 1; !(counter < 0); --counter, multiplier *= 10) {
-        value += (str[counter] - 0x30) * multiplier;
-    }
-   
-    return value;
 }
 
 void * malloc(int nbytes)
