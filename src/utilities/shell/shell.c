@@ -1,19 +1,14 @@
 #include "../../../include/shell.h"
-#include "../../../include/math.h"
-#include "../../../include/mathf.h"
 
 void launch_shell(int n)
 {
-	string ch = (string) malloc(200); // util.h
+	string ch = (string) malloc(200);
     string data[64];
 	string prompt = "$ ";
 	int counter = 0;
 	do
 	{
-			//printf("$ ");
 			printf("%s", prompt);
-			//printf(int_to_string(n));
-			//printf(")> ");
 		    ch = readStr(); //memory_copy(readStr(), ch,100);
 		    if(cmdEql(ch,"cmd"))
 		    {
@@ -24,23 +19,10 @@ void launch_shell(int n)
 		    {
 		            clearScreen();
 		    }
-		    else if(cmdEql(ch,"exit"))
-		    {
-		    	//printf("\nGood Bye!\n");
-		    }
 		    else if(cmdEql(ch,"echo"))
 		    {
 		    	echo(ch);
 		    }
-			else if(cmdEql(ch,"test"))
-		    {
-				test(ch);
-		    }
-			else if(cmdEql(ch, "snake"))
-			{
-				//clearScreen();
-				//snake(80, 25);
-			}
 		    else if(cmdEql(ch,"help"))
 		    {
 		    	help();
@@ -53,10 +35,6 @@ void launch_shell(int n)
 		    {
 				fetch();
 		    }
-			else if(cmdEql(ch,"mathf"))
-		    {
-				mathf_interactive_shell(0);
-		    }
 		    else
 		    {
 				if(check_string(ch)) {
@@ -64,45 +42,18 @@ void launch_shell(int n)
 				} else {
 					printf("\n");
 				}
-		        //printf("$ ");
 		    }
 	} while (!cmdEql(ch,"exit"));
 }
 
-void test(string ch) {
-	//a
-}
-
-/*void snake(uint8 rows, uint8 cols) {
-	uint8 isPlaying = 1;
-
-	while (isPlaying) {
-		char prefixR = '>';
-		char prefixL = '<';
-		char seperator = '=';
-
-		uint8 posX = 1; // Horizontal angle
-		uint8 posY = 1; // Vertical angle
-		string cursorCurrent;
-		cursorCurrent[0] = seperator;
-		cursorCurrent[1] = prefixR;
-
-		clearScreen();
-		printf("%s", cursorCurrent);
-		char test = readWASD();
-
-		if (test == 'q') {
-			isPlaying--;
-			clearScreen();
-		}
-	}
-}*/
-
 void echo(string ch)
 {
-	string arg = whatIsArgMain(ch);
-
-	printf("\n%s\n", arg);
+	if (argSrch(ch, 1, 1) != 0) {
+		printf("\n%s\n", argSrch(ch, 1, 1));
+	}
+	else {
+		printf("\nEcho requires an argument!\n");
+	}
 }
 
 int fibo(int n)

@@ -4,7 +4,10 @@
 #include "../../include/util.h"
 #include "../../include/shell.h"
 
-#include "../../include/mathf.h"
+#include "../../include/coding_functions.h"
+
+char* commands[4][512];
+uint8 count = 0;
 
 int kmain()
 {
