@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.ejs": "html",
         "idt.h": "c",
         "shell.h": "c",
         "system.h": "c",
@@ -14,7 +15,9 @@
         "valarray": "c",
         "isr.h": "c",
         "string.h": "c",
-        "math.h": "c"
+        "math.h": "c",
+        "mathf.h": "c",
+        "screen.h": "c"
     },
     "cSpell.words": [
         "positionf"

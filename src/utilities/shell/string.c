@@ -119,60 +119,47 @@ uint8 cmdEql(string ch1, string ch2) {
         return res;
 }
 
-uint8 whereSpace1(string ch1) {
-        uint8 size = strlength(ch1);
-        uint8 position = 0;
-        uint8 foundAnything = 0;
+string argSrch(string str, uint8 index, uint8 full) {
+    string res;
+    uint8 str_size = strlength(str);
+    uint8 start = 0;
+    uint8 end = 0;
 
-        for (uint8 i = 0; i <= size; i++) {
-                if (foundAnything == 0) {
-                        if (ch1[i] == ' ') {
-                                position = i;
-                                foundAnything = 1;
-                        }
-                }
+    /* Find space  N1*/
+    uint8 found_cnt = 0;
+    for (int i = 0; i <= str_size; i++) {
+        if (str[i] == ' ') {
+            found_cnt++;
+            if (found_cnt == index) {
+                start = i + 1;
+            }
         }
+    }
+    if (found_cnt == 0) {
+        return 0;
+    }
 
-        if (foundAnything == 0) {
-                return 0;
-        } else {return position;}
-}
-
-uint8 searchArgMain(string ch1, string ch2) {
-        uint8 sizeScnd = strlength(ch2);
-        uint8 res = 1;
-        uint8 starts = whereSpace1(ch1) + 1;
-        uint8 end = strlength(ch1);
-        uint8 times = end - starts;
-        string data;
-
-        for (uint8 i = 0; i <= times; i++) {
-                data[i] = ch1[starts + i];
+    /* Find space  N2*/
+    int found_cnt2 = 0;
+    for (int i = 0; i <= str_size; i++) {
+        if (str[i] == ' ') {
+            found_cnt2++;
+            if (found_cnt2 == (index + 1)) {
+                end = i - 1;
+            }
         }
+    }
+    if (found_cnt == found_cnt2) {
+        end = str_size;
+    }
 
-        uint8 dataSize = strlength(data);
+    for (int i = start; i <= end; i++) {
+        res[i - start] = str[i];
+    }
 
-        if (dataSize != sizeScnd) res = 0;
-        else {
-                uint8 i = 0;
-                for (i; i <= dataSize; i++) {
-                        if (data[i] != ch2[i]) {res = 0;}
-                }
-        }
+    if (full == 1) {
+        end = str_size;
+    }
 
-        return res;
-}
-
-uint8 whatIsArgMain(string ch1) {
-        uint8 res = 1;
-        uint8 starts = whereSpace1(ch1) + 1;
-        uint8 end = strlength(ch1);
-        uint8 times = end - starts;
-        string data = (string) malloc(200);
-
-        for (uint8 i = 0; i <= times; i++) {
-                data[i] = ch1[starts + i];
-        }
-
-        return &data;
+    return res;
 }
