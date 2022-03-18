@@ -1,4 +1,4 @@
-#include "../../include/screen.h"
+#include "../../include/tty.h"
 #include <stdarg.h>
 
 int cursorX = 0, cursorY = 0;

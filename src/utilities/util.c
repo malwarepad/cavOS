@@ -1,5 +1,5 @@
 #include "../../include/util.h"
-#include "../../include/screen.h"
+#include "../../include/tty.h"
 
 void memory_copy(char *source, char *dest, int nbytes) {
     int i;
