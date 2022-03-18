@@ -3,7 +3,7 @@
 #include "system.h"
 #include "string.h"
 #include "kb.h"
-#include "screen.h"
+#include "tty.h"
 #include "types.h"
 #include "util.h"
 

@@ -1,6 +1,6 @@
 #include "../../include/isr.h"
 #include "../../include/idt.h"
-#include "../../include/screen.h"
+#include "../../include/tty.h"
 #include "../../include/util.h"
 
 void isr_install() {
