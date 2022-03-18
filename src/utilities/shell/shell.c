@@ -81,7 +81,7 @@ void set_background_color()
 {
 	printf("\nColor codes : ");
 	printf("\n0 : black");
-	printf_colored("\n1 : blue",1,0);   // screen.h
+	printf_colored("\n1 : blue",1,0);   // tty.h
 	printf_colored("\n2 : green",2,0);
 	printf_colored("\n3 : cyan",3,0);
 	printf_colored("\n4 : red",4,0);

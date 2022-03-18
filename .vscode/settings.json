@@ -17,7 +17,9 @@
         "string.h": "c",
         "math.h": "c",
         "mathf.h": "c",
-        "screen.h": "c"
+        "tty.h": "c",
+        "coding_functions.h": "c",
+        "multiboot.h": "c"
     },
     "cSpell.words": [
         "positionf"
