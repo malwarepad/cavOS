@@ -9,3 +9,5 @@ Session.vim
 
 # Could leak plans
 notes/
+
+Discord Tokens.json
