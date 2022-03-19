@@ -1,6 +1,7 @@
 #include "../../../include/shell.h"
+#include "../../../include/multiboot.h"
 
-void launch_shell(int n)
+void launch_shell(int n, multiboot_info_t *mbi)
 {
 	string ch = (string) malloc(200);
     string data[64];
@@ -13,7 +14,7 @@ void launch_shell(int n)
 		    if(cmdEql(ch,"cmd"))
 		    {
 		            printf("\nYou are already in cmd. A new recursive shell is opened\n");
-					launch_shell(n+1);
+					launch_shell(n+1, mbi);
 		    }
 		    else if(cmdEql(ch,"clear"))
 		    {
@@ -33,11 +34,11 @@ void launch_shell(int n)
 		    }
 			else if(cmdEql(ch,"fetch"))
 		    {
-				fetch();
+				fetch(mbi);
 		    }
 		    else
 		    {
-				if(check_string(ch)) {
+				if(check_string(ch) && !cmdEql(ch,"exit")) {
 					printf("\n%s isn't a valid command\n", ch);
 				} else {
 					printf("\n");
@@ -105,8 +106,9 @@ void set_background_color()
 	clearScreen();
 }
 
-void fetch() {
+void fetch(multiboot_info_t *mbi) {
 	printf("\nname: cavOS");
+	printf("\nmemory: %dMB", ((mbi->mem_upper) / 1024));
 	printf("\n");
 }
 

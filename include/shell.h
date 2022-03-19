@@ -6,9 +6,9 @@
 #include "tty.h"
 #include "types.h"
 #include "util.h"
+#include "multiboot.h"
 
-void launch_shell(int n);
-
+void launch_shell(int n, multiboot_info_t *mbi);
 
 
 #endif
