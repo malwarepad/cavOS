@@ -13,4 +13,7 @@ int kmain(uint32 magic, multiboot_info_t *mbi)
 	clearScreen();
 	printf("Welcome to cavOS! The OS that reminds you of how good computers \nwere back then.. Anyway, just execute any command you want\n'help' is your friend :)\n\n");
 	launch_shell(0, mbi);
+    clearScreen();
+    //draw(mbi, 10, 255, 255, 255);
+    //while (1==1) {}
 }
