@@ -15,7 +15,7 @@ jobs:
     - uses: actions/checkout@v2
     
     - name: Install requirements
-      run: sudo apt install -y nasm build-essential binutils grub-common xorriso make
+      run: sudo apt install -y nasm build-essential binutils grub-common xorriso mtools make
       
     - name: Compile kernel
       run: make build
