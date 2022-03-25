@@ -40,7 +40,7 @@ Important to mention these goals may never be satisfied, take a very long time t
 | Shell Bases                  | [x]    |
 | Simple Shell                 | [-]    |
 | Filesystem (Hard)            | [_]    |
-| Display Driver (Really Hard) | [_]    |
+| Display Driver (Hard)        | [x]    |
 | Full GUI (Impossible)        | [_]    |
 | Network Driver               | [_]    |
 
