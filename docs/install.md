@@ -16,10 +16,10 @@
 - nasm
 
 #### Ubuntu
-`sudo apt -y install nasm build-essential binutils grub-common xorriso`
+`sudo apt install -y nasm build-essential binutils grub-common xorriso`
 
 #### Fedora
-`sudo dnf -y install nasm grub gcc xorriso`
+`sudo dnf install -y nasm grub gcc xorriso`
 
 #### Arch
 `sudo pacman -S --noconfirm nasm grub xorriso gcc`
