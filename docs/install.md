@@ -1,26 +1,32 @@
-## cavOS Building Documents
+## Building Documents
 
-- Build environment:
-    - Compile the docker environment: ``docker build docker -t os-dev``
-    - Enter the build environment: 
-        - Windows (PowerShell): ``docker run --rm -it -v "${pwd}:/root/env" os-dev``
-        - Windows (Command Line): ``docker run --rm -it -v "%cd%":/root/env os-dev``
-        - Linux (/bin/bash): ``docker run --rm -it -v "$(pwd)":/root/env os-dev``
+- [Building Documents](#building-documents)
+	- [Requirements](#requirements)
+		- [Ubuntu](#ubuntu)
+		- [Fedora](#fedora)
+		- [Arch](#arch)
+	- [Building](#building)
+	- [Testing](#testing)
 
-- Compile the kernel + utilities:
-    - Build the kernel + utilities: ``make build``
+### Requirements
+- grub-mkrescue
+- xorriso
+- gcc
+- ld
+- nasm
 
-- Test the OS out with a QEMU emulator
-    - 1. Test it out: ``qemu-system-x86_64 -cdrom cavOS.iso -m 512M``
+#### Ubuntu
+`sudo apt -y install nasm build-essential binutils grub-common xorriso`
 
-- Clean the temporary compiled binaries
-    - Use ``make clear``
+#### Fedora
+`sudo dnf -y install nasm grub gcc xorriso`
 
-### Development commands
+#### Arch
+`sudo pacman -S --noconfirm nasm grub xorriso gcc`
 
-If for whatever reason you decide to modify cavOS you could run the ``build.bat`` script from the docker folder for a quick build and execution of the OS:
+### Building
+To build cavOS, use the following command: `make build`, after doing `make clear`.
 
-``.\docker\build.bat``
-``.\docker\build all``
-
-It isn't best practice, but really useful for when you're in a hurry. 
+### Testing
+To test your cavOS kernel using grub, run the qemu.sh script with no arguments:
+`./qemu.sh`

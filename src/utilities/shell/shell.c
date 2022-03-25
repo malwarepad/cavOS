@@ -125,8 +125,5 @@ void help()
 	printf("\ncolor     : Changes the colors of the terminal");
 	printf("\nfetch     : Brings you some system information");
 
-	printf("\n\nShell modes:");
-	printf("\nmathf     : Start a simple math shell");
-
 	printf("\n");
 }

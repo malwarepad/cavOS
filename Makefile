@@ -4,14 +4,9 @@ ASSEMBLER = nasm
 CFLAGS = -m32 -c -ffreestanding -w
 ASFLAGS = -f elf32
 LDFLAGS = -m elf_i386 -T src/boot/link.ld
-EMULATOR = qemu-system-i386
-EMULATOR_FLAGS = -kernel
 
 OBJS = obj/kasm.o obj/kc.o obj/idt.o obj/isr.o obj/kb.o obj/tty.o obj/vga.o obj/string.o obj/system.o obj/util.o obj/shell.o
 OUTPUT = tmp/boot/kernel.bin
-
-run: all
-	@#$(EMULATOR) $(EMULATOR_FLAGS) $(OUTPUT)
 
 all:$(OBJS)
 	mkdir tmp/ -p
