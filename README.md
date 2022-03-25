@@ -2,10 +2,10 @@
 
 ![Preview of the OS](./docs/preview.png)
 
-## Table Of Contents:
+## Table Of Contents
 
 - [Cave-Like Operating System](#cave-like-operating-system)
-  - [Table Of Contents:](#table-of-contents)
+  - [Table Of Contents](#table-of-contents)
   - [Purpose](#purpose)
   - [Status](#status)
   - [Future plans](#future-plans)
