@@ -22,3 +22,14 @@ jobs:
       
     - name: Clean temporary bins
       run: make clear
+      
+    - name: Commit files
+      run: |
+        git config --local user.name "malwarepad"
+        git add ./cavOS.iso
+        git commit -m "$(date +"%T"> Auto update)"
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        force: true
