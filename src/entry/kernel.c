@@ -6,14 +6,14 @@
 #include "../../include/shell.h"
 #include "../../include/multiboot.h"
 
+// Kernel entry file
+// Copyright (C) 2022 Panagiotis
+
 int kmain(uint32 magic, multiboot_info_t *mbi)
 {
-    (void) magic; /* Silence compiler warning since magic isn't used */
+    (void) magic;
 	isr_install();
 	clearScreen();
-	printf("Welcome to cavOS! The OS that reminds you of how good computers \nwere back then.. Anyway, just execute any command you want\n'help' is your friend :)\n\n");
+	printf("Welcome to cavOS! The OS that reminds you of how good computers \nwere back then.. Anyway, just execute any command you want\n'help' is your friend :)\n\nNote that this program comes with ABSOLUTELY NO WARRANTY.\n\n");
 	launch_shell(0, mbi);
-    clearScreen();
-    //draw(mbi, 10, 255, 255, 255);
-    //while (1==1) {}
 }

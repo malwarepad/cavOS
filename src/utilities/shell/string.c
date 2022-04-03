@@ -2,6 +2,9 @@
 #include "../../../include/tty.h"
 #include "../../../include/util.h"
 
+// String management file
+// Copyright (C) 2022 Panagiotis
+
 uint16 strlength(string ch)
 {
         uint16 i = 0;           //Changed counter to 0

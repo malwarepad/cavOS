@@ -5,7 +5,7 @@ CFLAGS = -m32 -c -ffreestanding -w
 ASFLAGS = -f elf32
 LDFLAGS = -m elf_i386 -T src/boot/link.ld
 
-OBJS = obj/kasm.o obj/kc.o obj/idt.o obj/isr.o obj/kb.o obj/tty.o obj/vga.o obj/string.o obj/system.o obj/util.o obj/shell.o
+OBJS = tmp/obj/kasm.o tmp/obj/kc.o tmp/obj/idt.o tmp/obj/isr.o tmp/obj/kb.o tmp/obj/tty.o tmp/obj/vga.o tmp/obj/string.o tmp/obj/system.o tmp/obj/util.o tmp/obj/shell.o
 OUTPUT = tmp/boot/kernel.bin
 
 all:$(OBJS)
@@ -13,44 +13,46 @@ all:$(OBJS)
 	mkdir tmp/boot/ -p
 	$(LINKER) $(LDFLAGS) -o $(OUTPUT) $(OBJS)
 
-obj/kasm.o:src/boot/kernel.asm
-	mkdir obj/ -p
-	$(ASSEMBLER) $(ASFLAGS) -o obj/kasm.o src/boot/kernel.asm
+tmp/obj/kasm.o:src/boot/kernel.asm
+	mkdir tmp/obj/ -p
+	$(ASSEMBLER) $(ASFLAGS) -o tmp/obj/kasm.o src/boot/kernel.asm
 	
-obj/kc.o:src/entry/kernel.c
-	$(COMPILER) $(CFLAGS) src/entry/kernel.c -o obj/kc.o 
+tmp/obj/kc.o:src/entry/kernel.c
+	$(COMPILER) $(CFLAGS) src/entry/kernel.c -o tmp/obj/kc.o 
 	
-obj/idt.o:src/cpu/idt.c
-	$(COMPILER) $(CFLAGS) src/cpu/idt.c -o obj/idt.o 
+tmp/obj/idt.o:src/cpu/idt.c
+	$(COMPILER) $(CFLAGS) src/cpu/idt.c -o tmp/obj/idt.o 
 
-obj/kb.o:src/drivers/kb.c
-	$(COMPILER) $(CFLAGS) src/drivers/kb.c -o obj/kb.o
+tmp/obj/kb.o:src/drivers/kb.c
+	$(COMPILER) $(CFLAGS) src/drivers/kb.c -o tmp/obj/kb.o
 
-obj/isr.o:src/cpu/isr.c
-	$(COMPILER) $(CFLAGS) src/cpu/isr.c -o obj/isr.o
+tmp/obj/isr.o:src/cpu/isr.c
+	$(COMPILER) $(CFLAGS) src/cpu/isr.c -o tmp/obj/isr.o
 
-obj/tty.o:src/drivers/tty.c
-	$(COMPILER) $(CFLAGS) src/drivers/tty.c -o obj/tty.o
+tmp/obj/tty.o:src/drivers/tty.c
+	$(COMPILER) $(CFLAGS) src/drivers/tty.c -o tmp/obj/tty.o
 
-obj/vga.o:src/drivers/vga.c
-	$(COMPILER) $(CFLAGS) src/drivers/vga.c -o obj/vga.o
+tmp/obj/vga.o:src/drivers/vga.c
+	$(COMPILER) $(CFLAGS) src/drivers/vga.c -o tmp/obj/vga.o
 
-obj/string.o:src/utilities/shell/string.c
-	$(COMPILER) $(CFLAGS) src/utilities/shell/string.c -o obj/string.o
+tmp/obj/string.o:src/utilities/shell/string.c
+	$(COMPILER) $(CFLAGS) src/utilities/shell/string.c -o tmp/obj/string.o
 
-obj/system.o:src/cpu/system.c
-	$(COMPILER) $(CFLAGS) src/cpu/system.c -o obj/system.o
+tmp/obj/system.o:src/cpu/system.c
+	$(COMPILER) $(CFLAGS) src/cpu/system.c -o tmp/obj/system.o
 
-obj/util.o:src/utilities/util.c
-	$(COMPILER) $(CFLAGS) src/utilities/util.c -o obj/util.o
+tmp/obj/util.o:src/utilities/util.c
+	$(COMPILER) $(CFLAGS) src/utilities/util.c -o tmp/obj/util.o
 	
-obj/shell.o:src/utilities/shell/shell.c
-	$(COMPILER) $(CFLAGS) src/utilities/shell/shell.c -o obj/shell.o
+tmp/obj/shell.o:src/utilities/shell/shell.c
+	$(COMPILER) $(CFLAGS) src/utilities/shell/shell.c -o tmp/obj/shell.o
 
 build:all 
 	grub-mkrescue -o cavOS.iso tmp/
 	
 clear:
-	rm -f obj/*.o
+	rm -f tmp/obj/*.o
 	rm -r -f tmp/kernel.bin
-	
+
+qemu:
+	./qemu.sh

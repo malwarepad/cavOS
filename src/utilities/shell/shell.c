@@ -2,6 +2,9 @@
 #include "../../../include/multiboot.h"
 #include "../../../include/vga.h"
 
+// Shell driver
+// Copyright (C) 2022 Panagiotis
+
 void launch_shell(int n, multiboot_info_t *mbi)
 {
 	string ch = (string) malloc(200);

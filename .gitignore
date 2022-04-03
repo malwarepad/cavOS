@@ -4,10 +4,7 @@ obj/*
 # Could obviously contain sensitive data
 .vscode/
 .idea/
-
 Session.vim
 
 # Could leak plans
 notes/
-
-Discord Tokens.json

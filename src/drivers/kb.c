@@ -1,6 +1,9 @@
 #include "../../include/kb.h"
 #include "../../include/system.h"
 
+// Very bare bones, and basic keyboard driver 
+// Copyright (C) 2022 Panagiotis
+
 string readStr() {
     char buff;
     string buffstr = (string) malloc(200);
@@ -624,54 +627,4 @@ string readStr() {
     }
     buffstr[i-1] = 0;
     return buffstr;
-}
-
-string readWASD() {
-    char buff;
-    string buffstr = (string) malloc(200);
-    uint8 i = 0;
-    uint8 reading = 1;
-    uint8 readTmp = 1;
-    while(reading)
-    {
-        if(inportb(0x64) & 0x1)
-        {
-            //printf_arr(int_to_string(inportb(0x60)));
-            switch(inportb(0x60))
-            {
-                case 17:
-                        //printfch('w');
-                        buffstr[0] = 'w';
-                        i++;
-                        reading--;
-                        break;
-                case 30:
-                        //printfch('a');
-                        buffstr[0] = 'a';
-                        i++;
-                        reading--;
-                        break;
-                case 31:
-                        //printfch('s');
-                        buffstr[0] = 's';
-                        i++;
-                        reading--;
-                        break;
-                case 32:
-                        //printfch('d');
-                        buffstr[0] = 'd';
-                        i++;
-                        reading--;
-                        break;
-                case 16:
-                        //printfch('q');
-                        buffstr[0] = 'q';
-                        i++;
-                        reading--;
-                        break;
-            }
-        }
-    }
-    //buffstr[i-1] = 0;
-    return buffstr[0];
 }

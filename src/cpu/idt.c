@@ -1,6 +1,9 @@
 #include "../../include/idt.h"
 #include "../../include/util.h"
 
+// IDT Entry configurator
+// Copyright (C) 2022 Panagiotis
+
 void set_idt_gate(int n, uint32 handler) {
     idt[n].low_offset = low_16(handler);
     idt[n].sel = KERNEL_CS;

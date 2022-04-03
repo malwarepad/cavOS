@@ -1,6 +1,9 @@
 #include "../../include/tty.h"
 #include "../../include/multiboot.h"
 
+// Incomplete VGA driver
+// Copyright (C) 2022 Panagiotis
+
 void drawPixel(multiboot_info_t *mbi, uint32 count, uint32 r, uint32 g, uint32 b) { //drawPixel(mbi, 0, 0x7800);
     string screen = (string) mbi->framebuffer_addr;
     //unsigned where = width*mbi->framebuffer_width + height*mbi->framebuffer_pitch;

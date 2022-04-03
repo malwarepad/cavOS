@@ -1,6 +1,9 @@
 #include "../../include/tty.h"
 #include <stdarg.h>
 
+// Basic tty-like display driver
+// Copyright (C) 2022 Panagiotis
+
 int cursorX = 0, cursorY = 0;
 const uint8 sw = 80,sh = 25,sd = 2; 
 int color = 0x0F;
