@@ -1,6 +1,9 @@
 #include "../../include/util.h"
 #include "../../include/tty.h"
 
+// Utilities used inside source code
+// Copyright (C) 2022 Panagiotis
+
 void memory_copy(char *source, char *dest, int nbytes) {
     int i;
     for (i = 0; i < nbytes; i++) {

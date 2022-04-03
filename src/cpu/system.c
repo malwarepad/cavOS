@@ -1,5 +1,8 @@
 #include "../../include/system.h"
 
+// Source code for handling ports via assembly references
+// Copyright (C) 2022 Panagiotis
+
 uint8 inportb (uint16 _port)
 {
     	uint8 rv;

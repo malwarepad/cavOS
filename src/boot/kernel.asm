@@ -1,3 +1,6 @@
+; Kernel boot file
+; Copyright (C) 2022 Panagiotis
+
 bits    32
 
 section         .text
@@ -23,16 +26,10 @@ extern kmain            ; this function is gonna be located in our c code(kernel
 
 start:
         cli             ;clears the interrupts 
-        ;Int 0x10
-
-        ;mov eax, cr0 
-        ;or al, 1       ; set PE (Protection Enable) bit in CR0 (Control Register 0)
-        ;mov cr0, eax
 
         mov esp, stack_space
         push ebx
         push eax
-        ;push ebx
         call kmain      ;send processor to continue execution from the kamin funtion in c code
         call Shutdown
         hlt             ; halt the cpu(pause it from executing from this address

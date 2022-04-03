@@ -3,6 +3,9 @@
 #include "../../include/tty.h"
 #include "../../include/util.h"
 
+// ISR Entry configurator
+// Copyright (C) 2022 Panagiotis
+
 void isr_install() {
     set_idt_gate(0, (uint32)isr0);
     set_idt_gate(1, (uint32)isr1);
