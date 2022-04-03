@@ -33,24 +33,16 @@ I'm thinking of extending this project to a full operating system once I acquire
 
 Important to mention these goals may never be satisfied, take a very long time to be completed (we're talking years down the road) or may never be done at all.
 
-| Goal                         | Status |
-| ---------------------------- |:------:|
-| Text Driver                  | [x]    |
-| Keyboard Driver              | [x]    |
-| Shell Bases                  | [x]    |
-| Simple Shell                 | [-]    |
-| Filesystem (Hard)            | [_]    |
-| Display Driver (Hard)        | [x]    |
-| Full GUI (Impossible)        | [_]    |
-| Network Driver               | [_]    |
-
-[_] = not working on it yet
-
-[ ] = not finished
-
-[-] = partial
-
-[x] = done
+| Goal                         | Status   |
+| ---------------------------- |:--------:|
+| Text Driver                  | Done     |
+| Keyboard Driver              | Done     |
+| Shell Bases                  | Done     |
+| Simple Shell                 | Almost   |
+| Filesystem (Hard)            | Not done |
+| Display Driver (Hard)        | Done     |
+| Full GUI (Impossible)        | Not done |
+| Network Driver               | Not done |
 
 ## Compiling
 
