@@ -27,7 +27,7 @@ jobs:
       run: |
         git config --local user.name "malwarepad"
         git add ./cavOS.iso
-        git commit -m "Auto update)"
+        git commit -m "`date +"%T"`> Auto update"
     - name: Push changes
       uses: ad-m/github-push-action@master
       with:
