@@ -50,6 +50,6 @@ Everything about this can be found over on `docs/install.md`. Go there for more 
 
 ## License
 
-Since this is still in pre-beta state I really don't know where this kernel is going. We'll see about publishing for the public to see. But my main interest of this project is to have fun and learn things. 
+This project is licensed under GPL v3 (GNU General Public License v3.0). For more information go to the LICENSE file.
 
 **Please do not steal my code in the process as I would really appreciate some understanding in doing something as complex as creating a whole os from scratch alone.**
