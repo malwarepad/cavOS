@@ -10,7 +10,6 @@ void launch_shell(int n, multiboot_info_t *mbi)
 	string ch = (string) malloc(200);
     string data[64];
 	string prompt = "$ ";
-	int gpu_mode = 0;
 	do
 	{
 			printf("%s", prompt);
@@ -40,9 +39,6 @@ void launch_shell(int n, multiboot_info_t *mbi)
 		    {
 				fetch(mbi);
 		    }
-			else if(cmdEql(ch,"draw")) {
-				gpu_mode = 1;
-			}
 		    else
 		    {
 				if(check_string(ch) && !cmdEql(ch,"exit")) {
