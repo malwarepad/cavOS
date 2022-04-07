@@ -1,5 +1,5 @@
 # Binaries
-obj/*
+tmp/obj/*
 
 # Could obviously contain sensitive data
 .vscode/
