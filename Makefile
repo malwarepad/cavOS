@@ -5,7 +5,7 @@ CFLAGS = -m32 -c -ffreestanding -w
 ASFLAGS = -f elf32
 LDFLAGS = -m elf_i386 -T src/boot/link.ld
 
-OBJS = tmp/obj/kasm.o tmp/obj/kc.o tmp/obj/idt.o tmp/obj/isr.o tmp/obj/kb.o tmp/obj/tty.o tmp/obj/vga.o tmp/obj/string.o tmp/obj/system.o tmp/obj/util.o tmp/obj/shell.o
+OBJS = tmp/obj/kasm.o tmp/obj/kc.o tmp/obj/idt.o tmp/obj/isr.o tmp/obj/kb.o tmp/obj/vga.o tmp/obj/string.o tmp/obj/system.o tmp/obj/util.o tmp/obj/shell.o
 OUTPUT = tmp/boot/kernel.bin
 
 all:$(OBJS)
@@ -28,9 +28,6 @@ tmp/obj/kb.o:src/drivers/kb.c
 
 tmp/obj/isr.o:src/cpu/isr.c
 	$(COMPILER) $(CFLAGS) src/cpu/isr.c -o tmp/obj/isr.o
-
-tmp/obj/tty.o:src/drivers/tty.c
-	$(COMPILER) $(CFLAGS) src/drivers/tty.c -o tmp/obj/tty.o
 
 tmp/obj/vga.o:src/drivers/vga.c
 	$(COMPILER) $(CFLAGS) src/drivers/vga.c -o tmp/obj/vga.o

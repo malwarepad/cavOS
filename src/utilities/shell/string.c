@@ -1,5 +1,5 @@
 #include "../../../include/string.h"
-#include "../../../include/tty.h"
+#include "../../../include/vga.h"
 #include "../../../include/util.h"
 
 // String management file
