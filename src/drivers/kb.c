@@ -1,10 +1,12 @@
 #include "../../include/kb.h"
 #include "../../include/system.h"
+#include "../../include/vga.h"
+#include "../../include/multiboot.h"
 
 // Very bare bones, and basic keyboard driver 
 // Copyright (C) 2022 Panagiotis
 
-string readStr() {
+string readStr(multiboot_info_t *mbi) {
     char buff;
     string buffstr = (string) malloc(200);
     uint8 i = 0;
@@ -18,67 +20,67 @@ string readStr() {
             switch(inportb(0x60))
             {
                 /*case 1:
-                printfch('(char)27);           Escape button
+                drawText(mbi, '(char)27);           Escape button
                 buffstr[i] = (char)27;
                 i++;
                 break;*/
                 case 2:
-                        printfch('1');
+                        drawText(mbi, '1');
                         buffstr[i] = '1';
                         i++;
                         break;
                 case 3:
-                        printfch('2');
+                        drawText(mbi, '2');
                         buffstr[i] = '2';
                         i++;
                         break;
                 case 4:
-                        printfch('3');
+                        drawText(mbi, '3');
                         buffstr[i] = '3';
                         i++;
                         break;
                 case 5:
-                        printfch('4');
+                        drawText(mbi, '4');
                         buffstr[i] = '4';
                         i++;
                         break;
                 case 6:
-                        printfch('5');
+                        drawText(mbi, '5');
                         buffstr[i] = '5';
                         i++;
                         break;
                 case 7:
-                        printfch('6');
+                        drawText(mbi, '6');
                         buffstr[i] = '6';
                         i++;
                         break;
                 case 8:
-                        printfch('7');
+                        drawText(mbi, '7');
                         buffstr[i] = '7';
                         i++;
                         break;
                 case 9:
-                        printfch('8');
+                        drawText(mbi, '8');
                         buffstr[i] = '8';
                         i++;
                         break;
                 case 10:
-                        printfch('9');
+                        drawText(mbi, '9');
                         buffstr[i] = '9';
                         i++;
                         break;
                 case 11:
-                        printfch('0');
+                        drawText(mbi, '0');
                         buffstr[i] = '0';
                         i++;
                         break;
                 case 12:
-                        printfch('-');
+                        drawText(mbi, '-');
                         buffstr[i] = '-';
                         i++;
                         break;
                 case 13:
-                        printfch('=');
+                        drawText(mbi, '=');
                         buffstr[i] = '=';
                         i++;
                         break;
@@ -86,7 +88,7 @@ string readStr() {
                         if (i == 0) {
                                 break;
                         } else {
-                                printfch('\b');
+                                drawText(mbi, '\b');
                                 i--;
                                 buffstr[i+1] = 0;
                                 buffstr[i] = 0;
@@ -104,144 +106,144 @@ string readStr() {
                         break;
                         */
         /* case 15:
-                        printfch('\t');          Tab button
+                        drawText(mbi, '\t');          Tab button
                         buffstr[i] = '\t';
                         i++;
                         break;*/
                 case 16:
-                        printfch('q');
+                        drawText(mbi, 'q');
                         buffstr[i] = 'q';
                         i++;
                         break;
                 case 17:
-                        printfch('w');
+                        drawText(mbi, 'w');
                         buffstr[i] = 'w';
                         i++;
                         break;
                 case 18:
-                        printfch('e');
+                        drawText(mbi, 'e');
                         buffstr[i] = 'e';
                         i++;
                         break;
                 case 19:
-                        printfch('r');
+                        drawText(mbi, 'r');
                         buffstr[i] = 'r';
                         i++;
                         break;
                 case 20:
-                        printfch('t');
+                        drawText(mbi, 't');
                         buffstr[i] = 't';
                         i++;
                         break;
                 case 21:
-                        printfch('y');
+                        drawText(mbi, 'y');
                         buffstr[i] = 'y';
                         i++;
                         break;
                 case 22:
-                        printfch('u');
+                        drawText(mbi, 'u');
                         buffstr[i] = 'u';
                         i++;
                         break;
                 case 23:
-                        printfch('i');
+                        drawText(mbi, 'i');
                         buffstr[i] = 'i';
                         i++;
                         break;
                 case 24:
-                        printfch('o');
+                        drawText(mbi, 'o');
                         buffstr[i] = 'o';
                         i++;
                         break;
                 case 25:
-                        printfch('p');
+                        drawText(mbi, 'p');
                         buffstr[i] = 'p';
                         i++;
                         break;
                 case 26:
-                        printfch('[');
+                        drawText(mbi, '[');
                         buffstr[i] = '[';
                         i++;
                         break;
                 case 27:
-                        printfch(']');
+                        drawText(mbi, ']');
                         buffstr[i] = ']';
                         i++;
                         break;
                 case 28:
-                // printfch('\n');
+                // drawText(mbi, '\n');
                 // buffstr[i] = '\n';
                         i++;
                 reading = 0;
                         break;
         /*  case 29:
-                        printfch('q');           Left Control
+                        drawText(mbi, 'q');           Left Control
                         buffstr[i] = 'q';
                         i++;
                         break;*/
                 case 30:
-                        printfch('a');
+                        drawText(mbi, 'a');
                         buffstr[i] = 'a';
                         i++;
                         break;
                 case 31:
-                        printfch('s');
+                        drawText(mbi, 's');
                         buffstr[i] = 's';
                         i++;
                         break;
                 case 32:
-                        printfch('d');
+                        drawText(mbi, 'd');
                         buffstr[i] = 'd';
                         i++;
                         break;
                 case 33:
-                        printfch('f');
+                        drawText(mbi, 'f');
                         buffstr[i] = 'f';
                         i++;
                         break;
                 case 34:
-                        printfch('g');
+                        drawText(mbi, 'g');
                         buffstr[i] = 'g';
                         i++;
                         break;
                 case 35:
-                        printfch('h');
+                        drawText(mbi, 'h');
                         buffstr[i] = 'h';
                         i++;
                         break;
                 case 36:
-                        printfch('j');
+                        drawText(mbi, 'j');
                         buffstr[i] = 'j';
                         i++;
                         break;
                 case 37:
-                        printfch('k');
+                        drawText(mbi, 'k');
                         buffstr[i] = 'k';
                         i++;
                         break;
                 case 38:
-                        printfch('l');
+                        drawText(mbi, 'l');
                         buffstr[i] = 'l';
                         i++;
                         break;
                 case 39:
-                        printfch(';');
+                        drawText(mbi, ';');
                         buffstr[i] = ';';
                         i++;
                         break;
                 case 40:
-                        printfch((char)44);               //   Single quote (')
+                        drawText(mbi, (char)44);               //   Single quote (')
                         buffstr[i] = (char)44;
                         i++;
                         break;
                 case 41:
-                        printfch((char)44);               // Back tick (`)
+                        drawText(mbi, (char)44);               // Back tick (`)
                         buffstr[i] = (char)44;
                         i++;
                         break;
                 case 42:                                 //Left shift
                         /*do {
-                                printfch('Q');
+                                drawText(mbi, 'Q');
                         } if (inportb(0x60) != 170);
                         break;*/
 
@@ -249,62 +251,62 @@ string readStr() {
                                 if(inportb(0x64) & 0x1) {
                                         switch(inportb(0x60)) {
                                                 case 2:
-                                                        printfch('!');
+                                                        drawText(mbi, '!');
                                                         buffstr[i] = '!';
                                                         i++;
                                                         break;
                                                 case 3:
-                                                        printfch('$');
+                                                        drawText(mbi, '$');
                                                         buffstr[i] = '@';
                                                         i++;
                                                         break;
                                                 case 4:
-                                                        printfch('$');
+                                                        drawText(mbi, '$');
                                                         buffstr[i] = '#';
                                                         i++;
                                                         break;
                                                 case 5:
-                                                        printfch('$');
+                                                        drawText(mbi, '$');
                                                         buffstr[i] = '$';
                                                         i++;
                                                         break;
                                                 case 6:
-                                                        printfch('%');
+                                                        drawText(mbi, '%');
                                                         buffstr[i] = '%';
                                                         i++;
                                                         break;
                                                 case 7:
-                                                        printfch('^');
+                                                        drawText(mbi, '^');
                                                         buffstr[i] = '^';
                                                         i++;
                                                         break;
                                                 case 8:
-                                                        printfch('&');
+                                                        drawText(mbi, '&');
                                                         buffstr[i] = '&';
                                                         i++;
                                                         break;
                                                 case 9:
-                                                        printfch('*');
+                                                        drawText(mbi, '*');
                                                         buffstr[i] = '*';
                                                         i++;
                                                         break;
                                                 case 10:
-                                                        printfch('(');
+                                                        drawText(mbi, '(');
                                                         buffstr[i] = '(';
                                                         i++;
                                                         break;
                                                 case 11:
-                                                        printfch(')');
+                                                        drawText(mbi, ')');
                                                         buffstr[i] = ')';
                                                         i++;
                                                         break;
                                                 case 12:
-                                                        printfch('_');
+                                                        drawText(mbi, '_');
                                                         buffstr[i] = '_';
                                                         i++;
                                                         break;
                                                 case 13:
-                                                        printfch('+');
+                                                        drawText(mbi, '+');
                                                         buffstr[i] = '+';
                                                         i++;
                                                         break;
@@ -312,7 +314,7 @@ string readStr() {
                                                         if (i == 0) {
                                                                 break;
                                                         } else {
-                                                                printfch('\b');
+                                                                drawText(mbi, '\b');
                                                                 i--;
                                                                 buffstr[i+1] = 0;
                                                                 buffstr[i] = 0;
@@ -330,215 +332,215 @@ string readStr() {
                                                         break;
                                                         */
                                         /* case 15:
-                                                        printfch('\t');          Tab button
+                                                        drawText(mbi, '\t');          Tab button
                                                         buffstr[i] = '\t';
                                                         i++;
                                                         break;*/
                                                 case 16:
-                                                        printfch('Q');
+                                                        drawText(mbi, 'Q');
                                                         buffstr[i] = 'Q';
                                                         i++;
                                                         break;
                                                 case 17:
-                                                        printfch('W');
+                                                        drawText(mbi, 'W');
                                                         buffstr[i] = 'W';
                                                         i++;
                                                         break;
                                                 case 18:
-                                                        printfch('E');
+                                                        drawText(mbi, 'E');
                                                         buffstr[i] = 'E';
                                                         i++;
                                                         break;
                                                 case 19:
-                                                        printfch('R');
+                                                        drawText(mbi, 'R');
                                                         buffstr[i] = 'R';
                                                         i++;
                                                         break;
                                                 case 20:
-                                                        printfch('T');
+                                                        drawText(mbi, 'T');
                                                         buffstr[i] = 'T';
                                                         i++;
                                                         break;
                                                 case 21:
-                                                        printfch('Y');
+                                                        drawText(mbi, 'Y');
                                                         buffstr[i] = 'Y';
                                                         i++;
                                                         break;
                                                 case 22:
-                                                        printfch('U');
+                                                        drawText(mbi, 'U');
                                                         buffstr[i] = 'U';
                                                         i++;
                                                         break;
                                                 case 23:
-                                                        printfch('I');
+                                                        drawText(mbi, 'I');
                                                         buffstr[i] = 'I';
                                                         i++;
                                                         break;
                                                 case 24:
-                                                        printfch('O');
+                                                        drawText(mbi, 'O');
                                                         buffstr[i] = 'O';
                                                         i++;
                                                         break;
                                                 case 25:
-                                                        printfch('P');
+                                                        drawText(mbi, 'P');
                                                         buffstr[i] = 'P';
                                                         i++;
                                                         break;
                                                 case 26:
-                                                        printfch('{');
+                                                        drawText(mbi, '{');
                                                         buffstr[i] = '{';
                                                         i++;
                                                         break;
                                                 case 27:
-                                                        printfch('}');
+                                                        drawText(mbi, '}');
                                                         buffstr[i] = '}';
                                                         i++;
                                                         break;
                                                 case 28:
-                                                // printfch('\n');
+                                                // drawText(mbi, '\n');
                                                 // buffstr[i] = '\n';
                                                         i++;
                                                 reading = 0;
                                                         break;
                                         /*  case 29:
-                                                        printfch('q');           Left Control
+                                                        drawText(mbi, 'q');           Left Control
                                                         buffstr[i] = 'q';
                                                         i++;
                                                         break;*/
                                                 case 30:
-                                                        printfch('A');
+                                                        drawText(mbi, 'A');
                                                         buffstr[i] = 'A';
                                                         i++;
                                                         break;
                                                 case 31:
-                                                        printfch('S');
+                                                        drawText(mbi, 'S');
                                                         buffstr[i] = 'S';
                                                         i++;
                                                         break;
                                                 case 32:
-                                                        printfch('D');
+                                                        drawText(mbi, 'D');
                                                         buffstr[i] = 'D';
                                                         i++;
                                                         break;
                                                 case 33:
-                                                        printfch('F');
+                                                        drawText(mbi, 'F');
                                                         buffstr[i] = 'F';
                                                         i++;
                                                         break;
                                                 case 34:
-                                                        printfch('G');
+                                                        drawText(mbi, 'G');
                                                         buffstr[i] = 'G';
                                                         i++;
                                                         break;
                                                 case 35:
-                                                        printfch('H');
+                                                        drawText(mbi, 'H');
                                                         buffstr[i] = 'H';
                                                         i++;
                                                         break;
                                                 case 36:
-                                                        printfch('J');
+                                                        drawText(mbi, 'J');
                                                         buffstr[i] = 'J';
                                                         i++;
                                                         break;
                                                 case 37:
-                                                        printfch('K');
+                                                        drawText(mbi, 'K');
                                                         buffstr[i] = 'K';
                                                         i++;
                                                         break;
                                                 case 38:
-                                                        printfch('L');
+                                                        drawText(mbi, 'L');
                                                         buffstr[i] = 'L';
                                                         i++;
                                                         break;
                                                 case 39:
-                                                        printfch(':');
+                                                        drawText(mbi, ':');
                                                         buffstr[i] = ':';
                                                         i++;
                                                         break;
                                                 case 40:
-                                                        printfch((char)44);               //   Single quote (')
+                                                        drawText(mbi, (char)44);               //   Single quote (')
                                                         buffstr[i] = (char)44;
                                                         i++;
                                                         break;
                                                 case 41:
-                                                        printfch((char)44);               // Back tick (`)
+                                                        drawText(mbi, (char)44);               // Back tick (`)
                                                         buffstr[i] = (char)44;
                                                         i++;
                                                         break;
                                                 //case 42:                                   Left Shift
 
                                                 /*case 43:                                 \ (< for somekeyboards)
-                                                        printfch((char)92);
+                                                        drawText((char)92);
                                                         buffstr[i] = 'q';
                                                         i++;
                                                         break;*/
                                                 case 44:
-                                                        printfch('Z');
+                                                        drawText(mbi, 'Z');
                                                         buffstr[i] = 'Z';
                                                         i++;
                                                         break;
                                                 case 45:
-                                                        printfch('X');
+                                                        drawText(mbi, 'X');
                                                         buffstr[i] = 'X';
                                                         i++;
                                                         break;
                                                 case 46:
-                                                        printfch('C');
+                                                        drawText(mbi, 'C');
                                                         buffstr[i] = 'C';
                                                         i++;
                                                         break;
                                                 case 47:
-                                                        printfch('V');
+                                                        drawText(mbi, 'V');
                                                         buffstr[i] = 'V';
                                                         i++;
                                                         break;
                                                 case 48:
-                                                        printfch('B');
+                                                        drawText(mbi, 'B');
                                                         buffstr[i] = 'B';
                                                         i++;
                                                         break;
                                                 case 49:
-                                                        printfch('N');
+                                                        drawText(mbi, 'N');
                                                         buffstr[i] = 'N';
                                                         i++;
                                                         break;
                                                 case 50:
-                                                        printfch('M');
+                                                        drawText(mbi, 'M');
                                                         buffstr[i] = 'M';
                                                         i++;
                                                         break;
                                                 case 51:
-                                                        printfch('<');
+                                                        drawText(mbi, '<');
                                                         buffstr[i] = '<';
                                                         i++;
                                                         break;
                                                 case 52:
-                                                        printfch('>');
+                                                        drawText(mbi, '>');
                                                         buffstr[i] = '>';
                                                         i++;
                                                         break;
                                                 case 53:
-                                                        printfch('?');
+                                                        drawText(mbi, '?');
                                                         buffstr[i] = '?';
                                                         i++;
                                                         break;
                                                 /*case 54:
-                                                        printfch('.');
+                                                        drawText(mbi, '.');
                                                         buffstr[i] = '.';
                                                         i++;
                                                         break;*/
                                                 /*case 55:
-                                                        printfch('?');
+                                                        drawText(mbi, '?');
                                                         buffstr[i] = '?';
                                                         i++;
                                                         break;
                                                 case 56:
-                                                        printfch(' ');           Right shift
+                                                        drawText(mbi, ' ');           Right shift
                                                         buffstr[i] = ' ';
                                                         i++;
                                                         break;*/
                                                 case 57:
-                                                        printfch(' ');
+                                                        drawText(mbi, ' ');
                                                         buffstr[i] = ' ';
                                                         i++;
                                                         break;
@@ -548,77 +550,77 @@ string readStr() {
                         break;
 
                 /*case 43:                                 \ (< for somekeyboards)
-                        printfch((char)92);
+                        drawText((char)92);
                         buffstr[i] = 'q';
                         i++;
                         break;*/
                 case 44:
-                        printfch('z');
+                        drawText(mbi, 'z');
                         buffstr[i] = 'z';
                         i++;
                         break;
                 case 45:
-                        printfch('x');
+                        drawText(mbi, 'x');
                         buffstr[i] = 'x';
                         i++;
                         break;
                 case 46:
-                        printfch('c');
+                        drawText(mbi, 'c');
                         buffstr[i] = 'c';
                         i++;
                         break;
                 case 47:
-                        printfch('v');
+                        drawText(mbi, 'v');
                         buffstr[i] = 'v';
                         i++;
                         break;
                 case 48:
-                        printfch('b');
+                        drawText(mbi, 'b');
                         buffstr[i] = 'b';
                         i++;
                         break;
                 case 49:
-                        printfch('n');
+                        drawText(mbi, 'n');
                         buffstr[i] = 'n';
                         i++;
                         break;
                 case 50:
-                        printfch('m');
+                        drawText(mbi, 'm');
                         buffstr[i] = 'm';
                         i++;
                         break;
                 case 51:
-                        printfch(',');
+                        drawText(mbi, ',');
                         buffstr[i] = ',';
                         i++;
                         break;
                 case 52:
-                        printfch('.');
+                        drawText(mbi, '.');
                         buffstr[i] = '.';
                         i++;
                         break;
                 case 53:
-                        printfch('/');
+                        drawText(mbi, '/');
                         buffstr[i] = '/';
                         i++;
                         break;
                 /*case 54:
-                        printfch('.');
+                        drawText(mbi, '.');
                         buffstr[i] = '.';
                         i++;
                         break;
                 case 55:
-                        printfch('/');
+                        drawText(mbi, '/');
                         buffstr[i] = '/';
                         i++;
                         break;*/
         /*case 56:
-                        printfch(' ');           Right shift
+                        drawText(mbi, ' ');           Right shift
                         buffstr[i] = ' ';
                         i++;
                         break;*/
                 case 57:
-                        printfch(' ');
+                        drawText(mbi, ' ');
                         buffstr[i] = ' ';
                         i++;
                         break;

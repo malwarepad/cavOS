@@ -1,5 +1,5 @@
 #include "../../include/util.h"
-#include "../../include/tty.h"
+#include "../../include/vga.h"
 
 // Utilities used inside source code
 // Copyright (C) 2022 Panagiotis

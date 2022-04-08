@@ -2,6 +2,7 @@
 #define ISR_H
 
 #include "types.h"
+#include "multiboot.h"
 
 /* ISRs reserved for CPU exceptions */
 void isr0();
