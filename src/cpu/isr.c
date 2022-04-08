@@ -1,12 +1,13 @@
 #include "../../include/isr.h"
 #include "../../include/idt.h"
-#include "../../include/tty.h"
+#include "../../include/vga.h"
 #include "../../include/util.h"
+#include "../../include/multiboot.h"
 
 // ISR Entry configurator
 // Copyright (C) 2022 Panagiotis
 
-void isr_install() {
+void isr_install(multiboot_info_t *mbi) {
     set_idt_gate(0, (uint32)isr0);
     set_idt_gate(1, (uint32)isr1);
     set_idt_gate(2, (uint32)isr2);
@@ -44,164 +45,164 @@ void isr_install() {
 }
 
 /*Handlers*/
-void isr0()
+void isr0(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[0]);
+    printf(mbi, exception_messages[0]);
     asm("hlt");    
 }
-void isr1()
+void isr1(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[1]);    
+    printf(mbi, exception_messages[1]);    
     asm("hlt");
 }
-void isr2()
+void isr2(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[2]);    
+    printf(mbi, exception_messages[2]);    
     asm("hlt");
 }
-void isr3()
+void isr3(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[3]);    
+    printf(mbi, exception_messages[3]);    
     asm("hlt");
 }
-void isr4()
+void isr4(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[4]);    
+    printf(mbi, exception_messages[4]);    
     asm("hlt");
 }
-void isr5()
+void isr5(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[5]);    
+    printf(mbi, exception_messages[5]);    
     asm("hlt");
 }
-void isr6()
+void isr6(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[6]);    
+    printf(mbi, exception_messages[6]);    
     asm("hlt");
 }
-void isr7()
+void isr7(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[7]);    
+    printf(mbi, exception_messages[7]);    
     asm("hlt");
 }
-void isr8()
+void isr8(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[8]);    
+    printf(mbi, exception_messages[8]);    
     asm("hlt");
 }
-void isr9()
+void isr9(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[9]);    
+    printf(mbi, exception_messages[9]);    
     asm("hlt");
 }
-void isr10()
+void isr10(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[10]);    
+    printf(mbi, exception_messages[10]);    
     asm("hlt");
 }
-void isr11()
+void isr11(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[11]);    
+    printf(mbi, exception_messages[11]);    
     asm("hlt");
 }
-void isr12()
+void isr12(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[12]);    
+    printf(mbi, exception_messages[12]);    
     asm("hlt");
 }
-void isr13()
+void isr13(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[13]);    
+    printf(mbi, exception_messages[13]);    
     asm("hlt");
 }
-void isr14()
+void isr14(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[14]);    
+    printf(mbi, exception_messages[14]);    
     asm("hlt");
 }
-void isr15()
+void isr15(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[15]);    
+    printf(mbi, exception_messages[15]);    
     asm("hlt");
 }
-void isr16()
+void isr16(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[16]);    
+    printf(mbi, exception_messages[16]);    
     asm("hlt");
 }
-void isr17()
+void isr17(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[17]);    
+    printf(mbi, exception_messages[17]);    
     asm("hlt");
 }
-void isr18()
+void isr18(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[18]);    
+    printf(mbi, exception_messages[18]);    
     asm("hlt");
 }
-void isr19()
+void isr19(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[19]);    
+    printf(mbi, exception_messages[19]);    
     asm("hlt");
 }
-void isr20()
+void isr20(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[20]);    
+    printf(mbi, exception_messages[20]);    
     asm("hlt");
 }
-void isr21()
+void isr21(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[21]);    
+    printf(mbi, exception_messages[21]);    
     asm("hlt");
 }
-void isr22()
+void isr22(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[22]);    
+    printf(mbi, exception_messages[22]);    
     asm("hlt");
 }
-void isr23()
+void isr23(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[23]);    
+    printf(mbi, exception_messages[23]);    
     asm("hlt");
 }
-void isr24()
+void isr24(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[24]);    
+    printf(mbi, exception_messages[24]);    
     asm("hlt");
 }
-void isr25()
+void isr25(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[25]);    
+    printf(mbi, exception_messages[25]);    
     asm("hlt");
 }
-void isr26()
+void isr26(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[26]);    
+    printf(mbi, exception_messages[26]);    
     asm("hlt");
 }
-void isr27()
+void isr27(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[27]);    
+    printf(mbi, exception_messages[27]);    
     asm("hlt");
 }
-void isr28()
+void isr28(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[28]);    
+    printf(mbi, exception_messages[28]);    
     asm("hlt");
 }
-void isr29()
+void isr29(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[29]);    
+    printf(mbi, exception_messages[29]);    
     asm("hlt");
 }
-void isr30()
+void isr30(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[30]);    
+    printf(mbi, exception_messages[30]);    
     asm("hlt");
 }
-void isr31()
+void isr31(multiboot_info_t *mbi)
 {
-    printf_arr(exception_messages[31]);    
+    printf(mbi, exception_messages[31]);    
     asm("hlt");
 }
 
