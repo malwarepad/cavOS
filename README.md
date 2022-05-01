@@ -41,7 +41,7 @@ Important to mention these goals may never be satisfied, take a very long time t
 | Simple Shell                 | Almost   |
 | Filesystem (Hard)            | Not done |
 | Display Driver (Hard)        | Done     |
-| Full GUI (~~Im~~possible)        | Not done |
+| Full GUI (~~Im~~possible)    | Not done |
 | Network Driver               | Not done |
 
 ## Compiling
