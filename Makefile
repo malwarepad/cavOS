@@ -5,7 +5,7 @@ CFLAGS = -m32 -c -ffreestanding -w
 ASFLAGS = -f elf32
 LDFLAGS = -m elf_i386 -T src/boot/link.ld
 
-OBJS = tmp/obj/kasm.o tmp/obj/kc.o tmp/obj/idt.o tmp/obj/isr.o tmp/obj/kb.o tmp/obj/vga.o tmp/obj/string.o tmp/obj/system.o tmp/obj/util.o tmp/obj/shell.o
+OBJS = tmp/obj/kasm.o tmp/obj/kc.o tmp/obj/idt.o tmp/obj/isr.o tmp/obj/kb.o tmp/obj/gui_wm.o tmp/obj/vga.o tmp/obj/string.o tmp/obj/system.o tmp/obj/util.o tmp/obj/shell.o tmp/obj/wm_terminal.o
 OUTPUT = tmp/boot/kernel.bin
 
 all:$(OBJS)
@@ -19,7 +19,10 @@ tmp/obj/kasm.o:src/boot/kernel.asm
 	
 tmp/obj/kc.o:src/entry/kernel.c
 	$(COMPILER) $(CFLAGS) src/entry/kernel.c -o tmp/obj/kc.o 
-	
+
+tmp/obj/gui_wm.o:src/wm/wm.c
+	$(COMPILER) $(CFLAGS) src/wm/wm.c -o tmp/obj/gui_wm.o
+
 tmp/obj/idt.o:src/cpu/idt.c
 	$(COMPILER) $(CFLAGS) src/cpu/idt.c -o tmp/obj/idt.o 
 
@@ -34,6 +37,9 @@ tmp/obj/vga.o:src/drivers/vga.c
 
 tmp/obj/string.o:src/utilities/shell/string.c
 	$(COMPILER) $(CFLAGS) src/utilities/shell/string.c -o tmp/obj/string.o
+
+tmp/obj/wm_terminal.o:src/wm/software/terminal.c
+	$(COMPILER) $(CFLAGS) src/wm/software/terminal.c -o tmp/obj/wm_terminal.o
 
 tmp/obj/system.o:src/cpu/system.c
 	$(COMPILER) $(CFLAGS) src/cpu/system.c -o tmp/obj/system.o
