@@ -6,6 +6,8 @@
 // Copyright (C) 2022 Panagiotis
 
 int width, height;
+int textcolor[] = {0, 0, 0};
+int bg_color[] = {255, 255, 255};
 
 void drawRect(multiboot_info_t *mbi, int x, int y, int w, int h, int r, int g, int b)
 { // Draw a filled rectangle
@@ -23,6 +25,18 @@ void drawRect(multiboot_info_t *mbi, int x, int y, int w, int h, int r, int g, i
 		}
 		offset += 5120; // switch to the beginnering of next line
 	}
+}
+
+void changeTextColor(int r, int g, int b) {
+    textcolor[0] = r;
+    textcolor[1] = g;
+    textcolor[2] = b;
+}
+
+void changeBg(int r, int g, int b) {
+    bg_color[0] = r;
+    bg_color[1] = g;
+    bg_color[2] = b;
 }
 
 void drawText(multiboot_info_t *mbi, int charnum)
@@ -83,7 +97,7 @@ void drawText(multiboot_info_t *mbi, int charnum)
 
 	if (charnum == -1)
 	{
-		drawRect(mbi, width, height, 16, 16, 0, 0, 0);
+		drawRect(mbi, width, height, 16, 16, bg_color[0], bg_color[1], bg_color[2]);
 		width = width + 16;
 	}
 
@@ -117,7 +131,7 @@ void drawText(multiboot_info_t *mbi, int charnum)
 					{
 						for (h = 2 * k; h < 2 * k + 2; h++)
 						{
-							drawPixel(mbi, w + width, h + height, 255, 255, 255);
+							drawPixel(mbi, w + width, h + height, textcolor[0], textcolor[1], textcolor[2]);
 						}
 					}
 				}
@@ -237,4 +251,10 @@ void clearScreen(multiboot_info_t *mbi)
 	drawRect(mbi, 0, 0, mbi->framebuffer_width, mbi->framebuffer_height, 0, 0, 0);
 	width = 0;
 	height = 0;
+}
+
+void changeColor(int color[]) {
+    textcolor[0] = color[0];
+    textcolor[1] = color[1];
+    textcolor[2] = color[2];
 }

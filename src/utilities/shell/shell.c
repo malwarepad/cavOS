@@ -1,6 +1,8 @@
 #include "../../../include/shell.h"
 #include "../../../include/multiboot.h"
 #include "../../../include/vga.h"
+#include "../../../include/wm.h"
+#include "../../wm/software/terminal.h"
 
 // Shell driver
 // Copyright (C) 2022 Panagiotis
@@ -27,6 +29,9 @@ void launch_shell(int n, multiboot_info_t *mbi)
 		{
 			echo(mbi, ch);
 		}
+        else if(cmdEql(ch, "cwm")) {
+            startCWM(mbi);
+        }
 		else if(cmdEql(ch,"help"))
 		{
 			help(mbi);
@@ -72,6 +77,7 @@ void help(multiboot_info_t *mbi)
 	printf(mbi, "\necho      : Reprintf a given text");
 	printf(mbi, "\nexit      : Quits the current shell");
 	printf(mbi, "\nfetch     : Brings you some system information");
+    printf(mbi, "\ncwm       : Starts the Cave-Like Window Manager (still a work in progress)");
 
 	printf(mbi, "\n");
 }
