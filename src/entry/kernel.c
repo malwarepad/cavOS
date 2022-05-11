@@ -15,7 +15,7 @@
 int kmain(uint32 magic, multiboot_info_t *mbi)
 {
 	(void)magic;
-	isr_install();
+	isr_install(mbi);
 	clearScreen(mbi);
     changeTextColor(255, 255, 255);
     changeBg(0, 0, 0);
