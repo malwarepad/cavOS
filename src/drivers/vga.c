@@ -13,7 +13,7 @@ void drawRect(multiboot_info_t *mbi, int x, int y, int w, int h, int r, int g, i
 { // Draw a filled rectangle
 	int i, j;
 	unsigned char *video = (unsigned char *)mbi->framebuffer_addr;
-	unsigned int offset = (x + y * 1280) * 4; // Finding the location of the pixel in the video array
+	unsigned int offset = (x + y * mbi->framebuffer_width) * 4; // Finding the location of the pixel in the video array
 	for (i = 0; i < h; i++)
 	{
 		for (j = 0; j < w; j++)
