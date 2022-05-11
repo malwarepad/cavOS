@@ -10,6 +10,7 @@
   - [Status](#status)
   - [Future plans](#future-plans)
   - [Goals](#goals)
+  - [Sponsors](#sponsors)
   - [Compiling](#compiling)
   - [License](#license)
 
@@ -43,6 +44,9 @@ Important to mention these goals may never be satisfied, take a very long time t
 | Display Driver (Hard)        | Done     |
 | Full GUI (~~Im~~possible)    | Not done |
 | Network Driver               | Not done |
+
+## Sponsors
+Massive thanks to [JetBrains](https://www.jetbrains.com/) for giving us their amazing products for free to develop cavOS... [Clion](https://www.jetbrains.com/clion/) is one of the best C IDEs I've ever tried and deserves to be our developer's desired choice. 
 
 ## Compiling
 
