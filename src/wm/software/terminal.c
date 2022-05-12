@@ -2,7 +2,7 @@
 #include "../../../include/multiboot.h"
 #include "../../../include/kb.h"
 #include "../../../include/wm.h"
-
+#include "../../../include/sysinfo.h"
 
 // Terminal application for CWM (Cave-Like Window Manager)
 // Copyright (C) 2022 Panagiotis
@@ -52,7 +52,7 @@ void StartTerminal(multiboot_info_t *mbi, int id) {
 
 void term_credits(multiboot_info_t *mbi, int id) {
     initializeWnd(mbi, "Credits", 1, 850, 20, 400, 500);
-    DesignTool_Text(mbi, 1, "Special thanks to:\n- Panagiotis (MalwarePad)\n- Jonas (cxt)");
+    DesignTool_Text(mbi, 1, "Special thanks to:\n- Panagiotis (Maintainer, Head Developer)\n- Jonas (Developer)");
     DesignTool_Text(mbi, id, "\n");
 }
 
@@ -75,7 +75,9 @@ void term_echo(multiboot_info_t *mbi, int id, string ch)
 }
 
 void term_fetch(multiboot_info_t *mbi, int id) {
-    DesignTool_Text(mbi, id, "\nname: cavOS");
+    DesignTool_Text(mbi, id, "\nos: cavOS %s", cavos_version);
+    DesignTool_Text(mbi, id, "\nshell: csh %s", cavos_shell);
+    DesignTool_Text(mbi, id, "\nresolution: %dx%d", mbi->framebuffer_width, mbi->framebuffer_height);
     DesignTool_Text(mbi, id, "\nmemory: %dMB", ((mbi->mem_upper) / 1024));
     DesignTool_Text(mbi, id, "\n");
 }
