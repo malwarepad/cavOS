@@ -22,6 +22,9 @@ struct window
     int x;
     int y;
 
+    string content;
+    int curr_content;
+
     int text_w;
     int text_h;
 };
@@ -109,6 +112,8 @@ void DesignTool_Text(multiboot_info_t *mbi, int id, const char *format, ...)
                     height += 16;
                     width = windows[id].x;
                 }
+                windows[id].content[windows[id].curr_content] = *ptr;
+                windows[id].curr_content += 1;
                 drawText(mbi, *ptr);
             }
         }
@@ -144,6 +149,8 @@ void closeCWM(multiboot_info_t *mbi) {
         windows[i].h = 0;
         windows[i].x = 0;
         windows[i].y = 0;
+
+        windows[i].curr_content = 0;
 
         windows[i].text_w = 0;
         windows[i].text_h = 0;
