@@ -16,9 +16,6 @@ struct window
     int x;
     int y;
 
-    string content;
-    int curr_content;
-
     int text_w;
     int text_h;
 };
