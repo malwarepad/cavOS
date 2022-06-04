@@ -7,6 +7,8 @@
 // Shell driver
 // Copyright (C) 2022 Panagiotis
 
+int isReading = 1;
+
 void launch_shell(int n, multiboot_info_t *mbi)
 {
 	string ch = (string) malloc(200);
@@ -45,13 +47,16 @@ void launch_shell(int n, multiboot_info_t *mbi)
 		}
 		else
 		{
+            if (cmdEql(ch, "exit")) {
+                isReading = 0;
+            }
 			printf(mbi, "\n%s isn't a valid command\n", ch);
 			if(check_string(ch) && !cmdEql(ch,"exit")) {
 			} else {
 				printf(mbi, "\n");
 			}
 		}
-	} while (!cmdEql(ch,"exit"));
+	} while (isReading == 1);
 }
 
 void echo(multiboot_info_t *mbi, string ch)

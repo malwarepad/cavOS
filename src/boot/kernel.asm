@@ -38,7 +38,7 @@ start:
         push ebx
         push eax
         call kmain      ;send processor to continue execution from the kamin funtion in c code
-        ;call Shutdown
+        call Shutdown
         hlt             ; halt the cpu(pause it from executing from this address
 
 section .bss
