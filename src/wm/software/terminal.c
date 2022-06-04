@@ -40,8 +40,7 @@ void StartTerminal(multiboot_info_t *mbi, int id) {
         else
         {
             DesignTool_Text(mbi, id, "\n%s isn't a valid command\n", ch);
-            if(check_string(ch) && !cmdEql(ch,"exit")) {
-            } else {
+            if(cmdEql(ch,"exit")) {
                 DesignTool_Text(mbi, id, "\n");
                 closeCWM(mbi);
                 reading = 0;
