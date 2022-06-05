@@ -41,10 +41,6 @@ start:
         call Shutdown
         hlt             ; halt the cpu(pause it from executing from this address
 
-section .bss
-resb 8192
-stack_space:
-
 Shutdown:
     mov ax, 0x1000
     mov ax, ss
@@ -54,9 +50,6 @@ Shutdown:
     mov cx, 0x0003
     int 0x15
 
-WaitForEnter:
-    mov ah, 0
-    int 0x16
-    cmp al, 0x0D
-    jne WaitForEnter
-    ret
+section .bss
+resb 8192
+stack_space:
