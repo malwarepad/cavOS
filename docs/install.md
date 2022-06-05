@@ -25,8 +25,8 @@
 `sudo pacman -S --noconfirm nasm grub xorriso gcc`
 
 ### Building
-To build cavOS, use the following command: `make build`, after doing `make clear`.
+To build cavOS, use the following command: `./make.sh build`, after doing `./make.sh clear`.
 
 ### Testing
 To test your cavOS kernel using grub, run the qemu.sh script with no arguments:
-`./qemu.sh`
+`./make.sh qemu`
