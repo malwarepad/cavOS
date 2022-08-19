@@ -16,7 +16,7 @@
 - nasm
 
 #### Ubuntu
-`sudo apt install -y nasm build-essential binutils grub-common grub-pc-bin xorriso`
+`sudo apt install -y nasm build-essential binutils grub-common xorriso`
 
 #### Fedora
 `sudo dnf install -y nasm grub gcc xorriso`
@@ -25,8 +25,8 @@
 `sudo pacman -S --noconfirm nasm grub xorriso gcc`
 
 ### Building
-To build cavOS, use the following command: `./make.sh build`, after doing `./make.sh clear`.
+To build cavOS, use the following command: `make build`, after doing `make clear`.
 
 ### Testing
 To test your cavOS kernel using grub, run the qemu.sh script with no arguments:
-`./make.sh qemu`
+`./qemu.sh`

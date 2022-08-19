@@ -5,52 +5,55 @@
 #include "../../include/util.h"
 #include "../../include/shell.h"
 #include "../../include/multiboot.h"
-#include "../../include/wm.h"
+#include "../../include/ata.h"
 
-#include "../wm/software/terminal.h"
-
-#include "../../include/disk.h"
-#include "../../include/fat.h"
-#include "../../include/x86.h"
+#include <stdint.h>
 
 // Kernel entry file
 // Copyright (C) 2022 Panagiotis
 
 int kmain(uint32 magic, multiboot_info_t *mbi)
 {
-	(void)magic;
-	isr_install(mbi);
-	clearScreen(mbi);
-    changeTextColor(255, 255, 255);
-    changeBg(0, 0, 0);
-	printf(mbi, "Welcome to cavOS! The OS that reminds you of how good computers \nwere back then.. Anyway, just execute any command you want\n'help' is your friend :)\n\nNote that this program comes with ABSOLUTELY NO WARRANTY.\n\n");
-	launch_shell(0, mbi);
+    (void) magic;
+	isr_install();
+	clearScreen();
+	printf("Welcome to cavOS! The OS that reminds you of how good computers \nwere back then.. Anyway, just execute any command you want\n'help' is your friend :)\n\nNote that this program comes with ABSOLUTELY NO WARRANTY.\n\n");
 
-    /*uint32* target;
-    read_sectors_ATA_PIO(target, 0x0, 2);
+    /*printf("reading...\r\n");
 
-    for (int i = 0; i < 128; i++) {
-        printf(mbi, "%d", target[i] & 0xFF);
-        printf(mbi, "%d", (target[i] >> 8) & 0xFF);
-        printf(mbi, " ");
-    }*/
+    uint32_t* target;
 
+    read_sectors_ATA_PIO(target, 0x0, 1);
 
-    /*if (!FAT_Initialize(&disk)) {
-        printf(mbi, "error \n");
-        while (1==1) {}
-    }*/
-
-    /*FAT_File* fd = FAT_Open(&disk, "/");
-    FAT_DirectoryEntry entry;
-    while (FAT_ReadEntry(&disk, fd, &entry)) {
-        printf(mbi, "");
-        for (int i = 0; i < 11; i++) {
-            printf(mbi, "%c", entry.Name[i]);
-        }
-        printf(mbi, "\n");
+    int i;
+    i = 0;
+    while(i < 128)
+    {
+        printf("%x ", target[i] & 0xFF);
+        printf("%x ", (target[i] >> 8) & 0xFF);
+        i++;
     }
-    FAT_Close(fd);*/
 
-    while (1==1) {}
+    printf("\r\n");
+    printf("writing 0...\r\n");
+    char bwrite[512];
+    for(i = 0; i < 512; i++)
+    {
+        bwrite[i] = 0x0;
+    }
+    write_sectors_ATA_PIO(0x0, 2, bwrite);
+
+
+    printf("reading...\r\n");
+    read_sectors_ATA_PIO(target, 0x0, 1);
+
+    i = 0;
+    while(i < 128)
+    {
+        printf("%x ", target[i] & 0xFF);
+        printf("%x ", (target[i] >> 8) & 0xFF);
+        i++;
+    }
+    printf("\n");*/
+	launch_shell(0, mbi);
 }
