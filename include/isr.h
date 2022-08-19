@@ -2,46 +2,44 @@
 #define ISR_H
 
 #include "types.h"
-#include "multiboot.h"
 
 /* ISRs reserved for CPU exceptions */
-void isr0(multiboot_info_t *mbi);
-void isr1(multiboot_info_t *mbi);
-void isr2(multiboot_info_t *mbi);
-void isr3(multiboot_info_t *mbi);
-void isr4(multiboot_info_t *mbi);
-void isr5(multiboot_info_t *mbi);
-void isr6(multiboot_info_t *mbi);
-void isr7(multiboot_info_t *mbi);
-void isr8(multiboot_info_t *mbi);
-void isr9(multiboot_info_t *mbi);
-void isr10(multiboot_info_t *mbi);
-void isr11(multiboot_info_t *mbi);
-void isr12(multiboot_info_t *mbi);
-void isr13(multiboot_info_t *mbi);
-void isr14(multiboot_info_t *mbi);
-void isr15(multiboot_info_t *mbi);
-void isr16(multiboot_info_t *mbi);
-void isr17(multiboot_info_t *mbi);
-void isr18(multiboot_info_t *mbi);
-void isr19(multiboot_info_t *mbi);
-void isr20(multiboot_info_t *mbi);
-void isr21(multiboot_info_t *mbi);
-void isr22(multiboot_info_t *mbi);
-void isr23(multiboot_info_t *mbi);
-void isr24(multiboot_info_t *mbi);
-void isr25(multiboot_info_t *mbi);
-void isr26(multiboot_info_t *mbi);
-void isr27(multiboot_info_t *mbi);
-void isr28(multiboot_info_t *mbi);
-void isr29(multiboot_info_t *mbi);
-void isr30(multiboot_info_t *mbi);
-void isr31(multiboot_info_t *mbi);
+void isr0();
+void isr1();
+void isr2();
+void isr3();
+void isr4();
+void isr5();
+void isr6();
+void isr7();
+void isr8();
+void isr9();
+void isr10();
+void isr11();
+void isr12();
+void isr13();
+void isr14();
+void isr15();
+void isr16();
+void isr17();
+void isr18();
+void isr19();
+void isr20();
+void isr21();
+void isr22();
+void isr23();
+void isr24();
+void isr25();
+void isr26();
+void isr27();
+void isr28();
+void isr29();
+void isr30();
+void isr31();
 
-void _irq();
 
 string exception_messages[32];
 
-void isr_install(multiboot_info_t *mbi);
+void isr_install();
 
 #endif

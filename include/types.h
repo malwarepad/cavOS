@@ -18,4 +18,6 @@ typedef char* string;
 #define low_16(address) (uint16)((address) & 0xFFFF)            
 #define high_16(address) (uint16)(((address) >> 16) & 0xFFFF)
 
+#include "printf.h"
+
 #endif

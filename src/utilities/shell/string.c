@@ -1,5 +1,5 @@
 #include "../../../include/string.h"
-#include "../../../include/vga.h"
+#include "../../../include/tty.h"
 #include "../../../include/util.h"
 
 // String management file
@@ -105,64 +105,4 @@ uint8 strEql(string ch1,string ch2)
         }
         }
         return result;
-}
-
-uint8 cmdEql(string ch1, string ch2) {
-        uint8 res = 1;
-        uint8 size = cmdLength(ch1);
-
-        if (size != cmdLength(ch2)) res = 0;
-        else {
-                uint8 i = 0;
-                for (i; i <= size; i++) {
-                        if (ch1[i] != ch2[i]) {res = 0;}
-                }
-        }
-
-        return res;
-}
-
-string argSrch(string str, uint8 index, uint8 full) {
-    string res;
-    uint8 str_size = strlength(str);
-    uint8 start = 0;
-    uint8 end = 0;
-
-    /* Find space  N1*/
-    uint8 found_cnt = 0;
-    for (int i = 0; i <= str_size; i++) {
-        if (str[i] == ' ') {
-            found_cnt++;
-            if (found_cnt == index) {
-                start = i + 1;
-            }
-        }
-    }
-    if (found_cnt == 0) {
-        return 0;
-    }
-
-    /* Find space  N2*/
-    int found_cnt2 = 0;
-    for (int i = 0; i <= str_size; i++) {
-        if (str[i] == ' ') {
-            found_cnt2++;
-            if (found_cnt2 == (index + 1)) {
-                end = i - 1;
-            }
-        }
-    }
-    if (found_cnt == found_cnt2) {
-        end = str_size;
-    }
-
-    for (int i = start; i <= end; i++) {
-        res[i - start] = str[i];
-    }
-
-    if (full == 1) {
-        end = str_size;
-    }
-
-    return res;
 }
