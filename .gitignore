@@ -5,7 +5,6 @@ tmp/obj/*
 .vscode/
 .idea/
 Session.vim
-run.bat
 
 # Could leak plans
 notes/
