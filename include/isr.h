@@ -37,9 +37,6 @@ void isr29();
 void isr30();
 void isr31();
 
-
-string exception_messages[32];
-
 void isr_install();
 
 #endif

@@ -6,7 +6,10 @@
 // ISR Entry configurator
 // Copyright (C) 2022 Panagiotis
 
-void isr_install() {
+string exception_messages[32];
+
+void isr_install()
+{
     set_idt_gate(0, (uint32)isr0);
     set_idt_gate(1, (uint32)isr1);
     set_idt_gate(2, (uint32)isr2);
@@ -47,7 +50,7 @@ void isr_install() {
 void isr0()
 {
     printf(exception_messages[0]);
-    asm("hlt");    
+    asm("hlt");
 }
 void isr1()
 {
@@ -205,10 +208,7 @@ void isr31()
     asm("hlt");
 }
 
-
 /*End Handlers*/
-
-
 
 /* To printf the message which defines every exception */
 string exception_messages[] = {
@@ -246,5 +246,4 @@ string exception_messages[] = {
     "Reserved",
     "Reserved",
     "Reserved",
-    "Reserved"
-};
+    "Reserved"};

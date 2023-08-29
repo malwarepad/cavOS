@@ -14,28 +14,29 @@
 
 int kmain(uint32 magic, multiboot_info_t *mbi)
 {
-    (void) magic;
-	isr_install();
-	clearScreen();
-	printf("Welcome to cavOS! The OS that reminds you of how good computers \nwere back then.. Anyway, just execute any command you want\n'help' is your friend :)\n\nNote that this program comes with ABSOLUTELY NO WARRANTY.\n\n");
+    (void)magic;
+    isr_install();
+    clearScreen();
+    printf("Welcome to cavOS! The OS that reminds you of how good computers \nwere back then.. Anyway, just execute any command you want\n'help' is your friend :)\n\nNote that this program comes with ABSOLUTELY NO WARRANTY.\n\n");
 
     /*printf("reading...\r\n");
 
-    uint32_t* target;
+    uint32_t *target;
 
     read_sectors_ATA_PIO(target, 0x0, 1);
 
     int i;
     i = 0;
-    while(i < 128)
+    while (i < 128)
     {
         printf("%x ", target[i] & 0xFF);
         printf("%x ", (target[i] >> 8) & 0xFF);
         i++;
     }
 
-    printf("\r\n");
-    printf("writing 0...\r\n");
+    printf("\r\n");*/
+
+    /*printf("writing 0...\r\n");
     char bwrite[512];
     for(i = 0; i < 512; i++)
     {
@@ -55,5 +56,5 @@ int kmain(uint32 magic, multiboot_info_t *mbi)
         i++;
     }
     printf("\n");*/
-	launch_shell(0, mbi);
+    launch_shell(0, mbi);
 }

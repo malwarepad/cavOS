@@ -5,8 +5,6 @@
 #include "string.h"
 #include "multiboot.h"
 
-int width, height;
-
 void drawRect(multiboot_info_t *mbi, int x, int y, int w, int h, int r, int g, int b);
 void drawText(multiboot_info_t *mbi, int charnum);
 void drawPixel(multiboot_info_t *mbi, int x, int y, int r, int g, int b);
