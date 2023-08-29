@@ -1,5 +1,7 @@
 # Binaries
 tmp/obj/*
+tmp/boot/*
+disk.img
 
 # Could obviously contain sensitive data
 .vscode/
