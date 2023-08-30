@@ -4,6 +4,8 @@
 // Very bare bones, and basic keyboard driver 
 // Copyright (C) 2022 Panagiotis
 
+// inportb(0x60) != 170 ? capital : small
+
 string readStr() {
     char buff;
     string buffstr = (string) malloc(200);
