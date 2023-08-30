@@ -6,6 +6,7 @@
 #include "../../include/shell.h"
 #include "../../include/multiboot.h"
 #include "../../include/ata.h"
+#include "../../include/disk.h"
 
 #include <stdint.h>
 
@@ -14,27 +15,27 @@
 
 int kmain(uint32 magic, multiboot_info_t *mbi)
 {
-    (void)magic;
     isr_install();
     clearScreen();
     printf("Welcome to cavOS! The OS that reminds you of how good computers \nwere back then.. Anyway, just execute any command you want\n'help' is your friend :)\n\nNote that this program comes with ABSOLUTELY NO WARRANTY.\n\n");
 
-    /*printf("reading...\r\n");
+    // ! this is my testing land lol
 
-    uint32_t *target;
+    // printf("reading...\r\n");
 
-    read_sectors_ATA_PIO(target, 0x0, 1);
+    // uint32_t *target;
 
-    int i;
-    i = 0;
-    while (i < 128)
-    {
-        printf("%x ", target[i] & 0xFF);
-        printf("%x ", (target[i] >> 8) & 0xFF);
-        i++;
-    }
+    // read_sectors_ATA_PIO(target, 0x0, 1); // LBA = Offset / Sector Size = 1048576 / 512 = 2048
 
-    printf("\r\n");*/
+    // unsigned char rawArr[512];
+    // getDiskBytes(rawArr, 0, 1);
+
+    // for (int i = 0; i < 512; i++)
+    // {
+    //     printf("%x ", rawArr[i]);
+    // }
+
+    // printf("\r\n");
 
     /*printf("writing 0...\r\n");
     char bwrite[512];
