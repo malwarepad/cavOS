@@ -1,0 +1,22 @@
+{
+  "deepscan.enable": true,
+  "files.associations": {
+    "ata.h": "c",
+    "asm_ports.h": "c",
+    "stdint.h": "c",
+    "types.h": "c",
+    "disk.h": "c",
+    "shell.h": "c",
+    "fat32.h": "c",
+    "strings.h": "c",
+    "string.h": "c",
+    "printf.h": "c",
+    "isr.h": "c",
+    "idt.h": "c",
+    "paging.h": "c",
+    "tty.h": "c",
+    "kheap.h": "c",
+    "util.h": "c"
+  },
+  "C_Cpp.clang_format_style": "{ BasedOnStyle: LLVM, AlignConsecutiveDeclarations: true, IndentWidth: 2 }"
+}

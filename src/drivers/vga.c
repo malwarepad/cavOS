@@ -3,7 +3,7 @@
 #include <stdarg.h>
 
 // Incomplete VGA driver
-// Copyright (C) 2022 Panagiotis
+// Copyright (C) 2023 Panagiotis
 
 int width, height;
 int textcolor[] = {0, 0, 0};

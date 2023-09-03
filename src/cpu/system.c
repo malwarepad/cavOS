@@ -1,7 +1,7 @@
 #include "../../include/system.h"
 
 // Source code for handling ports via assembly references
-// Copyright (C) 2022 Panagiotis
+// Copyright (C) 2023 Panagiotis
 
 uint8 inportb (uint16 _port)
 {

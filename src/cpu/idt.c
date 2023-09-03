@@ -2,7 +2,7 @@
 #include "../../include/util.h"
 
 // IDT Entry configurator
-// Copyright (C) 2022 Panagiotis
+// Copyright (C) 2023 Panagiotis
 
 #define KERNEL_CS 0x08
 
