@@ -8,6 +8,9 @@
 #include "util.h"
 #include "multiboot.h"
 #include "disk.h"
+#include "fat32.h"
+#include "shell.h"
+#include "vga.h"
 
 void launch_shell(int n, multiboot_info_t *mbi);
 

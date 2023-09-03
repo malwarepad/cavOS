@@ -2,7 +2,7 @@
 #include <stdarg.h>
 
 // Basic tty-like display driver
-// Copyright (C) 2022 Panagiotis
+// Copyright (C) 2023 Panagiotis
 
 int cursorX, cursorY;
 const uint8 sw, sh, sd;
