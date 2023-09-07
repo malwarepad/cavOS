@@ -1,3 +1,4 @@
+#include "../../include/allocation.h"
 #include "../../include/ata.h"
 #include "../../include/disk.h"
 #include "../../include/fat32.h"
@@ -27,6 +28,20 @@ int kmain(uint32 magic, multiboot_info_t *mbi) {
   isr_install();
   initiateFat32();
   printf("\n");
+
+  // Initialize memory management based on Multiboot info
+  init_memory(mbi);
+
+  // Example usage
+  int *my_int = (int *)malloc(sizeof(int));
+  if (my_int != NULL) {
+    *my_int = 42;
+  }
+
+  // Free allocated memory
+  if (my_int != NULL) {
+    free(my_int);
+  }
 
   // printf("\nWelcome to cavOS! The OS that reminds you of how good computers
   // \nwere back then.. Anyway, just execute any command you want\n'help' is

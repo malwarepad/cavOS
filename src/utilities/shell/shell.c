@@ -27,7 +27,7 @@ void launch_shell(int n, multiboot_info_t *mbi) {
       printf("(%d) %s", activeEnv, prompt);
     else
       printf("%s", prompt);
-    ch = readStr(); // memory_copy(readStr(), ch,100);
+    readStr(ch); // memory_copy(readStr(), ch,100);
     if (strEql(ch, "cmd")) {
       printf("\nYou are already in cmd. A new recursive shell is opened\n");
       launch_shell(n + 1, mbi);
@@ -75,34 +75,37 @@ void launch_shell(int n, multiboot_info_t *mbi) {
 
 void echo(string ch) {
   printf("\nInsert argument 1: ");
-  printf("\n%s\n", readStr());
+  string str = (string)malloc(200);
+  readStr(str);
+  printf("\n%s\n", str);
+  free(str);
 }
 
 void set_background_color() {
-  printf("\nColor codes : ");
-  printf("\n0 : black");
-  printf_colored("\n1 : blue", 1, 0); // tty.h
-  printf_colored("\n2 : green", 2, 0);
-  printf_colored("\n3 : cyan", 3, 0);
-  printf_colored("\n4 : red", 4, 0);
-  printf_colored("\n5 : purple", 5, 0);
-  printf_colored("\n6 : orange", 6, 0);
-  printf_colored("\n7 : grey", 7, 0);
-  printf_colored("\n8 : dark grey", 8, 0);
-  printf_colored("\n9 : blue light", 9, 0);
-  printf_colored("\n10 : green light", 10, 0);
-  printf_colored("\n11 : blue lighter", 11, 0);
-  printf_colored("\n12 : red light", 12, 0);
-  printf_colored("\n13 : rose", 13, 0);
-  printf_colored("\n14 : yellow", 14, 0);
-  printf_colored("\n15 : white", 15, 0);
+  // printf("\nColor codes : ");
+  // printf("\n0 : black");
+  // printf_colored("\n1 : blue", 1, 0); // tty.h
+  // printf_colored("\n2 : green", 2, 0);
+  // printf_colored("\n3 : cyan", 3, 0);
+  // printf_colored("\n4 : red", 4, 0);
+  // printf_colored("\n5 : purple", 5, 0);
+  // printf_colored("\n6 : orange", 6, 0);
+  // printf_colored("\n7 : grey", 7, 0);
+  // printf_colored("\n8 : dark grey", 8, 0);
+  // printf_colored("\n9 : blue light", 9, 0);
+  // printf_colored("\n10 : green light", 10, 0);
+  // printf_colored("\n11 : blue lighter", 11, 0);
+  // printf_colored("\n12 : red light", 12, 0);
+  // printf_colored("\n13 : rose", 13, 0);
+  // printf_colored("\n14 : yellow", 14, 0);
+  // printf_colored("\n15 : white", 15, 0);
 
-  printf("\n\n Text color ? : ");
-  int text_color = str_to_int(readStr());
-  printf("\n\n Background color ? : ");
-  int bg_color = str_to_int(readStr());
-  set_screen_color(text_color, bg_color);
-  clearScreen();
+  // printf("\n\n Text color ? : ");
+  // int text_color = str_to_int(readStr());
+  // printf("\n\n Background color ? : ");
+  // int bg_color = str_to_int(readStr());
+  // set_screen_color(text_color, bg_color);
+  // clearScreen();
 }
 
 void fetch(multiboot_info_t *mbi) {
@@ -144,7 +147,10 @@ int atoi(const char *str) {
 
 void envChange() {
   printf("\nChange your environment (0 -> regular, 1 -> filesystem): ");
-  int newEnv = atoi(readStr());
+  string choice = (string)malloc(200);
+  readStr(choice);
+  int newEnv = atoi(choice);
+  free(choice);
 
   if (newEnv == FS_ENV && !fat.works) {
     printf("\nFAT32 was not initalized properly on boot!\n");
@@ -170,7 +176,10 @@ void fatCluster() {
          "FAT32!\nCluster 2 -> starting point (/)");
   printf("\nInsert cluster number: ");
 
-  int cluster = atoi(readStr());
+  string choice = (string)malloc(200);
+  readStr(choice);
+  int cluster = atoi(choice);
+  free(choice);
   printf("\nReading FAT cluster %d\n\r\n", cluster);
   showCluster(cluster, NULL);
 }
@@ -189,7 +198,10 @@ void readDisk() {
          "Offset=1048576");
   printf("\nInsert LBA (LBA = Offset / Sector Size): ");
 
-  int lba = atoi(readStr());
+  string choice = (string)malloc(200);
+  readStr(choice);
+  int lba = atoi(choice);
+  free(choice);
   printf("\nReading disk 0 with LBA=%d\n\r\n", lba);
 
   unsigned char *rawArr;
@@ -221,7 +233,8 @@ void fsList() {
 
     printf("\nEnter root directory choice (folder name OR '}' to exit):");
     printf("\n> ");
-    string choice = readStr();
+    string choice = (string)malloc(200);
+    readStr(choice);
     if (strlength(choice) > 11) {
       printf("\nInvalid options!\n");
       continue;
@@ -278,6 +291,7 @@ void fsList() {
       } else
         more = 0;
     }
+    free(choice);
   }
 }
 
