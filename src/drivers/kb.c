@@ -35,13 +35,13 @@ char shiftedCharacterTable[] = {
     0,    0,    0,    0,    0,    0,    0,    0x2C,
 };
 
-string readStr() {
-  char   buff;
-  string buffstr = (string)malloc(200);
-  uint8  i = 0;
-  uint8  reading = 1;
-  int    shifted = 0;
-  int    capsLocked = 0;
+string readStr(string buffstr) {
+  char buff;
+  // string buffstr = (string)malloc(200);
+  uint8 i = 0;
+  uint8 reading = 1;
+  int   shifted = 0;
+  int   capsLocked = 0;
 
   while (reading) {
     if (inportb(0x64) & 0x1) {

@@ -118,13 +118,10 @@ uint8 check_string_numbers(string str) {
   return res;
 }
 
-// todo: Do better memory management
-// todo: and add some sort of free()
-
 // int   count;
-void *malloc(int nbytes) {
+/*void *malloc(int nbytes) {
   // count += nbytes;
   // printf("\nmalloc: %d\n", count);
   char variable[nbytes];
   return &variable;
-}
+}*/

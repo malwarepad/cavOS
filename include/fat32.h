@@ -1,4 +1,5 @@
 #include "../src/boot/asm_ports/asm_ports.h"
+#include "allocation.h"
 #include "disk.h"
 #include "string.h"
 #include "types.h"

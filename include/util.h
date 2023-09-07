@@ -1,6 +1,8 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#include "allocation.h"
+#include "multiboot.h"
 #include "types.h"
 
 #define DIV_ROUND_CLOSEST(n, d)                                                \
@@ -12,7 +14,6 @@ string int_to_ascii(int n, char str[]);
 int    str_to_int(string ch);
 string char_to_string(char ch);
 uint8  check_string_numbers(string str);
-void  *malloc(int nbytes);
 uint8  check_string(string str);
 
 #endif

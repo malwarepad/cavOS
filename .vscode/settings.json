@@ -16,7 +16,9 @@
     "paging.h": "c",
     "tty.h": "c",
     "kheap.h": "c",
-    "util.h": "c"
+    "util.h": "c",
+    "allocation.h": "c",
+    "vga.h": "c"
   },
   "C_Cpp.clang_format_style": "{ BasedOnStyle: LLVM, AlignConsecutiveDeclarations: true, IndentWidth: 2 }"
 }

@@ -113,6 +113,8 @@ unsigned int getFatEntry(int cluster) {
     result = (result << 8) | rawArr[entryOffset + i];
   }
 
+  free(rawArr);
+
   // printf("\n[%d] %x %x %x %x {Binary: %d Hexadecimal: %x}\n", entryOffset,
   //        rawArr[entryOffset], rawArr[entryOffset + 1], rawArr[entryOffset +
   //        2], rawArr[entryOffset + 3], result, result);
@@ -160,6 +162,8 @@ int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
     showCluster(nextCluster, attrLimitation);
   }
 
+  free(rawArr);
+
   return 1;
 }
 
@@ -172,5 +176,6 @@ int showFileByCluster(int clusterNum, int size) {
     getDiskBytes(rawArr, lba, 1);
     for (int j = 0; j < SECTOR_SIZE; j++)
       printf("%c", rawArr[j]);
+    free(rawArr);
   }
 }

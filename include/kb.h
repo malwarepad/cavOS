@@ -3,6 +3,6 @@
 #include "tty.h"
 #include "util.h"
 
-string readStr();
+string readStr(string buffstr);
 
 #endif
