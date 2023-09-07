@@ -1,6 +1,7 @@
 #include "../src/boot/asm_ports/asm_ports.h"
 #include "allocation.h"
 #include "disk.h"
+#include "kb.h"
 #include "string.h"
 #include "types.h"
 #include "util.h"
@@ -63,5 +64,10 @@ int          showCluster(int clusterNum, int attrLimitation);
 unsigned int getFatEntry(int cluster);
 int          highLowCombiner(uint16_t highBits[2], uint16_t lowBits[2]);
 int          showFileByCluster(int clusterNum, int size);
+int          compFilename(string filename1, string filename2);
+int          followConventionalDirectoryLoop(string outStr, string directory,
+                                             int levelDeep);
+int          charAppearance(string target, char charToAppear);
+char        *formatToShort8_3Format(char *directory);
 
 #endif
