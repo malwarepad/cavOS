@@ -5,6 +5,7 @@
 #include "fat32.h"
 #include "kb.h"
 #include "multiboot.h"
+#include "rtc.h"
 #include "shell.h"
 #include "string.h"
 #include "system.h"

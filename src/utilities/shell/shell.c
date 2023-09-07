@@ -45,6 +45,12 @@ void launch_shell(int n, multiboot_info_t *mbi) {
       fatCluster();
     } else if (strEql(ch, "readfatroot")) {
       fsList();
+    } else if (strEql(ch, "time")) {
+      RTC *rtc = (RTC *)malloc(sizeof(RTC));
+      readFromCMOS(rtc);
+      printf("\n%02d:%02d:%02d %02d/%02d/%04d\n", (*rtc).hour, (*rtc).minute,
+             (*rtc).second, (*rtc).day, (*rtc).month, (*rtc).year);
+      free(rtc);
     } else if (strEql(ch, "color")) {
       set_background_color();
     } else if (strEql(ch, "cwm")) {

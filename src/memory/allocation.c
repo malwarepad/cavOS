@@ -1,5 +1,8 @@
 #include "../../include/allocation.h"
 
+// Real-Time Clock implementation
+// Copyright (C) 2023 Panagiotis
+
 static size_t memory_pool_size = 0;
 static char  *memory_pool = NULL;
 static char  *memory_ptr = NULL;
