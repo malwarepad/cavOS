@@ -27,13 +27,24 @@ int kmain(uint32 magic, multiboot_info_t *mbi) {
   printf("%s=========================================%s\n\n", center, center);
 
   isr_install();
+  init_memory(mbi);
   initiateFat32();
   printf("\n");
+
+  // findFile("/BOOT       /GRUB       /KERNEL  BIN");
+  // findFile("/UNTITLEDLOL/UNTITLEDTXT");
+  // findFile("/UNTITLEDTXT");
+  // string out;
+  // int    ret = followConventionalDirectoryLoop(out, "/hahalol/yes", 2);
+  // printf("[%d] %d %s \n", ret, strlength(out), out);
 
   // printf("\nWelcome to cavOS! The OS that reminds you of how good computers
   // \nwere back then.. Anyway, just execute any command you want\n'help' is
   // your friend :)\n\nNote that this program comes with ABSOLUTELY NO
   // WARRANTY.\n");
+
+  // string str = formatToShort8_3Format("grt.txt");
+  // printf("%s [%d]", str, strlength(str));
 
   // ! this is my testing land lol
 

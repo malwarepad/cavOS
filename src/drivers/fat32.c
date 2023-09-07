@@ -122,6 +122,82 @@ unsigned int getFatEntry(int cluster) {
   return result;
 }
 
+int compFilename(string filename1, string filename2) {
+  return memcmp(filename1, filename2, 11) == 0;
+}
+
+int followConventionalDirectoryLoop(string outStr, string directory,
+                                    int levelDeep) {
+  int currLevelDeep = -1;
+  int compIng = 0;
+  int len = strlength(directory);
+  for (int i = 0; i < len; i++) {
+    if (compIng == 0) {
+      if (directory[i] == '/')
+        currLevelDeep++;
+      if (currLevelDeep == levelDeep)
+        compIng = 1;
+    } else {
+      if (directory[i] == '/') {
+        outStr[compIng - 1] = '\0';
+        return 1;
+      } else if ((i + 1) == len) {
+        outStr[compIng - 1] = directory[i];
+        compIng++;
+        outStr[compIng - 1] = '\0';
+        return 1;
+      } else {
+        outStr[compIng - 1] = directory[i];
+        compIng++;
+      }
+    }
+  }
+
+  return 0;
+}
+
+char *formatToShort8_3Format(char *directory) {
+  static char out[12]; // 8 characters + dot + 3 characters + null terminator
+  int         i;
+
+  for (i = 0; i < 11; i++) {
+    out[i] = ' ';
+  }
+  out[11] = '\0';
+
+  int len = strlength(directory);
+  int dotIndex = -1;
+
+  for (i = len - 1; i >= 0; i--) {
+    if (directory[i] == '.') {
+      dotIndex = i;
+      break;
+    }
+  }
+
+  int nameLength = (dotIndex == -1) ? len : dotIndex;
+  for (i = 0; i < nameLength && i < 8; i++) {
+    char c = directory[i];
+    if (c >= 'a' && c <= 'z') {
+      c -= 'a' - 'A';
+    }
+    out[i] = c;
+  }
+
+  if (dotIndex != -1) {
+    int extensionLength = len - (dotIndex + 1);
+    for (i = 0; i < extensionLength && i < 3; i++) {
+      char c = directory[dotIndex + 1 + i];
+      if (c >= 'a' && c <= 'z') {
+        c -= 'a' - 'A';
+      }
+      out[8 + i] = c;
+    }
+  }
+
+  return out;
+}
+
 int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
 {
   if (clusterNum < 2)

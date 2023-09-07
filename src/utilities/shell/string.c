@@ -187,3 +187,12 @@ char *strtok(char *str, const char *delimiters, char **context) {
 
   return NULL;
 }
+
+int charAppearance(string target, char charToAppear) {
+  int count = 0;
+  for (int i = 0; i < strlength(target); i++) {
+    if (target[i] == charToAppear)
+      count++;
+  }
+  return count;
+}
