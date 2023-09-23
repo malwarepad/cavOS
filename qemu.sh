@@ -9,7 +9,7 @@ if ! command -v qemu-system-x86_64 &>/dev/null; then
 fi
 
 if [ ! -f cavOS.iso ]; then
-	qemu-system-x86_64 disk.img &>/dev/null
+	qemu-system-x86_64 -debugcon stdio -drive file=disk.img,format=raw
 else
-	qemu-system-x86_64 -hda cavOS.iso &>/dev/null
+	qemu-system-x86_64 -debugcon stdio -drive file=cavOS.iso,format=raw
 fi
