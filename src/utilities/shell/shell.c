@@ -3,30 +3,13 @@
 // Shell driver
 // Copyright (C) 2023 Panagiotis
 
-#define REGULAR_ENV 0
-#define FS_ENV 1
-int activeEnv = REGULAR_ENV; // 0 -> regular, 1 -> filesystem
-
-int gateKeepEnvs(int target) {
-  if (activeEnv != target) {
-    printf("\nWrong env! This command requires %d, while you're inside %d!\n",
-           target, activeEnv);
-    return 0;
-  }
-
-  return 1;
-}
-
 void launch_shell(int n, multiboot_info_t *mbi) {
   string ch = (string)malloc(200);
   string data[64];
   string prompt = "$ ";
 
   do {
-    if (activeEnv == FS_ENV)
-      printf("(%d) %s", activeEnv, prompt);
-    else
-      printf("%s", prompt);
+    printf("%s", prompt);
     readStr(ch); // memory_copy(readStr(), ch,100);
     if (strEql(ch, "cmd")) {
       printf("\nYou are already in cmd. A new recursive shell is opened\n");
@@ -39,8 +22,6 @@ void launch_shell(int n, multiboot_info_t *mbi) {
       help();
     } else if (strEql(ch, "readdisk")) {
       readDisk();
-    } else if (strEql(ch, "env")) {
-      envChange();
     } else if (strEql(ch, "readfatcluster")) {
       fatCluster();
     } else if (strEql(ch, "readfatroot")) {
@@ -122,7 +103,6 @@ void fetch(multiboot_info_t *mbi) {
 
 void help() {
   printf("\n========================== GENERIC ==========================");
-  printf("\n= env            : Changes your environment                 =");
   printf("\n= cmd            : Launch a new recursive Shell             =");
   printf("\n= clear          : Clears the screen                        =");
   printf("\n= echo           : Reprintf a given text                    =");
@@ -131,10 +111,10 @@ void help() {
   printf("\n= fetch          : Brings you some system information       =");
   printf("\n=============================================================\n");
   printf("\n========================= FILESYSTEM ========================");
-  printf("\n= readdisk       : (1) Tests out the disk reading algorythm =");
-  printf("\n= readfatcluster : (1) Tests out FAT32 cluster reading      =");
-  printf("\n= readfatroot    : (1) Browse root directory (not ready)    =");
-  // printf("\n= readfatfile    : (1) Browse and read files interactively  =");
+  printf("\n= readdisk       : Tests out the disk reading algorythm     =");
+  printf("\n= readfatcluster : Tests out FAT32 cluster reading          =");
+  printf("\n= readfatroot    : Browse root directory (not ready)        =");
+  // printf("\n= readfatfile    : Browse and read files interactively      =");
   printf("\n=============================================================\n");
 }
 
@@ -151,26 +131,11 @@ int atoi(const char *str) {
   return value;
 }
 
-void envChange() {
-  printf("\nChange your environment (0 -> regular, 1 -> filesystem): ");
-  string choice = (string)malloc(200);
-  readStr(choice);
-  int newEnv = atoi(choice);
-  free(choice);
-
-  if (newEnv == FS_ENV && !fat.works) {
+void fatCluster() {
+  if (!fat.works) {
     printf("\nFAT32 was not initalized properly on boot!\n");
     return;
   }
-
-  clearScreen();
-  activeEnv = newEnv;
-  printf("Changed into %d environment.\n\n", newEnv);
-}
-
-void fatCluster() {
-  if (!gateKeepEnvs(FS_ENV))
-    return;
 
   clearScreen();
   printf("=========================================\n");
@@ -191,8 +156,10 @@ void fatCluster() {
 }
 
 void readDisk() {
-  if (!gateKeepEnvs(FS_ENV))
+  if (!fat.works) {
+    printf("\nFAT32 was not initalized properly on boot!\n");
     return;
+  }
 
   clearScreen();
   printf("=========================================\n");
@@ -221,8 +188,10 @@ void readDisk() {
 }
 
 void fsList() {
-  if (!gateKeepEnvs(FS_ENV))
+  if (!fat.works) {
+    printf("\nFAT32 was not initalized properly on boot!\n");
     return;
+  }
 
   clearScreen();
   printf("=========================================\n");
@@ -302,8 +271,6 @@ void fsList() {
 }
 
 // void fsRead() { // todo make this work
-//   if (!gateKeepEnvs(FS_ENV))
-//     return;
 
 //   clearScreen();
 //   printf("=========================================\n");

@@ -16,7 +16,19 @@
 // Kernel entry file
 // Copyright (C) 2023 Panagiotis
 
+#define MEMORY_DETECTION_DRAFT 0
+
 int kmain(uint32 magic, multiboot_info_t *mbi) {
+  if (magic != MULTIBOOT_BOOTLOADER_MAGIC) {
+    printf("invalid magic number!");
+    asm("hlt");
+  }
+
+  /* Check bit 6 to see if we have a valid memory map */
+  if (!(mbi->flags >> 6 & 0x1)) {
+    printf("invalid memory map given by GRUB bootloader");
+    asm("hlt");
+  }
 
   clearScreen();
 
@@ -29,6 +41,23 @@ int kmain(uint32 magic, multiboot_info_t *mbi) {
   isr_install();
   init_memory(mbi);
   initiateFat32();
+#if MEMORY_DETECTION_DRAFT
+  printf("[+] Memory detection:");
+#endif
+
+#if MEMORY_DETECTION_DRAFT
+  /* Loop through the memory map and display the values */
+  for (int i = 0; i < mbi->mmap_length; i += sizeof(multiboot_memory_map_t)) {
+    multiboot_memory_map_t *mmmt =
+        (multiboot_memory_map_t *)(mbi->mmap_addr + i);
+    // if (mmmt->type == MULTIBOOT_MEMORY_AVAILABLE)
+    printf("\n    [+] Start Addr: %lx | Length: %lx | Size: "
+           "%x | Type: %x",
+           mmmt->addr, mmmt->len, mmmt->size, mmmt->type);
+  }
+  printf("\n");
+#endif
+
   printf("\n");
 
   // findFile("/BOOT       /GRUB       /KERNEL  BIN");

@@ -4,6 +4,32 @@
 // Utilities used inside source code
 // Copyright (C) 2023 Panagiotis
 
+#define LONG_MASK (sizeof(unsigned long) - 1)
+void memset(void *_dst, int val, size_t len) {
+  unsigned char *dst = _dst;
+  unsigned long *ldst;
+  unsigned long  lval =
+      (val & 0xFF) *
+      (-1ul /
+       255); // the multiplier becomes 0x0101... of the same length as long
+
+  if (len >= 16) // optimize only if it's worth it (limit is a guess)
+  {
+    while ((uintptr_t)dst & LONG_MASK) {
+      *dst++ = val;
+      len--;
+    }
+    ldst = (void *)dst;
+    while (len > sizeof(long)) {
+      *ldst++ = lval;
+      len -= sizeof(long);
+    }
+    dst = (void *)ldst;
+  }
+  while (len--)
+    *dst++ = val;
+}
+
 void memory_copy(char *source, char *dest, int nbytes) {
   int i;
   for (i = 0; i < nbytes; i++) {
