@@ -196,6 +196,62 @@ char *formatToShort8_3Format(char *directory) {
   return out;
 }
 
+int charPrintNoFF(char *target) {
+  if (*target != 0xFFFFFFFF)
+    printf("%c", *target);
+}
+
+int calcLfn(int clusterNum, int nthOf32) {
+  if (clusterNum < 2)
+    return 0;
+
+  unsigned char rawArr[SECTOR_SIZE];
+  int           curr = 0;
+
+  if (nthOf32 == 0) {
+    curr = 1;
+    nthOf32 = 33;
+  }
+  int checksum = 0x0;
+  while (1) {
+    const int lba = fat.cluster_begin_lba +
+                    (clusterNum - 2 - curr) * fat.sectors_per_cluster;
+    getDiskBytes(rawArr, lba, 1);
+    for (int i = (nthOf32 - 1); i >= 0; i--) {
+      if (rawArr[32 * i + 11] != 0x0F) {
+        // printf("end of long \n", i);
+        printf(" | checksum: 0x%x\n", checksum);
+        return 1;
+      }
+
+      if (checksum == 0x0)
+        printf("    [-1] ");
+
+      for (int j = 0; j < 5; j++) {
+        charPrintNoFF(&rawArr[32 * i + 1 + (j * 2)]);
+      }
+
+      for (int j = 0; j < 6; j++) {
+        charPrintNoFF(&rawArr[32 * i + 14 + (j * 2)]);
+      }
+
+      for (int j = 0; j < 2; j++) {
+        charPrintNoFF(&rawArr[32 * i + 28 + (j * 2)]);
+      }
+
+      checksum = rawArr[32 * i + 13];
+
+      // if ((rawArr[32 * i] & 0x40) != 0) { // last long
+      //   printf(" last long detected [index=%d] \n", i);
+      // } else { // any long
+      //   printf(" nth long detected [index=%d] \n", i);
+      // }
+    }
+  }
+
+  return 0;
+}
+
 int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
 {
   if (clusterNum < 2)
@@ -210,7 +266,8 @@ int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
     if (rawArr[32 * i] == 0)
       break;
 
-    if (attrLimitation != NULL && rawArr[32 * i + 11] != attrLimitation)
+    if ((rawArr[32 * i + 11] == 0x0F) || (rawArr[32 * i + 11] == 0x08) ||
+        (attrLimitation != NULL && rawArr[32 * i + 11] != attrLimitation))
       continue;
 
     uint8 attr = rawArr[32 * i + 11];
@@ -223,10 +280,15 @@ int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
 
     printf("[%d] attr: 0x%02X | created: %02d/%02d/%04d | ", reserved, attr,
            createdDay, createdMonth, createdYear);
+    int lfn = 0;
     for (int o = 0; o < 11; o++) {
+      if (rawArr[32 * i + o] == '~')
+        lfn = 1;
       printf("%c", rawArr[32 * i + o]);
     }
     printf("\n");
+    if (lfn)
+      calcLfn(clusterNum, i);
   }
 
   if (rawArr[SECTOR_SIZE - 32] != 0) {

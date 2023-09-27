@@ -196,11 +196,10 @@ void fsList() {
   printf("====    Copyright MalwarePad 2023    ====\n");
   printf("=========================================\n");
 
-  int            cluster = 2;
-  int            reading = 1;
-  unsigned char *rawArr;
+  int cluster = 2;
+  int previous = 0;
   // unsigned char *innArr;
-  while (reading) {
+  while (cluster >= 2) {
     showCluster(cluster, 0); // 0x10
 
     printf("\nEnter root directory choice (folder name OR '}' to exit):");
@@ -213,9 +212,13 @@ void fsList() {
     }
 
     if (strEql(choice, "}")) {
-      reading = 0;
+      cluster = 0;
       printf("\n");
       break;
+    }
+
+    if (strEql(choice, "..") && previous != 0) {
+      cluster = previous;
     }
 
     printf("\n");
@@ -224,6 +227,7 @@ void fsList() {
 
     int more = 1;
     while (more) {
+      unsigned char *rawArr;
       getDiskBytes(rawArr, lba, 1);
       for (int i = 0; i < (SECTOR_SIZE / 32); i++) {
         if (rawArr[32 * i] == 0) {
@@ -238,6 +242,7 @@ void fsList() {
             //           ((uint32_t)rawArr[32 * i + 26] << 16) |
             //           ((uint32_t)rawArr[32 * i + 21] << 8) | rawArr[32 * i +
             //           27];
+            previous = cluster;
             cluster = rawArr[32 * i + 26] | (rawArr[32 * i + 27] << 8);
             printf("Hexadecimal: %x, Decimal:%d, {%x %x %x %x}\n", cluster,
                    cluster, rawArr[32 * i + 20], rawArr[32 * i + 21],
