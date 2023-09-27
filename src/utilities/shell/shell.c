@@ -215,9 +215,10 @@ void fsList() {
       cluster = 0;
       printf("\n");
       break;
-    }
-
-    if (strEql(choice, "..") && previous != 0) {
+    } else if (strEql(choice, "{")) {
+      clearScreen();
+      continue;
+    } else if (strEql(choice, "..") && previous != 0) {
       cluster = previous;
     }
 
@@ -236,8 +237,8 @@ void fsList() {
         }
         for (int o = 0; o < 11; o++) {
           // todo better alg
-          if ((rawArr[32 * i + o] == choice[o] || rawArr[32 * i + o] == 0x20) &&
-              o == 10) {
+          if ((rawArr[32 * i + o] == choice[o] ||
+               (rawArr[32 * i + o] == 0x20) && o == 10)) {
             // cluster = ((uint32_t)rawArr[32 * i + 20] << 24) |
             //           ((uint32_t)rawArr[32 * i + 26] << 16) |
             //           ((uint32_t)rawArr[32 * i + 21] << 8) | rawArr[32 * i +
