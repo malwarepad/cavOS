@@ -100,7 +100,7 @@ unsigned int getFatEntry(int cluster) {
   int lba = fat.fat_begin_lba + (cluster * 4 / SECTOR_SIZE);
   int entryOffset = (cluster * 4) % SECTOR_SIZE;
 
-  unsigned char *rawArr = (unsigned char *)malloc(SECTOR_SIZE);
+  unsigned char rawArr[SECTOR_SIZE];
   getDiskBytes(rawArr, lba, 1);
   // unsigned int c = *(uint32 *)&rawArr[entryOffset] & 0x0FFFFFFF; //
   // 0x0FFFFFFF mask to keep lower 28 bits valid, nah fuck this ima do it
@@ -112,8 +112,6 @@ unsigned int getFatEntry(int cluster) {
   for (int i = 3; i >= 0; i--) {
     result = (result << 8) | rawArr[entryOffset + i];
   }
-
-  free(rawArr);
 
   // printf("\n[%d] %x %x %x %x {Binary: %d Hexadecimal: %x}\n", entryOffset,
   //        rawArr[entryOffset], rawArr[entryOffset + 1], rawArr[entryOffset +
@@ -205,7 +203,7 @@ int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
 
   const int lba =
       fat.cluster_begin_lba + (clusterNum - 2) * fat.sectors_per_cluster;
-  unsigned char *rawArr = (unsigned char *)malloc(SECTOR_SIZE);
+  unsigned char rawArr[SECTOR_SIZE];
   getDiskBytes(rawArr, lba, 1);
 
   for (int i = 0; i < (SECTOR_SIZE / 32); i++) {
@@ -238,20 +236,17 @@ int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
     showCluster(nextCluster, attrLimitation);
   }
 
-  free(rawArr);
-
   return 1;
 }
 
 int showFileByCluster(int clusterNum, int size) {
   clearScreen();
   for (int i = 0; i < DIV_ROUND_CLOSEST(size, SECTOR_SIZE); i++) { // 1
-    unsigned char *rawArr = (unsigned char *)malloc(SECTOR_SIZE);
-    const int      lba =
+    unsigned char rawArr[SECTOR_SIZE];
+    const int     lba =
         fat.cluster_begin_lba + (clusterNum - 2) * fat.sectors_per_cluster + i;
     getDiskBytes(rawArr, lba, 1);
     for (int j = 0; j < SECTOR_SIZE; j++)
       printf("%c", rawArr[j]);
-    free(rawArr);
   }
 }
