@@ -62,10 +62,9 @@ void launch_shell(int n, multiboot_info_t *mbi) {
 
 void echo(string ch) {
   printf("\nInsert argument 1: ");
-  string str = (string)malloc(200);
+  char str[200];
   readStr(str);
   printf("\n%s\n", str);
-  free(str);
 }
 
 void set_background_color() {
@@ -147,10 +146,9 @@ void fatCluster() {
          "FAT32!\nCluster 2 -> starting point (/)");
   printf("\nInsert cluster number: ");
 
-  string choice = (string)malloc(200);
+  char choice[200];
   readStr(choice);
   int cluster = atoi(choice);
-  free(choice);
   printf("\nReading FAT cluster %d\n\r\n", cluster);
   showCluster(cluster, NULL);
 }
@@ -171,10 +169,9 @@ void readDisk() {
          "Offset=1048576");
   printf("\nInsert LBA (LBA = Offset / Sector Size): ");
 
-  string choice = (string)malloc(200);
+  char choice[200];
   readStr(choice);
   int lba = atoi(choice);
-  free(choice);
   printf("\nReading disk 0 with LBA=%d\n\r\n", lba);
 
   unsigned char *rawArr;
@@ -208,7 +205,7 @@ void fsList() {
 
     printf("\nEnter root directory choice (folder name OR '}' to exit):");
     printf("\n> ");
-    string choice = (string)malloc(200);
+    char choice[200];
     readStr(choice);
     if (strlength(choice) > 11) {
       printf("\nInvalid options!\n");
@@ -266,7 +263,6 @@ void fsList() {
       } else
         more = 0;
     }
-    free(choice);
   }
 }
 

@@ -36,7 +36,7 @@ char shiftedCharacterTable[] = {
 };
 
 string readStr(string buffstr) {
-  char buff;
+  // char buff;
   // string buffstr = (string)malloc(200);
   uint8 i = 0;
   uint8 reading = 1;
