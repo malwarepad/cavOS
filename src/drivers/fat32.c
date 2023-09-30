@@ -14,6 +14,7 @@ int initiateFat32() {
 
   printf("\n[+] FAT32: Checking if disk0 at lba %d is FAT32 formatted...",
          FAT32_PARTITION_OFFSET_LBA);
+
   // get sector count
   const unsigned char littleSectorCount =
       rawArr[19] | (rawArr[20] << 8); // (two, little endian)
@@ -84,18 +85,6 @@ int initiateFat32() {
   printf("\n");
 }
 
-int highLowCombiner(uint16_t highBits[2], uint16_t lowBits[2]) {
-  uint32_t clusterNumber[2];
-
-  int cluster[2];
-
-  for (int i = 0; i < 2; i++) {
-    cluster[i] = ((int)highBits[i]) << 16 | (int)lowBits[i];
-  }
-
-  return cluster;
-}
-
 unsigned int getFatEntry(int cluster) {
   int lba = fat.fat_begin_lba + (cluster * 4 / SECTOR_SIZE);
   int entryOffset = (cluster * 4) % SECTOR_SIZE;
@@ -120,8 +109,64 @@ unsigned int getFatEntry(int cluster) {
   return result;
 }
 
-int compFilename(string filename1, string filename2) {
-  return memcmp(filename1, filename2, 11) == 0;
+#define TOUPPER(c) ((c >= 'a' && c <= 'z') ? (c - 'a' + 'A') : c)
+#define ISSPACE(c)                                                             \
+  (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' || c == '\f')
+
+char *formatFilename(char **rawOriginal) {
+  char *original = *rawOriginal;
+  char *modifiable;
+  int   i = 0;
+  int   j = 0;
+
+  while (original[i] != '\0' && j < 11) {
+    if (original[i] != '.' && !ISSPACE(original[i])) {
+      modifiable[j] = TOUPPER(original[i]);
+      j++;
+    }
+    i++;
+  }
+
+  while (j < 11) {
+    modifiable[j] = ' ';
+    j++;
+  }
+
+  // modifiable[11] = '\0';
+
+  return modifiable;
+}
+
+FAT32_Directory findFile(int initialCluster, char *filename) {
+  int     clusterNum = initialCluster;
+  uint8_t rawArr[SECTOR_SIZE];
+  while (1) {
+    const int lba =
+        fat.cluster_begin_lba + (clusterNum - 2) * fat.sectors_per_cluster;
+    getDiskBytes(rawArr, lba, 1);
+
+    for (int i = 0; i < (SECTOR_SIZE / 32); i++) {
+      pFAT32_Directory fatdir = (pFAT32_Directory)(&rawArr[32 * i]);
+      if (memcmp(fatdir->filename, filename, 11) == 0) {
+        printf("\n[search] filename: %s\n", filename);
+        printf("\n[search] low=%d low1=%x low2=%x\n", fatdir->firstClusterLow,
+               rawArr[32 * i + 26], rawArr[32 * i + 27]);
+        for (int o = 0; o < 32; o++) {
+          printf("%x ", rawArr[32 * i + o]);
+        }
+        printf("\n");
+        return *fatdir;
+      }
+    }
+
+    if (rawArr[SECTOR_SIZE - 32] != 0) {
+      unsigned int nextCluster = getFatEntry(clusterNum);
+      if (nextCluster == 0)
+        return;
+      clusterNum = nextCluster;
+    } else
+      return;
+  }
 }
 
 int followConventionalDirectoryLoop(string outStr, string directory,
@@ -266,26 +311,31 @@ int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
     if (rawArr[32 * i] == 0)
       break;
 
-    if ((rawArr[32 * i + 11] == 0x0F) || (rawArr[32 * i + 11] == 0x08) ||
-        (attrLimitation != NULL && rawArr[32 * i + 11] != attrLimitation))
+    pFAT32_Directory directory = (pFAT32_Directory)(&rawArr[32 * i]);
+
+    if ((directory->attributes == 0x0F) || (directory->attributes == 0x08) ||
+        (attrLimitation != NULL && directory->attributes != attrLimitation))
       continue;
 
-    uint8 attr = rawArr[32 * i + 11];
-    uint8 reserved = rawArr[32 * i + 12];
+    uint16_t createdDate = directory->creationDate;
+    int      createdDay = createdDate & 0x1F;
+    int      createdMonth = (createdDate >> 5) & 0xF;
+    int      createdYear = ((createdDate >> 9) & 0x7F) + 1980;
 
-    unsigned int createdDate = (rawArr[32 * i + 17] << 8) | rawArr[32 * i + 16];
-    int          createdDay = createdDate & 0x1F;
-    int          createdMonth = (createdDate >> 5) & 0xF;
-    int          createdYear = ((createdDate >> 9) & 0x7F) + 1980;
-
-    printf("[%d] attr: 0x%02X | created: %02d/%02d/%04d | ", reserved, attr,
-           createdDay, createdMonth, createdYear);
+    printf("[%d] attr: 0x%02X | created: %02d/%02d/%04d | ",
+           directory->ntReserved, directory->attributes, createdDay,
+           createdMonth, createdYear);
     int lfn = 0;
+    // char *out;
     for (int o = 0; o < 11; o++) {
       if (rawArr[32 * i + o] == '~')
         lfn = 1;
-      printf("%c", rawArr[32 * i + o]);
+      // out[o] = rawArr[32 * i + o];
+      // printf("%c", rawArr[32 * i + o]);
     }
+    // out[11] = '\0';
+    // formatFilename(&directory->filename);
+    printf("%.11s", directory->filename);
     printf("\n");
     if (lfn)
       calcLfn(clusterNum, i);
@@ -294,21 +344,127 @@ int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
   if (rawArr[SECTOR_SIZE - 32] != 0) {
     unsigned int nextCluster = getFatEntry(clusterNum);
     if (nextCluster == 0)
-      return;
+      return 1;
     showCluster(nextCluster, attrLimitation);
   }
 
   return 1;
 }
 
-int showFileByCluster(int clusterNum, int size) {
-  clearScreen();
-  for (int i = 0; i < DIV_ROUND_CLOSEST(size, SECTOR_SIZE); i++) { // 1
+int findExtensionIndex(char **filename) {
+  char *filenameAcc = *filename;
+  for (int i = 10; i >= 0; i--)
+    if (filenameAcc[i] == 0x20)
+      return (i + 1);
+
+  return 10;
+}
+
+int findPaddingIndex(char **filename) {
+  char *filenameAcc = *filename;
+  int   ext = findExtensionIndex(filename);
+  for (int i = (ext - 1); i >= 0; i--)
+    if (filenameAcc[i] != 0x20)
+      return (i + 1);
+
+  return ext;
+}
+
+// int formatFilename(char **filename) {
+//   char *filenameAcc = *filename;
+
+//   int startPos = 8; // would be 7 if last was not getting cut off
+//   for (int i = 7; i >= 0; i--) {
+//     if (filenameAcc[i] != 0x20)
+//       break;
+//     startPos = i;
+//   }
+
+//   // filenameAcc[startPos++] = '.';
+//   for (int i = startPos; i < (startPos + 3); i++) {
+//     filenameAcc[i] = filenameAcc[8 + (i - startPos)];
+//   }
+
+//   startPos += 3;
+//   for (int i = startPos; i < 11; i++) {
+//     filenameAcc[i] = 0x20;
+//   }
+
+//   filename[startPos] = '\0';
+
+//   return 1;
+// }
+
+int divisionRoundUp(int a, int b) { return (a + (b - 1)) / b; }
+
+char *readFileContents(pFAT32_Directory dir) {
+  printf("\n[read] filesize=%d cluster=%d\n", dir->filesize,
+         dir->firstClusterLow);
+  char *out;
+  int   curr = 0;
+  for (int i = 0; i < divisionRoundUp(dir->filesize, SECTOR_SIZE);
+       i++) { // DIV_ROUND_CLOSEST(dir->filesize, SECTOR_SIZE)
     unsigned char rawArr[SECTOR_SIZE];
-    const int     lba =
-        fat.cluster_begin_lba + (clusterNum - 2) * fat.sectors_per_cluster + i;
+    const int     lba = fat.cluster_begin_lba +
+                    (dir->firstClusterLow - 2) * fat.sectors_per_cluster + i;
+    getDiskBytes(rawArr, lba, 1);
+    for (int j = 0; j < SECTOR_SIZE; j++) {
+      out[curr] = rawArr[j];
+      curr++;
+    }
+  }
+  return out;
+}
+
+int showFile(pFAT32_Directory dir) {
+  printf("\n[read] filesize=%d cluster=%d\n", dir->filesize,
+         dir->firstClusterLow);
+  for (int i = 0; i < divisionRoundUp(dir->filesize, SECTOR_SIZE);
+       i++) { // DIV_ROUND_CLOSEST(dir->filesize, SECTOR_SIZE)
+    unsigned char rawArr[SECTOR_SIZE];
+    const int     lba = fat.cluster_begin_lba +
+                    (dir->firstClusterLow - 2) * fat.sectors_per_cluster + i;
     getDiskBytes(rawArr, lba, 1);
     for (int j = 0; j < SECTOR_SIZE; j++)
       printf("%c", rawArr[j]);
   }
+}
+
+int test() {
+  // char *filename = "AB      TXT";
+  // char filename[] = {'A',  'B',  0x20, 0x20, 0x20, 0x20,
+  //                    0x20, 0x20, 'T',  'X',  'T'};
+
+  // int ext = findExtensionIndex(&filename);
+  // int padding = findPaddingIndex(&filename);
+  // formatFilename(&filename);
+
+  // printf("\next=%d padding=%d\n", ext, padding);
+
+  // char *original = "untitled.txt";
+  int cluster = 2;
+  showCluster(cluster, 0);
+  while (1) {
+    printf("> ");
+    char cnt[200];
+    readStr(cnt);
+    char *res = &cnt;
+    printf("\n[input]: %s\n", res);
+    char *modifiable = formatToShort8_3Format(res);
+    // for (int i = 0; i < 11; i++) {
+    //   // printf("%2x ", modifiable[i]);
+    // }
+    printf("\n[parse] FAT32-compatible filename: %s\n", modifiable);
+
+    FAT32_Directory dir = findFile(cluster, modifiable);
+
+    printf("\n[search res] filename=%.11s attr=0x%x low=%d\n", dir.filename,
+           dir.attributes, dir.firstClusterLow);
+
+    // showFile(&dir);
+    char *out = readFileContents(&dir);
+    printf("%s", out);
+    printf("\n");
+  }
+  // printf("\ncomp=%d\n", filenameEql(&filename, &user));
 }

@@ -17,6 +17,7 @@
 // Copyright (C) 2023 Panagiotis
 
 #define MEMORY_DETECTION_DRAFT 0
+#define FAT32_READ_TEST 0
 
 int kmain(uint32 magic, multiboot_info_t *mbi) {
   if (magic != MULTIBOOT_BOOTLOADER_MAGIC) {
@@ -41,6 +42,9 @@ int kmain(uint32 magic, multiboot_info_t *mbi) {
   isr_install();
   init_memory(mbi);
   initiateFat32();
+#if FAT32_READ_TEST
+  test();
+#endif
 #if MEMORY_DETECTION_DRAFT
   printf("[+] Memory detection:");
 #endif
