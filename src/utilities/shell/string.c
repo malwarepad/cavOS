@@ -12,6 +12,17 @@ uint16 strlength(string ch) {
   return i - 1; // Changed counter to i instead of i--
 }
 
+int atoi(const char *str) {
+  int value = 0;
+  while (isdigit(*str)) {
+    value *= 10;
+    value += (*str) - '0';
+    str++;
+  }
+
+  return value;
+}
+
 uint8 cmdLength(string ch) {
   uint8 i = 0;
   uint8 size = 0;
