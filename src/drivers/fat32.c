@@ -446,8 +446,8 @@ int fileReaderTest() {
   printf("\n");
 
   while (1) {
-    printf(
-        "Note: } can be used to exit!\nEnter target filename (8.3 short):\n> ");
+    printf("Note: } can be used to exit...\nEnter target filename (8.3 "
+           "short):\n> ");
     char cnt[200];
     readStr(cnt);
     printf("\n");
@@ -464,6 +464,11 @@ int fileReaderTest() {
     printf("\n[parse] FAT32-compatible filename: %s\n", modifiable);
 
     FAT32_Directory dir = findFile(cluster, modifiable);
+    if (dir.filename[0] == 0x10) {
+      printf("\nNo such file can be found!\n[input: %s] [prased: %s]\n\n", res,
+             modifiable);
+      continue;
+    }
 
     printf("\n[search res] filename=%.11s attr=0x%x low=%d\n", dir.filename,
            dir.attributes, dir.firstClusterLow);
