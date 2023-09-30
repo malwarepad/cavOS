@@ -21,6 +21,65 @@ enum {
 };
 
 typedef struct {
+  uint8_t  bootjmp[3];
+  uint8_t  oem_name[8];
+  uint16_t bytes_per_sector;
+  uint8_t  sectors_per_cluster;
+  uint16_t reserved_sectors;
+  uint8_t  number_of_fat;
+  uint16_t root_entry_count;
+  uint16_t sector_count_small;
+  uint8_t  media_type;
+  uint16_t sectors_per_fat_12_16;
+  uint16_t sectors_per_track;
+  uint16_t head_side_count;
+  uint32_t hidden_sector_count;
+  uint32_t sector_count;
+
+  // extended fat32 stuff
+  uint32_t sectors_per_fat;
+  uint16_t extended_flags;
+  uint16_t fat_version;
+  uint32_t root_cluster;
+  uint16_t fat_info;
+  uint16_t backup_BS_sector;
+  uint8_t  reserved_0[12];
+  uint8_t  drive_number;
+  uint8_t  reserved_1;
+  uint8_t  boot_signature;
+  uint32_t volume_id;
+  uint8_t  volume_label[11];
+  uint8_t  fat_type_label[8];
+
+  // this will be cast to it's specific type once the driver actually knows what
+  // type of FAT this is.
+  // uint8_t extended_section[54];
+
+  // extras
+  uint32_t fat_begin_lba;
+  uint32_t cluster_begin_lba;
+  uint8_t  works;
+
+} __attribute__((packed)) tmpFAT32, *ptmpFAT32;
+
+#pragma pack(push, 1)
+typedef struct FAT32_Directory {
+  char     filename[11];
+  uint8_t  attributes;
+  uint8_t  ntReserved;
+  uint8_t  creationTimeSeconds;
+  uint16_t creationTime;
+  uint16_t creationDate;
+  uint16_t lastAccessDate;
+  uint16_t firstClusterHigh;
+  uint16_t lastModificationTime;
+  uint16_t lastModificationDate;
+  uint16_t firstClusterLow;
+  uint32_t filesize;
+} __attribute__((packed)) FAT32_Directory, *pFAT32_Directory;
+#pragma pack(pop)
+
+typedef struct {
   int          sector_count;
   unsigned int number_of_fat;
   unsigned int reserved_sectors;
@@ -64,10 +123,10 @@ int          showCluster(int clusterNum, int attrLimitation);
 unsigned int getFatEntry(int cluster);
 int          highLowCombiner(uint16_t highBits[2], uint16_t lowBits[2]);
 int          showFileByCluster(int clusterNum, int size);
-int          compFilename(string filename1, string filename2);
 int          followConventionalDirectoryLoop(string outStr, string directory,
                                              int levelDeep);
 int          charAppearance(string target, char charToAppear);
 char        *formatToShort8_3Format(char *directory);
+int          test();
 
 #endif
