@@ -127,6 +127,6 @@ int          followConventionalDirectoryLoop(string outStr, string directory,
                                              int levelDeep);
 int          charAppearance(string target, char charToAppear);
 char        *formatToShort8_3Format(char *directory);
-int          test();
+int          fileReaderTest();
 
 #endif

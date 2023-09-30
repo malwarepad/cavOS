@@ -26,6 +26,8 @@ void launch_shell(int n, multiboot_info_t *mbi) {
       fatCluster();
     } else if (strEql(ch, "readfatroot")) {
       fsList();
+    } else if (strEql(ch, "readfatfile")) {
+      fileReaderTest();
     } else if (strEql(ch, "time")) {
       RTC *rtc = (RTC *)malloc(sizeof(RTC));
       readFromCMOS(rtc);
@@ -112,23 +114,13 @@ void help() {
   printf("\n========================= FILESYSTEM ========================");
   printf("\n= readdisk       : Tests out the disk reading algorythm     =");
   printf("\n= readfatcluster : Tests out FAT32 cluster reading          =");
-  printf("\n= readfatroot    : Browse root directory (not ready)        =");
+  printf("\n= readfatroot    : Browse root directory  (not ready)        =");
+  printf("\n= readfatfile    : Read a file's contents (not ready)        =");
   // printf("\n= readfatfile    : Browse and read files interactively      =");
   printf("\n=============================================================\n");
 }
 
 int isdigit(char c) { return c >= '0' && c <= '9'; }
-
-int atoi(const char *str) {
-  int value = 0;
-  while (isdigit(*str)) {
-    value *= 10;
-    value += (*str) - '0';
-    str++;
-  }
-
-  return value;
-}
 
 void fatCluster() {
   if (!fat.works) {
@@ -154,10 +146,10 @@ void fatCluster() {
 }
 
 void readDisk() {
-  if (!fat.works) {
-    printf("\nFAT32 was not initalized properly on boot!\n");
-    return;
-  }
+  // if (!fat.works) {
+  //   printf("\nFAT32 was not initalized properly on boot!\n");
+  //   return;
+  // }
 
   clearScreen();
   printf("=========================================\n");

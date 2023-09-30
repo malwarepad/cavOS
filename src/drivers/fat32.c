@@ -146,8 +146,8 @@ FAT32_Directory findFile(int initialCluster, char *filename) {
     getDiskBytes(rawArr, lba, 1);
 
     for (int i = 0; i < (SECTOR_SIZE / 32); i++) {
-      pFAT32_Directory fatdir = (pFAT32_Directory)(&rawArr[32 * i]);
-      if (memcmp(fatdir->filename, filename, 11) == 0) {
+      if (memcmp(rawArr + (32 * i), filename, 11) == 0) { // fatdir->filename
+        pFAT32_Directory fatdir = (pFAT32_Directory)(&rawArr[32 * i]);
         printf("\n[search] filename: %s\n", filename);
         printf("\n[search] low=%d low1=%x low2=%x\n", fatdir->firstClusterLow,
                rawArr[32 * i + 26], rawArr[32 * i + 27]);
@@ -430,26 +430,33 @@ int showFile(pFAT32_Directory dir) {
   }
 }
 
-int test() {
-  // char *filename = "AB      TXT";
-  // char filename[] = {'A',  'B',  0x20, 0x20, 0x20, 0x20,
-  //                    0x20, 0x20, 'T',  'X',  'T'};
+int fileReaderTest() {
+  clearScreen();
+  printf("=========================================\n");
+  printf("====      cavOS file reader 1.0      ====\n");
+  printf("====    Copyright MalwarePad 2023    ====\n");
+  printf("=========================================\n");
 
-  // int ext = findExtensionIndex(&filename);
-  // int padding = findPaddingIndex(&filename);
-  // formatFilename(&filename);
-
-  // printf("\next=%d padding=%d\n", ext, padding);
-
-  // char *original = "untitled.txt";
-  int cluster = 2;
+  printf("\nEnter cluster choice (2 -> root directory):\n> ");
+  char choice[50];
+  readStr(choice);
+  int cluster = atoi(choice);
+  printf("\n\nCluster information:\n");
   showCluster(cluster, 0);
+  printf("\n");
+
   while (1) {
-    printf("> ");
+    printf(
+        "Note: } can be used to exit!\nEnter target filename (8.3 short):\n> ");
     char cnt[200];
     readStr(cnt);
+    printf("\n");
+
+    if (cnt[0] == '}')
+      return 1;
+
     char *res = &cnt;
-    printf("\n[input]: %s\n", res);
+    printf("[input]: %s\n", res);
     char *modifiable = formatToShort8_3Format(res);
     // for (int i = 0; i < 11; i++) {
     //   // printf("%2x ", modifiable[i]);
@@ -464,7 +471,6 @@ int test() {
     // showFile(&dir);
     char *out = readFileContents(&dir);
     printf("%s", out);
-    printf("\n");
+    printf("\n\n");
   }
-  // printf("\ncomp=%d\n", filenameEql(&filename, &user));
 }
