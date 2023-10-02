@@ -13,14 +13,6 @@
 #define FAT_EOF 0x0ffffff8
 #define PADDING_CHAR 0x20
 
-enum {
-  // DIRENT_FILE,
-  // DIRENT_EXTFILENAME,
-  // DIRENT_VOLLABEL,
-  // DIRENT_BLANK,
-  DIRENT_END
-};
-
 typedef struct {
   uint8_t  bootjmp[3];
   uint8_t  oem_name[8];
@@ -98,35 +90,9 @@ typedef struct {
 
 FAT32 fat;
 
-// typedef struct
-// {
-// 	unsigned int sector_number;
-// 	unsigned int entry_index;
-// 	unsigned int raw_28_bits;
-// 	bool is_last;
-// } FAT32_FAT;
-
-typedef struct {
-  char *filename; // 11 bytes, inc. 1 null terminator
-  uint8 attr;     // todo
-  uint8 size;
-  //   unsigned int createdDate;
-  //   int    NTreserved; // nah but why NT-only?
-  uint8  createdDay;
-  uint8  createdMonth;
-  uint16 createdYear;
-
-  // unsigned int rawBits[32];
-} __attribute__((packed)) FAT32_FILE;
-
 int          initiateFat32();
 int          showCluster(int clusterNum, int attrLimitation);
 unsigned int getFatEntry(int cluster);
-int          highLowCombiner(uint16_t highBits[2], uint16_t lowBits[2]);
-int          showFileByCluster(int clusterNum, int size);
-int          followConventionalDirectoryLoop(string outStr, string directory,
-                                             int levelDeep);
-int          charAppearance(string target, char charToAppear);
 char        *formatToShort8_3Format(char *directory);
 int          fileReaderTest();
 int          openFile(pFAT32_Directory dir, char *filename);
