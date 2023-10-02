@@ -42,8 +42,14 @@ int kmain(uint32 magic, multiboot_info_t *mbi) {
   isr_install();
   init_memory(mbi);
   initiateFat32();
+
 #if FAT32_READ_TEST
-  test();
+  FAT32_Directory dir;
+  openFile(&dir, "/untitled.txt");
+
+  char *contents = readFileContents(&dir);
+  printf("%s\n", contents);
+  // fileReaderTest();
 #endif
 #if MEMORY_DETECTION_DRAFT
   printf("[+] Memory detection:");

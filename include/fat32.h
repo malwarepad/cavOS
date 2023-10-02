@@ -128,5 +128,7 @@ int          followConventionalDirectoryLoop(string outStr, string directory,
 int          charAppearance(string target, char charToAppear);
 char        *formatToShort8_3Format(char *directory);
 int          fileReaderTest();
+int          openFile(pFAT32_Directory dir, char *filename);
+char        *readFileContents(pFAT32_Directory dir);
 
 #endif
