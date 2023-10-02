@@ -11,6 +11,7 @@
 #define FAT32_H
 
 #define FAT_EOF 0x0ffffff8
+#define PADDING_CHAR 0x20
 
 enum {
   // DIRENT_FILE,

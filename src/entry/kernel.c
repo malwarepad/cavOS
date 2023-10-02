@@ -45,10 +45,12 @@ int kmain(uint32 magic, multiboot_info_t *mbi) {
 
 #if FAT32_READ_TEST
   FAT32_Directory dir;
-  openFile(&dir, "/untitled.txt");
+  if (!openFile(&dir, "/ab.txt"))
+    printf("No such file can be found!\n");
 
   char *contents = readFileContents(&dir);
   printf("%s\n", contents);
+
   // fileReaderTest();
 #endif
 #if MEMORY_DETECTION_DRAFT

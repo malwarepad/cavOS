@@ -109,34 +109,6 @@ unsigned int getFatEntry(int cluster) {
   return result;
 }
 
-#define TOUPPER(c) ((c >= 'a' && c <= 'z') ? (c - 'a' + 'A') : c)
-#define ISSPACE(c)                                                             \
-  (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' || c == '\f')
-
-char *formatFilename(char **rawOriginal) {
-  char *original = *rawOriginal;
-  char *modifiable;
-  int   i = 0;
-  int   j = 0;
-
-  while (original[i] != '\0' && j < 11) {
-    if (original[i] != '.' && !ISSPACE(original[i])) {
-      modifiable[j] = TOUPPER(original[i]);
-      j++;
-    }
-    i++;
-  }
-
-  while (j < 11) {
-    modifiable[j] = ' ';
-    j++;
-  }
-
-  // modifiable[11] = '\0';
-
-  return modifiable;
-}
-
 int findFile(pFAT32_Directory fatdir, int initialCluster, char *filename) {
   int     clusterNum = initialCluster;
   uint8_t rawArr[SECTOR_SIZE];
@@ -167,36 +139,6 @@ int findFile(pFAT32_Directory fatdir, int initialCluster, char *filename) {
     } else
       return 0;
   }
-}
-
-int followConventionalDirectoryLoop(string outStr, string directory,
-                                    int levelDeep) {
-  int currLevelDeep = -1;
-  int compIng = 0;
-  int len = strlength(directory);
-  for (int i = 0; i < len; i++) {
-    if (compIng == 0) {
-      if (directory[i] == '/')
-        currLevelDeep++;
-      if (currLevelDeep == levelDeep)
-        compIng = 1;
-    } else {
-      if (directory[i] == '/') {
-        outStr[compIng - 1] = '\0';
-        return 1;
-      } else if ((i + 1) == len) {
-        outStr[compIng - 1] = directory[i];
-        compIng++;
-        outStr[compIng - 1] = '\0';
-        return 1;
-      } else {
-        outStr[compIng - 1] = directory[i];
-        compIng++;
-      }
-    }
-  }
-
-  return 0;
 }
 
 char *formatToShort8_3Format(char *directory) {
@@ -351,50 +293,6 @@ int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
   return 1;
 }
 
-int findExtensionIndex(char **filename) {
-  char *filenameAcc = *filename;
-  for (int i = 10; i >= 0; i--)
-    if (filenameAcc[i] == 0x20)
-      return (i + 1);
-
-  return 10;
-}
-
-int findPaddingIndex(char **filename) {
-  char *filenameAcc = *filename;
-  int   ext = findExtensionIndex(filename);
-  for (int i = (ext - 1); i >= 0; i--)
-    if (filenameAcc[i] != 0x20)
-      return (i + 1);
-
-  return ext;
-}
-
-// int formatFilename(char **filename) {
-//   char *filenameAcc = *filename;
-
-//   int startPos = 8; // would be 7 if last was not getting cut off
-//   for (int i = 7; i >= 0; i--) {
-//     if (filenameAcc[i] != 0x20)
-//       break;
-//     startPos = i;
-//   }
-
-//   // filenameAcc[startPos++] = '.';
-//   for (int i = startPos; i < (startPos + 3); i++) {
-//     filenameAcc[i] = filenameAcc[8 + (i - startPos)];
-//   }
-
-//   startPos += 3;
-//   for (int i = startPos; i < 11; i++) {
-//     filenameAcc[i] = 0x20;
-//   }
-
-//   filename[startPos] = '\0';
-
-//   return 1;
-// }
-
 int divisionRoundUp(int a, int b) { return (a + (b - 1)) / b; }
 
 char *readFileContents(pFAT32_Directory dir) {
@@ -430,8 +328,6 @@ int showFile(pFAT32_Directory dir) {
   }
 }
 
-char *empty;
-
 int openFile(pFAT32_Directory dir, char *filename) {
   if (filename[0] != '/')
     return 0;
@@ -446,8 +342,7 @@ int openFile(pFAT32_Directory dir, char *filename) {
     if (filename[i] == '/' || (i + 1) == len) {
       if ((i + 1) == len)
         tmpBuff[index++] = filename[i];
-      findFile(dir, dir->firstClusterLow, formatToShort8_3Format(tmpBuff));
-      if (dir->filename[0] == 0x10)
+      if (!findFile(dir, dir->firstClusterLow, formatToShort8_3Format(tmpBuff)))
         return 0;
 
       // cleanup
