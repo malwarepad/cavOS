@@ -83,6 +83,8 @@ int initiateFat32() {
   printf("\n    [+] Sectors / track: %d", fat.sectors_per_track);
   printf("\n    [+] Sectors / cluster: %d", fat.sectors_per_cluster);
   printf("\n");
+
+  return 1;
 }
 
 unsigned int getFatEntry(int cluster) {
