@@ -137,7 +137,7 @@ char *formatFilename(char **rawOriginal) {
   return modifiable;
 }
 
-FAT32_Directory findFile(int initialCluster, char *filename) {
+int findFile(pFAT32_Directory fatdir, int initialCluster, char *filename) {
   int     clusterNum = initialCluster;
   uint8_t rawArr[SECTOR_SIZE];
   while (1) {
@@ -147,7 +147,7 @@ FAT32_Directory findFile(int initialCluster, char *filename) {
 
     for (int i = 0; i < (SECTOR_SIZE / 32); i++) {
       if (memcmp(rawArr + (32 * i), filename, 11) == 0) { // fatdir->filename
-        pFAT32_Directory fatdir = (pFAT32_Directory)(&rawArr[32 * i]);
+        *fatdir = *(pFAT32_Directory)(&rawArr[32 * i]);
         printf("\n[search] filename: %s\n", filename);
         printf("\n[search] low=%d low1=%x low2=%x\n", fatdir->firstClusterLow,
                rawArr[32 * i + 26], rawArr[32 * i + 27]);
@@ -155,17 +155,17 @@ FAT32_Directory findFile(int initialCluster, char *filename) {
           printf("%x ", rawArr[32 * i + o]);
         }
         printf("\n");
-        return *fatdir;
+        return 1;
       }
     }
 
     if (rawArr[SECTOR_SIZE - 32] != 0) {
       unsigned int nextCluster = getFatEntry(clusterNum);
       if (nextCluster == 0)
-        return;
+        return 0;
       clusterNum = nextCluster;
     } else
-      return;
+      return 0;
   }
 }
 
@@ -430,6 +430,36 @@ int showFile(pFAT32_Directory dir) {
   }
 }
 
+char *empty;
+
+int openFile(pFAT32_Directory dir, char *filename) {
+  if (filename[0] != '/')
+    return 0;
+
+  char *tmpBuff;
+  int   index = 0;
+  int   len = strlength(filename);
+  dir->firstClusterLow = 2;
+  memset(tmpBuff, '\0', len);
+
+  for (int i = 1; i < len; i++) { // skip index 0
+    if (filename[i] == '/' || (i + 1) == len) {
+      if ((i + 1) == len)
+        tmpBuff[index++] = filename[i];
+      findFile(dir, dir->firstClusterLow, formatToShort8_3Format(tmpBuff));
+      if (dir->filename[0] == 0x10)
+        return 0;
+
+      // cleanup
+      memset(tmpBuff, '\0', len);
+      index = 0;
+    } else
+      tmpBuff[index++] = filename[i];
+  }
+
+  return 1;
+}
+
 int fileReaderTest() {
   clearScreen();
   printf("=========================================\n");
@@ -463,7 +493,8 @@ int fileReaderTest() {
     // }
     printf("\n[parse] FAT32-compatible filename: %s\n", modifiable);
 
-    FAT32_Directory dir = findFile(cluster, modifiable);
+    FAT32_Directory dir;
+    findFile(&dir, cluster, modifiable);
     if (dir.filename[0] == 0x10) {
       printf("\nNo such file can be found!\n[input: %s] [prased: %s]\n\n", res,
              modifiable);
