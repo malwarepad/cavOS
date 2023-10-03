@@ -18,6 +18,7 @@
 
 #define MEMORY_DETECTION_DRAFT 0
 #define FAT32_READ_TEST 0
+#define FAT32_DELETION_TEST 0
 
 int kmain(uint32 magic, multiboot_info_t *mbi) {
   if (magic != MULTIBOOT_BOOTLOADER_MAGIC) {
@@ -42,6 +43,46 @@ int kmain(uint32 magic, multiboot_info_t *mbi) {
   isr_install();
   init_memory(mbi);
   initiateFat32();
+
+#if FAT32_DELETION_TEST
+  int           clusterNum = 2;
+  char         *filename = "UNTITLEDTXT";
+  unsigned char rawArr[SECTOR_SIZE];
+  while (1) {
+    const int lba =
+        fat.cluster_begin_lba + (clusterNum - 2) * fat.sectors_per_cluster;
+    getDiskBytes(rawArr, lba, 1);
+
+    for (int i = 0; i < (SECTOR_SIZE / 32); i++) {
+      if (memcmp(rawArr + (32 * i), filename, 11) == 0) { // fatdir->filename
+        pFAT32_Directory fatdir = (pFAT32_Directory)(&rawArr[32 * i]);
+        printf("\n[dsearch] filename: %s\n", filename);
+        printf("\n[dsearch] low=%d low1=%x low2=%x\n", fatdir->firstClusterLow,
+               rawArr[32 * i + 26], rawArr[32 * i + 27]);
+        for (int o = 0; o < 32; o++) {
+          printf("%x ", rawArr[32 * i + o]);
+        }
+        printf("\n");
+
+        printf("\nDeleting file %s!\n", filename);
+
+        rawArr[32 * i] = FAT_DELETED;
+        putDiskBytes(rawArr, lba, 1);
+        printf("\n%s has been deleted!\n", filename);
+
+        break;
+      }
+    }
+
+    if (rawArr[SECTOR_SIZE - 32] != 0) {
+      unsigned int nextCluster = getFatEntry(clusterNum);
+      if (nextCluster == 0)
+        break;
+      clusterNum = nextCluster;
+    } else
+      break;
+  }
+#endif
 
 #if FAT32_READ_TEST
   FAT32_Directory dir;
