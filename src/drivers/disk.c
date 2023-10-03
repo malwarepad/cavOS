@@ -18,3 +18,22 @@ void getDiskBytes(unsigned char *target, uint32_t LBA, uint8_t sector_count) {
     writingCurr += 4;
   }
 }
+
+void putDiskBytes(const unsigned char *source, uint32_t LBA,
+                  uint8_t sector_count) {
+  uint32_t write_buffer[SECTOR_SIZE / 4]; // Create a buffer for 32-bit writes
+
+  int writingCurr = 0;
+  for (int i = 0; i < sector_count; i++) {
+    for (int j = 0; j < SECTOR_SIZE / 4; j++) {
+      // Combine 4 bytes into a 32-bit word
+      write_buffer[j] = ((uint32_t)source[writingCurr]) |
+                        (((uint32_t)source[writingCurr + 1]) << 8) |
+                        (((uint32_t)source[writingCurr + 2]) << 16) |
+                        (((uint32_t)source[writingCurr + 3]) << 24);
+      writingCurr += 4;
+    }
+    // Write the 32-bit buffer to the disk
+    write_sectors_ATA_PIO(LBA + i, 1, write_buffer);
+  }
+}

@@ -9,5 +9,7 @@
 #define DISK_H
 
 void getDiskBytes(unsigned char *target, uint32_t LBA, uint8_t sector_count);
+void putDiskBytes(const unsigned char *source, uint32_t LBA,
+                  uint8_t sector_count);
 
 #endif

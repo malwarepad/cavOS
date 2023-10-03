@@ -120,7 +120,8 @@ int findFile(pFAT32_Directory fatdir, int initialCluster, char *filename) {
     getDiskBytes(rawArr, lba, 1);
 
     for (int i = 0; i < (SECTOR_SIZE / 32); i++) {
-      if (memcmp(rawArr + (32 * i), filename, 11) == 0) { // fatdir->filename
+      if (memcmp(rawArr + (32 * i), filename, 11) == 0 &&
+          rawArr[32 * i] != FAT_DELETED) { // fatdir->filename
         *fatdir = *(pFAT32_Directory)(&rawArr[32 * i]);
         printf("\n[search] filename: %s\n", filename);
         printf("\n[search] low=%d low1=%x low2=%x\n", fatdir->firstClusterLow,
@@ -258,6 +259,7 @@ int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
     pFAT32_Directory directory = (pFAT32_Directory)(&rawArr[32 * i]);
 
     if ((directory->attributes == 0x0F) || (directory->attributes == 0x08) ||
+        rawArr[32 * i] == FAT_DELETED ||
         (attrLimitation != NULL && directory->attributes != attrLimitation))
       continue;
 

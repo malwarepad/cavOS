@@ -11,6 +11,7 @@
 #define FAT32_H
 
 #define FAT_EOF 0x0ffffff8
+#define FAT_DELETED 0xE5
 #define PADDING_CHAR 0x20
 
 typedef struct {
