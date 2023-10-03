@@ -32,6 +32,7 @@ int kmain(uint32 magic, multiboot_info_t *mbi) {
   clearScreen();
 
   string center = "                   ";
+  debugf("====== DEBUGGING LOGS ======\n\n");
   printf("%s=========================================%s\n", center, center);
   printf("%s==     Cave-Like Operating System      ==%s\n", center, center);
   printf("%s==      Copyright MalwarePad 2023      ==%s\n", center, center);

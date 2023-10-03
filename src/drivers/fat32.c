@@ -123,13 +123,13 @@ int findFile(pFAT32_Directory fatdir, int initialCluster, char *filename) {
       if (memcmp(rawArr + (32 * i), filename, 11) == 0 &&
           rawArr[32 * i] != FAT_DELETED) { // fatdir->filename
         *fatdir = *(pFAT32_Directory)(&rawArr[32 * i]);
-        printf("\n[search] filename: %s\n", filename);
-        printf("\n[search] low=%d low1=%x low2=%x\n", fatdir->firstClusterLow,
+        debugf("[search] filename: %s\n", filename);
+        debugf("[search] low=%d low1=%x low2=%x\n", (*fatdir).firstClusterLow,
                rawArr[32 * i + 26], rawArr[32 * i + 27]);
         for (int o = 0; o < 32; o++) {
-          printf("%x ", rawArr[32 * i + o]);
+          debugf("%x ", rawArr[32 * i + o]);
         }
-        printf("\n");
+        debugf("\n");
         return 1;
       }
     }
@@ -300,7 +300,7 @@ int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
 int divisionRoundUp(int a, int b) { return (a + (b - 1)) / b; }
 
 char *readFileContents(pFAT32_Directory dir) {
-  printf("\n[read] filesize=%d cluster=%d\n", dir->filesize,
+  debugf("[read] filesize=%d cluster=%d\n", dir->filesize,
          dir->firstClusterLow);
   char *out;
   int   curr = 0;
@@ -319,7 +319,7 @@ char *readFileContents(pFAT32_Directory dir) {
 }
 
 int showFile(pFAT32_Directory dir) {
-  printf("\n[read] filesize=%d cluster=%d\n", dir->filesize,
+  debugf("[read] filesize=%d cluster=%d\n", dir->filesize,
          dir->firstClusterLow);
   for (int i = 0; i < divisionRoundUp(dir->filesize, SECTOR_SIZE);
        i++) { // DIV_ROUND_CLOSEST(dir->filesize, SECTOR_SIZE)
@@ -385,12 +385,12 @@ int fileReaderTest() {
       return 1;
 
     char *res = &cnt;
-    printf("[input]: %s\n", res);
+    debugf("[input]: %s\n", res);
     char *modifiable = formatToShort8_3Format(res);
     // for (int i = 0; i < 11; i++) {
     //   // printf("%2x ", modifiable[i]);
     // }
-    printf("\n[parse] FAT32-compatible filename: %s\n", modifiable);
+    debugf("[parse] FAT32-compatible filename: %s\n", modifiable);
 
     FAT32_Directory dir;
     findFile(&dir, cluster, modifiable);
@@ -400,7 +400,7 @@ int fileReaderTest() {
       continue;
     }
 
-    printf("\n[search res] filename=%.11s attr=0x%x low=%d\n", dir.filename,
+    debugf("[search res] filename=%.11s attr=0x%x low=%d\n", dir.filename,
            dir.attributes, dir.firstClusterLow);
 
     // showFile(&dir);
