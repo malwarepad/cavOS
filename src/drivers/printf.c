@@ -916,3 +916,15 @@ int fctprintf(void (*out)(char character, void* arg), void* arg, const char* for
     va_end(va);
     return ret;
 }
+
+int debug(char c, int *arg) { outportb(0xE9, c); }
+
+int debugf(const char* format, ...)
+{
+    va_list va;
+    va_start(va, format);
+    const out_fct_wrap_type out_fct_wrap = { debug, 2 };
+    const int ret = _vsnprintf(_out_fct, (char*)(uintptr_t)&out_fct_wrap, (size_t)-1, format, va);
+    va_end(va);
+    return ret;
+}
