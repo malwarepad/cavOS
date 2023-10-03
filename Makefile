@@ -5,7 +5,7 @@ CFLAGS = -m32 -c -ffreestanding -w -fcommon
 ASFLAGS = -f elf32
 LDFLAGS = -m elf_i386 -T src/boot/link.ld
 
-OBJS = tmp/obj/kasm.o tmp/obj/kc.o tmp/obj/idt.o tmp/obj/ata.o tmp/obj/printf.o tmp/obj/asm_ports.o tmp/obj/isr.o tmp/obj/kb.o tmp/obj/tty.o tmp/obj/vga.o tmp/obj/string.o tmp/obj/system.o tmp/obj/util.o tmp/obj/shell.o tmp/obj/disk.o tmp/obj/fat32.o tmp/obj/allocation.o tmp/obj/rtc.o
+OBJS = tmp/obj/kasm.o tmp/obj/kc.o tmp/obj/idt.o tmp/obj/ata.o tmp/obj/printf.o tmp/obj/asm_ports.o tmp/obj/isr.o tmp/obj/kb.o tmp/obj/tty.o tmp/obj/vga.o tmp/obj/string.o tmp/obj/system.o tmp/obj/util.o tmp/obj/shell.o tmp/obj/disk.o tmp/obj/fat32.o tmp/obj/allocation.o tmp/obj/rtc.o tmp/obj/testing.o
 OUTPUT = tmp/boot/kernel.bin
 
 all:$(OBJS)
@@ -67,6 +67,9 @@ tmp/obj/asm_ports.o:src/utilities/util.c
 
 tmp/obj/shell.o:src/utilities/shell/shell.c
 	$(COMPILER) $(CFLAGS) src/utilities/shell/shell.c -o tmp/obj/shell.o
+
+tmp/obj/testing.o:src/entry/testing.c
+	$(COMPILER) $(CFLAGS) src/entry/testing.c -o tmp/obj/testing.o
 
 iso:all 
 	grub-mkrescue -o cavOS.iso tmp/

@@ -18,7 +18,8 @@
     "kheap.h": "c",
     "util.h": "c",
     "allocation.h": "c",
-    "vga.h": "c"
+    "vga.h": "c",
+    "testing.h": "c"
   },
   "C_Cpp.clang_format_style": "{ BasedOnStyle: LLVM, AlignConsecutiveDeclarations: true, IndentWidth: 2 }"
 }

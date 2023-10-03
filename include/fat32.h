@@ -10,6 +10,9 @@
 #ifndef FAT32_H
 #define FAT32_H
 
+#define FAT_SIGNATURE1 0x28
+#define FAT_SIGNATURE2 0x29
+
 #define FAT_EOF 0x0ffffff8
 #define FAT_DELETED 0xE5
 #define PADDING_CHAR 0x20

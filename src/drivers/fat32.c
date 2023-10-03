@@ -62,7 +62,7 @@ int initiateFat32() {
            "supports FAT32!\n");
     return 0;
   }
-  if (rawArr[66] != 0x28 && rawArr[66] != 0x29) {
+  if (rawArr[66] != FAT_SIGNATURE1 && rawArr[66] != FAT_SIGNATURE2) {
     printf("\n[+] FAT32: Incorrect disk signature! This kernel only supports "
            "FAT32!\n");
     return 0;
