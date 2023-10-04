@@ -17,5 +17,7 @@ string char_to_string(char ch);
 uint8  check_string_numbers(string str);
 uint8  check_string(string str);
 int    memcmp(const void *aptr, const void *bptr, size_t size);
+int    rand(void);
+void   srand(unsigned int seed);
 
 #endif
