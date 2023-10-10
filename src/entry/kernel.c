@@ -6,6 +6,7 @@
 #include "../../include/isr.h"
 #include "../../include/kb.h"
 #include "../../include/multiboot.h"
+#include "../../include/pmm.h"
 #include "../../include/rtc.h"
 #include "../../include/shell.h"
 #include "../../include/testing.h"
@@ -23,11 +24,12 @@ int kmain(uint32 magic, multiboot_info_t *mbi) {
     asm("hlt");
   }
 
-  /* Check bit 6 to see if we have a valid memory map */
   if (!(mbi->flags >> 6 & 0x1)) {
     printf("invalid memory map given by GRUB bootloader");
     asm("hlt");
   }
+
+  // pmmTesting(mbi);
 
   clearScreen();
 

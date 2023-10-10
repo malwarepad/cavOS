@@ -5,8 +5,10 @@ CFLAGS = -m32 -c -ffreestanding -w -fcommon
 ASFLAGS = -f elf32
 LDFLAGS = -m elf_i386 -T src/boot/link.ld
 
-OBJS = tmp/obj/kasm.o tmp/obj/kc.o tmp/obj/idt.o tmp/obj/ata.o tmp/obj/printf.o tmp/obj/asm_ports.o tmp/obj/isr.o tmp/obj/kb.o tmp/obj/tty.o tmp/obj/vga.o tmp/obj/string.o tmp/obj/system.o tmp/obj/util.o tmp/obj/shell.o tmp/obj/disk.o tmp/obj/fat32.o tmp/obj/allocation.o tmp/obj/rtc.o tmp/obj/testing.o
+OBJS = tmp/obj/kasm.o tmp/obj/kc.o tmp/obj/idt.o tmp/obj/ata.o tmp/obj/printf.o tmp/obj/asm_ports.o tmp/obj/isr.o tmp/obj/kb.o tmp/obj/tty.o tmp/obj/string.o tmp/obj/system.o tmp/obj/util.o tmp/obj/shell.o tmp/obj/disk.o tmp/obj/fat32.o tmp/obj/allocation.o tmp/obj/rtc.o tmp/obj/testing.o tmp/obj/pmm.o
 OUTPUT = tmp/boot/kernel.bin
+
+# tmp/obj/vga.o 
 
 all:$(OBJS)
 	mkdir tmp/ -p
@@ -26,14 +28,17 @@ tmp/obj/idt.o:src/cpu/idt.c
 tmp/obj/kb.o:src/drivers/kb.c
 	$(COMPILER) $(CFLAGS) src/drivers/kb.c -o tmp/obj/kb.o
 
+tmp/obj/pmm.o:src/memory/pmm.c
+	$(COMPILER) $(CFLAGS) src/memory/pmm.c -o tmp/obj/pmm.o
+
 tmp/obj/isr.o:src/cpu/isr.c
 	$(COMPILER) $(CFLAGS) src/cpu/isr.c -o tmp/obj/isr.o
 
 tmp/obj/tty.o:src/drivers/tty.c
 	$(COMPILER) $(CFLAGS) src/drivers/tty.c -o tmp/obj/tty.o
 
-tmp/obj/vga.o:src/drivers/vga.c
-	$(COMPILER) $(CFLAGS) src/drivers/vga.c -o tmp/obj/vga.o
+# tmp/obj/vga.o:src/drivers/vga.c
+# 	$(COMPILER) $(CFLAGS) src/drivers/vga.c -o tmp/obj/vga.o
 
 tmp/obj/printf.o:src/drivers/vga.c
 	$(COMPILER) $(CFLAGS) src/drivers/printf.c -o tmp/obj/printf.o

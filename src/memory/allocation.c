@@ -21,24 +21,24 @@ static void splitBlock(struct MemoryBlock *block, size_t size) {
 }
 
 void init_memory(multiboot_info_t *mbi) {
-  if (mbi->flags & MULTIBOOT_INFO_MEMORY) {
-    uint64                  available_memory = 0;
-    multiboot_memory_map_t *mmap = (multiboot_memory_map_t *)mbi->mmap_addr;
-    multiboot_memory_map_t *mmap_end =
-        mmap + (mbi->mmap_length / sizeof(multiboot_memory_map_t));
+  // if (mbi->flags & MULTIBOOT_INFO_MEMORY) {
+  //   uint64                  available_memory = 0;
+  //   multiboot_memory_map_t *mmap = (multiboot_memory_map_t *)mbi->mmap_addr;
+  //   multiboot_memory_map_t *mmap_end =
+  //       mmap + (mbi->mmap_length / sizeof(multiboot_memory_map_t));
 
-    while (mmap < mmap_end) {
-      if (mmap->type == MULTIBOOT_MEMORY_AVAILABLE) {
-        available_memory += mmap->len;
-      }
-      mmap = (multiboot_memory_map_t *)((uintptr_t)mmap + mmap->size +
-                                        sizeof(mmap->size));
-    }
+  //   while (mmap < mmap_end) {
+  //     if (mmap->type == MULTIBOOT_MEMORY_AVAILABLE) {
+  //       available_memory += mmap->len_high;
+  //     }
+  //     mmap = (multiboot_memory_map_t *)((uintptr_t)mmap + mmap->size +
+  //                                       sizeof(mmap->size));
+  //   }
 
-    memory_pool_size = available_memory;
-    memory_pool = (char *)mbi->mem_lower;
-    memory_ptr = memory_pool;
-  }
+  //   memory_pool_size = available_memory;
+  //   memory_pool = (char *)mbi->mem_lower;
+  //   memory_ptr = memory_pool;
+  // }
 }
 
 void *malloc(size_t size) {
