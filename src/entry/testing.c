@@ -65,9 +65,8 @@ void testingInit(multiboot_info_t *mbi) {
     multiboot_memory_map_t *mmmt =
         (multiboot_memory_map_t *)(mbi->mmap_addr + i);
     // if (mmmt->type == MULTIBOOT_MEMORY_AVAILABLE)
-    printf("\n    [+] Start Addr: %lx | Length: %lx | Size: "
-           "%x | Type: %x",
-           mmmt->addr, mmmt->len, mmmt->size, mmmt->type);
+    debugf("\n[%x %x - %x %x] {%x}", mmmt->addr_high, mmmt->addr_low,
+           mmmt->len_high, mmmt->len_low, mmmt->type);
   }
   printf("\n");
 #endif
