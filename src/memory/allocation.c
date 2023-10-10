@@ -20,7 +20,7 @@ static void splitBlock(struct MemoryBlock *block, size_t size) {
   block->next = newBlock;
 }
 
-void init_memory(multiboot_info_t *mbi) {
+void init_memory() {
   // if (mbi->flags & MULTIBOOT_INFO_MEMORY) {
   //   uint64                  available_memory = 0;
   //   multiboot_memory_map_t *mmap = (multiboot_memory_map_t *)mbi->mmap_addr;

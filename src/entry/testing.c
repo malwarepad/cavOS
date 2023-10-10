@@ -4,7 +4,7 @@
 #define FAT32_READ_TEST 0
 #define FAT32_DELETION_TEST 0
 
-void testingInit(multiboot_info_t *mbi) {
+void testingInit() {
 #if FAT32_DELETION_TEST
   int           clusterNum = 2;
   char         *filename = "UNTITLEDTXT";

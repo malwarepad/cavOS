@@ -1,4 +1,4 @@
 #include "./fat32.h"
-#include "./multiboot.h"
+#include "./multiboot2.h"
 
-void testingInit(multiboot_info_t *mbi);
+void testingInit();

@@ -20,7 +20,8 @@
     "allocation.h": "c",
     "vga.h": "c",
     "testing.h": "c",
-    "multiboot.h": "c"
+    "multiboot2.h": "c",
+    "rtc.h": "c"
   },
   "C_Cpp.clang_format_style": "{ BasedOnStyle: LLVM, AlignConsecutiveDeclarations: true, IndentWidth: 2 }"
 }

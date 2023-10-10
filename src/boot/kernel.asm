@@ -1,53 +1,34 @@
 ; Kernel boot file
 ; Copyright (C) 2023 Panagiotis
 
-MBOOT_HEADER_MAGIC  equ 0x1BADB002
-MBOOT_PAGE_ALIGN    equ 1 << 0
-MBOOT_MEM_INFO      equ 1 << 1
-MBOOT_GRAPH_MODE    equ 1 << 2
-MBOOT_HEADER_FLAGS  equ MBOOT_PAGE_ALIGN | MBOOT_MEM_INFO | MBOOT_GRAPH_MODE
-MBOOT_CHECKSUM      equ -(MBOOT_HEADER_MAGIC + MBOOT_HEADER_FLAGS)
+MBOOT_HEADER_MAGIC  equ 0xE85250D6
+MBOOT_ARCH          equ 0x00000000
+
+; Legacy from multiboot 1
+; MBOOT_PAGE_ALIGN    equ 1 << 0
+; MBOOT_MEM_INFO      equ 1 << 1
+; MBOOT_GRAPH_MODE    equ 1 << 2
+
+; MBOOT_HEADER_FLAGS  equ MBOOT_ARCH | MBOOT_HEADER_LEN
+; MBOOT_CHECKSUM      equ -(MBOOT_HEADER_MAGIC + MBOOT_HEADER_FLAGS)
 
 bits    32
 
+section .multiboot_header
+header_start:
+        dd  MBOOT_HEADER_MAGIC
+        dd  MBOOT_ARCH
+        dd  header_end - header_start
+        dd  0x100000000 - (MBOOT_HEADER_MAGIC + MBOOT_ARCH + (header_end - header_start))
+        
+        dw 0
+        dw 0
+        dw 8
+header_end:
+
 section         .text
-        align   32
-        dd MBOOT_HEADER_MAGIC
-        dd MBOOT_HEADER_FLAGS
-        dd MBOOT_CHECKSUM
-
-        dd 0 ; skip some flags
-        dd 0
-        dd 0
-        dd 0
-        dd 0
-
-        dd 1 ; 0 -> graphical, 1 -> tty
-        dd 1280 ; sets the width
-        dd 720 ; sets the height
-        dd 32 ; sets the bits per pixel
-
-
 global start
 extern kmain            ; this function is gonna be located in our c code(kernel.c)
-
-global enablePaging
-
-enablePaging:
-; load page directory (eax has the address of the page directory) 
-   mov eax, [esp+4]
-   mov cr3, eax        
-
-; enable 4MBpage
-;	mov ebx, cr4           ; read current cr4 
-;	or  ebx, 0x00000010    ; set PSE  - enable 4MB page
-;	mov cr4, ebx           ; update cr4
-
-; enable paging 
-   mov ebx, cr0          ; read current cr0
-   or  ebx, 0x80000000   ; set PG .  set pages as read-only for both userspace and supervisor, replace 0x80000000 above with 0x80010000, which also sets the WP bit.
-   mov cr0, ebx          ; update cr0
-   ret                   ; now paging is enabled
 
 start:
         cli             ;clears the interrupts
