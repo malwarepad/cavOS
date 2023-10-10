@@ -3,7 +3,7 @@
 
 #include "system.h"
 #include "string.h"
-#include "multiboot.h"
+#include "multiboot2.h"
 
 void drawRect(multiboot_info_t *mbi, int x, int y, int w, int h, int r, int g, int b);
 void drawText(multiboot_info_t *mbi, int charnum);

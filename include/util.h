@@ -2,11 +2,13 @@
 #define UTIL_H
 
 #include "allocation.h"
-#include "multiboot.h"
+#include "multiboot2.h"
 #include "types.h"
 
 #define DIV_ROUND_CLOSEST(n, d)                                                \
   ((((n) < 0) == ((d) < 0)) ? (((n) + (d) / 2) / (d)) : (((n) - (d) / 2) / (d)))
+
+#define DivRoundUp(number, divisor) ((number + divisor - 1) / divisor)
 
 void   memset(void *_dst, int val, size_t len);
 void   memory_copy(char *source, char *dest, int nbytes);

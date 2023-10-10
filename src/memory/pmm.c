@@ -26,11 +26,11 @@ uint32_t ToBlockRoundUp(void *ptr) {
   }
 */
 
-void pmmTesting(multiboot_info_t *mbi) {
-  uint32_t memory_size =
-      (mbi->mem_upper + 1024) * 1024; // mbi->mem_upper * 1024
-  debugf("bish memory: %d\n", memory_size);
-  BitmapSize = ((memory_size) / BLOCK_SIZE) * BITS_PER_BLOCK;
+void pmmTesting() {
+  // uint32_t memory_size =
+  //     (mbi->mem_upper + 1024) * 1024; // mbi->mem_upper * 1024
+  debugf("bish memory: %d\n", mbi_memorySize);
+  BitmapSize = ((mbi_memorySize) / BLOCK_SIZE) * BITS_PER_BLOCK;
   // for (int i = 0; i < mbi->mmap_length; i += sizeof(multiboot_memory_map_t))
   // {
   //   multiboot_memory_map_t *mmmt =
@@ -39,16 +39,16 @@ void pmmTesting(multiboot_info_t *mbi) {
   //   debugf("[%x %x - %x %x] {%x}\n", mmmt->addr_low, mmmt->len_high,
   //          mmmt->len_low, mmmt->type);
   // }
-  debugf("%d -> (%d / %d) * %d\n", BitmapSize, memory_size, BLOCK_SIZE,
+  debugf("%d -> (%d / %d) * %d\n", BitmapSize, mbi_memorySize, BLOCK_SIZE,
          BITS_PER_BLOCK);
 
   uint8_t found = 0;
 
   multiboot_memory_map_t *mmmt;
-  for (int i = 0; i < mbi->mmap_length; i += sizeof(multiboot_memory_map_t)) {
-    mmmt = (multiboot_memory_map_t *)(mbi->mmap_addr + i);
-    if (mmmt->type == MULTIBOOT_MEMORY_AVAILABLE &&
-        (mmmt->len_low) >= BitmapSize) {
+
+  for (int i = 0; i < memoryMapCnt; i++) {
+    mmmt = memoryMap[i];
+    if (mmmt->type == MULTIBOOT_MEMORY_AVAILABLE && (mmmt->len) >= BitmapSize) {
       // debugf("[%x %x - %x %x] {%x}\n", mmmt->addr_low, mmmt->len_high,
       //        mmmt->len_low, mmmt->type);
       found = 1;
@@ -59,29 +59,28 @@ void pmmTesting(multiboot_info_t *mbi) {
   if (!found) {
     printf(
         "[+] Bitmap allocator: Not enough memory!\n> %d required, %d found!\n",
-        BitmapSize, mbi->mem_upper * 1024);
+        BitmapSize, mbi_memorySize);
     asm("hlt");
     return 1;
   }
 
-  debugf("%x\n", mmmt->addr_low);
+  debugf("Bitmap allocator's memory address: %x\n", mmmt->addr);
 
-  Bitmap = (uint32_t *)(ToPtr(mmmt->addr_low));
+  Bitmap = (uint32_t *)(ToPtr(mmmt->addr));
 
   memset(Bitmap, 0xFF, BitmapSize);
 
-  for (int i = 0; i < mbi->mmap_length; i += sizeof(multiboot_memory_map_t)) {
-    mmmt = (multiboot_memory_map_t *)(mbi->mmap_addr + i);
+  for (int i = 0; i < memoryMapCnt; i++) {
+    mmmt = memoryMap[i];
     if (mmmt->type == MULTIBOOT_MEMORY_AVAILABLE) {
-      MarkBlocks(ToBlockRoundUp(mmmt->addr_low), mmmt->len_low / BLOCK_SIZE, 0);
+      MarkBlocks(ToBlockRoundUp(mmmt->addr), mmmt->len / BLOCK_SIZE, 0);
     }
   }
 
-  for (int i = 0; i < mbi->mmap_length; i += sizeof(multiboot_memory_map_t)) {
-    mmmt = (multiboot_memory_map_t *)(mbi->mmap_addr + i);
+  for (int i = 0; i < memoryMapCnt; i++) {
+    mmmt = memoryMap[i];
     if (mmmt->type != MULTIBOOT_MEMORY_AVAILABLE)
-      MarkBlocks(ToBlock(mmmt->addr_low), DivRoundUp(mmmt->len_low, BLOCK_SIZE),
-                 1);
+      MarkBlocks(ToBlock(mmmt->addr), DivRoundUp(mmmt->len, BLOCK_SIZE), 1);
   }
 
   MarkRegion(Bitmap, BitmapSize, 1);
@@ -90,7 +89,7 @@ void pmmTesting(multiboot_info_t *mbi) {
   //   debugf("%x\n", Bitmap[i]);
   // }
 
-  for (int i = 0x100000; i > 0x100000 - 4096; i--) {
+  for (int i = 0; i < 4096; i++) {
     int res = Get(i);
     if (i % 32 == 0)
       debugf("\n%06x ", i);

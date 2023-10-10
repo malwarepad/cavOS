@@ -3,7 +3,7 @@
 // Shell driver
 // Copyright (C) 2023 Panagiotis
 
-void launch_shell(int n, multiboot_info_t *mbi) {
+void launch_shell(int n) {
   string ch = (string)malloc(200);
   string data[64];
   string prompt = "$ ";
@@ -13,7 +13,7 @@ void launch_shell(int n, multiboot_info_t *mbi) {
     readStr(ch); // memory_copy(readStr(), ch,100);
     if (strEql(ch, "cmd")) {
       printf("\nYou are already in cmd. A new recursive shell is opened\n");
-      launch_shell(n + 1, mbi);
+      launch_shell(n + 1);
     } else if (strEql(ch, "clear")) {
       clearScreen();
     } else if (strEql(ch, "echo")) {
@@ -51,7 +51,7 @@ void launch_shell(int n, multiboot_info_t *mbi) {
       printf("==      Copyright MalwarePad 2023      ==\n");
       printf("=========================================\n\n");
     } else if (strEql(ch, "fetch")) {
-      fetch(mbi);
+      fetch();
     } else {
       if (check_string(ch) && !strEql(ch, "exit")) {
         printf("\n%s isn't a valid command\n", ch);
@@ -96,9 +96,9 @@ void set_background_color() {
   // clearScreen();
 }
 
-void fetch(multiboot_info_t *mbi) {
+void fetch() {
   printf("\nname: cavOS");
-  printf("\nmemory: %dMB", ((mbi->mem_upper) / 1024));
+  printf("\nmemory: %dMB", DivRoundUp(mbi_memorySizeKb, 1024));
   printf("\n");
 }
 

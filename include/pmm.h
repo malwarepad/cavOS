@@ -1,4 +1,4 @@
-#include "multiboot.h"
+#include "multiboot2.h"
 #include "types.h"
 #include "util.h"
 
@@ -10,14 +10,12 @@
 // BitmapUnitType* Bitmap;
 #define BLOCKS_PER_UNIT 8
 
-#define DivRoundUp(number, divisor) ((number + divisor - 1) / divisor)
-
 #ifndef PMM_H
 #define PMM_H
 
 uint32_t *Bitmap;
 uint32_t  BitmapSize;
 
-void pmmTesting(multiboot_info_t *mbi);
+void pmmTesting();
 
 #endif

@@ -5,28 +5,64 @@
 #include "../../include/idt.h"
 #include "../../include/isr.h"
 #include "../../include/kb.h"
-#include "../../include/multiboot.h"
+#include "../../include/multiboot2.h"
 #include "../../include/pmm.h"
 #include "../../include/rtc.h"
 #include "../../include/shell.h"
 #include "../../include/testing.h"
 #include "../../include/util.h"
-#include "../../include/vga.h"
 
 #include <stdint.h>
 
 // Kernel entry file
 // Copyright (C) 2023 Panagiotis
 
-int kmain(uint32 magic, multiboot_info_t *mbi) {
-  if (magic != MULTIBOOT_BOOTLOADER_MAGIC) {
-    printf("invalid magic number!");
+int kmain(uint32 magic, unsigned long addr) {
+  if (magic != MULTIBOOT2_BOOTLOADER_MAGIC) {
+    printf("Invalid magic number: 0x%x\n", (unsigned)magic);
     asm("hlt");
   }
 
-  if (!(mbi->flags >> 6 & 0x1)) {
-    printf("invalid memory map given by GRUB bootloader");
+  if (addr & 7) {
+    printf("Unaligned mbi: 0x%x\n", addr);
     asm("hlt");
+  }
+
+  mbi_size = *(unsigned *)addr;
+  mbi_addr = addr;
+  mbi = (struct multiboot_tag *)(addr + 8);
+
+  debugf("Multiboot2 reached:\n{magic: %x, mbi addr: %lx, size: %x}\n", magic,
+         addr, mbi_size);
+
+  while (mbi->type != MULTIBOOT_TAG_TYPE_END) {
+    if (mbi->type == MULTIBOOT_TAG_TYPE_BASIC_MEMINFO) {
+      struct multiboot_tag_basic_meminfo *memInfoTag;
+      memInfoTag = (struct multiboot_tag_basic_meminfo *)mbi;
+
+      mbi_memorySize = (memInfoTag->mem_lower + memInfoTag->mem_upper) * 1024;
+      mbi_memorySizeKb = memInfoTag->mem_lower + memInfoTag->mem_upper;
+    }
+    mbi = (struct multiboot_tag *)((multiboot_uint8_t *)mbi +
+                                   ((mbi->size + 7) & ~7));
+  }
+
+  memoryMapCnt = 0;
+  for (struct multiboot_tag *tag = (struct multiboot_tag *)(addr + 8);
+       tag->type != MULTIBOOT_TAG_TYPE_END;
+       tag = (struct multiboot_tag *)((multiboot_uint8_t *)tag +
+                                      ((tag->size + 7) & ~7))) {
+    if (tag->type == MULTIBOOT_TAG_TYPE_MMAP) {
+      struct multiboot_tag_mmap *mmapTag = (struct multiboot_tag_mmap *)tag;
+
+      for (multiboot_memory_map_t *entry = mmapTag->entries;
+           (multiboot_uint8_t *)entry < (multiboot_uint8_t *)tag + tag->size;
+           entry = (multiboot_memory_map_t *)((unsigned long)entry +
+                                              mmapTag->entry_size)) {
+        memoryMap[memoryMapCnt++] = entry;
+        // debugf("%lx\n", entry->addr);
+      }
+    }
   }
 
   // pmmTesting(mbi);
@@ -41,12 +77,12 @@ int kmain(uint32 magic, multiboot_info_t *mbi) {
   printf("%s=========================================%s\n\n", center, center);
 
   isr_install();
-  init_memory(mbi);
+  init_memory();
   initiateFat32();
 
-  testingInit(mbi);
+  testingInit();
 
   printf("\n");
 
-  launch_shell(0, mbi);
+  launch_shell(0);
 }

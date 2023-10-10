@@ -4,7 +4,7 @@
 #include "disk.h"
 #include "fat32.h"
 #include "kb.h"
-#include "multiboot.h"
+#include "multiboot2.h"
 #include "rtc.h"
 #include "shell.h"
 #include "string.h"
@@ -12,8 +12,7 @@
 #include "tty.h"
 #include "types.h"
 #include "util.h"
-#include "vga.h"
 
-void launch_shell(int n, multiboot_info_t *mbi);
+void launch_shell(int n);
 
 #endif
