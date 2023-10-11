@@ -18,8 +18,11 @@
 uint32_t *Bitmap;
 uint32_t  BitmapSize;
 
+uint8_t BitmapHardLock;
+
 void  initiateBitmap();
 void *BitmapAllocate(uint32_t blocks);
 void  BitmapFree(void *base, uint32_t blocks);
+void  BitmapDebugDump();
 
 #endif

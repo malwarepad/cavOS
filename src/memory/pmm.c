@@ -1,5 +1,8 @@
 #include "../../include/pmm.h"
 
+// Bitmap-based memory allocation algorythm
+// Copyright (C) 2023 Panagiotis
+
 void *ToPtr(uint32_t block) {
   uint8_t *u8Ptr = MEMORY_BASE + (block * BLOCK_SIZE);
   return (void *)(u8Ptr); // i hate my life
@@ -84,6 +87,7 @@ void initiateBitmap() {
   //     (mbi->mem_upper + 1024) * 1024; // mbi->mem_upper * 1024
   debugf("bish memory: %d\n", mbi_memorySize);
   BitmapSize = ((mbi_memorySize) / BLOCK_SIZE) * BITS_PER_BLOCK;
+  BitmapHardLock = 0;
   // for (int i = 0; i < mbi->mmap_length; i += sizeof(multiboot_memory_map_t))
   // {
   //   multiboot_memory_map_t *mmmt =
@@ -141,31 +145,9 @@ void initiateBitmap() {
   }
 
   MarkRegion(Bitmap, BitmapSize, 1);
+}
 
-  for (int i = 0; i < 1024; i++) {
-    int res = Get(i);
-    if (i % 32 == 0)
-      debugf("\n%06x ", i);
-    debugf("%d ", res);
-  }
-  debugf("\n");
-
-  debugf("\nAllocating 200 blocks...\n");
-
-  void *thing = BitmapAllocate(200);
-
-  for (int i = 0; i < 1024; i++) {
-    int res = Get(i);
-    if (i % 32 == 0)
-      debugf("\n%06x ", i);
-    debugf("%d ", res);
-  }
-  debugf("\n");
-
-  debugf("\nFreeing 200 blocks...\n");
-
-  BitmapFree(thing, 200);
-
+void BitmapDebugDump() {
   for (int i = 0; i < 1024; i++) {
     int res = Get(i);
     if (i % 32 == 0)
