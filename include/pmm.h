@@ -10,12 +10,16 @@
 // BitmapUnitType* Bitmap;
 #define BLOCKS_PER_UNIT 8
 
+#define INVALID_BLOCK ((uint64_t)-1)
+
 #ifndef PMM_H
 #define PMM_H
 
 uint32_t *Bitmap;
 uint32_t  BitmapSize;
 
-void pmmTesting();
+void  initiateBitmap();
+void *BitmapAllocate(uint32_t blocks);
+void  BitmapFree(void *base, uint32_t blocks);
 
 #endif
