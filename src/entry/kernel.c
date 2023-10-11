@@ -65,7 +65,7 @@ int kmain(uint32 magic, unsigned long addr) {
     }
   }
 
-  // pmmTesting(mbi);
+  // initiateBitmap(mbi);
 
   clearScreen();
 
