@@ -1,7 +1,6 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include "allocation.h"
 #include "multiboot2.h"
 #include "types.h"
 
@@ -10,16 +9,12 @@
 
 #define DivRoundUp(number, divisor) ((number + divisor - 1) / divisor)
 
-void   memset(void *_dst, int val, size_t len);
-void   memory_copy(char *source, char *dest, int nbytes);
-void   memory_set(uint8 *dest, uint8 val, uint32 len);
-string int_to_ascii(int n, char str[]);
-int    str_to_int(string ch);
-string char_to_string(char ch);
-uint8  check_string_numbers(string str);
-uint8  check_string(string str);
-int    memcmp(const void *aptr, const void *bptr, size_t size);
-int    rand(void);
-void   srand(unsigned int seed);
+void  memset(void *_dst, int val, size_t len);
+void  memory_copy(char *source, char *dest, int nbytes);
+void  memory_set(uint8 *dest, uint8 val, uint32 len);
+uint8 check_string(string str);
+int   memcmp(const void *aptr, const void *bptr, size_t size);
+int   rand(void);
+void  srand(unsigned int seed);
 
 #endif

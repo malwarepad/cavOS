@@ -9,7 +9,7 @@ int initiateFat32() {
   printf("\n[+] FAT32: Initializing...");
 
   printf("\n[+] FAT32: Reading disk0 at lba %d...", FAT32_PARTITION_OFFSET_LBA);
-  unsigned char rawArr[SECTOR_SIZE];
+  unsigned char *rawArr = *((unsigned char *)malloc(SECTOR_SIZE));
   getDiskBytes(rawArr, FAT32_PARTITION_OFFSET_LBA, 1);
 
   printf("\n[+] FAT32: Checking if disk0 at lba %d is FAT32 formatted...",
@@ -83,6 +83,8 @@ int initiateFat32() {
   printf("\n    [+] Sectors / track: %d", fat.sectors_per_track);
   printf("\n    [+] Sectors / cluster: %d", fat.sectors_per_cluster);
   printf("\n");
+
+  free(&rawArr);
 
   return 1;
 }

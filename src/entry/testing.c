@@ -1,5 +1,8 @@
 #include "../../include/testing.h"
 
+// Testing stuff
+// Copyright (C) 2023 Panagiotis
+
 #define MEMORY_DETECTION_DRAFT 0
 #define FAT32_READ_TEST 0
 #define FAT32_DELETION_TEST 0

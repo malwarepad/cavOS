@@ -1,9 +1,9 @@
 #ifndef SHELL_H
 #define SHELL_H
-#include "allocation.h"
 #include "disk.h"
 #include "fat32.h"
 #include "kb.h"
+#include "liballoc.h"
 #include "multiboot2.h"
 #include "rtc.h"
 #include "shell.h"

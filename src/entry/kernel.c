@@ -1,10 +1,10 @@
-#include "../../include/allocation.h"
 #include "../../include/ata.h"
 #include "../../include/disk.h"
 #include "../../include/fat32.h"
 #include "../../include/idt.h"
 #include "../../include/isr.h"
 #include "../../include/kb.h"
+#include "../../include/liballoc.h"
 #include "../../include/multiboot2.h"
 #include "../../include/pmm.h"
 #include "../../include/rtc.h"
@@ -65,7 +65,7 @@ int kmain(uint32 magic, unsigned long addr) {
     }
   }
 
-  // initiateBitmap(mbi);
+  initiateBitmap(mbi);
 
   clearScreen();
 
@@ -77,7 +77,6 @@ int kmain(uint32 magic, unsigned long addr) {
   printf("%s=========================================%s\n\n", center, center);
 
   isr_install();
-  init_memory();
   initiateFat32();
 
   testingInit();
