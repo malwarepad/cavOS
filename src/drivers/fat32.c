@@ -301,10 +301,10 @@ int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
 
 int divisionRoundUp(int a, int b) { return (a + (b - 1)) / b; }
 
-char *readFileContents(pFAT32_Directory dir) {
+int readFileContents(char **rawOut, pFAT32_Directory dir) {
   debugf("[read] filesize=%d cluster=%d\n", dir->filesize,
          dir->firstClusterLow);
-  char *out;
+  char *out = *rawOut;
   int   curr = 0;
   for (int i = 0; i < divisionRoundUp(dir->filesize, SECTOR_SIZE);
        i++) { // DIV_ROUND_CLOSEST(dir->filesize, SECTOR_SIZE)
@@ -406,8 +406,10 @@ int fileReaderTest() {
            dir.attributes, dir.firstClusterLow);
 
     // showFile(&dir);
-    char *out = readFileContents(&dir);
+    char *out = (char *)malloc(dir.filesize);
+    readFileContents(&out, &dir);
     printf("%s", out);
+    free(out);
     printf("\n\n");
   }
 }

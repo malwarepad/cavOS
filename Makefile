@@ -43,10 +43,10 @@ tmp/obj/tty.o:src/drivers/tty.c
 # tmp/obj/vga.o:src/drivers/vga.c
 # 	$(COMPILER) $(CFLAGS) src/drivers/vga.c -o tmp/obj/vga.o
 
-tmp/obj/printf.o:src/drivers/vga.c
+tmp/obj/printf.o:src/drivers/printf.c
 	$(COMPILER) $(CFLAGS) src/drivers/printf.c -o tmp/obj/printf.o
 
-tmp/obj/ata.o:src/drivers/vga.c
+tmp/obj/ata.o:src/drivers/ata.c
 	$(COMPILER) $(CFLAGS) src/drivers/ata.c -o tmp/obj/ata.o
 
 tmp/obj/disk.o:src/drivers/disk.c
