@@ -100,6 +100,6 @@ unsigned int getFatEntry(int cluster);
 char        *formatToShort8_3Format(char *directory);
 int          fileReaderTest();
 int          openFile(pFAT32_Directory dir, char *filename);
-char        *readFileContents(pFAT32_Directory dir);
+int          readFileContents(char **rawOut, pFAT32_Directory dir);
 
 #endif
