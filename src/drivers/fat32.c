@@ -6,10 +6,10 @@
 #define FAT32_PARTITION_OFFSET_LBA 2048 // 1048576, 1MB
 
 int initiateFat32() {
-  printf("\n[+] FAT32: Initializing...");
+  printf("[+] FAT32: Initializing...");
 
   printf("\n[+] FAT32: Reading disk0 at lba %d...", FAT32_PARTITION_OFFSET_LBA);
-  unsigned char *rawArr = *((unsigned char *)malloc(SECTOR_SIZE));
+  uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
   getDiskBytes(rawArr, FAT32_PARTITION_OFFSET_LBA, 1);
 
   printf("\n[+] FAT32: Checking if disk0 at lba %d is FAT32 formatted...",
@@ -84,7 +84,7 @@ int initiateFat32() {
   printf("\n    [+] Sectors / cluster: %d", fat.sectors_per_cluster);
   printf("\n");
 
-  free(&rawArr);
+  free(rawArr);
 
   return 1;
 }
@@ -301,7 +301,7 @@ int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
 
 int divisionRoundUp(int a, int b) { return (a + (b - 1)) / b; }
 
-int readFileContents(char **rawOut, pFAT32_Directory dir) {
+void readFileContents(char **rawOut, pFAT32_Directory dir) {
   debugf("[read] filesize=%d cluster=%d\n", dir->filesize,
          dir->firstClusterLow);
   char *out = *rawOut;
@@ -313,11 +313,13 @@ int readFileContents(char **rawOut, pFAT32_Directory dir) {
                     (dir->firstClusterLow - 2) * fat.sectors_per_cluster + i;
     getDiskBytes(rawArr, lba, 1);
     for (int j = 0; j < SECTOR_SIZE; j++) {
+      if (curr > dir->filesize)
+        return;
       out[curr] = rawArr[j];
       curr++;
     }
   }
-  return out;
+  return;
 }
 
 int showFile(pFAT32_Directory dir) {

@@ -1,6 +1,7 @@
 #include "../../include/ata.h"
 #include "../../include/disk.h"
 #include "../../include/fat32.h"
+#include "../../include/gdt.h"
 #include "../../include/idt.h"
 #include "../../include/isr.h"
 #include "../../include/kb.h"
@@ -16,6 +17,8 @@
 
 // Kernel entry file
 // Copyright (C) 2023 Panagiotis
+
+string center = "                   ";
 
 int kmain(uint32 magic, unsigned long addr) {
   if (magic != MULTIBOOT2_BOOTLOADER_MAGIC) {
@@ -69,14 +72,20 @@ int kmain(uint32 magic, unsigned long addr) {
 
   clearScreen();
 
-  string center = "                   ";
   debugf("====== DEBUGGING LOGS ======\n\n");
   printf("%s=========================================%s\n", center, center);
   printf("%s==     Cave-Like Operating System      ==%s\n", center, center);
   printf("%s==      Copyright MalwarePad 2023      ==%s\n", center, center);
   printf("%s=========================================%s\n\n", center, center);
 
+  printf("[+] GDT: Setting up...\n");
+  setup_gdt();
+  printf("[+] GDT: Setup completed successfully!\n");
+
+  printf("[+] ISR/IRQ: Setting up...\n");
   isr_install();
+  printf("[+] ISR/IRQ: Setup completed successfully!\n");
+
   initiateFat32();
 
   testingInit();
