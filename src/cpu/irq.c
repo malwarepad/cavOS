@@ -11,6 +11,7 @@
 // todo: use IRQs as much as possible especially for
 // shift & caps lock.
 void irq0() {
+  // timerTick();
   outportb(0x20, 0x20);
   asm("sti");
 }
