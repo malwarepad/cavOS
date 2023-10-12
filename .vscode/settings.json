@@ -22,7 +22,9 @@
     "testing.h": "c",
     "multiboot2.h": "c",
     "rtc.h": "c",
-    "pmm.h": "c"
+    "pmm.h": "c",
+    "gdt.h": "c",
+    "irq.h": "c"
   },
   "C_Cpp.clang_format_style": "{ BasedOnStyle: LLVM, AlignConsecutiveDeclarations: true, IndentWidth: 2 }"
 }
