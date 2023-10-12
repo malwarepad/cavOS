@@ -86,6 +86,10 @@ int kmain(uint32 magic, unsigned long addr) {
   isr_install();
   printf("[+] ISR/IRQ: Setup completed successfully!\n");
 
+  // printf("[+] Timer: Setting up...\n");
+  // initiateTimer(1000);
+  // printf("[+] Timer: Setup completed successfully!\n");
+
   initiateFat32();
 
   testingInit();

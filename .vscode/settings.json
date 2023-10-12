@@ -24,7 +24,9 @@
     "rtc.h": "c",
     "pmm.h": "c",
     "gdt.h": "c",
-    "irq.h": "c"
+    "irq.h": "c",
+    "timer.h": "c",
+    "schedule.h": "c"
   },
   "C_Cpp.clang_format_style": "{ BasedOnStyle: LLVM, AlignConsecutiveDeclarations: true, IndentWidth: 2 }"
 }
