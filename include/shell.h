@@ -5,6 +5,7 @@
 #include "kb.h"
 #include "liballoc.h"
 #include "multiboot2.h"
+#include "pci.h"
 #include "rtc.h"
 #include "shell.h"
 #include "string.h"
