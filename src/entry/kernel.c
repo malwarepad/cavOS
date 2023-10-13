@@ -39,6 +39,9 @@ int kmain(uint32 magic, unsigned long addr) {
   debugf("Multiboot2 reached:\n{magic: %x, mbi addr: %lx, size: %x}\n", magic,
          addr, mbi_size);
 
+  setup_gdt();
+  isr_install();
+
   while (mbi->type != MULTIBOOT_TAG_TYPE_END) {
     if (mbi->type == MULTIBOOT_TAG_TYPE_BASIC_MEMINFO) {
       struct multiboot_tag_basic_meminfo *memInfoTag;
@@ -78,14 +81,6 @@ int kmain(uint32 magic, unsigned long addr) {
   printf("%s==     Cave-Like Operating System      ==%s\n", center, center);
   printf("%s==      Copyright MalwarePad 2023      ==%s\n", center, center);
   printf("%s=========================================%s\n\n", center, center);
-
-  printf("[+] GDT: Setting up...\n");
-  setup_gdt();
-  printf("[+] GDT: Setup completed successfully!\n");
-
-  printf("[+] ISR/IRQ: Setting up...\n");
-  isr_install();
-  printf("[+] ISR/IRQ: Setup completed successfully!\n");
 
   initiatePCI();
 
