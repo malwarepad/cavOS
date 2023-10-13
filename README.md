@@ -8,7 +8,6 @@
   - [Table Of Contents](#table-of-contents)
   - [Purpose](#purpose)
   - [Status](#status)
-  - [Future plans](#future-plans)
   - [Goals](#goals)
   - [Compiling](#compiling)
   - [License](#license)
@@ -19,30 +18,52 @@
 
 ## Status
 
-**For now it has a basic, monolithic kernel and a few drivers built into the kernel**. In addition the whole shell is built into the kernel creating a very compact operating system. 
+**For now it has a basic, monolithic kernel and a few drivers built into it**. In addition the whole shell is crammed up inside the kernel creating a very compact operating system. 
 
 The utilities are really simple, as **I have almost zero plans to make it bloated with useless apps/games**. If I ever do it in the future I'll create patches or generally have an option to exclude it from even compiling. It's important to mention that most of the software included doesn't use the full potential of the kernel. **You're supposed to write the stuff you want for yourself.** 
 
 ***To conclude everything, it needs a lot of polishing, time, and lines of code to be an OS that you could dual boot with your current installation.*** 
 
-## Future plans
-
-I'm thinking of extending this project to a full operating system once I acquire all of the knowledge required. However this will purely come from experience as my primary goal from this os is to learn os development. 
-
 ## Goals
 
-Important to mention these goals may never be satisfied, take a very long time to be completed (we're talking years down the road) or may never be done at all.
+Important to mention these goals may never be satisfied, take a very long time to be completed (we're talking years down the road) or may never be done at all. Furthermore, this list won't include every feature implemented or planned and can be changed at any time...
 
-| Goal                         | Status   |
-| ---------------------------- |:--------:|
-| Text Driver                  | Done     |
-| Keyboard Driver              | Done     |
-| Shell Bases                  | Done     |
-| Simple Shell                 | Almost   |
-| Filesystem (Hard)            | Not done |
-| Display Driver (Hard)        | Done     |
-| Full GUI (Impossible)        | Not done |
-| Network Driver               | Not done |
+- Architecture: x86 (Intel i386)
+  - [x] Interrupts: ISR, IRQ, GDT
+  - [x] Scheduling
+  - [ ] Multitasking
+- Device drivers
+  - [x] ATA pio
+  - [x] PCI read
+  - [ ] PCI write
+  - [ ] Serial driver
+  - [x] Keyboard
+  - [ ] Mouse
+- Filesystems
+  - [x] Fat32: Read operations
+  - [ ] Fat32: Write operations
+  - [ ] Fat32: Full LFN support
+- Networking stack
+  - [ ] Ne2000 driver
+  - [ ] ARP requests
+  - [ ] TCP requests
+  - [ ] UDP requests
+  - [ ] DHCP
+- Userspace 
+  - [ ] Newlib port (LibC)
+  - [ ] cavOS Specific Toolchain
+  - [ ] Move to ring3
+  - [ ] ELF32 parsing
+- Interfaces
+  - [x] BIOS text
+  - [x] Kernel shell
+  - [ ] Userland shell
+  - [ ] Distinct characteristic shell
+  - [ ] Vim port
+  - [ ] IRC client
+- Graphics
+  - [x] VGA driver (leveraging VESA)
+  - [ ] Full graphical userland switch
 
 ## Compiling
 
