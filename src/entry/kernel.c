@@ -7,6 +7,7 @@
 #include "../../include/kb.h"
 #include "../../include/liballoc.h"
 #include "../../include/multiboot2.h"
+#include "../../include/pci.h"
 #include "../../include/pmm.h"
 #include "../../include/rtc.h"
 #include "../../include/shell.h"
@@ -85,6 +86,8 @@ int kmain(uint32 magic, unsigned long addr) {
   printf("[+] ISR/IRQ: Setting up...\n");
   isr_install();
   printf("[+] ISR/IRQ: Setup completed successfully!\n");
+
+  initiatePCI();
 
   // printf("[+] Timer: Setting up...\n");
   // initiateTimer(1000);

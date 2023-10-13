@@ -28,6 +28,25 @@ void launch_shell(int n) {
       fsList();
     } else if (strEql(ch, "readfatfile")) {
       fileReaderTest();
+    } else if (strEql(ch, "lspci")) {
+      printf("\n");
+      for (uint8_t bus = 0; bus < PCI_MAX_BUSES; bus++) {
+        for (uint8_t slot = 0; slot < PCI_MAX_DEVICES; slot++) {
+          for (uint8_t function = 0; function < PCI_MAX_FUNCTIONS; function++) {
+            if (!FilterDevice(bus, slot, function))
+              continue;
+
+            PCIdevice *device = (PCIdevice *)malloc(sizeof(PCIdevice));
+            GetDeviceDetails(device, 1, bus, slot, function);
+            printf("[%d:%d:%d] vendor=%x device=%x class_id=%x subclass_id:%x "
+                   "system_vendor_id=%x system_id=%x\n",
+                   bus, slot, function, device->vendor_id, device->device_id,
+                   device->class_id, device->subclass_id,
+                   device->system_vendor_id, device->system_id);
+            free(device);
+          }
+        }
+      }
     } else if (strEql(ch, "time")) {
       RTC *rtc = (RTC *)malloc(sizeof(RTC));
       readFromCMOS(rtc);
