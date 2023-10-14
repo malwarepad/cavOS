@@ -6,8 +6,21 @@
 #define MEMORY_DETECTION_DRAFT 0
 #define FAT32_READ_TEST 0
 #define FAT32_DELETION_TEST 0
+#define FAT32_ALLOC_STRESS_TEST 0
 
 void testingInit() {
+#if FAT32_ALLOC_STRESS_TEST
+  while (1) {
+    FAT32_Directory *dir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));
+
+    openFile(dir, "/lorem.txt");
+    char *out = (char *)malloc(dir->filesize);
+    readFileContents(&out, dir);
+    printf("%s\n", out);
+    free(out);
+    free(dir);
+  }
+#endif
 #if FAT32_DELETION_TEST
   int           clusterNum = 2;
   char         *filename = "UNTITLEDTXT";

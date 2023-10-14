@@ -129,12 +129,14 @@ void help() {
   printf("\n= exit           : Quits the current shell                  =");
   printf("\n= color          : Changes the colors of the terminal       =");
   printf("\n= fetch          : Brings you some system information       =");
+  printf("\n= time           : Tells you the time and date from BIOS    =");
+  printf("\n= lspci          : Lists PCI device info                    =");
   printf("\n=============================================================\n");
   printf("\n========================= FILESYSTEM ========================");
   printf("\n= readdisk       : Tests out the disk reading algorythm     =");
   printf("\n= readfatcluster : Tests out FAT32 cluster reading          =");
-  printf("\n= readfatroot    : Browse root directory  (not ready)        =");
-  printf("\n= readfatfile    : Read a file's contents (not ready)        =");
+  printf("\n= readfatroot    : Browse root directory  (not ready)       =");
+  printf("\n= readfatfile    : Read a file's contents (not ready)       =");
   // printf("\n= readfatfile    : Browse and read files interactively      =");
   printf("\n=============================================================\n");
 }
