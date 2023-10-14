@@ -9,6 +9,7 @@
 
 #define DivRoundUp(number, divisor) ((number + divisor - 1) / divisor)
 
+void *memmove(void *dstptr, const void *srcptr, size_t size);
 void  memset(void *_dst, int val, size_t len);
 void  memory_copy(char *source, char *dest, int nbytes);
 void  memory_set(uint8 *dest, uint8 val, uint32 len);
