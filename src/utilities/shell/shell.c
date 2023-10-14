@@ -118,6 +118,7 @@ void set_background_color() {
 void fetch() {
   printf("\nname: cavOS");
   printf("\nmemory: %dMB", DivRoundUp(mbi_memorySizeKb, 1024));
+  printf("\nuptime: %lds", DivRoundUp((uint32_t)timerTicks, 1000));
   printf("\n");
 }
 

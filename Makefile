@@ -127,6 +127,9 @@ tools:
 clean:
 	rm -f tmp/obj/*.o
 	rm -r -f tmp/kernel.bin
+	rm disk*
 
 qemu:
 	./qemu.sh
+
+dev:clean disk qemu
