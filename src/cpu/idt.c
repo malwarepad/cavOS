@@ -25,11 +25,11 @@ idt_register_t idt_reg;
 
 void clean_idt_entries() { memset(&idt, 0, sizeof(idt_gate_t) * 256); }
 
-void set_idt_gate(int n, uint32 handler) {
+void set_idt_gate(int n, uint32 handler, uint8_t flags) {
   idt[n].low_offset = low_16(handler);
   idt[n].sel = KERNEL_CS;
   idt[n].always0 = 0;
-  idt[n].flags = 0x8E;
+  idt[n].flags = flags;
   idt[n].high_offset = high_16(handler);
 }
 
