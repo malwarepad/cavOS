@@ -19,6 +19,7 @@ typedef struct {
 void isr_install();
 void handle_interrupt(AsmPassedInterrupt regs);
 
+void  asm_isr_exit();
 void *asm_isr_redirect_table[];
 void  isr128();
 

@@ -9,8 +9,6 @@ void  outportb(uint16 _port, uint8 _data);
 uint32_t inportl(uint16_t portid);
 void     outportl(uint16_t portid, uint32_t value);
 
-void sleep(uint8 times);
-
 struct multiboot_tag *mbi;
 unsigned long         mbi_addr;
 unsigned              mbi_size;

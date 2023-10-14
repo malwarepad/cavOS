@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdint.h>
 
 #ifndef TYPES_H
