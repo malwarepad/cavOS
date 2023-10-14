@@ -22,9 +22,3 @@ uint32_t inportl(uint16_t portid) {
 void outportl(uint16_t portid, uint32_t value) {
   __asm__ __volatile__("outl %%eax, %%dx" : : "d"(portid), "a"(value));
 }
-
-void sleep(uint8 times) {
-  for (uint8 i = 0; i < times * 1; i++) {
-    asm("hlt");
-  }
-}

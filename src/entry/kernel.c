@@ -11,7 +11,9 @@
 #include "../../include/pmm.h"
 #include "../../include/rtc.h"
 #include "../../include/shell.h"
+#include "../../include/task.h"
 #include "../../include/testing.h"
+#include "../../include/timer.h"
 #include "../../include/util.h"
 
 #include <stdint.h>
@@ -85,6 +87,8 @@ int kmain(uint32 magic, unsigned long addr) {
   initiatePCI();
   initiateTimer(1000);
   initiateFat32();
+
+  setup_tasks();
 
   testingInit();
 

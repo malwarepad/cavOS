@@ -7,8 +7,40 @@
 #define FAT32_READ_TEST 0
 #define FAT32_DELETION_TEST 0
 #define FAT32_ALLOC_STRESS_TEST 0
+#define MULTITASKING_PROCESS_TESTING 0
+
+#if MULTITASKING_PROCESS_TESTING
+void task1() {
+  asm volatile("mov $3, %eax \n"
+               "int $0x80");
+
+  while (true)
+    debugf("task 1!\n");
+}
+
+void task2() {
+  asm volatile("mov $5, %eax \n"
+               "int $0x80");
+
+  while (true)
+    debugf("task 2!\n");
+}
+
+void task3() {
+  asm volatile("mov $7, %eax \n"
+               "int $0x80");
+
+  while (true)
+    debugf("task 3!\n");
+}
+#endif
 
 void testingInit() {
+#if MULTITASKING_PROCESS_TESTING
+  create_task(1, (uint32_t)task1, 0xC80000, 0xC00000, false);
+  create_task(2, (uint32_t)task2, 0xD80000, 0xD00000, false);
+  create_task(3, (uint32_t)task3, 0xE80000, 0xE00000, false);
+#endif
 #if FAT32_ALLOC_STRESS_TEST
   while (1) {
     FAT32_Directory *dir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));

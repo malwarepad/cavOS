@@ -3,17 +3,6 @@
 // GDT & TSS Entry configurator
 // Copyright (C) 2023 Panagiotis
 
-#define NUM_GDT_ENTRIES 6
-#define GDT_KERNEL_CODE 0x08
-#define GDT_KERNEL_DATA 0x10
-#define GDT_USER_CODE 0x18
-#define GDT_USER_DATA 0x20
-#define GDT_TSS 0x28
-
-GDTEntry   gdt_entries[NUM_GDT_ENTRIES];
-GDTPointer gdt_pointer;
-TSS        tss;
-
 void set_gdt_entry(uint32_t num, uint32_t base, uint32_t limit, uint8_t access,
                    uint8_t flags) {
   gdt_entries[num].base_low = (base & 0xFFFF);
