@@ -5,7 +5,7 @@ CFLAGS = -m32 -c -ffreestanding -w -fcommon
 ASFLAGS = -f elf32
 LDFLAGS = -m elf_i386 -T src/boot/link.ld
 
-OBJS = tmp/obj/kasm.o tmp/obj/kc.o tmp/obj/idt.o tmp/obj/ata.o tmp/obj/printf.o tmp/obj/asm_ports.o tmp/obj/isr.o tmp/obj/kb.o tmp/obj/tty.o tmp/obj/string.o tmp/obj/system.o tmp/obj/util.o tmp/obj/shell.o tmp/obj/disk.o tmp/obj/fat32.o tmp/obj/rtc.o tmp/obj/testing.o tmp/obj/pmm.o tmp/obj/gdtasm.o tmp/obj/gdt.o tmp/obj/irq.o tmp/obj/timer.o tmp/obj/schedule.o tmp/obj/pci.o
+OBJS = tmp/obj/kasm.o tmp/obj/kc.o tmp/obj/idt.o tmp/obj/ata.o tmp/obj/printf.o tmp/obj/asm_ports.o tmp/obj/isr.o tmp/obj/kb.o tmp/obj/tty.o tmp/obj/string.o tmp/obj/system.o tmp/obj/util.o tmp/obj/shell.o tmp/obj/disk.o tmp/obj/fat32.o tmp/obj/rtc.o tmp/obj/testing.o tmp/obj/pmm.o tmp/obj/gdtasm.o tmp/obj/gdt.o tmp/obj/timer.o tmp/obj/schedule.o tmp/obj/pci.o tmp/obj/israsm.o
 OUTPUT = tmp/boot/kernel.bin
 
 # tmp/obj/vga.o 
@@ -22,6 +22,10 @@ tmp/obj/kasm.o:src/boot/kernel.asm
 tmp/obj/gdtasm.o:src/cpu/gdt.asm
 	mkdir tmp/obj/ -p
 	$(ASSEMBLER) $(ASFLAGS) -o tmp/obj/gdtasm.o src/cpu/gdt.asm
+
+tmp/obj/israsm.o:src/cpu/isr.asm
+	mkdir tmp/obj/ -p
+	$(ASSEMBLER) $(ASFLAGS) -o tmp/obj/israsm.o src/cpu/isr.asm
 	
 tmp/obj/schedule.o:src/multitasking/schedule.c
 	$(COMPILER) $(CFLAGS) src/multitasking/schedule.c -o tmp/obj/schedule.o 
@@ -34,10 +38,7 @@ tmp/obj/pci.o:src/drivers/pci.c
 	
 tmp/obj/gdt.o:src/cpu/gdt.c
 	$(COMPILER) $(CFLAGS) src/cpu/gdt.c -o tmp/obj/gdt.o 
-	
-tmp/obj/irq.o:src/cpu/irq.c
-	$(COMPILER) $(CFLAGS) src/cpu/irq.c -o tmp/obj/irq.o 
-	
+		
 tmp/obj/kc.o:src/entry/kernel.c
 	$(COMPILER) $(CFLAGS) src/entry/kernel.c -o tmp/obj/kc.o 
 		
@@ -108,6 +109,9 @@ disk:all
 	umount /mnt
 	losetup -d /dev/loop101
 	losetup -d /dev/loop102
+
+vmware:disk
+	qemu-img convert disk.img -O vmdk disk.vmdk
 
 tools:
 	chmod +x getTools.sh

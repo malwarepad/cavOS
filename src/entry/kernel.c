@@ -83,11 +83,7 @@ int kmain(uint32 magic, unsigned long addr) {
   printf("%s=========================================%s\n\n", center, center);
 
   initiatePCI();
-
-  // printf("[+] Timer: Setting up...\n");
-  // initiateTimer(1000);
-  // printf("[+] Timer: Setup completed successfully!\n");
-
+  initiateTimer(1000);
   initiateFat32();
 
   testingInit();
