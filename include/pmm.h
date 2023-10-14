@@ -8,7 +8,7 @@
 #define MEMORY_BASE 0
 // sizeof(BitmapUnitType) * 8 = sizeof(uint32_t) * 8 = 32
 // BitmapUnitType* Bitmap;
-#define BLOCKS_PER_UNIT 8
+#define BLOCKS_PER_UNIT 32
 
 #define INVALID_BLOCK ((uint64_t)-1)
 
