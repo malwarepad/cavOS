@@ -39,26 +39,16 @@ before optimization:
 
 uint32_t FindFreeRegion(uint32_t blocks) {
   uint32_t currentRegionStart = 0;
-  size_t   currentRegionSize = 0;
+  uint32_t currentRegionSize = 0;
 
-  for (uint32_t i = 0; i <= mbi_memorySize / BLOCKS_PER_UNIT; i++) {
-    if (Bitmap[i] == (uint32_t)(-1)) {
+  for (uint32_t i = 0; i < mbi_memorySize; i++) {
+    if (Get(i)) {
       currentRegionSize = 0;
-      currentRegionStart = i * BLOCKS_PER_UNIT + 1;
+      currentRegionStart = i + 1;
     } else {
-      uint32_t val = Bitmap[i];
-      for (size_t off = 0; off < BLOCKS_PER_UNIT &&
-                           (i * BLOCKS_PER_UNIT + off) < mbi_memorySize;
-           off++, val >>= 1) {
-        if (val & 1) {
-          currentRegionSize = 0;
-          currentRegionStart = i * BLOCKS_PER_UNIT + off + 1;
-        } else {
-          currentRegionSize++;
-          if (currentRegionSize >= blocks)
-            return currentRegionStart;
-        }
-      }
+      currentRegionSize++;
+      if (currentRegionSize >= blocks)
+        return currentRegionStart;
     }
   }
 
