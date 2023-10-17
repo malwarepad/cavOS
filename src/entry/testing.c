@@ -42,15 +42,15 @@ void testingInit() {
   create_task(3, (uint32_t)task3, 0xE80000, 0xE00000, false);
 #endif
 #if FAT32_ALLOC_STRESS_TEST
+  FAT32_Directory *dir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));
   while (1) {
-    FAT32_Directory *dir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));
-
     openFile(dir, "/lorem.txt");
     char *out = (char *)malloc(dir->filesize);
     readFileContents(&out, dir);
     printf("%s\n", out);
     free(out);
-    free(dir);
+
+    // sleep(1000);
   }
 #endif
 #if FAT32_DELETION_TEST

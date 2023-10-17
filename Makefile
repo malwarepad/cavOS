@@ -5,7 +5,7 @@ CFLAGS = -m32 -c -ffreestanding -w -fcommon
 ASFLAGS = -f elf32
 LDFLAGS = -m elf_i386 -T src/boot/link.ld
 
-OBJS = tmp/obj/kasm.o tmp/obj/kc.o tmp/obj/idt.o tmp/obj/ata.o tmp/obj/printf.o tmp/obj/asm_ports.o tmp/obj/isr.o tmp/obj/kb.o tmp/obj/tty.o tmp/obj/string.o tmp/obj/system.o tmp/obj/util.o tmp/obj/shell.o tmp/obj/disk.o tmp/obj/fat32.o tmp/obj/rtc.o tmp/obj/testing.o tmp/obj/pmm.o tmp/obj/gdtasm.o tmp/obj/gdt.o tmp/obj/timer.o tmp/obj/schedule.o tmp/obj/pci.o tmp/obj/israsm.o tmp/obj/taskasm.o tmp/obj/task.o
+OBJS = tmp/obj/kasm.o tmp/obj/kc.o tmp/obj/idt.o tmp/obj/ata.o tmp/obj/printf.o tmp/obj/asm_ports.o tmp/obj/isr.o tmp/obj/kb.o tmp/obj/tty.o tmp/obj/string.o tmp/obj/system.o tmp/obj/util.o tmp/obj/shell.o tmp/obj/disk.o tmp/obj/fat32.o tmp/obj/rtc.o tmp/obj/testing.o tmp/obj/pmm.o tmp/obj/gdtasm.o tmp/obj/gdt.o tmp/obj/timer.o tmp/obj/schedule.o tmp/obj/pci.o tmp/obj/israsm.o tmp/obj/taskasm.o tmp/obj/task.o tmp/obj/liballoc.o
 OUTPUT = tmp/boot/kernel.bin
 
 # tmp/obj/vga.o 
@@ -36,6 +36,9 @@ tmp/obj/task.o:src/multitasking/task.c
 	
 tmp/obj/schedule.o:src/multitasking/schedule.c
 	$(COMPILER) $(CFLAGS) src/multitasking/schedule.c -o tmp/obj/schedule.o 
+	
+tmp/obj/liballoc.o:src/memory/liballoc.c
+	$(COMPILER) $(CFLAGS) src/memory/liballoc.c -o tmp/obj/liballoc.o 
 	
 tmp/obj/timer.o:src/cpu/timer.c
 	$(COMPILER) $(CFLAGS) src/cpu/timer.c -o tmp/obj/timer.o 
@@ -127,7 +130,7 @@ tools:
 clean:
 	rm -f tmp/obj/*.o
 	rm -r -f tmp/kernel.bin
-	rm disk*
+	rm -f disk*
 
 qemu:
 	./qemu.sh
