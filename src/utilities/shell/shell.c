@@ -18,6 +18,9 @@ void launch_shell(int n) {
       clearScreen();
     } else if (strEql(ch, "echo")) {
       echo(ch);
+    } else if (strEql(ch, "dump")) {
+      printf("\n");
+      BitmapDumpBlocks();
     } else if (strEql(ch, "help")) {
       help();
     } else if (strEql(ch, "readdisk")) {
@@ -48,10 +51,11 @@ void launch_shell(int n) {
         }
       }
     } else if (strEql(ch, "time")) {
+      BitmapDumpBlocks();
       RTC *rtc = (RTC *)malloc(sizeof(RTC));
       readFromCMOS(rtc);
-      printf("\n%02d:%02d:%02d %02d/%02d/%04d\n", (*rtc).hour, (*rtc).minute,
-             (*rtc).second, (*rtc).day, (*rtc).month, (*rtc).year);
+      printf("\n%02d:%02d:%02d %02d/%02d/%04d\n", rtc->hour, rtc->minute,
+             rtc->second, rtc->day, rtc->month, rtc->year);
       free(rtc);
     } else if (strEql(ch, "color")) {
       set_background_color();
@@ -79,6 +83,8 @@ void launch_shell(int n) {
       }
     }
   } while (!strEql(ch, "exit"));
+
+  free(ch);
 }
 
 void echo(string ch) {
@@ -118,7 +124,7 @@ void set_background_color() {
 void fetch() {
   printf("\nname: cavOS");
   printf("\nmemory: %dMB", DivRoundUp(mbi_memorySizeKb, 1024));
-  printf("\nuptime: %lds", DivRoundUp((uint32_t)timerTicks, 1000));
+  printf("\nuptime: %ds", DivRoundUp((uint32_t)timerTicks, 1000));
   printf("\n");
 }
 
@@ -132,6 +138,7 @@ void help() {
   printf("\n= fetch          : Brings you some system information       =");
   printf("\n= time           : Tells you the time and date from BIOS    =");
   printf("\n= lspci          : Lists PCI device info                    =");
+  printf("\n= dump           : Dumps some of the bitmap allocator       =");
   printf("\n=============================================================\n");
   printf("\n========================= FILESYSTEM ========================");
   printf("\n= readdisk       : Tests out the disk reading algorythm     =");
@@ -145,7 +152,7 @@ void help() {
 int isdigit(char c) { return c >= '0' && c <= '9'; }
 
 void fatCluster() {
-  if (!fat.works) {
+  if (!fat->works) {
     printf("\nFAT32 was not initalized properly on boot!\n");
     return;
   }
@@ -160,15 +167,16 @@ void fatCluster() {
          "FAT32!\nCluster 2 -> starting point (/)");
   printf("\nInsert cluster number: ");
 
-  char choice[200];
+  char *choice = (char *)malloc(200);
   readStr(choice);
   int cluster = atoi(choice);
   printf("\nReading FAT cluster %d\n\r\n", cluster);
   showCluster(cluster, NULL);
+  free(choice);
 }
 
 void readDisk() {
-  // if (!fat.works) {
+  // if (!fat->works) {
   //   printf("\nFAT32 was not initalized properly on boot!\n");
   //   return;
   // }
@@ -183,12 +191,12 @@ void readDisk() {
          "Offset=1048576");
   printf("\nInsert LBA (LBA = Offset / Sector Size): ");
 
-  char choice[200];
+  char *choice = (char *)malloc(200);
   readStr(choice);
   int lba = atoi(choice);
   printf("\nReading disk 0 with LBA=%d\n\r\n", lba);
 
-  unsigned char *rawArr;
+  uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
   getDiskBytes(rawArr, lba, 1);
 
   for (int i = 0; i < SECTOR_SIZE; i++) {
@@ -196,10 +204,12 @@ void readDisk() {
   }
 
   printf("\r\n");
+  free(rawArr);
+  free(choice);
 }
 
 void fsList() {
-  if (!fat.works) {
+  if (!fat->works) {
     printf("\nFAT32 was not initalized properly on boot!\n");
     return;
   }
@@ -238,11 +248,11 @@ void fsList() {
 
     printf("\n");
 
-    int lba = fat.cluster_begin_lba + (cluster - 2) * fat.sectors_per_cluster;
+    int lba = fat->cluster_begin_lba + (cluster - 2) * fat->sectors_per_cluster;
 
     int more = 1;
     while (more) {
-      unsigned char *rawArr;
+      uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
       getDiskBytes(rawArr, lba, 1);
       for (int i = 0; i < (SECTOR_SIZE / 32); i++) {
         if (rawArr[32 * i] == 0) {
@@ -259,9 +269,10 @@ void fsList() {
             //           27];
             previous = cluster;
             cluster = rawArr[32 * i + 26] | (rawArr[32 * i + 27] << 8);
-            printf("Hexadecimal: %x, Decimal:%d, {%x %x %x %x}\n", cluster,
-                   cluster, rawArr[32 * i + 20], rawArr[32 * i + 21],
-                   rawArr[32 * i + 26], rawArr[32 * i + 27]);
+            printf("\n");
+            // printf("Hexadecimal: %x, Decimal:%d, {%x %x %x %x}\n", cluster,
+            //        cluster, rawArr[32 * i + 20], rawArr[32 * i + 21],
+            //        rawArr[32 * i + 26], rawArr[32 * i + 27]);
             o = 12;
             i = (SECTOR_SIZE / 32) + 1;
             more = 0;
@@ -278,10 +289,11 @@ void fsList() {
           break;
         }
         cluster = newCluster;
-        lba = fat.cluster_begin_lba + (cluster - 2) * fat.sectors_per_cluster;
+        lba = fat->cluster_begin_lba + (cluster - 2) * fat->sectors_per_cluster;
         more = 1;
       } else
         more = 0;
+      free(rawArr);
     }
   }
 }

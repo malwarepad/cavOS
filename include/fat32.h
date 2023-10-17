@@ -92,7 +92,7 @@ typedef struct {
   unsigned int cluster_begin_lba;
 } __attribute__((packed)) FAT32;
 
-FAT32 fat;
+ptmpFAT32 fat;
 
 int          initiateFat32();
 int          showCluster(int clusterNum, int attrLimitation);

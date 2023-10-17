@@ -5,6 +5,8 @@
 
 #define FAT32_PARTITION_OFFSET_LBA 2048 // 1048576, 1MB
 
+#define FAT32_DBG_PROMPTS 1
+
 int initiateFat32() {
   printf("[+] FAT32: Initializing...");
 
@@ -15,49 +17,10 @@ int initiateFat32() {
   printf("\n[+] FAT32: Checking if disk0 at lba %d is FAT32 formatted...",
          FAT32_PARTITION_OFFSET_LBA);
 
-  // get sector count
-  const unsigned char littleSectorCount =
-      rawArr[19] | (rawArr[20] << 8); // (two, little endian)
-  int bigSectorCount = 0;
-  for (int i = 3; i >= 0; i--) {
-    bigSectorCount =
-        (bigSectorCount << 8) | rawArr[32 + i]; // (four, little endian)
-  }
-  fat.sector_count =
-      littleSectorCount == 0 ? bigSectorCount : littleSectorCount;
+  fat = (ptmpFAT32 *)rawArr;
 
-  // get FAT's
-  fat.number_of_fat = rawArr[16];
-
-  // get reserved sectors (two, little endian)
-  fat.reserved_sectors = rawArr[14] | (rawArr[15] << 8);
-
-  // get sectors / track (two, little endian)
-  fat.sectors_per_track = rawArr[24] | (rawArr[25] << 8);
-
-  // get sectors / cluster
-  fat.sectors_per_cluster = rawArr[13];
-
-  // get sectors / fat (four, little endian)
-  fat.sectors_per_fat = 0;
-  for (int i = 3; i >= 0; i--) {
-    fat.sectors_per_fat = (fat.sectors_per_fat << 8) | rawArr[36 + i];
-  }
-
-  // volume id
-  fat.volume_id = 0;
-  for (int i = 0; i < 4; i++) {
-    fat.volume_id = (fat.volume_id << 8) | rawArr[67 + i];
-  }
-
-  // volume name
-  for (int i = 0; i < 11; i++) {
-    fat.volume_label[i] = (char)rawArr[71 + i];
-  }
-  fat.volume_label[11] = '\0';
-
-  if (fat.sector_count == 0 || fat.reserved_sectors == 0 ||
-      fat.sectors_per_track == 0 || fat.volume_id == 0) {
+  if (fat->sector_count == 0 || fat->reserved_sectors == 0 ||
+      fat->sectors_per_track == 0 || fat->volume_id == 0) {
     printf("\n[+] FAT32: Failed to parse FAT information... This kernel only "
            "supports FAT32!\n");
     return 0;
@@ -68,32 +31,32 @@ int initiateFat32() {
     return 0;
   }
 
-  fat.fat_begin_lba = FAT32_PARTITION_OFFSET_LBA + fat.reserved_sectors;
-  fat.cluster_begin_lba = FAT32_PARTITION_OFFSET_LBA + fat.reserved_sectors +
-                          (fat.number_of_fat * fat.sectors_per_fat);
+  fat->fat_begin_lba = FAT32_PARTITION_OFFSET_LBA + fat->reserved_sectors;
+  fat->cluster_begin_lba = FAT32_PARTITION_OFFSET_LBA + fat->reserved_sectors +
+                           (fat->number_of_fat * fat->sectors_per_fat);
 
-  fat.works = 1;
+  fat->works = 1;
 
-  printf("\n[+] FAT32: Valid FAT32 formatted drive: [%X] %s", fat.volume_id,
-         fat.volume_label);
-  printf("\n    [+] Sector count: %d", fat.sector_count);
-  printf("\n    [+] FAT's: %d", fat.number_of_fat);
-  printf("\n    [+] Reserved sectors: %d", fat.reserved_sectors);
-  printf("\n    [+] Sectors / FAT: %d", fat.sectors_per_fat);
-  printf("\n    [+] Sectors / track: %d", fat.sectors_per_track);
-  printf("\n    [+] Sectors / cluster: %d", fat.sectors_per_cluster);
+  printf("\n[+] FAT32: Valid FAT32 formatted drive: [%X] %.11s", fat->volume_id,
+         fat->volume_label);
+  printf("\n    [+] Sector count: %d", fat->sector_count);
+  printf("\n    [+] FAT's: %d", fat->number_of_fat);
+  printf("\n    [+] Reserved sectors: %d", fat->reserved_sectors);
+  printf("\n    [+] Sectors / FAT: %d", fat->sectors_per_fat);
+  printf("\n    [+] Sectors / track: %d", fat->sectors_per_track);
+  printf("\n    [+] Sectors / cluster: %d", fat->sectors_per_cluster);
   printf("\n");
 
-  free(rawArr);
+  // free(rawArr);
 
   return 1;
 }
 
 unsigned int getFatEntry(int cluster) {
-  int lba = fat.fat_begin_lba + (cluster * 4 / SECTOR_SIZE);
+  int lba = fat->fat_begin_lba + (cluster * 4 / SECTOR_SIZE);
   int entryOffset = (cluster * 4) % SECTOR_SIZE;
 
-  unsigned char rawArr[SECTOR_SIZE];
+  uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
   getDiskBytes(rawArr, lba, 1);
   // unsigned int c = *(uint32 *)&rawArr[entryOffset] & 0x0FFFFFFF; //
   // 0x0FFFFFFF mask to keep lower 28 bits valid, nah fuck this ima do it
@@ -110,6 +73,8 @@ unsigned int getFatEntry(int cluster) {
   //        rawArr[entryOffset], rawArr[entryOffset + 1], rawArr[entryOffset +
   //        2], rawArr[entryOffset + 3], result, result);
 
+  free(rawArr);
+
   return result;
 }
 
@@ -118,13 +83,14 @@ int findFile(pFAT32_Directory fatdir, int initialCluster, char *filename) {
   uint8_t rawArr[SECTOR_SIZE];
   while (1) {
     const int lba =
-        fat.cluster_begin_lba + (clusterNum - 2) * fat.sectors_per_cluster;
+        fat->cluster_begin_lba + (clusterNum - 2) * fat->sectors_per_cluster;
     getDiskBytes(rawArr, lba, 1);
 
     for (int i = 0; i < (SECTOR_SIZE / 32); i++) {
       if (memcmp(rawArr + (32 * i), filename, 11) == 0 &&
           rawArr[32 * i] != FAT_DELETED) { // fatdir->filename
         *fatdir = *(pFAT32_Directory)(&rawArr[32 * i]);
+#if UNSAFE_DBG
         debugf("[search] filename: %s\n", filename);
         debugf("[search] low=%d low1=%x low2=%x\n", (*fatdir).firstClusterLow,
                rawArr[32 * i + 26], rawArr[32 * i + 27]);
@@ -132,6 +98,7 @@ int findFile(pFAT32_Directory fatdir, int initialCluster, char *filename) {
           debugf("%x ", rawArr[32 * i + o]);
         }
         debugf("\n");
+#endif
         return 1;
       }
     }
@@ -197,8 +164,8 @@ int calcLfn(int clusterNum, int nthOf32) {
   if (clusterNum < 2)
     return 0;
 
-  unsigned char rawArr[SECTOR_SIZE];
-  int           curr = 0;
+  uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
+  int      curr = 0;
 
   if (nthOf32 == 0) {
     curr = 1;
@@ -206,13 +173,14 @@ int calcLfn(int clusterNum, int nthOf32) {
   }
   int checksum = 0x0;
   while (1) {
-    const int lba = fat.cluster_begin_lba +
-                    (clusterNum - 2 - curr) * fat.sectors_per_cluster;
+    const int lba = fat->cluster_begin_lba +
+                    (clusterNum - 2 - curr) * fat->sectors_per_cluster;
     getDiskBytes(rawArr, lba, 1);
     for (int i = (nthOf32 - 1); i >= 0; i--) {
       if (rawArr[32 * i + 11] != 0x0F) {
         // printf("end of long \n", i);
-        printf(" | checksum: 0x%x\n", checksum);
+        // printf(" | checksum: 0x%lx\n", checksum);
+        printf("\n");
         return 1;
       }
 
@@ -241,6 +209,8 @@ int calcLfn(int clusterNum, int nthOf32) {
     }
   }
 
+  free(rawArr);
+
   return 0;
 }
 
@@ -250,8 +220,8 @@ int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
     return 0;
 
   const int lba =
-      fat.cluster_begin_lba + (clusterNum - 2) * fat.sectors_per_cluster;
-  unsigned char rawArr[SECTOR_SIZE];
+      fat->cluster_begin_lba + (clusterNum - 2) * fat->sectors_per_cluster;
+  uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
   getDiskBytes(rawArr, lba, 1);
 
   for (int i = 0; i < (SECTOR_SIZE / 32); i++) {
@@ -270,9 +240,8 @@ int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
     int      createdMonth = (createdDate >> 5) & 0xF;
     int      createdYear = ((createdDate >> 9) & 0x7F) + 1980;
 
-    printf("[%d] attr: 0x%02X | created: %02d/%02d/%04d | ",
-           directory->ntReserved, directory->attributes, createdDay,
-           createdMonth, createdYear);
+    printf("[%d] attr: 0x%2X | created: %2d/%2d/%4d | ", directory->ntReserved,
+           directory->attributes, createdDay, createdMonth, createdYear);
     int lfn = 0;
     // char *out;
     for (int o = 0; o < 11; o++) {
@@ -283,7 +252,7 @@ int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
     }
     // out[11] = '\0';
     // formatFilename(&directory->filename);
-    printf("%.11s", directory->filename);
+    printf("%s", directory->filename);
     printf("\n");
     if (lfn)
       calcLfn(clusterNum, i);
@@ -296,21 +265,25 @@ int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
     showCluster(nextCluster, attrLimitation);
   }
 
+  free(rawArr);
+
   return 1;
 }
 
 int divisionRoundUp(int a, int b) { return (a + (b - 1)) / b; }
 
 void readFileContents(char **rawOut, pFAT32_Directory dir) {
+#if UNSAFE_DBG
   debugf("[read] filesize=%d cluster=%d\n", dir->filesize,
          dir->firstClusterLow);
+#endif
   char *out = *rawOut;
   int   curr = 0;
   for (int i = 0; i < divisionRoundUp(dir->filesize, SECTOR_SIZE);
        i++) { // DIV_ROUND_CLOSEST(dir->filesize, SECTOR_SIZE)
     unsigned char rawArr[SECTOR_SIZE];
-    const int     lba = fat.cluster_begin_lba +
-                    (dir->firstClusterLow - 2) * fat.sectors_per_cluster + i;
+    const int     lba = fat->cluster_begin_lba +
+                    (dir->firstClusterLow - 2) * fat->sectors_per_cluster + i;
     getDiskBytes(rawArr, lba, 1);
     for (int j = 0; j < SECTOR_SIZE; j++) {
       if (curr > dir->filesize)
@@ -323,13 +296,15 @@ void readFileContents(char **rawOut, pFAT32_Directory dir) {
 }
 
 int showFile(pFAT32_Directory dir) {
+#if UNSAFE_DBG
   debugf("[read] filesize=%d cluster=%d\n", dir->filesize,
          dir->firstClusterLow);
+#endif
   for (int i = 0; i < divisionRoundUp(dir->filesize, SECTOR_SIZE);
        i++) { // DIV_ROUND_CLOSEST(dir->filesize, SECTOR_SIZE)
     unsigned char rawArr[SECTOR_SIZE];
-    const int     lba = fat.cluster_begin_lba +
-                    (dir->firstClusterLow - 2) * fat.sectors_per_cluster + i;
+    const int     lba = fat->cluster_begin_lba +
+                    (dir->firstClusterLow - 2) * fat->sectors_per_cluster + i;
     getDiskBytes(rawArr, lba, 1);
     for (int j = 0; j < SECTOR_SIZE; j++)
       printf("%c", rawArr[j]);
@@ -371,9 +346,10 @@ int fileReaderTest() {
   printf("=========================================\n");
 
   printf("\nEnter cluster choice (2 -> root directory):\n> ");
-  char choice[50];
+  char *choice = (char *)malloc(200);
   readStr(choice);
   int cluster = atoi(choice);
+  free(choice);
   printf("\n\nCluster information:\n");
   showCluster(cluster, 0);
   printf("\n");
@@ -389,12 +365,16 @@ int fileReaderTest() {
       return 1;
 
     char *res = &cnt;
+#if UNSAFE_DBG
     debugf("[input]: %s\n", res);
+#endif
     char *modifiable = formatToShort8_3Format(res);
     // for (int i = 0; i < 11; i++) {
     //   // printf("%2x ", modifiable[i]);
     // }
+#if UNSAFE_DBG
     debugf("[parse] FAT32-compatible filename: %s\n", modifiable);
+#endif
 
     FAT32_Directory dir;
     findFile(&dir, cluster, modifiable);
@@ -404,8 +384,10 @@ int fileReaderTest() {
       continue;
     }
 
-    debugf("[search res] filename=%.11s attr=0x%x low=%d\n", dir.filename,
+#if UNSAFE_DBG
+    debugf("[search res] filename=%s attr=0x%x low=%d\n", dir.filename,
            dir.attributes, dir.firstClusterLow);
+#endif
 
     // showFile(&dir);
     char *out = (char *)malloc(dir.filesize);
