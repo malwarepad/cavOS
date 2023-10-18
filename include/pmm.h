@@ -1,6 +1,7 @@
 #ifndef PMM_H
 #define PMM_H
 
+#include "system.h"
 #include "types.h"
 
 #define DivRoundUp(n, d) (((n) + (d)-1) / (d))

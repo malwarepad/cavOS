@@ -20,4 +20,12 @@ unsigned int          mbi_memorySize;
 multiboot_memory_map_t *memoryMap[MAX_MEMORY_MAPS];
 int                     memoryMapCnt;
 
+#define clearScreen drawClearScreen
+#define printfch drawCharacter
+
+uint32_t *framebuffer;
+uint16_t  framebufferWidth;
+uint16_t  framebufferHeight;
+uint32_t  framebufferPitch;
+
 #endif

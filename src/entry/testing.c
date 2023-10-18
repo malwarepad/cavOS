@@ -8,6 +8,8 @@
 #define FAT32_DELETION_TEST 0
 #define FAT32_ALLOC_STRESS_TEST 0
 #define MULTITASKING_PROCESS_TESTING 0
+#define VGA_DRAW_TEST 0
+#define VGA_FRAMERATE 0
 
 #if MULTITASKING_PROCESS_TESTING
 void task1() {
@@ -36,6 +38,25 @@ void task3() {
 #endif
 
 void testingInit() {
+#if VGA_DRAW_TEST
+  drawCircle(200, 300, 100, 255, 0, 0);
+  drawCircle(400, 300, 100, 0, 255, 0);
+  drawCircle(600, 300, 100, 0, 0, 255);
+  drawCircle(800, 300, 100, 0, 0, 0);
+
+  asm("cli");
+  asm("hlt");
+#endif
+
+#if VGA_FRAMERATE
+  while (1) {
+    int randomX = inrand(0, 1024);
+    int randomY = inrand(0, 768);
+    int random = inrand(0, 600);
+    drawRect(randomX, randomY, randomX, randomY, random / 2, random % 255,
+             random / 4);
+  }
+#endif
 #if MULTITASKING_PROCESS_TESTING
   create_task(1, (uint32_t)task1, 0xC80000, 0xC00000, false);
   create_task(2, (uint32_t)task2, 0xD80000, 0xD00000, false);
