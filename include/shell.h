@@ -11,7 +11,6 @@
 #include "string.h"
 #include "system.h"
 #include "timer.h"
-#include "tty.h"
 #include "types.h"
 #include "util.h"
 

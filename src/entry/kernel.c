@@ -15,6 +15,7 @@
 #include "../../include/testing.h"
 #include "../../include/timer.h"
 #include "../../include/util.h"
+#include "../../include/vga.h"
 
 #include <stdint.h>
 
@@ -71,6 +72,14 @@ int kmain(uint32 magic, unsigned long addr) {
         memoryMap[memoryMapCnt++] = entry;
         // debugf("%lx\n", entry->addr);
       }
+    } else if (tag->type == MULTIBOOT_TAG_TYPE_FRAMEBUFFER) {
+      struct multiboot_tag_framebuffer *tagfb =
+          (struct multiboot_tag_framebuffer *)tag;
+      framebuffer = tagfb->common.framebuffer_addr;
+      framebufferHeight = tagfb->common.framebuffer_height;
+      framebufferWidth = tagfb->common.framebuffer_width;
+      framebufferPitch = tagfb->common.framebuffer_pitch;
+      debugf("%dx%d\n", framebufferWidth, framebufferHeight);
     }
   }
 
@@ -78,11 +87,15 @@ int kmain(uint32 magic, unsigned long addr) {
 
   clearScreen();
 
+  changeTextColor(255, 255, 255);
+  changeBg(0, 0, 0);
+  drawClearScreen();
+
   debugf("====== DEBUGGING LOGS ======\n\n");
-  printf("%s=========================================%s\n", center, center);
-  printf("%s==     Cave-Like Operating System      ==%s\n", center, center);
-  printf("%s==      Copyright MalwarePad 2023      ==%s\n", center, center);
-  printf("%s=========================================%s\n\n", center, center);
+  printf("=========================================\n");
+  printf("==     Cave-Like Operating System      ==\n");
+  printf("==      Copyright MalwarePad 2023      ==\n");
+  printf("=========================================\n\n");
 
   initiatePCI();
   initiateTimer(1000);

@@ -5,7 +5,7 @@
 
 #define FAT32_PARTITION_OFFSET_LBA 2048 // 1048576, 1MB
 
-#define FAT32_DBG_PROMPTS 1
+#define FAT32_DBG_PROMPTS 0
 
 int initiateFat32() {
   printf("[+] FAT32: Initializing...");

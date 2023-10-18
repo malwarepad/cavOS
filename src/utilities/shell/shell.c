@@ -25,6 +25,18 @@ void launch_shell(int n) {
       help();
     } else if (strEql(ch, "readdisk")) {
       readDisk();
+    } else if (strEql(ch, "draw")) {
+      printf("\nDraw rectangle! width: ");
+      char *widthStr = (char *)malloc(200);
+      readStr(widthStr);
+      int width = atoi(widthStr);
+      printf(" height: ");
+      char *heightStr = (char *)malloc(200);
+      readStr(heightStr);
+      int height = atoi(heightStr);
+
+      drawRect(0, 0, width, height, 255, 255, 255);
+      printf("\n");
     } else if (strEql(ch, "readfatcluster")) {
       fatCluster();
     } else if (strEql(ch, "readfatroot")) {
@@ -51,7 +63,7 @@ void launch_shell(int n) {
         }
       }
     } else if (strEql(ch, "time")) {
-      BitmapDumpBlocks();
+      // BitmapDumpBlocks();
       RTC *rtc = (RTC *)malloc(sizeof(RTC));
       readFromCMOS(rtc);
       printf("\n%02d:%02d:%02d %02d/%02d/%04d\n", rtc->hour, rtc->minute,

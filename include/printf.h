@@ -32,7 +32,7 @@
 #ifndef _PRINTF_H_
 #define _PRINTF_H_
 
-#include "tty.h"
+#include "vga.h"
 #include <stdarg.h>
 #include <stddef.h>
 

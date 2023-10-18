@@ -8,6 +8,8 @@
   ((((n) < 0) == ((d) < 0)) ? (((n) + (d) / 2) / (d)) : (((n) - (d) / 2) / (d)))
 
 #define DivRoundUp(number, divisor) ((number + divisor - 1) / divisor)
+#define inrand(minimum_number, max_number)                                     \
+  (rand() % (max_number + 1 - minimum_number) + minimum_number)
 
 void *memmove(void *dstptr, const void *srcptr, size_t size);
 void  memset(void *_dst, int val, size_t len);

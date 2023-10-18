@@ -1,5 +1,4 @@
 #include "idt.h"
-#include "tty.h"
 #include "types.h"
 #include "util.h"
 
