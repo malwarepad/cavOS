@@ -6,28 +6,30 @@
 #define FAT32_PARTITION_OFFSET_LBA 2048 // 1048576, 1MB
 
 #define FAT32_DBG_PROMPTS 0
+#define fatinitf debugf
 
 int initiateFat32() {
-  printf("[+] FAT32: Initializing...");
+  fatinitf("[+] FAT32: Initializing...");
 
-  printf("\n[+] FAT32: Reading disk0 at lba %d...", FAT32_PARTITION_OFFSET_LBA);
+  fatinitf("\n[+] FAT32: Reading disk0 at lba %d...",
+           FAT32_PARTITION_OFFSET_LBA);
   uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
   getDiskBytes(rawArr, FAT32_PARTITION_OFFSET_LBA, 1);
 
-  printf("\n[+] FAT32: Checking if disk0 at lba %d is FAT32 formatted...",
-         FAT32_PARTITION_OFFSET_LBA);
+  fatinitf("\n[+] FAT32: Checking if disk0 at lba %d is FAT32 formatted...",
+           FAT32_PARTITION_OFFSET_LBA);
 
   fat = (ptmpFAT32 *)rawArr;
 
   if (fat->sector_count == 0 || fat->reserved_sectors == 0 ||
       fat->sectors_per_track == 0 || fat->volume_id == 0) {
-    printf("\n[+] FAT32: Failed to parse FAT information... This kernel only "
-           "supports FAT32!\n");
+    fatinitf("\n[+] FAT32: Failed to parse FAT information... This kernel only "
+             "supports FAT32!\n");
     return 0;
   }
   if (rawArr[66] != FAT_SIGNATURE1 && rawArr[66] != FAT_SIGNATURE2) {
-    printf("\n[+] FAT32: Incorrect disk signature! This kernel only supports "
-           "FAT32!\n");
+    fatinitf("\n[+] FAT32: Incorrect disk signature! This kernel only supports "
+             "FAT32!\n");
     return 0;
   }
 
@@ -37,15 +39,15 @@ int initiateFat32() {
 
   fat->works = 1;
 
-  printf("\n[+] FAT32: Valid FAT32 formatted drive: [%X] %.11s", fat->volume_id,
-         fat->volume_label);
-  printf("\n    [+] Sector count: %d", fat->sector_count);
-  printf("\n    [+] FAT's: %d", fat->number_of_fat);
-  printf("\n    [+] Reserved sectors: %d", fat->reserved_sectors);
-  printf("\n    [+] Sectors / FAT: %d", fat->sectors_per_fat);
-  printf("\n    [+] Sectors / track: %d", fat->sectors_per_track);
-  printf("\n    [+] Sectors / cluster: %d", fat->sectors_per_cluster);
-  printf("\n");
+  fatinitf("\n[+] FAT32: Valid FAT32 formatted drive: [%X] %.11s",
+           fat->volume_id, fat->volume_label);
+  fatinitf("\n    [+] Sector count: %d", fat->sector_count);
+  fatinitf("\n    [+] FAT's: %d", fat->number_of_fat);
+  fatinitf("\n    [+] Reserved sectors: %d", fat->reserved_sectors);
+  fatinitf("\n    [+] Sectors / FAT: %d", fat->sectors_per_fat);
+  fatinitf("\n    [+] Sectors / track: %d", fat->sectors_per_track);
+  fatinitf("\n    [+] Sectors / cluster: %d", fat->sectors_per_cluster);
+  fatinitf("\n");
 
   // free(rawArr);
 

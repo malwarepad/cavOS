@@ -181,10 +181,6 @@ char font[2057] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
     0xFF, 0xFF, 0xFF, 0xFF};
 
-int width, height;
-int textcolor[] = {0, 0, 0};
-int bg_color[] = {255, 255, 255};
-
 void drawRect(int x, int y, int w, int h, int r, int g,
               int b) { // Draw a filled rectangle
   int            i, j;
@@ -207,87 +203,6 @@ void drawRect(int x, int y, int w, int h, int r, int g,
   //     drawPixel(x + i, y + j, r, g, b);
   //   }
   // }
-}
-
-void drawClearScreen() {
-  drawRect(0, 0, framebufferWidth, framebufferHeight, bg_color[0], bg_color[1],
-           bg_color[2]);
-  width = 0;
-  height = 0;
-}
-
-void changeTextColor(int r, int g, int b) {
-  textcolor[0] = r;
-  textcolor[1] = g;
-  textcolor[2] = b;
-}
-
-void changeBg(int r, int g, int b) {
-  bg_color[0] = r;
-  bg_color[1] = g;
-  bg_color[2] = b;
-}
-
-void drawCharacter(int charnum) { // draw a single character using a 8*8 pattern
-  // Store hex numbers representing the pattern for characters (8 numbers per
-  // character) into an array
-
-  int i; // column number in the 8*8 pattern
-  int k; // row number in the 8*8 pattern
-  int w; // horizontal position of the pixel in the 8*8 pattern
-  int h; // vertical position of the pixel in the 8*8 pattern
-
-  if (height >= framebufferHeight) { // scrolling screen by clearing
-    clearScreen();
-  }
-
-  // charnum = charnum + 1;
-  // Moving the cursor to the next line when we reached the end of the existing
-  // line
-  if (width > (framebufferWidth - 20)) {
-    width = 0;
-    height = height + 16;
-  }
-
-  if (width < -2 && height > 34) {
-    width = 1250;
-    height = height - 16;
-  }
-
-  if (charnum == -1) {
-    drawRect(width, height, 16, 16, bg_color[0], bg_color[1], bg_color[2]);
-    width = width + 16;
-  }
-
-  else if (charnum == 10) { // Enter
-    drawCharacter(-1);
-    width = 0;
-    height = height + 16;
-  }
-
-  else if (charnum == 8) { // backspace
-    width = width - 16;
-    drawRect(width, height, 16, 16, bg_color[0], bg_color[1], bg_color[2]);
-    return;
-    // drawCharacter('_');
-  }
-
-  else {
-    // Draw the character with 16*16 pixels
-    for (k = 0; k < 8; k++) {
-      for (i = 0; i < 8; i++) {
-        if (font[charnum * 8 + k] & (0x01 << i)) {
-          for (w = 2 * (8 - i); w < 2 * (8 - i) + 2; w++) {
-            for (h = 2 * k; h < 2 * k + 2; h++) {
-              drawPixel(w + width, h + height, textcolor[0], textcolor[1],
-                        textcolor[2]);
-            }
-          }
-        }
-      }
-    }
-    width = width + 16; // Move to draw the next character
-  }
 }
 
 void drawPixel(int x, int y, int r, int g,
@@ -372,10 +287,4 @@ void drawLine(int x1, int y1, int x2, int y2, int r, int g,
       drawPixel(px, py, r, g, b);
     }
   }
-}
-
-void changeColor(int color[]) {
-  textcolor[0] = color[0];
-  textcolor[1] = color[1];
-  textcolor[2] = color[2];
 }

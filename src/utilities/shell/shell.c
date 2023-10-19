@@ -1,4 +1,6 @@
 #include "../../../include/shell.h"
+#define _STDINT_H
+#include "../../../include/ssfn.h"
 
 // Shell driver
 // Copyright (C) 2023 Panagiotis
@@ -26,16 +28,19 @@ void launch_shell(int n) {
     } else if (strEql(ch, "readdisk")) {
       readDisk();
     } else if (strEql(ch, "draw")) {
-      printf("\nDraw rectangle! width: ");
+      clearScreen();
+      printf("Draw rectangle! width (px): ");
       char *widthStr = (char *)malloc(200);
       readStr(widthStr);
       int width = atoi(widthStr);
-      printf(" height: ");
+      printf(" height (px): ");
       char *heightStr = (char *)malloc(200);
       readStr(heightStr);
       int height = atoi(heightStr);
 
-      drawRect(0, 0, width, height, 255, 255, 255);
+      drawRect((framebufferWidth / 2) - (width / 2), ssfn_dst.y + 16, width,
+               height, 255, 255, 255);
+      ssfn_dst.y += height + 16;
       printf("\n");
     } else if (strEql(ch, "readfatcluster")) {
       fatCluster();
