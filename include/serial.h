@@ -1,11 +1,11 @@
 #include "types.h"
 
-#define SERIAL_PORT_A 0x3F8
-#define SERIAL_PORT_B 0x2F8
-#define SERIAL_PORT_C 0x3E8
-#define SERIAL_PORT_D 0x2E8
+#define COM1 0x3F8
+#define COM2 0x2F8
+#define COM3 0x3E8
+#define COM4 0x2E8
 
-// 4 -> SERIAL_PORT_A, 3 -> SERIAL_PORT_B
+// 4 -> COM1, 3 -> COM2
 #define SERIAL_IRQ 4
 
 #ifndef SERIAL_H
