@@ -1,7 +1,7 @@
 #include "../../include/ata.h"
+#include "../../include/backupconsole.h"
 #include "../../include/console.h"
 #include "../../include/disk.h"
-#include "../../include/backupconsole.h"
 #include "../../include/fat32.h"
 #include "../../include/gdt.h"
 #include "../../include/idt.h"
@@ -12,6 +12,7 @@
 #include "../../include/pci.h"
 #include "../../include/pmm.h"
 #include "../../include/rtc.h"
+#include "../../include/serial.h"
 #include "../../include/shell.h"
 #include "../../include/task.h"
 #include "../../include/testing.h"
@@ -41,6 +42,7 @@ int kmain(uint32 magic, unsigned long addr) {
   mbi_addr = addr;
   mbi = (struct multiboot_tag *)(addr + 8);
 
+  initiateSerial();
   debugf("Multiboot2 reached:\n{magic: %x, mbi addr: %lx, size: %x}\n", magic,
          addr, mbi_size);
 
