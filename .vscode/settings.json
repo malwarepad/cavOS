@@ -30,7 +30,11 @@
     "system.h": "c",
     "pci.h": "c",
     "liballoc.h": "c",
-    "stdarg.h": "c"
+    "stdarg.h": "c",
+    "console.h": "c",
+    "ssfn.h": "c",
+    "backupconsole.h": "c",
+    "kb.h": "c"
   },
   "C_Cpp.clang_format_style": "{ BasedOnStyle: LLVM, AlignConsecutiveDeclarations: true, IndentWidth: 2 }"
 }

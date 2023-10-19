@@ -1,5 +1,7 @@
 #include "../../include/ata.h"
+#include "../../include/console.h"
 #include "../../include/disk.h"
+#include "../../include/backupconsole.h"
 #include "../../include/fat32.h"
 #include "../../include/gdt.h"
 #include "../../include/idt.h"
@@ -85,17 +87,7 @@ int kmain(uint32 magic, unsigned long addr) {
 
   initiateBitmap(mbi);
 
-  clearScreen();
-
-  changeTextColor(255, 255, 255);
-  changeBg(0, 0, 0);
-  drawClearScreen();
-
   debugf("====== DEBUGGING LOGS ======\n\n");
-  printf("=========================================\n");
-  printf("==     Cave-Like Operating System      ==\n");
-  printf("==      Copyright MalwarePad 2023      ==\n");
-  printf("=========================================\n\n");
 
   initiatePCI();
   initiateTimer(1000);
@@ -105,7 +97,12 @@ int kmain(uint32 magic, unsigned long addr) {
 
   testingInit();
 
-  printf("\n");
+  initiateConsole();
+
+  printf("=========================================\n");
+  printf("==     Cave-Like Operating System      ==\n");
+  printf("==      Copyright MalwarePad 2023      ==\n");
+  printf("=========================================\n\n");
 
   launch_shell(0);
 }
