@@ -36,7 +36,7 @@ Important to mention these goals may never be satisfied, take a very long time t
   - [x] ATA pio
   - [x] PCI read
   - [ ] PCI write
-  - [ ] Serial driver
+  - [x] Serial driver
   - [x] Keyboard
   - [ ] Mouse
 - Filesystems

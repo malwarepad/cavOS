@@ -34,7 +34,8 @@
     "console.h": "c",
     "ssfn.h": "c",
     "backupconsole.h": "c",
-    "kb.h": "c"
+    "kb.h": "c",
+    "serial.h": "c"
   },
   "C_Cpp.clang_format_style": "{ BasedOnStyle: LLVM, AlignConsecutiveDeclarations: true, IndentWidth: 2 }"
 }

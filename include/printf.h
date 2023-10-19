@@ -33,6 +33,7 @@
 #define _PRINTF_H_
 
 #include "vga.h"
+#include "serial.h"
 #include <stdarg.h>
 #include <stddef.h>
 

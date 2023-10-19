@@ -9,7 +9,7 @@ if ! command -v qemu-system-x86_64 &>/dev/null; then
 fi
 
 if [ ! -f cavOS.iso ]; then
-	qemu-system-x86_64 -debugcon stdio -drive file=disk.img,format=raw -m 1g -netdev user,id=mynet0 -net nic,model=ne2k_pci,netdev=mynet0
+	qemu-system-x86_64 -serial stdio -drive file=disk.img,format=raw -m 1g -netdev user,id=mynet0 -net nic,model=ne2k_pci,netdev=mynet0
 else
-	qemu-system-x86_64 -debugcon stdio -drive file=cavOS.iso,format=raw -m 1g -netdev user,id=mynet0 -net nic,model=ne2k_pci,netdev=mynet0
+	qemu-system-x86_64 -serial stdio -drive file=cavOS.iso,format=raw -m 1g -netdev user,id=mynet0 -net nic,model=ne2k_pci,netdev=mynet0
 fi

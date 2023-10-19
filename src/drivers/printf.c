@@ -917,7 +917,10 @@ int fctprintf(void (*out)(char character, void* arg), void* arg, const char* for
     return ret;
 }
 
-int debug(char c, int *arg) { outportb(0xE9, c); }
+int debug(char c, int *arg) {
+    // outportb(0xE9, c);
+    serial_send(SERIAL_PORT_A, c);
+}
 
 int debugf(const char* format, ...)
 {
