@@ -919,7 +919,7 @@ int fctprintf(void (*out)(char character, void* arg), void* arg, const char* for
 
 int debug(char c, int *arg) {
     // outportb(0xE9, c);
-    serial_send(SERIAL_PORT_A, c);
+    serial_send(COM1, c);
 }
 
 int debugf(const char* format, ...)

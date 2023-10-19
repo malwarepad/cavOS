@@ -1,5 +1,8 @@
 #include "../../include/serial.h"
 
+// Simple serial driver for debugging
+// Copyright (C) 2023 Panagiotis
+
 void serial_enable(int device) {
   outportb(device + 1, 0x00);
   outportb(device + 3, 0x80); /* Enable divisor mode */
@@ -13,11 +16,11 @@ void serial_enable(int device) {
 void initiateSerial() {
   debugf("Installing serial...\n");
 
-  serial_enable(SERIAL_PORT_A);
-  serial_enable(SERIAL_PORT_B);
+  serial_enable(COM1);
+  // serial_enable(COM2);
 
-  outportb(SERIAL_PORT_A + 1, 0x01);
-  outportb(SERIAL_PORT_B + 1, 0x01);
+  outportb(COM1 + 1, 0x01);
+  // outportb(COM2 + 1, 0x01);
 }
 
 int serial_rcvd(int device) { return inportb(device + 5) & 1; }
