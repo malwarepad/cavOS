@@ -69,7 +69,7 @@ void read_sectors_ATA_PIO(uint8_t *target_address, uint32_t LBA,
 }
 
 void write_sectors_ATA_PIO(uint32_t LBA, uint8_t sector_count,
-                           uint32_t *bytes) {
+                           uint8_t *rawBytes) {
   ATA_wait_BSY();
   port_byte_out(0x1F6, 0xE0 | ((LBA >> 24) & 0xF));
   port_byte_out(0x1F2, sector_count);
@@ -77,6 +77,8 @@ void write_sectors_ATA_PIO(uint32_t LBA, uint8_t sector_count,
   port_byte_out(0x1F4, (uint8_t)(LBA >> 8));
   port_byte_out(0x1F5, (uint8_t)(LBA >> 16));
   port_byte_out(0x1F7, 0x30); // Send the write command
+
+  uint32_t *bytes = (uint32_t *)rawBytes;
 
   for (int j = 0; j < sector_count; j++) {
     ATA_wait_BSY();

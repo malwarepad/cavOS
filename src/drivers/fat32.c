@@ -92,6 +92,7 @@ int findFile(pFAT32_Directory fatdir, int initialCluster, char *filename) {
       if (memcmp(rawArr + (32 * i), filename, 11) == 0 &&
           rawArr[32 * i] != FAT_DELETED) { // fatdir->filename
         *fatdir = *(pFAT32_Directory)(&rawArr[32 * i]);
+        fatdir->lba = lba;
 #if UNSAFE_DBG
         debugf("[search] filename: %s\n", filename);
         debugf("[search] low=%d low1=%x low2=%x\n", (*fatdir).firstClusterLow,
@@ -402,4 +403,21 @@ int fileReaderTest() {
     free(out);
     printf("\n\n");
   }
+}
+
+int deleteFile(char *filename) {
+  FAT32_Directory fatdir;
+  if (!openFile(&fatdir, filename))
+    return 0;
+  uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
+  getDiskBytes(rawArr, fatdir.lba, 1);
+  for (int i = 0; i < (SECTOR_SIZE / 32); i++) {
+    if (memcmp(rawArr + (32 * i), fatdir.filename, 11) == 0) {
+      rawArr[32 * i] = FAT_DELETED;
+      write_sectors_ATA_PIO(fatdir.lba, 1, rawArr);
+      break;
+    }
+  }
+
+  return 1;
 }
