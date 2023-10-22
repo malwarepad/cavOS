@@ -97,9 +97,9 @@ int kmain(uint32 magic, unsigned long addr) {
 
   setup_tasks();
 
-  testingInit();
-
   initiateConsole();
+
+  testingInit();
 
   printf("=========================================\n");
   printf("==     Cave-Like Operating System      ==\n");

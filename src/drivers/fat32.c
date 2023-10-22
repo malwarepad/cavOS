@@ -317,9 +317,9 @@ int openFile(pFAT32_Directory dir, char *filename) {
   if (filename[0] != '/')
     return 0;
 
-  char *tmpBuff;
   int   index = 0;
   int   len = strlength(filename);
+  char *tmpBuff = (char *)malloc(len + 1);
   dir->firstClusterLow = 2;
   memset(tmpBuff, '\0', len);
 
@@ -327,8 +327,11 @@ int openFile(pFAT32_Directory dir, char *filename) {
     if (filename[i] == '/' || (i + 1) == len) {
       if ((i + 1) == len)
         tmpBuff[index++] = filename[i];
-      if (!findFile(dir, dir->firstClusterLow, formatToShort8_3Format(tmpBuff)))
+      if (!findFile(dir, dir->firstClusterLow,
+                    formatToShort8_3Format(tmpBuff))) {
+        free(tmpBuff);
         return 0;
+      }
 
       // cleanup
       memset(tmpBuff, '\0', len);
@@ -337,6 +340,7 @@ int openFile(pFAT32_Directory dir, char *filename) {
       tmpBuff[index++] = filename[i];
   }
 
+  free(tmpBuff);
   return 1;
 }
 

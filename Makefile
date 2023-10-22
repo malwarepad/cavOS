@@ -5,7 +5,7 @@ CFLAGS = -m32 -c -ffreestanding -w -fcommon
 ASFLAGS = -f elf32
 LDFLAGS = -m elf_i386 -T src/boot/link.ld
 
-OBJS = tmp/obj/kasm.o tmp/obj/kc.o tmp/obj/idt.o tmp/obj/ata.o tmp/obj/printf.o tmp/obj/asm_ports.o tmp/obj/isr.o tmp/obj/kb.o tmp/obj/string.o tmp/obj/system.o tmp/obj/util.o tmp/obj/shell.o tmp/obj/disk.o tmp/obj/fat32.o tmp/obj/rtc.o tmp/obj/testing.o tmp/obj/pmm.o tmp/obj/gdtasm.o tmp/obj/gdt.o tmp/obj/timer.o tmp/obj/schedule.o tmp/obj/pci.o tmp/obj/israsm.o tmp/obj/taskasm.o tmp/obj/task.o tmp/obj/liballoc.o tmp/obj/vga.o tmp/obj/console.o tmp/obj/backupconsole.o tmp/obj/serial.o
+OBJS = tmp/obj/kasm.o tmp/obj/kc.o tmp/obj/idt.o tmp/obj/ata.o tmp/obj/printf.o tmp/obj/asm_ports.o tmp/obj/isr.o tmp/obj/kb.o tmp/obj/string.o tmp/obj/system.o tmp/obj/util.o tmp/obj/shell.o tmp/obj/disk.o tmp/obj/fat32.o tmp/obj/rtc.o tmp/obj/testing.o tmp/obj/pmm.o tmp/obj/gdtasm.o tmp/obj/gdt.o tmp/obj/timer.o tmp/obj/schedule.o tmp/obj/pci.o tmp/obj/israsm.o tmp/obj/taskasm.o tmp/obj/task.o tmp/obj/liballoc.o tmp/obj/vga.o tmp/obj/console.o tmp/obj/backupconsole.o tmp/obj/serial.o tmp/obj/elf.o
 OUTPUT = tmp/boot/kernel.bin
 
 # tmp/obj/vga.o 
@@ -33,6 +33,9 @@ tmp/obj/taskasm.o:src/multitasking/task.asm
 	
 tmp/obj/task.o:src/multitasking/task.c
 	$(COMPILER) $(CFLAGS) src/multitasking/task.c -o tmp/obj/task.o 
+	
+tmp/obj/elf.o:src/utilities/elf.c
+	$(COMPILER) $(CFLAGS) src/utilities/elf.c -o tmp/obj/elf.o 
 	
 tmp/obj/serial.o:src/drivers/serial.c
 	$(COMPILER) $(CFLAGS) src/drivers/serial.c -o tmp/obj/serial.o 

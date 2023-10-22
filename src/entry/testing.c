@@ -10,6 +10,7 @@
 #define MULTITASKING_PROCESS_TESTING 0
 #define VGA_DRAW_TEST 0
 #define VGA_FRAMERATE 0
+#define ELF_DETECTION 0
 
 #if MULTITASKING_PROCESS_TESTING
 void task1() {
@@ -38,6 +39,22 @@ void task3() {
 #endif
 
 void testingInit() {
+#if ELF_DETECTION
+  FAT32_Directory *dir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));
+  openFile(dir, "/main.cav");
+  debugf("cavSize -> %d\n", dir->filesize);
+  uint8_t *out = (uint8_t *)malloc(dir->filesize);
+  readFileContents(&out, dir);
+  for (int i = 0; i < 512; i++) {
+    debugf("%x ", out[i]);
+  }
+  debugf("\n");
+
+  Elf32_Ehdr *elf_ehdr = (Elf32_Ehdr *)(out);
+
+  elf_check_file(elf_ehdr);
+  debugf("entry: %x\n", elf_ehdr->e_entry);
+#endif
 #if VGA_DRAW_TEST
   drawCircle(200, 300, 100, 255, 0, 0);
   drawCircle(400, 300, 100, 0, 255, 0);
@@ -63,13 +80,14 @@ void testingInit() {
   create_task(3, (uint32_t)task3, 0xE80000, 0xE00000, false);
 #endif
 #if FAT32_ALLOC_STRESS_TEST
-  FAT32_Directory *dir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));
-  while (1) {
+  for (int i = 0; i < 64; i++) {
+    FAT32_Directory *dir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));
     openFile(dir, "/lorem.txt");
     char *out = (char *)malloc(dir->filesize);
     readFileContents(&out, dir);
-    printf("%s\n", out);
+    debugf("%s\n", out);
     free(out);
+    free(dir);
 
     // sleep(1000);
   }
