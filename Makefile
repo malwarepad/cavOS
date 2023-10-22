@@ -116,25 +116,15 @@ iso:all
 	grub-mkrescue -o cavOS.iso tmp/
 
 disk:all
-	dd if=/dev/zero of=disk.img bs=512 count=131072
-	parted disk.img mklabel msdos mkpart primary ext4 2048s 100% set 1 boot on
-	losetup /dev/loop101 disk.img
-	losetup /dev/loop102 disk.img -o 1048576
-	mkdosfs -F32 -f 2 /dev/loop102
-	fatlabel /dev/loop102 CAVOS
-	mount /dev/loop102 /mnt
-	grub-install --root-directory=/mnt --no-floppy --modules="normal part_msdos ext2 multiboot" /dev/loop101
-	cp -r tmp/* /mnt/
-	umount /mnt
-	losetup -d /dev/loop101
-	losetup -d /dev/loop102
+	chmod +x tools/make_disk.sh
+	./tools/make_disk.sh
 
 vmware:disk
 	qemu-img convert disk.img -O vmdk disk.vmdk
 
 tools:
-	chmod +x getTools.sh
-	./getTools.sh
+	chmod +x tools/get_tools.sh
+	./tools/get_tools.sh
 	
 clean:
 	rm -f tmp/obj/*.o
@@ -142,6 +132,9 @@ clean:
 	rm -f disk*
 
 qemu:
-	./qemu.sh
+	qemu-system-x86_64 -d guest_errors -serial stdio -drive file=disk.img,format=raw -m 1g -netdev user,id=mynet0 -net nic,model=ne2k_pci,netdev=mynet0
+
+qemu_iso:
+	qemu-system-x86_64 -d guest_errors -serial stdio -drive file=cavOS.iso,format=raw -m 1g -netdev user,id=mynet0 -net nic,model=ne2k_pci,netdev=mynet0
 
 dev:clean disk qemu
