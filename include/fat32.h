@@ -53,11 +53,12 @@ typedef struct {
   // uint8_t extended_section[54];
 
   // extras
-  uint32_t fat_begin_lba;
-  uint32_t cluster_begin_lba;
-  uint8_t  works;
+  uint32_t       fat_begin_lba;
+  uint32_t       cluster_begin_lba;
+  uint8_t        works;
+  mbr_partition *partition;
 
-} __attribute__((packed)) tmpFAT32, *ptmpFAT32;
+} __attribute__((packed)) FAT32;
 
 #pragma pack(push, 1)
 typedef struct FAT32_Directory {
@@ -78,25 +79,9 @@ typedef struct FAT32_Directory {
 } __attribute__((packed)) FAT32_Directory, *pFAT32_Directory;
 #pragma pack(pop)
 
-typedef struct {
-  int          sector_count;
-  unsigned int number_of_fat;
-  unsigned int reserved_sectors;
-  unsigned int sectors_per_track;
-  unsigned int sectors_per_cluster;
-  unsigned int sectors_per_fat;
-  unsigned int volume_id;
-  char         volume_label[12]; // 11 bytes, inc. 1 null terminator
+FAT32 *fat;
 
-  // helper
-  int          works; // 1, 0
-  unsigned int fat_begin_lba;
-  unsigned int cluster_begin_lba;
-} __attribute__((packed)) FAT32;
-
-ptmpFAT32 fat;
-
-int          initiateFat32();
+int          initiateFat32(uint32_t disk, uint8_t partition_num);
 int          showCluster(int clusterNum, int attrLimitation);
 unsigned int getFatEntry(int cluster);
 char        *formatToShort8_3Format(char *directory);

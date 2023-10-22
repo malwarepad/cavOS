@@ -3,23 +3,31 @@
 // Simple alpha FAT32 driver according to the Microsoft specification
 // Copyright (C) 2023 Panagiotis
 
-#define FAT32_PARTITION_OFFSET_LBA 2048 // 1048576, 1MB
+// #define FAT32_PARTITION_OFFSET_LBA 2048 // 1048576, 1MB
+
+// todo. allow multiple FAT32* structures by implicitly passing them to
+// todo. functions instead of using a global one declared at compile time
 
 #define FAT32_DBG_PROMPTS 0
 #define fatinitf debugf
 
-int initiateFat32() {
+int initiateFat32(uint32_t disk, uint8_t partition_num) {
+  fat = (FAT32 *)malloc(sizeof(FAT32));
   fatinitf("[+] FAT32: Initializing...");
 
+  mbr_partition *partPtr = (mbr_partition *)malloc(sizeof(mbr_partition));
+  openDisk(disk, partition_num, partPtr);
+  fat->partition = partPtr;
+
   fatinitf("\n[+] FAT32: Reading disk0 at lba %d...",
-           FAT32_PARTITION_OFFSET_LBA);
+           fat->partition->lba_first_sector);
   uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
-  getDiskBytes(rawArr, FAT32_PARTITION_OFFSET_LBA, 1);
+  getDiskBytes(rawArr, fat->partition->lba_first_sector, 1);
 
   fatinitf("\n[+] FAT32: Checking if disk0 at lba %d is FAT32 formatted...",
-           FAT32_PARTITION_OFFSET_LBA);
+           fat->partition->lba_first_sector);
 
-  fat = (ptmpFAT32 *)rawArr;
+  fat = (FAT32 *)rawArr;
 
   if (fat->sector_count == 0 || fat->reserved_sectors == 0 ||
       fat->sectors_per_track == 0 || fat->volume_id == 0) {
@@ -33,8 +41,11 @@ int initiateFat32() {
     return 0;
   }
 
-  fat->fat_begin_lba = FAT32_PARTITION_OFFSET_LBA + fat->reserved_sectors;
-  fat->cluster_begin_lba = FAT32_PARTITION_OFFSET_LBA + fat->reserved_sectors +
+  fat->partition =
+      partPtr; // at "fat = (FAT32 *)rawArr;" we already overwrote the main ptr
+  fat->fat_begin_lba = fat->partition->lba_first_sector + fat->reserved_sectors;
+  fat->cluster_begin_lba = fat->partition->lba_first_sector +
+                           fat->reserved_sectors +
                            (fat->number_of_fat * fat->sectors_per_fat);
 
   fat->works = 1;

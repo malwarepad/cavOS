@@ -93,7 +93,7 @@ int kmain(uint32 magic, unsigned long addr) {
 
   initiatePCI();
   initiateTimer(1000);
-  initiateFat32();
+  initiateFat32(0, 0);
 
   setup_tasks();
 
