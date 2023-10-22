@@ -73,6 +73,8 @@ typedef struct FAT32_Directory {
   uint16_t lastModificationDate;
   uint16_t firstClusterLow;
   uint32_t filesize;
+
+  uint32_t lba;
 } __attribute__((packed)) FAT32_Directory, *pFAT32_Directory;
 #pragma pack(pop)
 
@@ -101,5 +103,6 @@ char        *formatToShort8_3Format(char *directory);
 int          fileReaderTest();
 int          openFile(pFAT32_Directory dir, char *filename);
 void         readFileContents(char **rawOut, pFAT32_Directory dir);
+int          deleteFile(char *filename);
 
 #endif
