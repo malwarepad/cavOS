@@ -56,11 +56,11 @@ void BitmapDump() {
 }
 
 void BitmapDumpBlocks() {
-  printf("=== BLOCK DUMPING %d ===\n", BitmapSizeInBlocks);
+  debugf("=== BLOCK DUMPING %d ===\n", BitmapSizeInBlocks);
   for (int i = 0; i < 512; i++) {
-    printf("%d ", Get(i));
+    debugf("%d ", Get(i));
   }
-  printf("\n");
+  debugf("\n");
 }
 
 /* Marking large chunks of memory */
@@ -185,6 +185,8 @@ void initiateBitmap() {
     mmmt = memoryMap[i];
     if (mmmt->addr > mbi_memorySize)
       continue;
+    if (mmmt->type == MULTIBOOT_MEMORY_AVAILABLE)
+      debugf("%lx\n", mmmt->addr);
     if (mmmt->type == MULTIBOOT_MEMORY_AVAILABLE && mmmt->len > best_len) {
       best_start = mmmt->addr;
       best_len = mmmt->len;
@@ -193,5 +195,17 @@ void initiateBitmap() {
 
   MarkBlocks(ToBlockRoundUp(best_start), best_len / BLOCK_SIZE, 0);
 
+  for (int i = 0; i < memoryMapCnt; i++) {
+    mmmt = memoryMap[i];
+    if (mmmt->addr > mbi_memorySize)
+      continue;
+    if (mmmt->type != MULTIBOOT_MEMORY_AVAILABLE) {
+      debugf("x %lx\n", mmmt->addr);
+      MarkBlocks(ToBlock(mmmt->addr), DivRoundUp(mmmt->len, BLOCK_SIZE), 1);
+    }
+  }
+
   MarkRegion(Bitmap, BitmapSizeInBytes, 1);
+
+  BitmapDumpBlocks();
 }
