@@ -1,4 +1,5 @@
 #include "idt.h"
+#include "paging.h"
 #include "types.h"
 #include "util.h"
 

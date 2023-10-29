@@ -62,7 +62,7 @@ void testingInit() {
   drawCircle(800, 300, 100, 0, 0, 0);
 
   asm("cli");
-  asm("hlt");
+  panic();
 #endif
 
 #if VGA_FRAMERATE

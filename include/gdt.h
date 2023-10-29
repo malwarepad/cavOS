@@ -46,9 +46,9 @@ typedef struct {
 #define GDT_USER_DATA 0x20
 #define GDT_TSS 0x28
 
-GDTEntry   gdt_entries[NUM_GDT_ENTRIES];
-GDTPointer gdt_pointer;
-TSS        tss;
+static GDTEntry   gdt_entries[NUM_GDT_ENTRIES];
+static GDTPointer gdt_pointer;
+static TSS        tss;
 
 void setup_gdt();
 void set_gdt_entry(uint32_t num, uint32_t base, uint32_t limit, uint8_t access,

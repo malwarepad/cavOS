@@ -111,13 +111,25 @@ void *BitmapAllocate(uint32_t blocks) {
   uint32_t pickedRegion = FindFreeRegion(blocks);
   if (pickedRegion == INVALID_BLOCK) {
     printf("no!");
-    asm("cli");
-    asm("hlt");
+    panic();
   }
 
   MarkBlocks(pickedRegion, blocks, 1);
   return ToPtr(pickedRegion);
 }
+
+uint32 BitmapAllocatePageframe() {
+  uint32_t pickedRegion = FindFreeRegion(1);
+  if (pickedRegion == INVALID_BLOCK) {
+    printf("no!");
+    panic();
+  }
+  MarkBlocks(pickedRegion, 1, 1);
+
+  return (mem_start + (pickedRegion * BLOCK_SIZE));
+}
+
+void BitmapFreePageframe(uint32_t addr) { MarkRegion(addr, BLOCK_SIZE * 1, 0); }
 
 void BitmapFree(void *base, uint32_t blocks) {
   MarkRegion(base, BLOCK_SIZE * blocks, 0);
@@ -142,18 +154,20 @@ void initiateBitmap() {
     }
   }
 
+  // todo: (1) access all memory instead and put bitmap on a more
+  // todo: predictable place so no overlaps happen
+
   if (!found) {
     printf(
         "[+] Bitmap allocator: Not enough memory!\n> %d required, %d found!\n",
         BitmapSizeInBytes, mbi_memorySize);
-    asm("cli");
-    asm("hlt");
+    panic();
     return 1;
   }
 
   debugf("Bitmap size in bytes: %d\n", BitmapSizeInBytes);
 
-  Bitmap = (uint32_t *)(mmmt->addr);
+  Bitmap = (uint32_t *)(mmmt->addr + 0xC0000000); // todo: follow (1)
 
   //    for (int i = 0; i < BitmapSizeInBlocks; i++) Bitmap[i] = 0xffffffff;
   for (int i = 0; i < BitmapSizeInBlocks; i++)
