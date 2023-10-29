@@ -1,6 +1,6 @@
 #include "../../include/system.h"
-#include "../../include/console.h"
 #include "../../include/backupconsole.h"
+#include "../../include/console.h"
 
 // Source code for handling ports via assembly references
 // Copyright (C) 2023 Panagiotis
@@ -23,6 +23,12 @@ uint32_t inportl(uint16_t portid) {
 
 void outportl(uint16_t portid, uint32_t value) {
   __asm__ __volatile__("outl %%eax, %%dx" : : "d"(portid), "a"(value));
+}
+
+void panic() {
+  debugf("Kernel panic triggered!\n");
+  asm("cli");
+  asm("hlt");
 }
 
 void printfch(int character) {

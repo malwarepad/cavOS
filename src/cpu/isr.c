@@ -87,8 +87,10 @@ void handle_interrupt(AsmPassedInterrupt regs) {
       break;
     }
   } else if (regs.interrupt >= 0 && regs.interrupt <= 31) { // ISR
-    printf(format, exceptions[regs.interrupt]);
-    asm("hlt");
+    debugf(format, exceptions[regs.interrupt]);
+    if (framebuffer == KERNEL_GFX)
+      printf(format, exceptions[regs.interrupt]);
+    panic();
   } else if (regs.interrupt == 0x80) {
     // reserved for syscall
   }

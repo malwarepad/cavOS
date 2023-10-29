@@ -14,7 +14,11 @@ void InitialiseBitmap();
 void BitmapDump();
 void BitmapDumpBlocks();
 
-void *BitmapAllocate(uint32_t blocks);
-void  BitmapFree(void *base, uint32_t blocks);
+void  *BitmapAllocate(uint32_t blocks);
+void   BitmapFree(void *base, uint32_t blocks);
+uint32 BitmapAllocatePageframe();
+void   BitmapFreePageframe(uint32_t addr);
+
+void MarkRegion(void *basePtr, size_t sizeBytes, int isUsed);
 
 #endif

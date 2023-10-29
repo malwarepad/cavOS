@@ -3,6 +3,10 @@
 
 MBOOT_HEADER_MAGIC  equ 0xE85250D6
 MBOOT_ARCH          equ 0x00000000
+KERNEL_STACK_SIZE   equ 4096
+global KERNEL_VIRTUAL_BASE
+KERNEL_VIRTUAL_BASE equ 0xC0000000                  ; 3GB
+KERNEL_PAGE_NUMBER  equ (KERNEL_VIRTUAL_BASE >> 22)  ; Page directory index of kernel's 4MB PTE.
 
 ; Legacy from multiboot 1
 ; MBOOT_PAGE_ALIGN    equ 1 << 0
@@ -36,20 +40,31 @@ align 8
     dd 8
 header_end:
 
-section         .text
+section .bss
+align 16
+stack_bottom:
+    resb 16384*4
+stack_top:
+
+section .boot
 global start
-extern kmain            ; this function is gonna be located in our c code(kernel.c)
 
+extern kmain
 start:
-        cli             ;clears the interrupts
+    ; init temporary paging
+    mov eax, (initial_page_dir - 0xC0000000)
+    mov cr3, eax
 
-        mov esp, stack_space
-        push ebx
-        push eax
-        call kmain      ;send processor to continue execution from the kamin funtion in c code
-        call Shutdown
-        hlt             ; halt the cpu(pause it from executing from this address
+    mov ecx, cr4
+    or ecx, 0x10
+    mov cr4, ecx
 
+    mov ecx, cr0
+    or ecx, 0x80000000
+    mov cr0, ecx
+
+    jmp higher_half
+    
 Shutdown:
     mov ax, 0x1000
     mov ax, ss
@@ -59,7 +74,35 @@ Shutdown:
     mov cx, 0x0003
     int 0x15
 
+section .text
+higher_half:
+    mov esp, stack_top ; stack init
 
-section .bss
-resb 8192
-stack_space:
+    add ebx, KERNEL_VIRTUAL_BASE ; make the address virtual
+    ; add eax, KERNEL_VIRTUAL_BASE
+
+    push ebx ; multiboot mem info pointer
+    ; push eax
+
+    call kmain
+
+halt:
+    hlt
+    jmp halt
+
+section .data
+align 4096
+global initial_page_dir 
+initial_page_dir:
+    dd 10000011b ; initial 4mb identity map, unmapped later
+
+    times 768-1 dd 0 ; padding
+
+    ; hh kernel start, map 16 mb
+    dd (0 << 22) | 10000011b ; 0xC0000000
+    dd (1 << 22) | 10000011b
+    dd (2 << 22) | 10000011b
+    dd (3 << 22) | 10000011b
+    times 256-4 dd 0 ; padding
+
+    ; dd initial_page_dir | 11b

@@ -1,4 +1,6 @@
 #include "../../include/liballoc.h"
+#include "../../include/paging.h"
+#include "../../include/vmm.h"
 
 /**  Durand's Ridiculously Amazing Super Duper Memory functions.  */
 
@@ -42,12 +44,11 @@ int liballoc_unlock() {
   return 0;
 }
 
-void *liballoc_alloc(int pages) { return BitmapAllocate(pages); }
+// debugf("found!%x", sysalloc_base);
+// return BitmapAllocate(pages);
+void *liballoc_alloc(int pages) { return VirtualAllocate(pages); }
 
-int liballoc_free(void *ptr, int pages) {
-  BitmapFree(ptr, pages);
-  return 0;
-}
+int liballoc_free(void *ptr, int pages) { return VirtualFree(ptr, pages); }
 
 // ***********   HELPER FUNCTIONS  *******************************
 

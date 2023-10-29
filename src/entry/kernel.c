@@ -9,6 +9,7 @@
 #include "../../include/kb.h"
 #include "../../include/liballoc.h"
 #include "../../include/multiboot2.h"
+#include "../../include/paging.h"
 #include "../../include/pci.h"
 #include "../../include/pmm.h"
 #include "../../include/rtc.h"
@@ -19,6 +20,7 @@
 #include "../../include/timer.h"
 #include "../../include/util.h"
 #include "../../include/vga.h"
+#include "../../include/vmm.h"
 
 #include <stdint.h>
 
@@ -27,15 +29,11 @@
 
 string center = "                   ";
 
-int kmain(uint32 magic, unsigned long addr) {
-  if (magic != MULTIBOOT2_BOOTLOADER_MAGIC) {
-    printf("Invalid magic number: 0x%x\n", (unsigned)magic);
-    asm("hlt");
-  }
-
+int kmain(unsigned long addr) {
   if (addr & 7) {
+    debugf("Unaligned mbi: 0x%x\n", addr);
     printf("Unaligned mbi: 0x%x\n", addr);
-    asm("hlt");
+    panic();
   }
 
   mbi_size = *(unsigned *)addr;
@@ -43,8 +41,8 @@ int kmain(uint32 magic, unsigned long addr) {
   mbi = (struct multiboot_tag *)(addr + 8);
 
   initiateSerial();
-  debugf("Multiboot2 reached:\n{magic: %x, mbi addr: %lx, size: %x}\n", magic,
-         addr, mbi_size);
+  debugf("Multiboot2 reached:\n{mbi virtaddr: %lx, size: %x}\n", addr,
+         mbi_size);
 
   setup_gdt();
   isr_install();
@@ -76,18 +74,45 @@ int kmain(uint32 magic, unsigned long addr) {
         memoryMap[memoryMapCnt++] = entry;
         // debugf("%lx\n", entry->addr);
       }
-    } else if (tag->type == MULTIBOOT_TAG_TYPE_FRAMEBUFFER) {
-      struct multiboot_tag_framebuffer *tagfb =
-          (struct multiboot_tag_framebuffer *)tag;
-      framebuffer = tagfb->common.framebuffer_addr;
-      framebufferHeight = tagfb->common.framebuffer_height;
-      framebufferWidth = tagfb->common.framebuffer_width;
-      framebufferPitch = tagfb->common.framebuffer_pitch;
-      debugf("%dx%d\n", framebufferWidth, framebufferHeight);
     }
   }
 
   initiateBitmap(mbi);
+  MarkRegion(addr, mbi->size, false); // don't touch the god damn multiboot info
+  MarkRegion(&kernel_start,
+             ((uint32_t)&kernel_end - KERNEL_START) - (uint32_t)&kernel_start,
+             false); // not my kernel
+  MarkRegion((uint32_t)&stack_bottom - KERNEL_START, 16384 * 4,
+             false); // not my kernel stack man
+
+  initiatePaging();
+
+  for (struct multiboot_tag *tag = (struct multiboot_tag *)(addr + 8);
+       tag->type != MULTIBOOT_TAG_TYPE_END;
+       tag = (struct multiboot_tag *)((multiboot_uint8_t *)tag +
+                                      ((tag->size + 7) & ~7))) {
+    if (tag->type == MULTIBOOT_TAG_TYPE_FRAMEBUFFER) {
+      struct multiboot_tag_framebuffer *tagfb =
+          (struct multiboot_tag_framebuffer *)tag;
+      // framebuffer = tagfb->common.framebuffer_addr;
+      framebuffer = KERNEL_GFX;
+      framebufferHeight = tagfb->common.framebuffer_height;
+      framebufferWidth = tagfb->common.framebuffer_width;
+      framebufferPitch = tagfb->common.framebuffer_pitch;
+      debugf("%dx%d\n", framebufferWidth, framebufferHeight);
+      uint32_t size_bytes = framebufferWidth * framebufferHeight * 4;
+      uint32_t needed_page_count = size_bytes / PAGE_SIZE + 1;
+
+      for (uint32_t i = 0; i < needed_page_count; i++) {
+        uint32_t offset = i * PAGE_SIZE;
+        VirtualMap(KERNEL_GFX + offset,
+                   ((uint32_t)tagfb->common.framebuffer_addr) + offset, 0);
+      }
+
+      framebuffer_end = KERNEL_GFX + (needed_page_count + 1) * PAGE_SIZE;
+      sysalloc_base = framebuffer_end; // tmp
+    }
+  }
 
   debugf("====== DEBUGGING LOGS ======\n\n");
 
