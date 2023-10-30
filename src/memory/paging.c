@@ -9,6 +9,12 @@
 static void enable_paging();
 static void invalidate(int vaddr);
 
+int mem_num_vpages;
+
+#define NUM_PAGE_DIRS 256
+static uint32_t page_dirs[NUM_PAGE_DIRS][1024] __attribute__((aligned(4096)));
+static uint8_t  page_dir_used[NUM_PAGE_DIRS];
+
 void initiatePaging() {
   // unmap the first 4 mb
   initial_page_dir[0] = 0;
@@ -18,6 +24,9 @@ void initiatePaging() {
   initial_page_dir[1023] = ((uint32_t)initial_page_dir - 0xC0000000) |
                            PAGE_FLAG_PRESENT | PAGE_FLAG_WRITE;
   invalidate(0xFFFFF000);
+
+  memset(page_dirs, 0, 0x1000 * NUM_PAGE_DIRS);
+  memset(page_dir_used, 0, NUM_PAGE_DIRS);
 }
 
 void ChangePageDirectory(uint32_t *pd) {
@@ -90,10 +99,12 @@ void VirtualMap(uint32_t virt_addr, uint32_t phys_addr, uint32_t flags) {
   }
 
   pt[pt_index] = phys_addr | PAGE_FLAG_PRESENT | flags;
+  mem_num_vpages++;
   invalidate(virt_addr);
 
   if (prev_page_dir != 0) {
     // ... then sync that across all others
+    SyncPageDirectory();
     // we changed to init page dir, now we need to change back
     if (prev_page_dir != initial_page_dir)
       ChangePageDirectory(prev_page_dir);
@@ -136,6 +147,7 @@ uint32_t VirtualUnmap(uint32_t virt_addr) {
 
   uint32_t pte = pt[pt_index];
   pt[pt_index] = 0;
+  mem_num_vpages--;
 
   bool remove = true;
   // optimization: keep track of the number of pages present in each page table
@@ -165,10 +177,84 @@ uint32_t VirtualUnmap(uint32_t virt_addr) {
 
   if (prev_page_dir != 0) {
     // ... then sync that across all others
+    SyncPageDirectory();
     // we changed to init page dir, now we need to change back
     if (prev_page_dir != initial_page_dir)
       ChangePageDirectory(prev_page_dir);
   }
 
   return pte;
+}
+
+uint32_t *PageDirectoryAllocate() {
+  for (int i = 0; i < NUM_PAGE_DIRS; i++) {
+    if (!page_dir_used[i]) {
+      page_dir_used[i] = true;
+
+      uint32_t *page_dir = page_dirs[i];
+      memset(page_dir, 0, 0x1000);
+
+      // first 768 entries are user page tables
+      for (int i = 0; i < 768; i++) {
+        page_dir[i] = 0;
+      }
+
+      // next 256 are kernel (except last)
+      for (int i = 768; i < 1023; i++) {
+        page_dir[i] = initial_page_dir[i] & ~PAGE_FLAG_OWNER;
+      }
+
+      // recursive mapping
+      page_dir[1023] = (((uint32_t)page_dir) - 0xC0000000) | PAGE_FLAG_PRESENT |
+                       PAGE_FLAG_WRITE;
+      return page_dir;
+    }
+  }
+
+  return 0;
+}
+
+void PageDirectoryFree(uint32_t *page_dir) {
+  uint32_t *prev_pagedir = GetPageDirectory();
+  ChangePageDirectory(page_dir);
+
+  uint32_t pagedir_index = ((uint32_t)page_dir) - ((uint32_t)page_dirs);
+  pagedir_index /= 0x1000;
+
+  uint32_t *pd = REC_PAGEDIR;
+  for (int i = 0; i < 768; i++) {
+    int pde = pd[i];
+    if (pde == 0)
+      continue;
+
+    uint32_t *ptable = REC_PAGETABLE(i);
+    for (int j = 0; j < 1024; j++) {
+      uint32_t pte = ptable[j];
+
+      if (pte & PAGE_FLAG_OWNER) {
+        BitmapFreePageframe(P_PHYS_ADDR(pte));
+      }
+    }
+    memset(ptable, 0, 0x1000);
+
+    if (pde & PAGE_FLAG_OWNER) {
+      BitmapFreePageframe(P_PHYS_ADDR(pde));
+    }
+    pd[i] = 0;
+  }
+
+  page_dir_used[pagedir_index] = 0;
+  ChangePageDirectory(prev_pagedir);
+}
+
+void SyncPageDirectory() {
+  for (int i = 0; i < NUM_PAGE_DIRS; i++) {
+    if (page_dir_used[i]) {
+      uint32_t *page_dir = page_dirs[i];
+
+      for (int i = 768; i < 1023; i++) {
+        page_dir[i] = initial_page_dir[i] & ~PAGE_FLAG_OWNER;
+      }
+    }
+  }
 }
