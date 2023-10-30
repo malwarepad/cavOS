@@ -17,13 +17,13 @@
 - nasm
 
 #### Ubuntu
-`sudo apt install build-essential bison flex libgmp3-dev libmpc-dev libmpfr-dev texinfo libisl-dev`
+`sudo apt install build-essential bison flex libgmp3-dev libmpc-dev libmpfr-dev texinfo libisl-dev parted dosfstools`
 
 #### Fedora
-`sudo dnf install -y nasm grub gcc xorriso`
+`sudo dnf install -y nasm grub gcc xorriso parted dosfstools`
 
 #### Arch
-`sudo pacman -S --noconfirm nasm grub xorriso gcc`
+`sudo pacman -S --noconfirm nasm grub xorriso gcc parted dosfstools`
 
 ### Get the cross-compiler
 `make tools`
