@@ -33,6 +33,7 @@ void initiateConsole() {
   FAT32_Directory dir;
   if (!openFile(&dir, DEFAULT_FONT_PATH)) {
     printf("Cannot open VGA font!\n");
+    return;
   }
   debugf("size -> %d\n", dir.filesize);
   uint8_t *buff = (uint8_t *)malloc(dir.filesize);

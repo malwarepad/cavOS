@@ -8,13 +8,22 @@
 #define SCHEDULE_DEBUG 0
 
 void schedule() {
-  if (num_tasks < 2 || taskSwitchSpinlock)
+  if (!tasksInitiated || taskSwitchSpinlock)
     return;
 
-  int next_id = (current_task->id + 1) % num_tasks;
+  // int next_id = (current_task->id + 1) % num_tasks;
+  int next_id = current_task->id;
+
+  while (1) {
+    next_id = (next_id + 1) % MAX_TASKS;
+
+    if (tasks[next_id].state == TASK_STATE_READY)
+      break;
+  }
 
   Task *next = &tasks[next_id];
   Task *old = current_task;
+
   current_task = next;
 
   // update tss

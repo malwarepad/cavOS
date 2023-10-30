@@ -16,27 +16,32 @@
 
 #if MULTITASKING_PROCESS_TESTING
 void task1() {
-  asm volatile("mov $3, %eax \n"
+  for (int i = 0; i < 8; i++) {
+    printf("task 1: aaa\n");
+  }
+  asm volatile("mov $1, %eax \n"
                "int $0x80");
-
   while (1) {
-    debugf("task 1: aaa\n");
   }
 }
 
 void task2() {
-  asm volatile("mov $5, %eax \n"
+  for (int i = 0; i < 8; i++) {
+    printf("task 2: 1111111111111111111111111111111111111\n");
+  }
+  asm volatile("mov $1, %eax \n"
                "int $0x80");
   while (1) {
-    debugf("task 2: 1111111111111111111111111111111111111\n");
   }
 }
 
 void task3() {
-  asm volatile("mov $7, %eax \n"
+  for (int i = 0; i < 8; i++) {
+    printf("task 3: 423432423\n");
+  }
+  asm volatile("mov $1, %eax \n"
                "int $0x80");
   while (1) {
-    debugf("task 3: 423432423\n");
   }
 }
 #endif

@@ -5,6 +5,36 @@
 // Shell driver
 // Copyright (C) 2023 Panagiotis
 
+void task1() {
+  for (int i = 0; i < 8; i++) {
+    printf("task 1: aaa\n");
+  }
+  asm volatile("mov $1, %eax \n"
+               "int $0x80");
+  while (1) {
+  }
+}
+
+void task2() {
+  for (int i = 0; i < 8; i++) {
+    printf("task 2: 1111111111111111111111111111111111111\n");
+  }
+  asm volatile("mov $1, %eax \n"
+               "int $0x80");
+  while (1) {
+  }
+}
+
+void task3() {
+  for (int i = 0; i < 8; i++) {
+    printf("task 3: 423432423\n");
+  }
+  asm volatile("mov $1, %eax \n"
+               "int $0x80");
+  while (1) {
+  }
+}
+
 void launch_shell(int n) {
   string ch = (string)malloc(200);
   string data[64];
@@ -76,6 +106,11 @@ void launch_shell(int n) {
       free(rtc);
     } else if (strEql(ch, "color")) {
       set_background_color();
+    } else if (strEql(ch, "proctest")) {
+      printf("\n");
+      create_task(1, (uint32_t)task1, true, PageDirectoryAllocate());
+      create_task(2, (uint32_t)task2, true, PageDirectoryAllocate());
+      create_task(3, (uint32_t)task3, true, PageDirectoryAllocate());
     } else if (strEql(ch, "cwm")) {
       printf("\n%s\n",
              "After taking some time off the project, I realized I was "
@@ -156,6 +191,8 @@ void help() {
   printf("\n= time           : Tells you the time and date from BIOS    =");
   printf("\n= lspci          : Lists PCI device info                    =");
   printf("\n= dump           : Dumps some of the bitmap allocator       =");
+  printf("\n= draw           : Tests framebuffer by drawing a rectangle =");
+  printf("\n= proctest       : Tests multitasking support               =");
   printf("\n=============================================================\n");
   printf("\n========================= FILESYSTEM ========================");
   printf("\n= readdisk       : Tests out the disk reading algorythm     =");

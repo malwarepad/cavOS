@@ -31,7 +31,7 @@ Important to mention these goals may never be satisfied, take a very long time t
 - Architecture: x86 (Intel i386)
   - [x] Interrupts: ISR, IRQ, GDT
   - [x] Scheduling
-  - [ ] Multitasking
+  - [x] Multitasking
 - Device drivers
   - [x] ATA pio
   - [x] PCI read

@@ -8,7 +8,6 @@ void create_task(uint32_t id, uint32_t eip, bool kernel_task,
                  uint32_t *pagedir) {
   taskSwitchSpinlock = true;
 
-  num_tasks++;
   memset(&tasks[id], 0, sizeof(Task));
 
   // when a task gets context switched to for the first time,
@@ -66,14 +65,32 @@ void create_task(uint32_t id, uint32_t eip, bool kernel_task,
   taskSwitchSpinlock = false;
 }
 
+void kill_task(uint32_t id) {
+  taskSwitchSpinlock = true;
+
+  Task *task = &tasks[id];
+  if (task->state == TASK_STATE_DEAD)
+    return;
+
+  PageDirectoryFree(task->pagedir);
+  uint32_t *kernel_stack = (uint32_t *)((task->kesp_bottom) + (0x1000 - 16));
+  free(kernel_stack);
+  memset(&tasks[id], 0, sizeof(Task));
+
+  // task->state = TASK_STATE_DEAD;
+  // num_tasks--;
+
+  taskSwitchSpinlock = false;
+}
+
 void initiateTasks() {
+  tasksInitiated = true;
   taskSwitchSpinlock = false;
   memset((uint8_t *)tasks, 0, sizeof(Task) * MAX_TASKS);
 
-  num_tasks = 1;
   current_task = &tasks[KERNEL_TASK];
   current_task->id = KERNEL_TASK;
-  current_task->state = TASK_STATE_IDLE;
+  current_task->state = TASK_STATE_READY;
   current_task->pagedir = GetPageDirectory();
 
   // task 0 represents the execution we're in right now

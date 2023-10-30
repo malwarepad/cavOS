@@ -1,4 +1,5 @@
 #include "../../include/isr.h"
+#include "../../include/task.h"
 
 // ISR Entry configurator
 // Copyright (C) 2023 Panagiotis
@@ -97,6 +98,7 @@ void handle_interrupt(AsmPassedInterrupt regs) {
       printf(format, exceptions[regs.interrupt]);
     panic();
   } else if (regs.interrupt == 0x80) {
-    // reserved for syscall
+    if (regs.eax == 0x1)
+      kill_task(current_task->id);
   }
 }

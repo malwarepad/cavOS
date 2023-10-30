@@ -52,13 +52,15 @@ typedef struct {
 } Task;
 
 Task  tasks[MAX_TASKS];
-int   num_tasks;
 Task *current_task;
 
 bool taskSwitchSpinlock;
+bool tasksInitiated;
 
 void initiateTasks();
 void create_task(uint32_t id, uint32_t eip, bool kernel_task,
                  uint32_t *pagedir);
+
+void kill_task(uint32_t id);
 
 #endif
