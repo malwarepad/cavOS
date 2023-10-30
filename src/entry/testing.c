@@ -1,4 +1,6 @@
 #include "../../include/testing.h"
+#include "../../include/task.h"
+#include "../../include/vmm.h"
 
 // Testing stuff
 // Copyright (C) 2023 Panagiotis
@@ -17,24 +19,25 @@ void task1() {
   asm volatile("mov $3, %eax \n"
                "int $0x80");
 
-  while (true)
-    debugf("task 1!\n");
+  while (1) {
+    debugf("task 1: aaa\n");
+  }
 }
 
 void task2() {
   asm volatile("mov $5, %eax \n"
                "int $0x80");
-
-  while (true)
-    debugf("task 2!\n");
+  while (1) {
+    debugf("task 2: 1111111111111111111111111111111111111\n");
+  }
 }
 
 void task3() {
   asm volatile("mov $7, %eax \n"
                "int $0x80");
-
-  while (true)
-    debugf("task 3!\n");
+  while (1) {
+    debugf("task 3: 423432423\n");
+  }
 }
 #endif
 
@@ -75,9 +78,9 @@ void testingInit() {
   }
 #endif
 #if MULTITASKING_PROCESS_TESTING
-  create_task(1, (uint32_t)task1, 0xC80000, 0xC00000, false);
-  create_task(2, (uint32_t)task2, 0xD80000, 0xD00000, false);
-  create_task(3, (uint32_t)task3, 0xE80000, 0xE00000, false);
+  create_task(1, (uint32_t)task1, true, PageDirectoryAllocate());
+  create_task(2, (uint32_t)task2, true, PageDirectoryAllocate());
+  create_task(3, (uint32_t)task3, true, PageDirectoryAllocate());
 #endif
 #if FAT32_ALLOC_STRESS_TEST
   for (int i = 0; i < 64; i++) {

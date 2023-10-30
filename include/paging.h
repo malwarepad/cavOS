@@ -30,11 +30,18 @@
 extern uint32_t initial_page_dir[1024];
 extern int      mem_num_vpages;
 
-void      initiatePaging();
-void      VirtualMap(uint32_t virt_addr, uint32_t phys_addr, uint32_t flags);
-uint32_t  VirtualUnmap(uint32_t virt_addr);
-void      ChangePageDirectory(uint32_t *pd);
+void initiatePaging();
+
+void     VirtualMap(uint32_t virt_addr, uint32_t phys_addr, uint32_t flags);
+uint32_t VirtualUnmap(uint32_t virt_addr);
+
+void *VirtualToPhysical(uint32_t virt_addr);
+
 uint32_t *GetPageDirectory();
-void     *VirtualToPhysical(uint32_t virt_addr);
+void      ChangePageDirectory(uint32_t *pd);
+void      SyncPageDirectory();
+
+uint32_t *PageDirectoryAllocate();
+void      PageDirectoryFree(uint32_t *page_dir);
 
 #endif

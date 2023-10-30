@@ -120,9 +120,8 @@ int kmain(unsigned long addr) {
   initiateTimer(1000);
   initiateFat32(0, 0);
 
-  setup_tasks();
-
   initiateConsole();
+  initiateTasks();
 
   testingInit();
 

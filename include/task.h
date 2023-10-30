@@ -11,6 +11,8 @@
 // fixed number of tasks for simplicity
 #define MAX_TASKS 16
 
+#define KERNEL_TASK 0
+
 // matches the stack of switch_context in kernel.asm
 typedef struct {
   uint32_t edi;
@@ -19,6 +21,10 @@ typedef struct {
   uint32_t ebp;
   uint32_t return_eip;
 } TaskReturnContext;
+
+#define TASK_STATE_DEAD 0
+#define TASK_STATE_READY 1
+#define TASK_STATE_IDLE 2
 
 typedef struct {
   uint32_t id;
@@ -39,14 +45,20 @@ typedef struct {
   //  mode on interrupts, so we set it to the bottom of this task's kernel stack
   //  address to get an empty stack. this is only used in user tasks.
   uint32_t kesp_bottom;
+
+  uint32_t *pagedir;
+  bool      kernel_task;
+  uint8_t   state;
 } Task;
 
 Task  tasks[MAX_TASKS];
 int   num_tasks;
 Task *current_task;
 
-void setup_tasks();
-void create_task(uint32_t id, uint32_t eip, uint32_t user_stack,
-                 uint32_t kernel_stack, bool kernel_task);
+bool taskSwitchSpinlock;
+
+void initiateTasks();
+void create_task(uint32_t id, uint32_t eip, bool kernel_task,
+                 uint32_t *pagedir);
 
 #endif
