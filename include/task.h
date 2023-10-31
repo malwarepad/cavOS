@@ -49,6 +49,9 @@ typedef struct {
   uint32_t *pagedir;
   bool      kernel_task;
   uint8_t   state;
+
+  uint32_t ustack_start;
+  uint32_t ustack_end;
 } Task;
 
 Task  tasks[MAX_TASKS];

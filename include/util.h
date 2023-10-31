@@ -11,6 +11,7 @@
 #define inrand(minimum_number, max_number)                                     \
   (rand() % (max_number + 1 - minimum_number) + minimum_number)
 
+void *memcpy(void *restrict dstptr, const void *restrict srcptr, size_t size);
 void *memmove(void *dstptr, const void *srcptr, size_t size);
 void  memset(void *_dst, int val, size_t len);
 void  memory_copy(char *source, char *dest, int nbytes);

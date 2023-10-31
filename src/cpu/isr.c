@@ -100,5 +100,9 @@ void handle_interrupt(AsmPassedInterrupt regs) {
   } else if (regs.interrupt == 0x80) {
     if (regs.eax == 0x1)
       kill_task(current_task->id);
+    else if (regs.eax == 69) {
+      debugf("Got test syscall from process %d\n", current_task->id);
+      printf("Got test syscall from process %d\n", current_task->id);
+    }
   }
 }

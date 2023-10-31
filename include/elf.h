@@ -25,6 +25,40 @@ typedef struct {
   Elf32_Half e_shstrndx;
 } Elf32_Ehdr;
 
+typedef struct {
+  Elf32_Word p_type;
+  Elf32_Off  p_offset;
+  Elf32_Addr p_vaddr;
+  Elf32_Addr p_paddr;
+  Elf32_Word p_filesz;
+  Elf32_Word p_memsz;
+  Elf32_Word p_flags;
+  Elf32_Word p_align;
+} Elf32_Phdr;
+
+typedef struct {
+  Elf32_Word sh_name;
+  Elf32_Word sh_type;
+  Elf32_Word sh_flags;
+  Elf32_Addr sh_addr;
+  Elf32_Off  sh_offset;
+  Elf32_Word sh_size;
+  Elf32_Word sh_link;
+  Elf32_Word sh_info;
+  Elf32_Word sh_addralign;
+  Elf32_Word sh_entsize;
+} Elf32_Shdr;
+
+#define PT_NULL 0
+#define PT_LOAD 1
+#define PT_DYNAMIC 2
+#define PT_INTERP 3
+#define PT_NOTE 4
+#define PT_SHLIB 5
+#define PT_PHDR 6
+#define PT_LOPROC 0x70000000
+#define PT_HIPROC 0x7fffffff
+
 enum Elf_Ident {
   EI_MAG0 = 0,       // 0x7F
   EI_MAG1 = 1,       // 'E'
@@ -43,8 +77,9 @@ enum Elf_Ident {
 #define ELFMAG2 'L'  // e_ident[EI_MAG2]
 #define ELFMAG3 'F'  // e_ident[EI_MAG3]
 
-#define ELFDATA2LSB (1) // Little Endian
-#define ELFCLASS32 (1)  // 32-bit Architecture
+#define ELFDATA2LSB (1)   // Little Endian
+#define ELFCLASS32 (1)    // 32-bit Architecture
+#define ELF_x86_MACHINE 3 // 32-bit Architecture (later)
 
 enum Elf_Type {
   ET_NONE = 0, // Unkown Type
@@ -55,6 +90,8 @@ enum Elf_Type {
 #ifndef ELF_H
 #define ELF_H
 
-bool elf_check_file(Elf32_Ehdr *hdr);
+bool     elf_check_file(Elf32_Ehdr *hdr);
+int16_t  create_taskid();
+uint32_t elf_execute(char *filepath);
 
 #endif

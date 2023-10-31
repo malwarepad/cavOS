@@ -7,6 +7,7 @@
 
 void create_task(uint32_t id, uint32_t eip, bool kernel_task,
                  uint32_t *pagedir) {
+  bool old_taskSwitchSpinlock = taskSwitchSpinlock;
   taskSwitchSpinlock = true;
 
   memset(&tasks[id], 0, sizeof(Task));
@@ -63,7 +64,11 @@ void create_task(uint32_t id, uint32_t eip, bool kernel_task,
   tasks[id].state = TASK_STATE_READY;
   tasks[id].pagedir = pagedir;
 
-  taskSwitchSpinlock = false;
+  tasks[id].ustack_start = USER_STACK_BOTTOM - USER_STACK_PAGES * 0x1000;
+  tasks[id].ustack_end = USER_STACK_BOTTOM;
+
+  if (!old_taskSwitchSpinlock)
+    taskSwitchSpinlock = false;
 }
 
 void kill_task(uint32_t id) {
@@ -83,6 +88,15 @@ void kill_task(uint32_t id) {
 
   taskSwitchSpinlock = false;
   schedule(); // go to the next task
+}
+
+int16_t create_taskid() {
+  for (int i = 1; i < MAX_TASKS; i++) {
+    if (tasks[i].state != TASK_STATE_IDLE && tasks[i].state != TASK_STATE_READY)
+      return i;
+  }
+
+  return -1;
 }
 
 void initiateTasks() {

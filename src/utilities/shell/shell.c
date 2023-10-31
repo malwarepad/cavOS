@@ -1,5 +1,6 @@
 #include "../../../include/shell.h"
 #define _STDINT_H
+#include "../../../include/elf.h"
 #include "../../../include/ssfn.h"
 
 // Shell driver
@@ -100,6 +101,27 @@ void launch_shell(int n) {
       free(rtc);
     } else if (strEql(ch, "color")) {
       set_background_color();
+    } else if (strEql(ch, "exec")) {
+      if (!fat->works) {
+        printf("\nFAT32 was not initalized properly on boot!\n");
+        continue;
+      }
+
+      printf("\nFile path to executable: ");
+      char *filepath = (char *)malloc(200);
+      readStr(filepath);
+      uint32_t id = elf_execute(filepath);
+      if (!id) {
+        printf("\nFailure executing %s!\n", filepath);
+        continue;
+      }
+
+      printf("\n");
+
+      while (tasks[id].state == TASK_STATE_READY) {
+      }
+
+      free(filepath);
     } else if (strEql(ch, "proctest")) {
       printf("\n");
       create_task(1, (uint32_t)task1, true, PageDirectoryAllocate());
@@ -187,6 +209,7 @@ void help() {
   printf("\n= dump           : Dumps some of the bitmap allocator       =");
   printf("\n= draw           : Tests framebuffer by drawing a rectangle =");
   printf("\n= proctest       : Tests multitasking support               =");
+  printf("\n= exec           : Runs a cavOS binary of your choice       =");
   printf("\n=============================================================\n");
   printf("\n========================= FILESYSTEM ========================");
   printf("\n= readdisk       : Tests out the disk reading algorythm     =");
