@@ -1,5 +1,6 @@
 #include "../../include/task.h"
 #include "../../include/liballoc.h"
+#include "../../include/schedule.h"
 
 // Task manager allowing for task management
 // Copyright (C) 2023 Panagiotis
@@ -81,6 +82,7 @@ void kill_task(uint32_t id) {
   // num_tasks--;
 
   taskSwitchSpinlock = false;
+  schedule(); // go to the next task
 }
 
 void initiateTasks() {

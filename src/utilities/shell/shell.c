@@ -11,8 +11,6 @@ void task1() {
   }
   asm volatile("mov $1, %eax \n"
                "int $0x80");
-  while (1) {
-  }
 }
 
 void task2() {
@@ -21,8 +19,6 @@ void task2() {
   }
   asm volatile("mov $1, %eax \n"
                "int $0x80");
-  while (1) {
-  }
 }
 
 void task3() {
@@ -31,8 +27,6 @@ void task3() {
   }
   asm volatile("mov $1, %eax \n"
                "int $0x80");
-  while (1) {
-  }
 }
 
 void launch_shell(int n) {
