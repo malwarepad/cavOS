@@ -76,7 +76,21 @@ typedef struct FAT32_Directory {
   uint32_t filesize;
 
   uint32_t lba;
+  uint16_t currEntry;
 } __attribute__((packed)) FAT32_Directory, *pFAT32_Directory;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct FAT32_LFN {
+  uint8_t  order;
+  uint16_t char_sequence_1[5];
+  uint8_t  attributes;
+  uint8_t  lfn_type;
+  uint8_t  checksum;
+  uint16_t char_sequence_2[6];
+  uint8_t  zero[2];
+  uint16_t char_sequence_3[2];
+} __attribute__((packed)) FAT32_LFN;
 #pragma pack(pop)
 
 FAT32 *fat;
@@ -85,9 +99,12 @@ int          initiateFat32(uint32_t disk, uint8_t partition_num);
 int          showCluster(int clusterNum, int attrLimitation);
 unsigned int getFatEntry(int cluster);
 char        *formatToShort8_3Format(char *directory);
-int          fileReaderTest();
+void         fileReaderTest();
+bool         isLFNentry(uint8_t *rawArr, uint32_t clusterNum, uint16_t entry);
+bool         lfnCmp(int clusterNum, int nthOf32, char *str);
 int          openFile(pFAT32_Directory dir, char *filename);
 void         readFileContents(char **rawOut, pFAT32_Directory dir);
 int          deleteFile(char *filename);
+uint16_t    *calcLfn(int clusterNum, int nthOf32);
 
 #endif

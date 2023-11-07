@@ -42,7 +42,7 @@ Important to mention these goals may never be satisfied, take a very long time t
 - Filesystems
   - [x] Fat32: Read operations
   - [ ] Fat32: Write operations
-  - [ ] Fat32: Full LFN support
+  - [x] Fat32: Full LFN support
 - Networking stack
   - [ ] Ne2000 driver
   - [ ] ARP requests

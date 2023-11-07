@@ -100,11 +100,20 @@ int findFile(pFAT32_Directory fatdir, int initialCluster, char *filename) {
     getDiskBytes(rawArr, lba, 1);
 
     for (int i = 0; i < (SECTOR_SIZE / 32); i++) {
-      if (memcmp(rawArr + (32 * i), filename, 11) == 0 &&
-          rawArr[32 * i] != FAT_DELETED) { // fatdir->filename
+      if (rawArr[32 * i] == FAT_DELETED || rawArr[32 * i + 11] == 0x0F)
+        continue;
+#if FAT32_DBG_PROMPTS
+      debugf("[search] clusterNum=%d i=%d fc=%c\n", clusterNum, i,
+             rawArr[32 * i]);
+#endif
+      if (isLFNentry(rawArr, clusterNum, i)
+              ? lfnCmp(clusterNum, i, filename)
+              : (memcmp(rawArr + (32 * i), formatToShort8_3Format(filename),
+                        11) == 0)) {
         *fatdir = *(pFAT32_Directory)(&rawArr[32 * i]);
         fatdir->lba = lba;
-#if UNSAFE_DBG
+        fatdir->currEntry = i;
+#if FAT32_DBG_PROMPTS
         debugf("[search] filename: %s\n", filename);
         debugf("[search] low=%d low1=%x low2=%x\n", (*fatdir).firstClusterLow,
                rawArr[32 * i + 26], rawArr[32 * i + 27]);
@@ -119,11 +128,15 @@ int findFile(pFAT32_Directory fatdir, int initialCluster, char *filename) {
 
     if (rawArr[SECTOR_SIZE - 32] != 0) {
       unsigned int nextCluster = getFatEntry(clusterNum);
-      if (nextCluster == 0)
+      if (nextCluster == 0) {
+        memset(fatdir, 0, sizeof(FAT32_Directory));
         return 0;
+      }
       clusterNum = nextCluster;
-    } else
+    } else {
+      memset(fatdir, 0, sizeof(FAT32_Directory));
       return 0;
+    }
   }
 }
 
@@ -169,51 +182,69 @@ char *formatToShort8_3Format(char *directory) {
   return out;
 }
 
-int charPrintNoFF(char *target) {
-  if (*target != 0xFFFFFFFF)
-    printf("%c", *target);
+void filenameAssign(uint16_t *filename, uint32_t *currFilenamePos,
+                    uint16_t character) {
+#if FAT32_DBG_PROMPTS
+  debugf("%c", character);
+#endif
+  if (character != 0 && character != 0xffff)
+    filename[(*currFilenamePos)++] = character;
 }
 
-int calcLfn(int clusterNum, int nthOf32) {
+uint16_t *calcLfn(int clusterNum, int nthOf32) {
   if (clusterNum < 2)
     return 0;
 
   uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
-  int      curr = 0;
-
-  if (nthOf32 == 0) {
-    curr = 1;
+  int      currCluster = 0;
+  // todo: remove limit of 512 chars per .../{filename}/...
+  uint16_t *filename = (uint16_t *)malloc(512 * 2);
+  uint32_t  currFilenamePos = 0;
+  if (nthOf32 == 0) { // first entry in cluster
+    currCluster = 1;
     nthOf32 = 33;
   }
-  int checksum = 0x0;
   while (1) {
     const int lba = fat->cluster_begin_lba +
-                    (clusterNum - 2 - curr) * fat->sectors_per_cluster;
+                    (clusterNum - 2 - currCluster) * fat->sectors_per_cluster;
+#if FAT32_DBG_PROMPTS
+    debugf("[calcLFN//scan] lba=%d nthOf32=%d clusterNum=%d currCluster=%d\n",
+           lba, nthOf32, clusterNum, currCluster);
+#endif
     getDiskBytes(rawArr, lba, 1);
     for (int i = (nthOf32 - 1); i >= 0; i--) {
-      if (rawArr[32 * i + 11] != 0x0F) {
+      if (i == 0) { // last entry in cluster
+        // i = -1;
+        nthOf32 = 33;
+        currCluster++;
+      }
+      FAT32_LFN *lfn = (FAT32_LFN *)((uint32_t)rawArr + 32 * i);
+
+#if FAT32_DBG_PROMPTS
+      debugf("[calcLFN//cluster] [%x:%x] ", lba * 512 + 32 * i,
+             (fat->cluster_begin_lba +
+              (clusterNum - 2) * fat->sectors_per_cluster) *
+                 SECTOR_SIZE);
+      for (int i = 0; i < 32; i++) {
+        debugf("%02x ", ((uint8_t *)lfn)[i]);
+      }
+      debugf("\n[calcLFN//cluster] lfn order: %d\n", lfn->order);
+#endif
+      if (lfn->attributes != 0x0F) {
         // printf("end of long \n", i);
-        // printf(" | checksum: 0x%lx\n", checksum);
-        printf("\n");
-        return 1;
+        filename[currFilenamePos++] = '\0';
+        free(rawArr);
+        return filename; // has to be free()'d later
       }
 
-      if (checksum == 0x0)
-        printf("    [-1] ");
+      for (int j = 0; j < 5; j++)
+        filenameAssign(filename, &currFilenamePos, lfn->char_sequence_1[j]);
 
-      for (int j = 0; j < 5; j++) {
-        charPrintNoFF(&rawArr[32 * i + 1 + (j * 2)]);
-      }
+      for (int j = 0; j < 6; j++)
+        filenameAssign(filename, &currFilenamePos, lfn->char_sequence_2[j]);
 
-      for (int j = 0; j < 6; j++) {
-        charPrintNoFF(&rawArr[32 * i + 14 + (j * 2)]);
-      }
-
-      for (int j = 0; j < 2; j++) {
-        charPrintNoFF(&rawArr[32 * i + 28 + (j * 2)]);
-      }
-
-      checksum = rawArr[32 * i + 13];
+      for (int j = 0; j < 2; j++)
+        filenameAssign(filename, &currFilenamePos, lfn->char_sequence_3[j]);
 
       // if ((rawArr[32 * i] & 0x40) != 0) { // last long
       //   printf(" last long detected [index=%d] \n", i);
@@ -224,8 +255,57 @@ int calcLfn(int clusterNum, int nthOf32) {
   }
 
   free(rawArr);
+  free(filename);
 
   return 0;
+}
+
+bool lfnCmp(int clusterNum, int nthOf32, char *str) {
+#if FAT32_DBG_PROMPTS
+  debugf("[LFNcmp] comparing clusterNum=%d nthOf32=%d\n", clusterNum, nthOf32);
+#endif
+  uint16_t *lfn = calcLfn(clusterNum, nthOf32);
+  int       lfnlen = 0;
+  int       strlen = 0;
+  while (lfn[lfnlen] != '\0')
+    lfnlen++;
+  while (str[strlen] != '\0')
+    strlen++;
+#if FAT32_DBG_PROMPTS
+  debugf("[LFNcmp] %x lfnlen: %d strlen: %d [cluster:%d nth=%d]\n\n", lfn[0],
+         lfnlen, strlen, clusterNum, nthOf32);
+#endif
+  if (lfnlen != strlen)
+    return false;
+  for (int i = 0; lfn[i] != '\0'; i++) {
+    if (str[i] == '\0' || lfn[i] != str[i]) {
+      free(lfn);
+      return false;
+    }
+  }
+  free(lfn);
+  return true;
+}
+
+bool isLFNentry(uint8_t *rawArr, uint32_t clusterNum, uint16_t entry) {
+  if (entry == 0) { // first entry of cluster
+    uint8_t  *newRawArr = (uint8_t *)malloc(SECTOR_SIZE);
+    const int lba = fat->cluster_begin_lba +
+                    (clusterNum - 2 - 1) * fat->sectors_per_cluster;
+    getDiskBytes(newRawArr, lba, 1);
+    pFAT32_Directory dir =
+        (pFAT32_Directory)((uint32_t)newRawArr + SECTOR_SIZE - 32);
+    bool res = dir->attributes == 0x0F;
+#if FAT32_DBG_PROMPTS
+    debugf("res %d attr %x!\n", res, dir->attributes);
+#endif
+    free(newRawArr);
+    return res;
+  }
+
+  pFAT32_Directory dir =
+      (pFAT32_Directory)((uint32_t)rawArr + (entry - 1) * 32);
+  return dir->attributes == 0x0F;
 }
 
 int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
@@ -256,20 +336,18 @@ int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
 
     printf("[%d] attr: 0x%2X | created: %2d/%2d/%4d | ", directory->ntReserved,
            directory->attributes, createdDay, createdMonth, createdYear);
-    int lfn = 0;
-    // char *out;
-    for (int o = 0; o < 11; o++) {
-      if (rawArr[32 * i + o] == '~')
-        lfn = 1;
-      // out[o] = rawArr[32 * i + o];
-      // printf("%c", rawArr[32 * i + o]);
-    }
-    // out[11] = '\0';
-    // formatFilename(&directory->filename);
+    bool lfn = false;
+    lfn = isLFNentry(rawArr, clusterNum, i);
     printf("%s", directory->filename);
     printf("\n");
-    if (lfn)
-      calcLfn(clusterNum, i);
+    if (lfn) {
+      uint16_t *str = calcLfn(clusterNum, i);
+      for (int i = 0; str[i] != '\0'; i++) {
+        printf("%c", str[i]);
+      }
+      free(str);
+    }
+    printf("\n");
   }
 
   if (rawArr[SECTOR_SIZE - 32] != 0) {
@@ -287,10 +365,16 @@ int showCluster(int clusterNum, int attrLimitation) // NOT 0, NOT 1
 int divisionRoundUp(int a, int b) { return (a + (b - 1)) / b; }
 
 void readFileContents(char **rawOut, pFAT32_Directory dir) {
-#if UNSAFE_DBG
+#if FAT32_DBG_PROMPTS
   debugf("[read] filesize=%d cluster=%d\n", dir->filesize,
          dir->firstClusterLow);
 #endif
+  if (dir->attributes != 0x20) {
+    debugf("[read] Seriously tried to read non-file entry (0x%02X attr)\n",
+           dir->attributes);
+    return;
+  }
+
   char *out = *rawOut;
   int   curr = 0;
   for (int i = 0; i < divisionRoundUp(dir->filesize, SECTOR_SIZE);
@@ -309,22 +393,6 @@ void readFileContents(char **rawOut, pFAT32_Directory dir) {
   return;
 }
 
-int showFile(pFAT32_Directory dir) {
-#if UNSAFE_DBG
-  debugf("[read] filesize=%d cluster=%d\n", dir->filesize,
-         dir->firstClusterLow);
-#endif
-  for (int i = 0; i < divisionRoundUp(dir->filesize, SECTOR_SIZE);
-       i++) { // DIV_ROUND_CLOSEST(dir->filesize, SECTOR_SIZE)
-    unsigned char rawArr[SECTOR_SIZE];
-    const int     lba = fat->cluster_begin_lba +
-                    (dir->firstClusterLow - 2) * fat->sectors_per_cluster + i;
-    getDiskBytes(rawArr, lba, 1);
-    for (int j = 0; j < SECTOR_SIZE; j++)
-      printf("%c", rawArr[j]);
-  }
-}
-
 int openFile(pFAT32_Directory dir, char *filename) {
   if (filename[0] != '/')
     return 0;
@@ -339,8 +407,8 @@ int openFile(pFAT32_Directory dir, char *filename) {
     if (filename[i] == '/' || (i + 1) == len) {
       if ((i + 1) == len)
         tmpBuff[index++] = filename[i];
-      if (!findFile(dir, dir->firstClusterLow,
-                    formatToShort8_3Format(tmpBuff))) {
+      if (!findFile(dir, dir->firstClusterLow, tmpBuff)) {
+        debugf("[openFile] Could not open file %s!\n", filename);
         free(tmpBuff);
         return 0;
       }
@@ -356,64 +424,34 @@ int openFile(pFAT32_Directory dir, char *filename) {
   return 1;
 }
 
-int fileReaderTest() {
+void fileReaderTest() {
+  if (!fat->works) {
+    printf("\nFAT32 was not initalized properly on boot!\n");
+    return;
+  }
   clearScreen();
   printf("=========================================\n");
   printf("====      cavOS file reader 1.0      ====\n");
   printf("====    Copyright MalwarePad 2023    ====\n");
   printf("=========================================\n");
 
-  printf("\nEnter cluster choice (2 -> root directory):\n> ");
+  printf("\nFile path + filename (i.e. /untitled.txt):\n> ");
   char *choice = (char *)malloc(200);
   readStr(choice);
-  int cluster = atoi(choice);
-  free(choice);
-  printf("\n\nCluster information:\n");
-  showCluster(cluster, 0);
   printf("\n");
 
-  while (1) {
-    printf("Note: } can be used to exit...\nEnter target filename (8.3 "
-           "short):\n> ");
-    char cnt[200];
-    readStr(cnt);
-    printf("\n");
-
-    if (cnt[0] == '}')
-      return 1;
-
-    char *res = &cnt;
-#if UNSAFE_DBG
-    debugf("[input]: %s\n", res);
-#endif
-    char *modifiable = formatToShort8_3Format(res);
-    // for (int i = 0; i < 11; i++) {
-    //   // printf("%2x ", modifiable[i]);
-    // }
-#if UNSAFE_DBG
-    debugf("[parse] FAT32-compatible filename: %s\n", modifiable);
-#endif
-
-    FAT32_Directory dir;
-    findFile(&dir, cluster, modifiable);
-    if (dir.filename[0] == 0x10) {
-      printf("\nNo such file can be found!\n[input: %s] [prased: %s]\n\n", res,
-             modifiable);
-      continue;
-    }
-
-#if UNSAFE_DBG
-    debugf("[search res] filename=%s attr=0x%x low=%d\n", dir.filename,
-           dir.attributes, dir.firstClusterLow);
-#endif
-
-    // showFile(&dir);
-    char *out = (char *)malloc(dir.filesize);
-    readFileContents(&out, &dir);
-    printf("%s", out);
-    free(out);
-    printf("\n\n");
+  FAT32_Directory dir;
+  if (!openFile(&dir, choice)) {
+    printf("Cannot find file!\n");
+    return;
   }
+
+  // showFile(&dir);
+  char *out = (char *)malloc(dir.filesize);
+  readFileContents(&out, &dir);
+  printf("%s", out);
+  free(out);
+  printf("\n\n");
 }
 
 int deleteFile(char *filename) {
@@ -422,13 +460,8 @@ int deleteFile(char *filename) {
     return 0;
   uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
   getDiskBytes(rawArr, fatdir.lba, 1);
-  for (int i = 0; i < (SECTOR_SIZE / 32); i++) {
-    if (memcmp(rawArr + (32 * i), fatdir.filename, 11) == 0) {
-      rawArr[32 * i] = FAT_DELETED;
-      write_sectors_ATA_PIO(fatdir.lba, 1, rawArr);
-      break;
-    }
-  }
+  rawArr[32 * fatdir.currEntry] = FAT_DELETED;
+  write_sectors_ATA_PIO(fatdir.lba, 1, rawArr);
 
   return 1;
 }
