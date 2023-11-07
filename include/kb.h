@@ -1,7 +1,8 @@
-#ifndef KB_H
-#define KB_H
 #include "util.h"
 
-string readStr(string buffstr);
+#ifndef KB_H
+#define KB_H
+
+char *readStr(char *buffstr);
 
 #endif

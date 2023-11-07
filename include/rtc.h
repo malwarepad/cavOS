@@ -1,4 +1,3 @@
-#include "system.h"
 #include "types.h"
 
 #ifndef RTC_H

@@ -8,6 +8,9 @@
 uint8 inportb(uint16 _port);
 void  outportb(uint16 _port, uint8 _data);
 
+uint16_t inportw(uint16_t port);
+void     outportw(unsigned short port, unsigned short data);
+
 uint32_t inportl(uint16_t portid);
 void     outportl(uint16_t portid, uint32_t value);
 

@@ -1,6 +1,10 @@
 #include "../../include/task.h"
+#include "../../include/gdt.h"
+#include "../../include/isr.h"
 #include "../../include/liballoc.h"
+#include "../../include/paging.h"
 #include "../../include/schedule.h"
+#include "../../include/system.h"
 
 // Task manager allowing for task management
 // Copyright (C) 2023 Panagiotis

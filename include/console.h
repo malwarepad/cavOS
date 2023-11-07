@@ -1,5 +1,3 @@
-#include "backupconsole.h"
-#include "fat32.h"
 #include "types.h"
 
 #ifndef CONSOLE_H

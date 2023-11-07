@@ -1,4 +1,5 @@
 #include "../../include/schedule.h"
+#include "../../include/gdt.h"
 #include "../../include/task.h"
 #include "../../include/util.h"
 

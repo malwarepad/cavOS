@@ -1,11 +1,5 @@
-#include "../src/boot/asm_ports/asm_ports.h"
 #include "disk.h"
-#include "kb.h"
-#include "liballoc.h"
-#include "string.h"
 #include "types.h"
-#include "util.h"
-#include <stdint.h>
 
 #ifndef FAT32_H
 #define FAT32_H

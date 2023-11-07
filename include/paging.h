@@ -1,5 +1,4 @@
-#include "system.h"
-#include "util.h"
+#include "types.h"
 
 #ifndef PAGING_H
 #define PAGING_H

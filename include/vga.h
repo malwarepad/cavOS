@@ -1,9 +1,7 @@
 #ifndef VGA_H
 #define VGA_H
 
-#include "multiboot2.h"
-#include "string.h"
-#include "system.h"
+#include "types.h"
 
 void drawRect(int x, int y, int w, int h, int r, int g, int b);
 void drawPixel(int x, int y, int r, int g, int b);

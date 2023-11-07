@@ -1,7 +1,4 @@
-#include "idt.h"
-#include "paging.h"
 #include "types.h"
-#include "util.h"
 
 #ifndef ISR_H
 #define ISR_H

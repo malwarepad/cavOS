@@ -1,5 +1,4 @@
-#include "system.h"
-#include "util.h"
+#include "types.h"
 
 #ifndef VMM_H
 #define VMM_H

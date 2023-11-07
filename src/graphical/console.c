@@ -1,4 +1,6 @@
 #include "../../include/console.h"
+#include "../../include/fat32.h"
+#include "../../include/system.h"
 #define _STDINT_H
 #define SSFN_CONSOLEBITMAP_CONTROL
 #define SSFN_CONSOLEBITMAP_TRUECOLOR
@@ -35,7 +37,7 @@ void initiateConsole() {
     printf("Cannot open VGA font!\n");
     return;
   }
-  debugf("size -> %d\n", dir.filesize);
+  // debugf("size -> %d\n", dir.filesize);
   uint8_t *buff = (uint8_t *)malloc(dir.filesize);
   readFileContents(&buff, &dir);
 

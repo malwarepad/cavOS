@@ -1,7 +1,4 @@
-#include "liballoc.h"
-#include "system.h"
 #include "types.h"
-#include "util.h"
 
 #ifndef PCI_H
 #define PCI_H

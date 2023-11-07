@@ -1,6 +1,4 @@
-#include "../src/boot/asm_ports/asm_ports.h"
 #include "types.h"
-#include <stdint.h>
 
 #ifndef ATA_H
 #define ATA_H

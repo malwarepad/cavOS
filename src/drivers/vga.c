@@ -1,6 +1,7 @@
 #include "../../include/vga.h"
 #include "../../include/liballoc.h"
 #include "../../include/multiboot2.h"
+#include "../../include/system.h"
 #include "../../include/util.h"
 #include <stdarg.h>
 

@@ -15,6 +15,7 @@
 #include "../../include/rtc.h"
 #include "../../include/serial.h"
 #include "../../include/shell.h"
+#include "../../include/system.h"
 #include "../../include/task.h"
 #include "../../include/testing.h"
 #include "../../include/timer.h"
@@ -22,12 +23,10 @@
 #include "../../include/vga.h"
 #include "../../include/vmm.h"
 
-#include <stdint.h>
-
 // Kernel entry file
 // Copyright (C) 2023 Panagiotis
 
-string center = "                   ";
+char *center = "                   ";
 
 int kmain(unsigned long addr) {
   if (addr & 7) {

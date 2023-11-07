@@ -50,21 +50,6 @@ void *memmove(void *dstptr, const void *srcptr, size_t size) {
   return dstptr;
 }
 
-void memory_copy(char *source, char *dest, int nbytes) {
-  int i;
-  for (i = 0; i < nbytes; i++) {
-    *(dest + i) = *(source + i); //    dest[i] = source[i]
-  }
-}
-
-void memory_set(uint8 *dest, uint8 val, uint32 len) {
-  uint8 *temp = (uint8 *)dest;
-  for (; len != 0; len--)
-    *temp++ = val;
-}
-
-uint8 check_string(string str) { return (str[0] != 0x0); }
-
 int memcmp(const void *aptr, const void *bptr, size_t size) {
   const unsigned char *a = (const unsigned char *)aptr;
   const unsigned char *b = (const unsigned char *)bptr;
@@ -85,11 +70,3 @@ int rand(void) {
 }
 
 void srand(unsigned int seed) { next = seed; }
-
-// int   count;
-/*void *malloc(int nbytes) {
-  // count += nbytes;
-  // printf("\nmalloc: %d\n", count);
-  char variable[nbytes];
-  return &variable;
-}*/

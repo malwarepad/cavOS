@@ -1,4 +1,3 @@
-#include "schedule.h"
 #include "types.h"
 
 #define TIMER_ACCURANCY 1193182

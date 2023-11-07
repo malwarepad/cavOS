@@ -1,6 +1,7 @@
 #include "../../include/system.h"
 #include "../../include/backupconsole.h"
 #include "../../include/console.h"
+#include "../../include/fat32.h"
 
 // Source code for handling ports via assembly references
 // Copyright (C) 2023 Panagiotis
@@ -13,6 +14,16 @@ uint8 inportb(uint16 _port) {
 
 void outportb(uint16 _port, uint8 _data) {
   __asm__ __volatile__("outb %1, %0" : : "dN"(_port), "a"(_data));
+}
+
+uint16_t inportw(uint16_t port) {
+  uint16_t result;
+  __asm__("in %%dx, %%ax" : "=a"(result) : "d"(port));
+  return result;
+}
+
+void outportw(unsigned short port, unsigned short data) {
+  __asm__("out %%ax, %%dx" : : "a"(data), "d"(port));
 }
 
 uint32_t inportl(uint16_t portid) {

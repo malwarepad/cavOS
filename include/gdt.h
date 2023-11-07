@@ -1,5 +1,3 @@
-#include "../include/ata.h"
-#include "../src/boot/asm_ports/asm_ports.h"
 #include "types.h"
 
 #ifndef GDT_H

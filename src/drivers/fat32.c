@@ -1,4 +1,5 @@
 #include "../../include/fat32.h"
+#include "../../include/system.h"
 
 // Simple alpha FAT32 driver according to the Microsoft specification
 // Copyright (C) 2023 Panagiotis

@@ -1,46 +1,48 @@
 #include "../../include/isr.h"
+#include "../../include/paging.h"
+#include "../../include/system.h"
 #include "../../include/task.h"
 
 // ISR Entry configurator
 // Copyright (C) 2023 Panagiotis
 
-string format = "Kernel panic: %s!\n";
+char *format = "Kernel panic: %s!\n";
 
-string exceptions[] = {"Division By Zero",
-                       "Debug",
-                       "Non Maskable Interrupt",
-                       "Breakpoint",
-                       "Into Detected Overflow",
-                       "Out of Bounds",
-                       "Invalid Opcode",
-                       "No Coprocessor",
+char *exceptions[] = {"Division By Zero",
+                      "Debug",
+                      "Non Maskable Interrupt",
+                      "Breakpoint",
+                      "Into Detected Overflow",
+                      "Out of Bounds",
+                      "Invalid Opcode",
+                      "No Coprocessor",
 
-                       "Double Fault",
-                       "Coprocessor Segment Overrun",
-                       "Bad TSS",
-                       "Segment Not Present",
-                       "Stack Fault",
-                       "General Protection Fault",
-                       "Page Fault",
-                       "Unknown Interrupt",
+                      "Double Fault",
+                      "Coprocessor Segment Overrun",
+                      "Bad TSS",
+                      "Segment Not Present",
+                      "Stack Fault",
+                      "General Protection Fault",
+                      "Page Fault",
+                      "Unknown Interrupt",
 
-                       "Coprocessor Fault",
-                       "Alignment Check",
-                       "Machine Check",
-                       "Reserved",
-                       "Reserved",
-                       "Reserved",
-                       "Reserved",
-                       "Reserved",
+                      "Coprocessor Fault",
+                      "Alignment Check",
+                      "Machine Check",
+                      "Reserved",
+                      "Reserved",
+                      "Reserved",
+                      "Reserved",
+                      "Reserved",
 
-                       "Reserved",
-                       "Reserved",
-                       "Reserved",
-                       "Reserved",
-                       "Reserved",
-                       "Reserved",
-                       "Reserved",
-                       "Reserved"};
+                      "Reserved",
+                      "Reserved",
+                      "Reserved",
+                      "Reserved",
+                      "Reserved",
+                      "Reserved",
+                      "Reserved",
+                      "Reserved"};
 
 void remap_pic() {
   outportb(0x20, 0x11);

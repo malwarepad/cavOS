@@ -1,4 +1,13 @@
 #include "../../../include/shell.h"
+#include "../../../include/fat32.h"
+#include "../../../include/liballoc.h"
+#include "../../../include/pci.h"
+#include "../../../include/rtc.h"
+#include "../../../include/system.h"
+#include "../../../include/task.h"
+#include "../../../include/timer.h"
+#include "../../../include/util.h"
+#include "../../../include/vga.h"
 #define _STDINT_H
 #include "../../../include/elf.h"
 #include "../../../include/ssfn.h"
@@ -31,13 +40,13 @@ void task3() {
 }
 
 void launch_shell(int n) {
-  string ch = (string)malloc(200);
-  string data[64];
-  string prompt = "$ ";
+  char *ch = (char *)malloc(200);
+  char *data[64];
+  char *prompt = "$ ";
 
   do {
     printf("%s", prompt);
-    readStr(ch); // memory_copy(readStr(), ch,100);
+    readStr(ch);
     if (strEql(ch, "cmd")) {
       printf("\nYou are already in cmd. A new recursive shell is opened\n");
       launch_shell(n + 1);
@@ -155,7 +164,7 @@ void launch_shell(int n) {
   free(ch);
 }
 
-void echo(string ch) {
+void echo(char *ch) {
   printf("\nInsert argument 1: ");
   char str[200];
   readStr(str);
@@ -368,15 +377,3 @@ void fsList() {
     }
   }
 }
-
-// void fsRead() { // todo make this work
-
-//   clearScreen();
-//   printf("=========================================\n");
-//   printf("====        cavOS readroot 1.0       ====\n");
-//   printf("====    Copyright MalwarePad 2023    ====\n");
-//   printf("=========================================\n");
-
-//   printf("\nRead file by cluster: ");
-//   string cluster = atoi(readStr());
-// }

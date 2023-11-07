@@ -1,5 +1,3 @@
-#include "gdt.h"
-#include "isr.h"
 #include "types.h"
 
 #ifndef TASK_H

@@ -1,8 +1,4 @@
-#include "../include/ata.h"
-#include "../src/boot/asm_ports/asm_ports.h"
-#include "liballoc.h"
 #include "types.h"
-#include <stdint.h>
 
 #define SECTOR_SIZE 512
 #define getDiskBytes read_sectors_ATA_PIO
