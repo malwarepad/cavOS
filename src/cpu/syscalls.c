@@ -13,6 +13,11 @@ void syscallHandler(AsmPassedInterrupt *regs) {
   uint32_t id = regs->eax;
   void    *handler = syscalls[id];
 
+  if (!handler) {
+    debugf("Tried to access syscall %d (doesn't exist)!\n", id);
+    return;
+  }
+
   int ret;
   asm volatile("push %1 \n"
                "push %2 \n"
@@ -31,6 +36,8 @@ void syscallHandler(AsmPassedInterrupt *regs) {
   regs->eax = ret;
 }
 
+bool running = false;
+
 // System calls themselves
 #define SYSCALL_TEST 0x0
 static void syscallTest(char *msg) {
@@ -45,11 +52,21 @@ static void syscallExitTask(int return_code) {
   kill_task(current_task->id);
 }
 
-#define SYSCALL_GETPID 0x3
+#define SYSCALL_GETPID 0x2
 static uint32_t syscallGetPid() { return current_task->id; }
+
+#define SYSCALL_GETARGC 0x3
+static int syscallGetArgc() { return 6; }
+
+static *sampleArgv[] = {"./main.c", "one", "two", "three", "four", "five"};
+
+#define SYSCALL_GETARGV 0x4
+static char *syscallGetArgv(int curr) { return sampleArgv[curr]; }
 
 void initiateSyscalls() {
   registerSyscall(SYSCALL_TEST, syscallTest);
   registerSyscall(SYSCALL_EXIT_TASK, syscallExitTask);
   registerSyscall(SYSCALL_GETPID, syscallGetPid);
+  registerSyscall(SYSCALL_GETARGC, syscallGetArgc);
+  registerSyscall(SYSCALL_GETARGV, syscallGetArgv);
 }

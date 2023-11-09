@@ -76,6 +76,8 @@ void isr_install() {
 }
 
 void handle_interrupt(AsmPassedInterrupt regs) {
+  if (regs.interrupt != 32 && regs.interrupt != 33 && regs.interrupt != 46)
+    debugf("int %d!\n", regs.interrupt);
   if (regs.interrupt >= 32 && regs.interrupt <= 47) { // IRQ
     if (regs.interrupt >= 40) {
       outportb(0xA0, 0x20);
@@ -101,6 +103,7 @@ void handle_interrupt(AsmPassedInterrupt regs) {
       printf(format, exceptions[regs.interrupt]);
     panic();
   } else if (regs.interrupt == 0x80) {
+    debugf("syscall %d!\n", regs.eax);
     syscallHandler(&regs);
   }
 }
