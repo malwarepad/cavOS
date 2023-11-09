@@ -15,6 +15,7 @@
 #include "../../include/rtc.h"
 #include "../../include/serial.h"
 #include "../../include/shell.h"
+#include "../../include/syscalls.h"
 #include "../../include/system.h"
 #include "../../include/task.h"
 #include "../../include/testing.h"
@@ -120,6 +121,8 @@ int kmain(unsigned long addr) {
   initiateFat32(0, 0);
 
   initiateConsole();
+
+  initiateSyscalls();
   initiateTasks();
 
   testingInit();

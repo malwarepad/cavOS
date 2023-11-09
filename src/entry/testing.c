@@ -1,4 +1,5 @@
 #include "../../include/testing.h"
+#include "../../include/elf.h"
 #include "../../include/task.h"
 #include "../../include/vmm.h"
 
@@ -40,6 +41,7 @@ void task3() {
 #endif
 
 void testingInit() {
+  // elf_execute("/main.cav");
 #if VGA_DRAW_TEST
   drawCircle(200, 300, 100, 255, 0, 0);
   drawCircle(400, 300, 100, 0, 255, 0);

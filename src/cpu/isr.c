@@ -1,5 +1,6 @@
 #include "../../include/isr.h"
 #include "../../include/paging.h"
+#include "../../include/syscalls.h"
 #include "../../include/system.h"
 #include "../../include/task.h"
 
@@ -100,11 +101,6 @@ void handle_interrupt(AsmPassedInterrupt regs) {
       printf(format, exceptions[regs.interrupt]);
     panic();
   } else if (regs.interrupt == 0x80) {
-    if (regs.eax == 0x1)
-      kill_task(current_task->id);
-    else if (regs.eax == 69) {
-      debugf("Got test syscall from process %d\n", current_task->id);
-      printf("Got test syscall from process %d\n", current_task->id);
-    }
+    syscallHandler(&regs);
   }
 }
