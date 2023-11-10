@@ -8,6 +8,7 @@
 #define SYSCALL_GET_HEAP_START 0x5
 #define SYSCALL_GET_HEAP_END 0x6
 #define SYSCALL_ADJUST_HEAP_END 0x7
+#define SYSCALL_PRINT_CHAR 0x8
 
 void     syscallTest(char *msg);
 void     syscallExitTask(int return_code);
@@ -17,3 +18,4 @@ char    *syscallGetArgv(int curr);
 uint32_t syscallGetHeapStart();
 uint32_t syscallGetHeapEnd();
 void     syscallAdjustHeapEnd(uint32_t heap_end);
+void     syscallPrintChar(char character);

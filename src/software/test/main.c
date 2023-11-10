@@ -38,5 +38,9 @@ int main(int argc, char **argv) {
 
   dumpHeapInfo();
 
+  char *msg = "hello world!\n";
+  for (int i = 0; i < strlength(msg); i++)
+    syscallPrintChar(msg[i]);
+
   return 1;
 }

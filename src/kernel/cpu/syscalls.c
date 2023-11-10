@@ -1,5 +1,6 @@
 #include "../include/syscalls.h"
 #include "../include/isr.h"
+#include "../include/system.h"
 #include "../include/task.h"
 
 void registerSyscall(uint32_t id, void *handler) {
@@ -64,15 +65,25 @@ static *sampleArgv[] = {"./main.c", "one", "two", "three", "four", "five"};
 static char *syscallGetArgv(int curr) { return sampleArgv[curr]; }
 
 #define SYSCALL_GET_HEAP_START 0x5
-static uint32_t *syscallGetHeapStart() { return current_task->heap_start; }
+static uint32_t syscallGetHeapStart() { return current_task->heap_start; }
 
 #define SYSCALL_GET_HEAP_END 0x6
-static uint32_t *syscallGetHeapEnd() { return current_task->heap_end; }
+static uint32_t syscallGetHeapEnd() { return current_task->heap_end; }
 
 #define SYSCALL_ADJUST_HEAP_END 0x7
-static void *syscallAdjustHeapEnd(uint32_t heap_end) {
+static void syscallAdjustHeapEnd(uint32_t heap_end) {
   adjust_user_heap(current_task, heap_end);
 }
+
+#define SYSCALL_PRINT_CHAR 0x8
+static void syscallPrintChar(char character) {
+  serial_send(COM1, character);
+  printfch(character);
+}
+
+#define SYSCALL_READ_CHAR 0x9
+// todo (also fix ps/2 kb driver)
+static char syscallReadChar() { return 'a'; }
 
 void initiateSyscalls() {
   registerSyscall(SYSCALL_TEST, syscallTest);
@@ -83,4 +94,6 @@ void initiateSyscalls() {
   registerSyscall(SYSCALL_GET_HEAP_START, syscallGetHeapStart);
   registerSyscall(SYSCALL_GET_HEAP_END, syscallGetHeapEnd);
   registerSyscall(SYSCALL_ADJUST_HEAP_END, syscallAdjustHeapEnd);
+  registerSyscall(SYSCALL_PRINT_CHAR, syscallPrintChar);
+  registerSyscall(SYSCALL_READ_CHAR, syscallReadChar);
 }
