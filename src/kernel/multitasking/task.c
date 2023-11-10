@@ -68,11 +68,41 @@ void create_task(uint32_t id, uint32_t eip, bool kernel_task,
   tasks[id].state = TASK_STATE_READY;
   tasks[id].pagedir = pagedir;
 
-  tasks[id].ustack_start = USER_STACK_BOTTOM - USER_STACK_PAGES * 0x1000;
-  tasks[id].ustack_end = USER_STACK_BOTTOM;
+  tasks[id].heap_start = USER_HEAP_START;
+  tasks[id].heap_end = USER_HEAP_START;
 
   if (!old_taskSwitchSpinlock)
     taskSwitchSpinlock = false;
+}
+
+void adjust_user_heap(Task *task, uint32_t new_heap_end) {
+  if (new_heap_end <= task->heap_start) {
+    debugf("Tried to adjust heap behind current values!");
+    return;
+  }
+
+  int old_page_top = DivRoundUp(task->heap_end, PAGE_SIZE);
+  int new_page_top = DivRoundUp(new_heap_end, PAGE_SIZE);
+
+  if (new_page_top > old_page_top) {
+    int num = new_page_top - old_page_top;
+
+    for (int i = 0; i < num; i++) {
+      uint32_t phys = BitmapAllocatePageframe();
+      uint32_t virt = old_page_top * PAGE_SIZE + i * PAGE_SIZE;
+
+      VirtualMap(virt, phys,
+                 PAGE_FLAG_WRITE | PAGE_FLAG_USER | PAGE_FLAG_OWNER);
+
+      memset((void *)virt, 0, PAGE_SIZE);
+    }
+  } else if (new_page_top < old_page_top) {
+    debugf("New page is lower than old page!\n");
+    printf("New page is lower than old page!\n");
+    panic();
+  }
+
+  task->heap_end = new_heap_end;
 }
 
 void kill_task(uint32_t id) {
@@ -86,6 +116,20 @@ void kill_task(uint32_t id) {
   uint32_t *kernel_stack = (uint32_t *)((task->kesp_bottom) + (0x1000 - 16));
   free(kernel_stack);
   memset(&tasks[id], 0, sizeof(Task));
+
+  // free user heap
+  int heap_start = DivRoundUp(task->heap_start, PAGE_SIZE);
+  int heap_end = DivRoundUp(task->heap_end, PAGE_SIZE);
+
+  if (heap_end > heap_start) {
+    int num = heap_end - heap_start;
+
+    for (int i = 0; i < num; i++) {
+      uint32_t virt = heap_start * PAGE_SIZE + i * PAGE_SIZE;
+      uint32_t phys = VirtualToPhysical(virt);
+      BitmapFreePageframe(phys);
+    }
+  }
 
   // task->state = TASK_STATE_DEAD;
   // num_tasks--;

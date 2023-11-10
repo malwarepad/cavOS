@@ -48,8 +48,8 @@ typedef struct {
   bool      kernel_task;
   uint8_t   state;
 
-  uint32_t ustack_start;
-  uint32_t ustack_end;
+  uint32_t heap_start;
+  uint32_t heap_end;
 } Task;
 
 Task  tasks[MAX_TASKS];
@@ -61,7 +61,7 @@ bool tasksInitiated;
 void initiateTasks();
 void create_task(uint32_t id, uint32_t eip, bool kernel_task,
                  uint32_t *pagedir);
-
+void adjust_user_heap(Task *task, uint32_t new_heap_end);
 void kill_task(uint32_t id);
 
 #endif

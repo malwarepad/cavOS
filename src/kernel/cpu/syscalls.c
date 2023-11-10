@@ -63,10 +63,24 @@ static *sampleArgv[] = {"./main.c", "one", "two", "three", "four", "five"};
 #define SYSCALL_GETARGV 0x4
 static char *syscallGetArgv(int curr) { return sampleArgv[curr]; }
 
+#define SYSCALL_GET_HEAP_START 0x5
+static uint32_t *syscallGetHeapStart() { return current_task->heap_start; }
+
+#define SYSCALL_GET_HEAP_END 0x6
+static uint32_t *syscallGetHeapEnd() { return current_task->heap_end; }
+
+#define SYSCALL_ADJUST_HEAP_END 0x7
+static void *syscallAdjustHeapEnd(uint32_t heap_end) {
+  adjust_user_heap(current_task, heap_end);
+}
+
 void initiateSyscalls() {
   registerSyscall(SYSCALL_TEST, syscallTest);
   registerSyscall(SYSCALL_EXIT_TASK, syscallExitTask);
   registerSyscall(SYSCALL_GETPID, syscallGetPid);
   registerSyscall(SYSCALL_GETARGC, syscallGetArgc);
   registerSyscall(SYSCALL_GETARGV, syscallGetArgv);
+  registerSyscall(SYSCALL_GET_HEAP_START, syscallGetHeapStart);
+  registerSyscall(SYSCALL_GET_HEAP_END, syscallGetHeapEnd);
+  registerSyscall(SYSCALL_ADJUST_HEAP_END, syscallAdjustHeapEnd);
 }

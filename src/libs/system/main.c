@@ -30,3 +30,19 @@ char *syscallGetArgv(int curr) {
   asm volatile("int $0x80" : "=a"(ret) : "a"(SYSCALL_GETARGV), "b"(curr));
   return ret;
 }
+
+uint32_t syscallGetHeapStart() {
+  uint32_t ret;
+  asm volatile("int $0x80" : "=a"(ret) : "a"(SYSCALL_GET_HEAP_START));
+  return ret;
+}
+
+uint32_t syscallGetHeapEnd() {
+  uint32_t ret;
+  asm volatile("int $0x80" : "=a"(ret) : "a"(SYSCALL_GET_HEAP_END));
+  return ret;
+}
+
+void syscallAdjustHeapEnd(uint32_t heap_end) {
+  asm volatile("int $0x80" ::"a"(SYSCALL_ADJUST_HEAP_END), "b"(heap_end));
+}
