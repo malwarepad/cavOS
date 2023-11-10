@@ -1,7 +1,9 @@
 # Binaries
-tmp/obj/*
-tmp/boot/*
-disk.*
+target/obj/*
+target/boot/*
+target/software/*.cav
+disk.img
+disk.vmdk
 
 # Could obviously contain sensitive data
 .idea/
