@@ -72,22 +72,15 @@ unsigned int getFatEntry(int cluster) {
 
   uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
   getDiskBytes(rawArr, lba, 1);
-  // unsigned int c = *(uint32 *)&rawArr[entryOffset] & 0x0FFFFFFF; //
-  // 0x0FFFFFFF mask to keep lower 28 bits valid, nah fuck this ima do it
-  // manually, watch & learn
-  if (rawArr[entryOffset] >= 0xFFF8)
-    return 0;
 
-  unsigned int result = 0;
-  for (int i = 3; i >= 0; i--) {
-    result = (result << 8) | rawArr[entryOffset + i];
-  }
+  uint32_t result = *((uint32_t *)(&rawArr[entryOffset]));
 
-  // printf("\n[%d] %x %x %x %x {Binary: %d Hexadecimal: %x}\n", entryOffset,
-  //        rawArr[entryOffset], rawArr[entryOffset + 1], rawArr[entryOffset +
-  //        2], rawArr[entryOffset + 3], result, result);
+  result &= 0x0FFFFFFF;
 
   free(rawArr);
+
+  if (result == 0xfffffff)
+    return 0;
 
   return result;
 }
@@ -376,22 +369,38 @@ void readFileContents(char **rawOut, pFAT32_Directory dir) {
     return;
   }
 
-  char *out = *rawOut;
-  int   curr = 0;
-  for (int i = 0; i < divisionRoundUp(dir->filesize, SECTOR_SIZE);
-       i++) { // DIV_ROUND_CLOSEST(dir->filesize, SECTOR_SIZE)
+  char    *out = *rawOut;
+  uint32_t curr = 0;
+  uint32_t currCluster = dir->firstClusterLow;
+  while (1) { // DIV_ROUND_CLOSEST(dir->filesize, SECTOR_SIZE)
     unsigned char rawArr[SECTOR_SIZE];
-    const int     lba = fat->cluster_begin_lba +
-                    (dir->firstClusterLow - 2) * fat->sectors_per_cluster + i;
+    const int     lba =
+        fat->cluster_begin_lba + (currCluster - 2) * fat->sectors_per_cluster;
     getDiskBytes(rawArr, lba, 1);
+#if FAT32_DBG_PROMPTS
+    debugf("[read] next one: 0x%x %d\n", currCluster, currCluster);
+#endif
     for (int j = 0; j < SECTOR_SIZE; j++) {
-      if (curr > dir->filesize)
+      if (curr > dir->filesize) {
+#if FAT32_DBG_PROMPTS
+        debugf("[read] reached filesize end (limit) at: 0x%x %d\n", currCluster,
+               currCluster);
+#endif
         return;
+      }
       out[curr] = rawArr[j];
       curr++;
     }
+    uint32_t old = currCluster;
+    currCluster = getFatEntry(old);
+    if (currCluster == 0) {
+#if FAT32_DBG_PROMPTS
+      debugf("[read] reached hard end (0x0), showing last cluster: 0x%x %d\n",
+             old, old);
+#endif
+      break;
+    }
   }
-  return;
 }
 
 int openFile(pFAT32_Directory dir, char *filename) {
