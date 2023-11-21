@@ -49,7 +49,7 @@ typedef struct {
   // extras
   uint32_t       fat_begin_lba;
   uint32_t       cluster_begin_lba;
-  uint8_t        works;
+  bool           works;
   mbr_partition *partition;
 
 } __attribute__((packed)) FAT32;
@@ -89,16 +89,16 @@ typedef struct FAT32_LFN {
 
 FAT32 *fat;
 
-int       initiateFat32(uint32_t disk, uint8_t partition_num);
-int       showCluster(int clusterNum, int attrLimitation);
+bool      initiateFat32(uint32_t disk, uint8_t partition_num);
+bool      showCluster(uint32_t clusterNum, uint8_t attrLimitation);
 uint32_t  getFatEntry(uint32_t cluster);
 char     *formatToShort8_3Format(char *directory);
 void      fileReaderTest();
 bool      isLFNentry(uint8_t *rawArr, uint32_t clusterNum, uint16_t entry);
-bool      lfnCmp(int clusterNum, int nthOf32, char *str);
-int       openFile(pFAT32_Directory dir, char *filename);
+bool      lfnCmp(uint32_t clusterNum, uint16_t nthOf32, char *str);
+bool      openFile(pFAT32_Directory dir, char *filename);
 void      readFileContents(char **rawOut, pFAT32_Directory dir);
-int       deleteFile(char *filename);
-uint16_t *calcLfn(int clusterNum, int nthOf32);
+bool      deleteFile(char *filename);
+uint16_t *calcLfn(uint32_t clusterNum, uint16_t nthOf32);
 
 #endif
