@@ -1,4 +1,5 @@
 #include "../include/fat32.h"
+#include "../include/ata.h"
 #include "../include/system.h"
 
 // Simple alpha FAT32 driver according to the Microsoft specification
@@ -66,9 +67,9 @@ int initiateFat32(uint32_t disk, uint8_t partition_num) {
   return 1;
 }
 
-unsigned int getFatEntry(int cluster) {
-  int lba = fat->fat_begin_lba + (cluster * 4 / SECTOR_SIZE);
-  int entryOffset = (cluster * 4) % SECTOR_SIZE;
+uint32_t getFatEntry(uint32_t cluster) {
+  uint32_t lba = fat->fat_begin_lba + (cluster * 4 / SECTOR_SIZE);
+  uint32_t entryOffset = (cluster * 4) % SECTOR_SIZE;
 
   uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
   getDiskBytes(rawArr, lba, 1);
@@ -79,10 +80,24 @@ unsigned int getFatEntry(int cluster) {
 
   free(rawArr);
 
-  if (result == 0xfffffff)
+  if (result >= 0x0FFFFFF8)
     return 0;
 
   return result;
+}
+
+void setFatEntry(uint32_t cluster, uint32_t value) {
+  uint32_t lba = fat->fat_begin_lba + (cluster * 4 / SECTOR_SIZE);
+  uint32_t entryOffset = (cluster * 4) % SECTOR_SIZE;
+
+  uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
+  getDiskBytes(rawArr, lba, 1);
+
+  uint32_t *rawArr32 = (uint32_t)rawArr;
+  rawArr32[entryOffset / 4] = value;
+
+  write_sectors_ATA_PIO(lba, 1, rawArr32);
+  free(rawArr);
 }
 
 int findFile(pFAT32_Directory fatdir, int initialCluster, char *filename) {
@@ -472,6 +487,16 @@ int deleteFile(char *filename) {
   getDiskBytes(rawArr, fatdir.lba, 1);
   rawArr[32 * fatdir.currEntry] = FAT_DELETED;
   write_sectors_ATA_PIO(fatdir.lba, 1, rawArr);
+
+  // invalidate
+  uint32_t currCluster = fatdir.firstClusterLow;
+  while (1) {
+    setFatEntry(currCluster, 0);
+    uint32_t old = currCluster;
+    currCluster = getFatEntry(old);
+    if (currCluster == 0)
+      break;
+  }
 
   return 1;
 }

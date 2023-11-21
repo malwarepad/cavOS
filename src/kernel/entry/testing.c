@@ -80,7 +80,7 @@ void testingInit() {
   }
 #endif
 #if FAT32_DELETION_TEST
-  deleteFile("/untitled.txt");
+  deleteFile("/files/untitled.txt");
 #endif
 
 #if FAT32_READ_TEST
