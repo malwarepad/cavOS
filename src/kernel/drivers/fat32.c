@@ -103,13 +103,14 @@ void setFatEntry(uint32_t cluster, uint32_t value) {
 bool findFile(pFAT32_Directory fatdir, uint32_t initialCluster,
               char *filename) {
   uint32_t clusterNum = initialCluster;
-  uint8_t  rawArr[SECTOR_SIZE];
+  uint8_t *rawArr = (uint8_t *)malloc(fat->sectors_per_cluster * SECTOR_SIZE);
   while (1) {
     uint32_t lba =
         fat->cluster_begin_lba + (clusterNum - 2) * fat->sectors_per_cluster;
-    getDiskBytes(rawArr, lba, 1);
+    getDiskBytes(rawArr, lba, fat->sectors_per_cluster);
 
-    for (uint16_t i = 0; i < (SECTOR_SIZE / 32); i++) {
+    for (uint16_t i = 0; i < ((fat->sectors_per_cluster * SECTOR_SIZE) / 32);
+         i++) {
       if (rawArr[32 * i] == FAT_DELETED || rawArr[32 * i + 11] == 0x0F)
         continue;
 #if FAT32_DBG_PROMPTS
@@ -132,19 +133,22 @@ bool findFile(pFAT32_Directory fatdir, uint32_t initialCluster,
         }
         debugf("\n");
 #endif
+        free(rawArr);
         return true;
       }
     }
 
-    if (rawArr[SECTOR_SIZE - 32] != 0) {
+    if (rawArr[fat->sectors_per_cluster * SECTOR_SIZE - 32] != 0) {
       uint32_t nextCluster = getFatEntry(clusterNum);
       if (nextCluster == 0) {
         memset(fatdir, 0, sizeof(FAT32_Directory));
+        free(rawArr);
         return false;
       }
       clusterNum = nextCluster;
     } else {
       memset(fatdir, 0, sizeof(FAT32_Directory));
+      free(rawArr);
       return false;
     }
   }
@@ -205,7 +209,7 @@ uint16_t *calcLfn(uint32_t clusterNum, uint16_t nthOf32) {
   if (clusterNum < 2)
     return 0;
 
-  uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
+  uint8_t *rawArr = (uint8_t *)malloc(fat->sectors_per_cluster * SECTOR_SIZE);
   uint32_t currCluster = 0;
   // todo: remove limit of 512 chars per .../{filename}/...
   uint16_t *filename = (uint16_t *)malloc(512 * 2);
@@ -221,7 +225,7 @@ uint16_t *calcLfn(uint32_t clusterNum, uint16_t nthOf32) {
     debugf("[calcLFN//scan] lba=%d nthOf32=%d clusterNum=%d currCluster=%d\n",
            lba, nthOf32, clusterNum, currCluster);
 #endif
-    getDiskBytes(rawArr, lba, 1);
+    getDiskBytes(rawArr, lba, fat->sectors_per_cluster);
     for (uint16_t i = (nthOf32 - 1); i >= 0; i--) {
       if (i == 0) { // last entry in cluster
         // i = -1;
@@ -234,7 +238,7 @@ uint16_t *calcLfn(uint32_t clusterNum, uint16_t nthOf32) {
       debugf("[calcLFN//cluster] [%x:%x] ", lba * 512 + 32 * i,
              (fat->cluster_begin_lba +
               (clusterNum - 2) * fat->sectors_per_cluster) *
-                 SECTOR_SIZE);
+                 (fat->sectors_per_cluster * SECTOR_SIZE));
       for (int i = 0; i < 32; i++) {
         debugf("%02x ", ((uint8_t *)lfn)[i]);
       }
@@ -299,12 +303,14 @@ bool lfnCmp(uint32_t clusterNum, uint16_t nthOf32, char *str) {
 
 bool isLFNentry(uint8_t *rawArr, uint32_t clusterNum, uint16_t entry) {
   if (entry == 0) { // first entry of cluster
-    uint8_t *newRawArr = (uint8_t *)malloc(SECTOR_SIZE);
+    uint8_t *newRawArr =
+        (uint8_t *)malloc(fat->sectors_per_cluster * SECTOR_SIZE);
     uint32_t lba = fat->cluster_begin_lba +
                    (clusterNum - 2 - 1) * fat->sectors_per_cluster;
-    getDiskBytes(newRawArr, lba, 1);
+    getDiskBytes(newRawArr, lba, fat->sectors_per_cluster);
     pFAT32_Directory dir =
-        (pFAT32_Directory)((uint32_t)newRawArr + SECTOR_SIZE - 32);
+        (pFAT32_Directory)((uint32_t)newRawArr +
+                           fat->sectors_per_cluster * SECTOR_SIZE - 32);
     bool res = dir->attributes == 0x0F;
 #if FAT32_DBG_PROMPTS
     debugf("res %d attr %x!\n", res, dir->attributes);
@@ -326,10 +332,10 @@ bool showCluster(uint32_t clusterNum, uint8_t attrLimitation) // NOT 0, NOT 1
 
   const int lba =
       fat->cluster_begin_lba + (clusterNum - 2) * fat->sectors_per_cluster;
-  uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
-  getDiskBytes(rawArr, lba, 1);
+  uint8_t *rawArr = (uint8_t *)malloc(fat->sectors_per_cluster * SECTOR_SIZE);
+  getDiskBytes(rawArr, lba, fat->sectors_per_cluster);
 
-  for (int i = 0; i < (SECTOR_SIZE / 32); i++) {
+  for (int i = 0; i < ((fat->sectors_per_cluster * SECTOR_SIZE) / 32); i++) {
     if (rawArr[32 * i] == 0)
       break;
 
@@ -361,7 +367,7 @@ bool showCluster(uint32_t clusterNum, uint8_t attrLimitation) // NOT 0, NOT 1
     printf("\n");
   }
 
-  if (rawArr[SECTOR_SIZE - 32] != 0) {
+  if (rawArr[fat->sectors_per_cluster * SECTOR_SIZE - 32] != 0) {
     unsigned int nextCluster = getFatEntry(clusterNum);
     if (nextCluster == 0)
       return 1;
@@ -387,22 +393,26 @@ void readFileContents(char **rawOut, pFAT32_Directory dir) {
   char    *out = *rawOut;
   uint32_t curr = 0;
   uint32_t currCluster = dir->firstClusterLow;
+  uint8_t *rawArr = (uint8_t *)malloc(fat->sectors_per_cluster * SECTOR_SIZE);
   while (1) { // DIV_ROUND_CLOSEST(dir->filesize, SECTOR_SIZE)
-    unsigned char rawArr[SECTOR_SIZE];
-    uint32_t      lba =
+    uint32_t lba =
         fat->cluster_begin_lba + (currCluster - 2) * fat->sectors_per_cluster;
-    getDiskBytes(rawArr, lba, 1);
+    getDiskBytes(rawArr, lba, fat->sectors_per_cluster);
 #if FAT32_DBG_PROMPTS
     debugf("[read] next one: 0x%x %d\n", currCluster, currCluster);
 #endif
-    for (uint16_t j = 0; j < SECTOR_SIZE; j++) {
+    for (uint16_t j = 0; j < fat->sectors_per_cluster * SECTOR_SIZE; j++) {
       if (curr > dir->filesize) {
 #if FAT32_DBG_PROMPTS
         debugf("[read] reached filesize end (limit) at: 0x%x %d\n", currCluster,
                currCluster);
 #endif
+        free(rawArr);
         return;
       }
+      // #if FAT32_DBG_PROMPTS
+      // debugf("%c", rawArr[j]);
+      // #endif
       out[curr] = rawArr[j];
       curr++;
     }
@@ -416,6 +426,7 @@ void readFileContents(char **rawOut, pFAT32_Directory dir) {
       break;
     }
   }
+  free(rawArr);
 }
 
 bool openFile(pFAT32_Directory dir, char *filename) {
@@ -483,10 +494,10 @@ bool deleteFile(char *filename) {
   FAT32_Directory fatdir;
   if (!openFile(&fatdir, filename))
     return false;
-  uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
-  getDiskBytes(rawArr, fatdir.lba, 1);
+  uint8_t *rawArr = (uint8_t *)malloc(fat->sectors_per_cluster * SECTOR_SIZE);
+  getDiskBytes(rawArr, fatdir.lba, fat->sectors_per_cluster);
   rawArr[32 * fatdir.currEntry] = FAT_DELETED;
-  write_sectors_ATA_PIO(fatdir.lba, 1, rawArr);
+  write_sectors_ATA_PIO(fatdir.lba, fat->sectors_per_cluster, rawArr);
 
   // invalidate
   uint32_t currCluster = fatdir.firstClusterLow;

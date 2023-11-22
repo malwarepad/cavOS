@@ -1,5 +1,6 @@
 #include "../include/testing.h"
 #include "../include/elf.h"
+#include "../include/fat32.h"
 #include "../include/task.h"
 #include "../include/vmm.h"
 
@@ -42,6 +43,17 @@ void task3() {
 
 void testingInit() {
   // elf_execute("/main.cav");
+
+  // FAT32_Directory *dir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));
+  // openFile(dir, "/files/lorem.txt");
+  // char *out = (char *)malloc(dir->filesize);
+  // debugf("first thing: low: %x high: %x\n", dir->firstClusterLow,
+  //        dir->firstClusterHigh);
+  // readFileContents(&out, dir);
+  // debugf("%s\n", out);
+  // free(out);
+  // free(dir);
+
 #if VGA_DRAW_TEST
   drawCircle(200, 300, 100, 255, 0, 0);
   drawCircle(400, 300, 100, 0, 255, 0);
