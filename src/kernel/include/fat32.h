@@ -89,16 +89,29 @@ typedef struct FAT32_LFN {
 
 FAT32 *fat;
 
-bool      initiateFat32(uint32_t disk, uint8_t partition_num);
-bool      showCluster(uint32_t clusterNum, uint8_t attrLimitation);
-uint32_t  getFatEntry(uint32_t cluster);
-char     *formatToShort8_3Format(char *directory);
-void      fileReaderTest();
+#define FAT32_DBG_PROMPTS 1
+#define fatinitf debugf
+
+// fat32.c
+bool initiateFat32(uint32_t disk, uint8_t partition_num);
+bool openFile(pFAT32_Directory dir, char *filename);
+void readFileContents(char **rawOut, pFAT32_Directory dir);
+bool deleteFile(char *filename);
+
+// utils.c
+char *formatToShort8_3Format(char *directory);
+void  filenameAssign(uint16_t *filename, uint32_t *currFilenamePos,
+                     uint16_t character);
+bool  showCluster(uint32_t clusterNum, uint8_t attrLimitation);
+void  fileReaderTest();
+
+// fatutils.c
+uint32_t getFatEntry(uint32_t cluster);
+void     setFatEntry(uint32_t cluster, uint32_t value);
+
+// lfn.c
 bool      isLFNentry(uint8_t *rawArr, uint32_t clusterNum, uint16_t entry);
 bool      lfnCmp(uint32_t clusterNum, uint16_t nthOf32, char *str);
-bool      openFile(pFAT32_Directory dir, char *filename);
-void      readFileContents(char **rawOut, pFAT32_Directory dir);
-bool      deleteFile(char *filename);
 uint16_t *calcLfn(uint32_t clusterNum, uint16_t nthOf32);
 
 #endif
