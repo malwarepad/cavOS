@@ -1,8 +1,8 @@
-#include "../include/isr.h"
-#include "../include/paging.h"
-#include "../include/syscalls.h"
-#include "../include/system.h"
-#include "../include/task.h"
+#include <isr.h>
+#include <paging.h>
+#include <syscalls.h>
+#include <system.h>
+#include <task.h>
 
 // ISR Entry configurator
 // Copyright (C) 2023 Panagiotis

@@ -1,4 +1,4 @@
-#include "../include/gdt.h"
+#include <gdt.h>
 
 // GDT & TSS Entry configurator
 // Copyright (C) 2023 Panagiotis

@@ -1,7 +1,7 @@
 COMPILER = ~/opt/cross/bin/i686-elf-gcc
 LINKER = ~/opt/cross/bin/i686-elf-ld
 ASSEMBLER = nasm
-CFLAGS = -m32 -c -ffreestanding -w -fcommon
+CFLAGS = -m32 -c -ffreestanding -w -fcommon -Iinclude/
 ASFLAGS = -f elf32
 LDFLAGS = -m elf_i386 -T boot/link.ld
 

@@ -1,7 +1,7 @@
-#include "../include/syscalls.h"
-#include "../include/isr.h"
-#include "../include/system.h"
-#include "../include/task.h"
+#include <syscalls.h>
+#include <isr.h>
+#include <system.h>
+#include <task.h>
 
 void registerSyscall(uint32_t id, void *handler) {
   if (id > MAX_SYSCALLS)

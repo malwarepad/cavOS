@@ -1,7 +1,7 @@
-#include "../../include/disk.h"
-#include "../../include/fat32.h"
-#include "../../include/liballoc.h"
-#include "../../include/system.h"
+#include <disk.h>
+#include <fat32.h>
+#include <liballoc.h>
+#include <system.h>
 
 // NOTE: This file stands for FAT32's "(F)ile (A)llocation (T)able" and is NOT
 // the entry to the fat32 filesystem!

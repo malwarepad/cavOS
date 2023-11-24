@@ -1,4 +1,4 @@
-#include "../include/util.h"
+#include <util.h>
 
 // Utilities used inside source code
 // Copyright (C) 2023 Panagiotis

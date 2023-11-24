@@ -1,6 +1,6 @@
-#include "../include/kb.h"
+#include <kb.h>
 
-#include "../include/system.h"
+#include <system.h>
 
 // Very bare bones, and basic keyboard driver
 // Copyright (C) 2023 Panagiotis

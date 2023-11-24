@@ -1,5 +1,5 @@
-#include "../include/idt.h"
-#include "../include/util.h"
+#include <idt.h>
+#include <util.h>
 
 // IDT Entry configurator
 // Copyright (C) 2023 Panagiotis

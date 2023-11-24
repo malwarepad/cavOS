@@ -1,4 +1,4 @@
-#include "../include/rtc.h"
+#include <rtc.h>
 
 // Real-Time Clock implementation
 // Copyright (C) 2023 Panagiotis

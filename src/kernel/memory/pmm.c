@@ -1,6 +1,6 @@
-#include "../include/pmm.h"
-#include "../include/system.h"
-#include "../include/util.h"
+#include <pmm.h>
+#include <system.h>
+#include <util.h>
 
 // Bitmap-based memory allocation algorythm
 // Copyright (C) 2023 Panagiotis

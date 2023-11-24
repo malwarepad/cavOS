@@ -1,8 +1,8 @@
-#include "../include/testing.h"
-#include "../include/elf.h"
-#include "../include/fat32.h"
-#include "../include/task.h"
-#include "../include/vmm.h"
+#include <testing.h>
+#include <elf.h>
+#include <fat32.h>
+#include <task.h>
+#include <vmm.h>
 
 // Testing stuff
 // Copyright (C) 2023 Panagiotis

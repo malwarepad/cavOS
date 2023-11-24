@@ -1,4 +1,4 @@
-#include "../include/ata.h"
+#include <ata.h>
 
 // Ata pio driver
 // Copyright (C) 2023 Panagiotis

@@ -1,6 +1,6 @@
-#include "../include/vmm.h"
-#include "../include/paging.h"
-#include "../include/pmm.h"
+#include <vmm.h>
+#include <paging.h>
+#include <pmm.h>
 
 // Temporary virtual memory allocator
 // todo: Make it bitmap-based like the pmm

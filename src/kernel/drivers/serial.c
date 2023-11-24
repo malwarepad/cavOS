@@ -1,4 +1,4 @@
-#include "../include/serial.h"
+#include <serial.h>
 
 // Simple serial driver for debugging
 // Copyright (C) 2023 Panagiotis

@@ -1,16 +1,16 @@
-#include "../../include/shell.h"
-#include "../../include/fat32.h"
-#include "../../include/liballoc.h"
-#include "../../include/pci.h"
-#include "../../include/rtc.h"
-#include "../../include/system.h"
-#include "../../include/task.h"
-#include "../../include/timer.h"
-#include "../../include/util.h"
-#include "../../include/vga.h"
+#include <shell.h>
+#include <fat32.h>
+#include <liballoc.h>
+#include <pci.h>
+#include <rtc.h>
+#include <system.h>
+#include <task.h>
+#include <timer.h>
+#include <util.h>
+#include <vga.h>
 #define _STDINT_H
-#include "../../include/elf.h"
-#include "../../include/ssfn.h"
+#include <elf.h>
+#include <ssfn.h>
 
 // Shell driver
 // Copyright (C) 2023 Panagiotis

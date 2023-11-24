@@ -1,5 +1,5 @@
-#include "../include/pci.h"
-#include "../include/system.h"
+#include <pci.h>
+#include <system.h>
 
 // PCI driver
 // Copyright (C) 2023 Panagiotis

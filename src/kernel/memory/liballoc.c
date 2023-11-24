@@ -1,6 +1,6 @@
-#include "../include/liballoc.h"
-#include "../include/paging.h"
-#include "../include/vmm.h"
+#include <liballoc.h>
+#include <paging.h>
+#include <vmm.h>
 
 /**  Durand's Ridiculously Amazing Super Duper Memory functions.  */
 

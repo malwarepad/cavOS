@@ -1,7 +1,7 @@
-#include "../include/system.h"
-#include "../include/backupconsole.h"
-#include "../include/console.h"
-#include "../include/fat32.h"
+#include <system.h>
+#include <backupconsole.h>
+#include <console.h>
+#include <fat32.h>
 
 // Source code for handling ports via assembly references
 // Copyright (C) 2023 Panagiotis

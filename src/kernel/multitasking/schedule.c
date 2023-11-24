@@ -1,7 +1,7 @@
-#include "../include/schedule.h"
-#include "../include/gdt.h"
-#include "../include/task.h"
-#include "../include/util.h"
+#include <schedule.h>
+#include <gdt.h>
+#include <task.h>
+#include <util.h>
 
 // Clock-tick triggered scheduler
 // Copyright (C) 2023 Panagiotis

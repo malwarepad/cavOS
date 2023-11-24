@@ -1,7 +1,7 @@
-#include "../include/backupconsole.h"
-#include "../include/system.h"
+#include <backupconsole.h>
+#include <system.h>
 #define _STDINT_H
-#include "../include/ssfn.h"
+#include <ssfn.h>
 
 // Pre-filesystem console
 // Copyright (C) 2023 Panagiotis

@@ -1,4 +1,4 @@
-#include "../include/timer.h"
+#include <timer.h>
 
 void initiateTimer(uint32_t reload_value) {
   timerTicks = 0;

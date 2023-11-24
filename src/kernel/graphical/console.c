@@ -1,10 +1,10 @@
-#include "../include/console.h"
-#include "../include/fat32.h"
-#include "../include/system.h"
+#include <console.h>
+#include <fat32.h>
+#include <system.h>
 #define _STDINT_H
 #define SSFN_CONSOLEBITMAP_CONTROL
 #define SSFN_CONSOLEBITMAP_TRUECOLOR
-#include "../include/ssfn.h"
+#include <ssfn.h>
 
 // Kernel console implementation
 // Copyright (C) 2023 Panagiotis

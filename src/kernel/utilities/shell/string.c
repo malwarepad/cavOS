@@ -1,5 +1,5 @@
-#include "../../include/string.h"
-#include "../../include/util.h"
+#include <string.h>
+#include <util.h>
 
 // String management file
 // Copyright (C) 2023 Panagiotis

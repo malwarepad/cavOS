@@ -1,8 +1,8 @@
-#include "../include/elf.h"
-#include "../include/fat32.h"
-#include "../include/paging.h"
-#include "../include/task.h"
-#include "../include/util.h"
+#include <elf.h>
+#include <fat32.h>
+#include <paging.h>
+#include <task.h>
+#include <util.h>
 
 // ELF parser
 // Copyright (C) 2023 Panagiotis

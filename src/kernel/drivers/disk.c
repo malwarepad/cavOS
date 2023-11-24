@@ -1,4 +1,4 @@
-#include "../include/disk.h"
+#include <disk.h>
 
 // Multiple disk handler
 // Copyright (C) 2022 Panagiotis

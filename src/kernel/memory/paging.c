@@ -1,7 +1,7 @@
-#include "../include/paging.h"
-#include "../include/liballoc.h"
-#include "../include/types.h"
-#include "../include/util.h"
+#include <paging.h>
+#include <liballoc.h>
+#include <types.h>
+#include <util.h>
 
 // System-wide page table & directory management
 // Copyright (C) 2023 Panagiotis

@@ -1,8 +1,8 @@
-#include "../include/vga.h"
-#include "../include/liballoc.h"
-#include "../include/multiboot2.h"
-#include "../include/system.h"
-#include "../include/util.h"
+#include <vga.h>
+#include <liballoc.h>
+#include <multiboot2.h>
+#include <system.h>
+#include <util.h>
 #include <stdarg.h>
 
 // Incomplete VGA driver
