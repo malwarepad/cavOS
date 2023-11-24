@@ -1,7 +1,7 @@
-#include <system.h>
 #include <backupconsole.h>
 #include <console.h>
 #include <fat32.h>
+#include <system.h>
 
 // Source code for handling ports via assembly references
 // Copyright (C) 2023 Panagiotis
@@ -40,6 +40,24 @@ void panic() {
   debugf("Kernel panic triggered!\n");
   asm("cli");
   asm("hlt");
+}
+
+bool checkInterrupts() {
+  uint16_t flags;
+  asm volatile("pushf; pop %0" : "=g"(flags));
+  return flags & (1 << 9);
+}
+
+bool interruptStatus = true;
+
+void lockInterrupts() {
+  interruptStatus = checkInterrupts();
+  asm("cli");
+}
+
+void releaseInterrupts() {
+  if (interruptStatus)
+    asm("sti");
 }
 
 void printfch(int character) {

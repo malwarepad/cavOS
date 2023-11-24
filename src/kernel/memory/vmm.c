@@ -1,6 +1,8 @@
-#include <vmm.h>
 #include <paging.h>
 #include <pmm.h>
+#include <system.h>
+#include <task.h>
+#include <vmm.h>
 
 // Temporary virtual memory allocator
 // todo: Make it bitmap-based like the pmm
@@ -9,6 +11,10 @@
 #define VMM_DEBUG 0
 
 void *VirtualAllocate(int pages) {
+  lockInterrupts();
+#if VMM_DEBUG
+  debugf("ALLOCATING!\n");
+#endif
   uint32_t base = sysalloc_base;
   sysalloc_base += pages * PAGE_SIZE;
   for (int i = 0; i < pages; i++) {
@@ -19,10 +25,12 @@ void *VirtualAllocate(int pages) {
            VirtualToPhysical(base + (i * PAGE_SIZE)));
 #endif
   }
+  releaseInterrupts();
   return (void *)base;
 }
 
 int VirtualFree(void *ptr, int pages) {
+  lockInterrupts();
   for (int i = 0; i < pages; i++) {
     uint32   virtaddr = ptr + (i * PAGE_SIZE);
     uint32_t physaddr = (uint32_t)VirtualToPhysical(virtaddr);
@@ -32,5 +40,6 @@ int VirtualFree(void *ptr, int pages) {
     BitmapFreePageframe(physaddr);
     VirtualUnmap(virtaddr);
   }
+  releaseInterrupts();
   return 0;
 }

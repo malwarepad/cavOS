@@ -36,6 +36,10 @@ uint16_t framebufferWidth;
 uint16_t framebufferHeight;
 uint32_t framebufferPitch;
 
+bool checkInterrupts();
+void lockInterrupts();
+void releaseInterrupts();
+
 // Standard widespread functions
 #define clearScreen drawClearScreen
 void printfch(int character);
