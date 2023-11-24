@@ -89,7 +89,7 @@ typedef struct FAT32_LFN {
 
 FAT32 *fat;
 
-#define FAT32_DBG_PROMPTS 1
+#define FAT32_DBG_PROMPTS 0
 #define fatinitf debugf
 
 // fat32.c
