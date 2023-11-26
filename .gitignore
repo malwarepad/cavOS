@@ -1,6 +1,6 @@
 # Binaries
 target/obj/*
-target/boot/*
+target/boot/*.bin
 target/software/*.cav
 disk.img
 disk.vmdk
