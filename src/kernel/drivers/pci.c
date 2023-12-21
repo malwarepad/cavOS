@@ -24,14 +24,29 @@ uint16_t ConfigReadWord(uint8_t bus, uint8_t slot, uint8_t func,
   return tmp;
 }
 
-uint16_t getClassId(uint16_t bus, uint16_t device, uint16_t function) {
-  uint32_t r0 = ConfigReadWord(bus, device, function, PCI_SUBCLASS);
-  return (r0 & ~0x00FF) >> 8;
+uint8_t exportByte(uint32_t target, bool first) {
+  if (first)
+    return target & ~0xFF00;
+  else
+    return (target & ~0x00FF) >> 8;
 }
 
-uint16_t getSubClassId(uint16_t bus, uint16_t device, uint16_t function) {
+uint32_t combineWord(uint16_t msb, uint16_t lsb) { // 0-7 -> msb, 8-15 -> lsb
+  uint32_t result = ((uint32_t)msb << 16) | lsb;
+
+  return result;
+}
+
+uint8_t getClassId(uint16_t bus, uint16_t device, uint16_t function) {
   uint32_t r0 = ConfigReadWord(bus, device, function, PCI_SUBCLASS);
-  return (r0 & ~0xFF00);
+  return exportByte(r0, false);
+  // return (r0 & ~0x00FF) >> 8;
+}
+
+uint8_t getSubClassId(uint16_t bus, uint16_t device, uint16_t function) {
+  uint32_t r0 = ConfigReadWord(bus, device, function, PCI_SUBCLASS);
+  return exportByte(r0, true);
+  // return (r0 & ~0xFF00);
 }
 
 int FilterDevice(uint8_t bus, uint8_t slot, uint8_t function) {
@@ -39,29 +54,75 @@ int FilterDevice(uint8_t bus, uint8_t slot, uint8_t function) {
   return !(vendor_id == 0xffff || !vendor_id);
 }
 
-void GetDeviceDetails(PCIdevice *device, uint8_t details, uint8_t bus,
-                      uint8_t slot, uint8_t function) {
+void GetDevice(PCIdevice *device, uint8_t bus, uint8_t slot, uint8_t function) {
   device->bus = bus;
   device->slot = slot;
   device->function = function;
 
-  device->class_id = getClassId(bus, slot, function);
-  device->subclass_id = getSubClassId(bus, slot, function);
+  device->vendor_id =
+      ConfigReadWord(device->bus, device->slot, device->function, 0x00);
+  device->device_id = ConfigReadWord(device->bus, device->slot,
+                                     device->function, PCI_DEVICE_ID);
 
-  if (!details)
-    return;
+  device->command =
+      ConfigReadWord(device->bus, device->slot, device->function, PCI_COMMAND);
+  device->status =
+      ConfigReadWord(device->bus, device->slot, device->function, PCI_STATUS);
 
-  device->vendor_id = ConfigReadWord(bus, slot, function, 0x00);
-  device->device_id = ConfigReadWord(bus, slot, function, PCI_DEVICE_ID);
+  uint16_t revision_progIF = ConfigReadWord(device->bus, device->slot,
+                                            device->function, PCI_REVISION_ID);
+  device->revision = exportByte(revision_progIF, true);
+  device->progIF = exportByte(revision_progIF, false);
 
-  device->interface_id = ConfigReadWord(bus, slot, function, PCI_PROG_IF);
+  uint16_t subclass_class =
+      ConfigReadWord(device->bus, device->slot, device->function, PCI_SUBCLASS);
+  device->subclass_id = exportByte(subclass_class, true);
+  device->class_id = exportByte(subclass_class, false);
 
-  device->system_vendor_id =
-      ConfigReadWord(bus, slot, function, PCI_SYSTEM_VENDOR_ID);
-  device->system_id = ConfigReadWord(bus, slot, function, PCI_SYSTEM_ID);
+  uint16_t cacheLineSize_latencyTimer = ConfigReadWord(
+      device->bus, device->slot, device->function, PCI_CACHE_LINE_SIZE);
+  device->cacheLineSize = exportByte(cacheLineSize_latencyTimer, true);
+  device->latencyTimer = exportByte(cacheLineSize_latencyTimer, false);
 
-  device->revision = ConfigReadWord(bus, slot, function, PCI_REVISION_ID);
-  device->interrupt = ConfigReadWord(bus, slot, function, PCI_INTERRUPT_LINE);
+  uint16_t headerType_bist = ConfigReadWord(device->bus, device->slot,
+                                            device->function, PCI_HEADER_TYPE);
+  device->headerType = exportByte(headerType_bist, true);
+  device->bist = exportByte(headerType_bist, false);
+}
+
+void GetGeneralDevice(PCIdevice *device, PCIgeneralDevice *out) {
+  for (int i = 0; i < 6; i++)
+    out->bar[i] =
+        combineWord(ConfigReadWord(device->bus, device->slot, device->function,
+                                   PCI_BAR0 + 4 * i + 2),
+                    ConfigReadWord(device->bus, device->slot, device->function,
+                                   PCI_BAR0 + 4 * i));
+
+  out->system_vendor_id = ConfigReadWord(
+      device->bus, device->slot, device->function, PCI_SYSTEM_VENDOR_ID);
+  out->system_id = ConfigReadWord(device->bus, device->slot, device->function,
+                                  PCI_SYSTEM_ID);
+
+  out->expROMaddr =
+      combineWord(ConfigReadWord(device->bus, device->slot, device->function,
+                                 PCI_EXP_ROM_BASE_ADDR + 2),
+                  ConfigReadWord(device->bus, device->slot, device->function,
+                                 PCI_EXP_ROM_BASE_ADDR));
+
+  out->capabilitiesPtr =
+      exportByte(ConfigReadWord(device->bus, device->slot, device->function,
+                                PCI_CAPABILITIES_PTR),
+                 true);
+
+  uint32_t interruptLine_interruptPIN = ConfigReadWord(
+      device->bus, device->slot, device->function, PCI_INTERRUPT_LINE);
+  out->interruptLine = exportByte(interruptLine_interruptPIN, true);
+  out->interruptPIN = exportByte(interruptLine_interruptPIN, false);
+
+  uint32_t minGrant_maxLatency = ConfigReadWord(
+      device->bus, device->slot, device->function, PCI_MIN_GRANT);
+  out->minGrant = exportByte(minGrant_maxLatency, true);
+  out->maxLatency = exportByte(minGrant_maxLatency, false);
 }
 
 void initiatePCI() {
@@ -72,7 +133,7 @@ void initiatePCI() {
           continue;
 
         PCIdevice *device = (PCIdevice *)malloc(sizeof(PCIdevice));
-        GetDeviceDetails(device, 0, bus, slot, function);
+        GetDevice(device, bus, slot, function);
         switch (device->class_id) {
         case PCI_CLASS_CODE_NETWORK_CONTROLLER:
           break;

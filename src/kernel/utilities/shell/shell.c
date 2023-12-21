@@ -1,8 +1,8 @@
-#include <shell.h>
 #include <fat32.h>
 #include <liballoc.h>
 #include <pci.h>
 #include <rtc.h>
+#include <shell.h>
 #include <system.h>
 #include <task.h>
 #include <timer.h>
@@ -90,14 +90,18 @@ void launch_shell(int n) {
             if (!FilterDevice(bus, slot, function))
               continue;
 
-            PCIdevice *device = (PCIdevice *)malloc(sizeof(PCIdevice));
-            GetDeviceDetails(device, 1, bus, slot, function);
+            PCIdevice        *device = (PCIdevice *)malloc(sizeof(PCIdevice));
+            PCIgeneralDevice *out =
+                (PCIgeneralDevice *)malloc(sizeof(PCIgeneralDevice));
+            GetDevice(device, bus, slot, function);
+            GetGeneralDevice(device, out);
             printf("[%d:%d:%d] vendor=%x device=%x class_id=%x subclass_id:%x "
                    "system_vendor_id=%x system_id=%x\n",
                    bus, slot, function, device->vendor_id, device->device_id,
-                   device->class_id, device->subclass_id,
-                   device->system_vendor_id, device->system_id);
+                   device->class_id, device->subclass_id, out->system_vendor_id,
+                   out->system_id);
             free(device);
+            free(out);
           }
         }
       }

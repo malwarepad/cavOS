@@ -31,11 +31,13 @@
 #define PCI_BAR3 0x1C
 #define PCI_BAR4 0x20
 #define PCI_BAR5 0x24
-#define PCI_INTERRUPT_LINE 0x3C
 #define PCI_SECONDARY_BUS 0x09
 #define PCI_SYSTEM_VENDOR_ID 0x2C
 #define PCI_SYSTEM_ID 0x2E
-
+#define PCI_EXP_ROM_BASE_ADDR 0x30
+#define PCI_CAPABILITIES_PTR 0x34
+#define PCI_INTERRUPT_LINE 0x3C
+#define PCI_MIN_GRANT 0x3E
 // PCI Class codes
 #define PCI_CLASS_CODE_UNCLASSIFIED 0x0
 #define PCI_CLASS_CODE_MASS_STORAGE_CONTROLLER 0x1
@@ -61,9 +63,6 @@
 #define PCI_CLASS_CODE_UNASSIGNED 0xFF
 
 typedef struct PCIdevice {
-  uint32_t portBase;
-  uint32_t interrupt;
-
   uint16_t bus;
   uint16_t slot;
   uint16_t function;
@@ -71,19 +70,44 @@ typedef struct PCIdevice {
   uint16_t vendor_id;
   uint16_t device_id;
 
-  uint8_t class_id;
+  uint16_t command;
+  uint16_t status;
+
+  uint8_t revision;
+  uint8_t progIF; // programming interface
   uint8_t subclass_id;
-  uint8_t interface_id;
+  uint8_t class_id;
+
+  uint8_t cacheLineSize;
+  uint8_t latencyTimer;
+  uint8_t headerType;
+  uint8_t bist;
+} PCIdevice;
+
+typedef struct PCIgeneralDevice {
+  uint32_t bar[5];
+
+  uint32_t cardBusCISPtr;
 
   uint16_t system_id;
   uint16_t system_vendor_id;
 
-  uint8_t revision;
-} PCIdevice;
+  uint32_t expROMaddr;
+
+  // 24 bits (3 bytes) reserved
+  uint8_t capabilitiesPtr;
+
+  // 32 bits (4 bytes) reserved
+
+  uint8_t interruptLine;
+  uint8_t interruptPIN;
+  uint8_t minGrant;
+  uint8_t maxLatency;
+} PCIgeneralDevice;
 
 void initiatePCI();
 int  FilterDevice(uint8_t bus, uint8_t slot, uint8_t function);
-void GetDeviceDetails(PCIdevice *device, uint8_t details, uint8_t bus,
-                      uint8_t slot, uint8_t function);
+void GetDevice(PCIdevice *device, uint8_t bus, uint8_t slot, uint8_t function);
+void GetGeneralDevice(PCIdevice *device, PCIgeneralDevice *out);
 
 #endif

@@ -1,12 +1,14 @@
-#include <testing.h>
 #include <elf.h>
 #include <fat32.h>
+#include <pci.h>
 #include <task.h>
+#include <testing.h>
 #include <vmm.h>
 
 // Testing stuff
 // Copyright (C) 2023 Panagiotis
 
+#define PCI_READ 0
 #define MEMORY_DETECTION_DRAFT 0
 #define FAT32_READ_TEST 0
 #define FAT32_DELETION_TEST 0
@@ -42,6 +44,49 @@ void task3() {
 #endif
 
 void testingInit() {
+#if PCI_READ
+  for (uint8_t bus = 0; bus < PCI_MAX_BUSES; bus++) {
+    for (uint8_t slot = 0; slot < PCI_MAX_DEVICES; slot++) {
+      for (uint8_t function = 0; function < PCI_MAX_FUNCTIONS; function++) {
+        if (!FilterDevice(bus, slot, function))
+          continue;
+
+        PCIdevice        *device = (PCIdevice *)malloc(sizeof(PCIdevice));
+        PCIgeneralDevice *out =
+            (PCIgeneralDevice *)malloc(sizeof(PCIgeneralDevice));
+        GetDevice(device, bus, slot, function);
+        GetGeneralDevice(device, out);
+
+        debugf("portBase: 0x%X\n"
+               "bus: 0x%X\n"
+               "slot: 0x%X\n"
+               "function: 0x%X\n"
+               "vendor_id: 0x%X\n"
+               "device_id: 0x%X\n"
+               "command: 0x%X\n"
+               "status: 0x%X\n"
+               "revision: 0x%X\n"
+               "progIF: 0x%X\n"
+               "class_id: 0x%X\n"
+               "subclass_id: 0x%X\n"
+               "cacheLineSize: 0x%X\n"
+               "latencyTimer: 0x%X\n"
+               "headerType: 0x%X\n"
+               "bist: 0x%X\nbar0:0x%X\nExpROM: 0x%X\nEND DEVICE!!\n\n",
+               device->portBase, device->bus, device->slot, device->function,
+               device->vendor_id, device->device_id, device->command,
+               device->status, device->revision, device->progIF,
+               device->class_id, device->subclass_id, device->cacheLineSize,
+               device->latencyTimer, device->headerType, device->bist,
+               out->bar[0], out->expROMaddr);
+
+        free(device);
+        free(out);
+      }
+    }
+  }
+#endif
+
   // elf_execute("/main.cav");
 
   // FAT32_Directory *dir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));
