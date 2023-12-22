@@ -9,6 +9,7 @@
 #include <kb.h>
 #include <liballoc.h>
 #include <multiboot2.h>
+#include <nic_controller.h>
 #include <paging.h>
 #include <pci.h>
 #include <pmm.h>
@@ -116,6 +117,7 @@ int kmain(unsigned long addr) {
 
   debugf("====== DEBUGGING LOGS ======\n\n");
 
+  initiateNetworking();
   initiatePCI();
   initiateTimer(1000);
   initiateFat32(0, 0);

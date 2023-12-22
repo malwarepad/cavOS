@@ -1,3 +1,4 @@
+#include <nic_controller.h>
 #include <pci.h>
 #include <system.h>
 
@@ -136,6 +137,7 @@ void initiatePCI() {
         GetDevice(device, bus, slot, function);
         switch (device->class_id) {
         case PCI_CLASS_CODE_NETWORK_CONTROLLER:
+          initiateNIC(device);
           break;
         default:
           break;
