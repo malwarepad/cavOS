@@ -1,18 +1,17 @@
-#include <task.h>
 #include <gdt.h>
 #include <isr.h>
 #include <liballoc.h>
 #include <paging.h>
 #include <schedule.h>
 #include <system.h>
+#include <task.h>
 
 // Task manager allowing for task management
 // Copyright (C) 2023 Panagiotis
 
 void create_task(uint32_t id, uint32_t eip, bool kernel_task,
                  uint32_t *pagedir) {
-  bool old_taskSwitchSpinlock = taskSwitchSpinlock;
-  taskSwitchSpinlock = true;
+  lockInterrupts();
 
   memset(&tasks[id], 0, sizeof(Task));
 
@@ -71,8 +70,7 @@ void create_task(uint32_t id, uint32_t eip, bool kernel_task,
   tasks[id].heap_start = USER_HEAP_START;
   tasks[id].heap_end = USER_HEAP_START;
 
-  if (!old_taskSwitchSpinlock)
-    taskSwitchSpinlock = false;
+  releaseInterrupts();
 }
 
 void adjust_user_heap(Task *task, uint32_t new_heap_end) {
@@ -106,7 +104,7 @@ void adjust_user_heap(Task *task, uint32_t new_heap_end) {
 }
 
 void kill_task(uint32_t id) {
-  taskSwitchSpinlock = true;
+  lockInterrupts();
 
   Task *task = &tasks[id];
   if (task->state == TASK_STATE_DEAD)
@@ -134,8 +132,7 @@ void kill_task(uint32_t id) {
   // task->state = TASK_STATE_DEAD;
   // num_tasks--;
 
-  taskSwitchSpinlock = false;
-  schedule(); // go to the next task
+  schedule(); // go to the next task (will re-enable interrupts)
 }
 
 int16_t create_taskid() {
@@ -149,7 +146,6 @@ int16_t create_taskid() {
 
 void initiateTasks() {
   tasksInitiated = true;
-  taskSwitchSpinlock = false;
   memset((uint8_t *)tasks, 0, sizeof(Task) * MAX_TASKS);
 
   current_task = &tasks[KERNEL_TASK];

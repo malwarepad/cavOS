@@ -58,6 +58,8 @@ void lockInterrupts() {
 void releaseInterrupts() {
   if (interruptStatus)
     asm("sti");
+  else
+    interruptStatus = !interruptStatus;
 }
 
 void printfch(int character) {

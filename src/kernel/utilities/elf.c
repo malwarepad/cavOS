@@ -1,6 +1,7 @@
 #include <elf.h>
 #include <fat32.h>
 #include <paging.h>
+#include <system.h>
 #include <task.h>
 #include <util.h>
 
@@ -37,7 +38,7 @@ bool elf_check_file(Elf32_Ehdr *hdr) {
 }
 
 uint32_t elf_execute(char *filepath) {
-  taskSwitchSpinlock = true;
+  lockInterrupts();
 
   // Open & read executable file
   FAT32_Directory *dir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));
@@ -135,7 +136,7 @@ uint32_t elf_execute(char *filepath) {
   free(dir);
   ChangePageDirectory(oldpagedir);
 
-  taskSwitchSpinlock = false;
+  releaseInterrupts();
 
   return id;
 }

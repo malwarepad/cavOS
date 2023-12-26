@@ -55,7 +55,6 @@ typedef struct {
 Task  tasks[MAX_TASKS];
 Task *current_task;
 
-bool taskSwitchSpinlock;
 bool tasksInitiated;
 
 void initiateTasks();

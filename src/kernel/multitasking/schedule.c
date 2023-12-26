@@ -1,5 +1,5 @@
-#include <schedule.h>
 #include <gdt.h>
+#include <schedule.h>
 #include <task.h>
 #include <util.h>
 
@@ -9,7 +9,7 @@
 #define SCHEDULE_DEBUG 0
 
 void schedule() {
-  if (!tasksInitiated || taskSwitchSpinlock)
+  if (!tasksInitiated)
     return;
 
   // int next_id = (current_task->id + 1) % num_tasks;
