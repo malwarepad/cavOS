@@ -129,7 +129,8 @@ uint32_t elf_execute(char *filepath) {
   debugf("[new pagedir] offset=%x\n", pagedir);
 #endif
 
-  create_task(id, (uint32_t)elf_ehdr->e_entry, false, pagedir);
+  create_task(id, (uint32_t)elf_ehdr->e_entry, true,
+              pagedir); // userspace tasks don't work yet
 
   // Cleanup...
   free(out);
