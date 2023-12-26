@@ -17,9 +17,12 @@ clean:
 qemu:
 	@$(MAKE) -C src/kernel qemu
 
+qemu_dbg:
+	@$(MAKE) -C src/kernel qemu_dbg
+
 vmware:
 	@$(MAKE) -C src/kernel vmware
 
 # Development tools
-dev: clean disk qemu
+dev: clean disk qemu_dbg
 	

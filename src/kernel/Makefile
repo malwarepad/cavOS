@@ -161,7 +161,10 @@ clean:
 qemu:
 	qemu-system-x86_64 -d guest_errors -serial stdio -drive file=$(TARGET_IMG),format=raw -m 1g -netdev user,id=mynet0 -net nic,model=ne2k_pci,netdev=mynet0
 
+qemu_dbg:
+	qemu-system-x86_64 -d guest_errors,int -no-reboot -serial stdio -drive file=$(TARGET_IMG),format=raw -m 1g -netdev user,id=mynet0 -net nic,model=ne2k_pci,netdev=mynet0
+
 qemu_iso:
 	qemu-system-x86_64 -d guest_errors -serial stdio -drive file=$(TARGET_ISO),format=raw -m 1g -netdev user,id=mynet0 -net nic,model=ne2k_pci,netdev=mynet0
 
-dev:clean disk qemu
+dev:clean disk qemu_dbg

@@ -152,6 +152,7 @@ void initiateTasks() {
   current_task->id = KERNEL_TASK;
   current_task->state = TASK_STATE_READY;
   current_task->pagedir = GetPageDirectory();
+  current_task->kernel_task = true;
 
   // task 0 represents the execution we're in right now
 }

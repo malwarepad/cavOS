@@ -93,14 +93,14 @@ void handle_interrupt(AsmPassedInterrupt regs) {
       break;
     }
   } else if (regs.interrupt >= 0 && regs.interrupt <= 31) { // ISR
-    if (regs.interrupt == 14) {
-      unsigned int err_pos;
-      asm volatile("mov %%cr2, %0" : "=r"(err_pos));
-      debugf("Page fault occured at: %x\n", err_pos);
-    }
+    // if (regs.interrupt == 14) {
+    //   unsigned int err_pos;
+    //   asm volatile("mov %%cr2, %0" : "=r"(err_pos));
+    //   debugf("Page fault occured at: %x\n", err_pos);
+    // }
     debugf(format, exceptions[regs.interrupt]);
-    if (framebuffer == KERNEL_GFX)
-      printf(format, exceptions[regs.interrupt]);
+    // if (framebuffer == KERNEL_GFX)
+    //   printf(format, exceptions[regs.interrupt]);
     panic();
   } else if (regs.interrupt == 0x80) {
     // debugf("syscall %d!\n", regs.eax);
