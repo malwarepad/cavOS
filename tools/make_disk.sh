@@ -28,6 +28,10 @@ fi
 
 sudo cp -r ${1}/* "${2}/"
 
-sudo umount "${2}"
-sudo losetup -d /dev/loop101
-sudo losetup -d /dev/loop102
+CURRENT_DIRECTORY=$(dirname "$0")
+chmod +x "${CURRENT_DIRECTORY}/cleanup.sh"
+"${CURRENT_DIRECTORY}/cleanup.sh" "${2}"
+
+# sudo umount "${2}"
+# sudo losetup -d /dev/loop101
+# sudo losetup -d /dev/loop102

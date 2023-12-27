@@ -144,7 +144,7 @@ iso:all
 
 disk:all
 	chmod +x $(TOOLS)/make_disk.sh
-	$(TOOLS)/make_disk.sh $(TARGET) $(MOUNTPOINT) $(TARGET_IMG)
+	$(TOOLS)/make_disk.sh $(TARGET) $(MOUNTPOINT) $(TARGET_IMG) || (chmod +x $(TOOLS)/cleanup.sh && $(TOOLS)/cleanup.sh $(MOUNTPOINT))
 
 vmware:disk
 	qemu-img convert $(TARGET_IMG) -O vmdk $(TARGET_VMWARE)
