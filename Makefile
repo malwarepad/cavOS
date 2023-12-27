@@ -1,13 +1,17 @@
 all: disk
 
 # https://stackoverflow.com/questions/3931741/why-does-make-think-the-target-is-up-to-date
-.PHONY: disk tools clean qemu qemu_dbg vmware dev
+.PHONY: disk tools clean qemu qemu_dbg vmware dev kernel
 
 # Primary (disk creation)
 disk:
 	@$(MAKE) -C src/libs/system
 	@$(MAKE) -C src/software/test
 	@$(MAKE) -C src/kernel disk
+
+# Raw kernel.bin
+kernel:
+	@$(MAKE) -C src/kernel all
 
 # Tools
 tools:
