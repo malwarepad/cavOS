@@ -35,7 +35,6 @@ Important to mention these goals may never be satisfied, take a very long time t
 - Device drivers
   - [x] ATA pio
   - [x] PCI read
-  - [ ] PCI write
   - [x] Serial driver
   - [x] Keyboard
   - [ ] Mouse
@@ -50,10 +49,10 @@ Important to mention these goals may never be satisfied, take a very long time t
   - [ ] UDP requests
   - [ ] DHCP
 - Userspace 
-  - [ ] Newlib port (LibC)
+  - [ ] Some sort of LibC
   - [ ] cavOS Specific Toolchain
   - [ ] Move to ring3
-  - [ ] ELF32 parsing
+  - [x] ELF32 parsing
 - Interfaces
   - [x] BIOS text
   - [x] Kernel shell
