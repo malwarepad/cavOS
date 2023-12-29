@@ -7,7 +7,7 @@
 // Clock-tick triggered scheduler
 // Copyright (C) 2023 Panagiotis
 
-#define SCHEDULE_DEBUG 1
+#define SCHEDULE_DEBUG 0
 
 void schedule() {
   if (!tasksInitiated)
@@ -32,11 +32,13 @@ void schedule() {
   tss.esp0 = next->kesp_bottom;
 
 #if SCHEDULE_DEBUG
-  debugf("switching context from %d to %d\n", old->id, next->id);
+  if (old->id != 0 || next->id != 0)
+    debugf("switching context from %d to %d\n", old->id, next->id);
 #endif
   // switch context, may not return here
   switch_context(old, next);
 #if SCHEDULE_DEBUG
-  // debugf("switched context from %d to %d\n", old->id, next->id);
+  if (old->id != 0 || next->id != 0)
+    debugf("switched context from %d to %d\n", old->id, next->id);
 #endif
 }

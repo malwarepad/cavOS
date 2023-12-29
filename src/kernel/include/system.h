@@ -44,6 +44,10 @@ void releaseInterrupts();
 #define clearScreen drawClearScreen
 void printfch(int character);
 
+// Endianness
+uint16_t switch_endian_16(uint16_t val);
+uint32_t switch_endian_32(uint32_t val);
+
 // From LD
 uint32_t kernel_end;
 uint32_t kernel_start;

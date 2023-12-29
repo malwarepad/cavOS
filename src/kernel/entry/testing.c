@@ -1,13 +1,16 @@
 #include <elf.h>
 #include <fat32.h>
+#include <ne2k.h>
 #include <pci.h>
 #include <task.h>
 #include <testing.h>
+#include <util.h>
 #include <vmm.h>
 
 // Testing stuff
 // Copyright (C) 2023 Panagiotis
 
+#define SOME_NETWORKING_STUFF 0
 #define PCI_READ 0
 #define MEMORY_DETECTION_DRAFT 0
 #define FAT32_READ_TEST 0
@@ -44,6 +47,17 @@ void task3() {
 #endif
 
 void testingInit() {
+#if SOME_NETWORKING_STUFF
+  netPacket *packet = (netPacket *)malloc(sizeof(netPacket));
+  int        size = 4096;
+  packet->data = malloc(4096);
+  memset(packet->data, 0, 4096);
+  memset(packet->header.destination_mac, 0, 6);
+  memcpy(packet->header.source_mac, selectedNIC->MAC, 6);
+  packet->header.ethertype = 0;
+  printf("sending...\n");
+  sendNe2000(selectedNIC, packet, size);
+#endif
 #if PCI_READ
   for (uint8_t bus = 0; bus < PCI_MAX_BUSES; bus++) {
     for (uint8_t slot = 0; slot < PCI_MAX_DEVICES; slot++) {

@@ -68,3 +68,11 @@ void printfch(int character) {
   else
     preFSconsole(character);
 }
+
+// Endianness
+uint16_t switch_endian_16(uint16_t val) { return (val << 8) | (val >> 8); }
+
+uint32_t switch_endian_32(uint32_t val) {
+  return (val << 24) | ((val << 8) & 0x00FF0000) | ((val >> 8) & 0x0000FF00) |
+         (val >> 24);
+}
