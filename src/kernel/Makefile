@@ -1,7 +1,7 @@
 COMPILER = ~/opt/cross/bin/i686-elf-gcc
 LINKER = ~/opt/cross/bin/i686-elf-ld
 ASSEMBLER = nasm
-CFLAGS = -m32 -c -ffreestanding -w -fcommon -Iinclude/
+CFLAGS = -m32 -c -ffreestanding -w -fcommon -Iinclude/ -g
 ASFLAGS = -f elf32
 LDFLAGS = -m elf_i386 -T boot/link.ld
 
@@ -159,12 +159,12 @@ clean:
 	rm -f $(TARGET_IMG) $(TARGET_VMWARE) $(TARGET_ISO)
 
 qemu:
-	qemu-system-x86_64 -d guest_errors -serial stdio -drive file=$(TARGET_IMG),format=raw -m 1g -netdev user,id=mynet0 -net nic,model=ne2k_pci,netdev=mynet0
+	qemu-system-i386 -d guest_errors -serial stdio -drive file=$(TARGET_IMG),format=raw -m 1g -netdev user,id=mynet0 -net nic,model=ne2k_pci,netdev=mynet0
 
 qemu_dbg:
-	qemu-system-x86_64 -d guest_errors,int -no-shutdown -no-reboot -serial stdio -drive file=$(TARGET_IMG),format=raw -m 1g -netdev user,id=mynet0 -net nic,model=ne2k_pci,netdev=mynet0
+	qemu-system-i386 -d guest_errors,int -no-shutdown -no-reboot -serial stdio -drive file=$(TARGET_IMG),format=raw -m 1g -netdev user,id=mynet0 -net nic,model=ne2k_pci,netdev=mynet0 -s -S
 
 qemu_iso:
-	qemu-system-x86_64 -d guest_errors -serial stdio -drive file=$(TARGET_ISO),format=raw -m 1g -netdev user,id=mynet0 -net nic,model=ne2k_pci,netdev=mynet0
+	qemu-system-i386 -d guest_errors -serial stdio -drive file=$(TARGET_ISO),format=raw -m 1g -netdev user,id=mynet0 -net nic,model=ne2k_pci,netdev=mynet0
 
 dev:clean disk qemu_dbg
