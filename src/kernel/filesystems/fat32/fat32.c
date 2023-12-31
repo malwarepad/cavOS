@@ -1,6 +1,7 @@
 #include <ata.h>
 #include <fat32.h>
 #include <system.h>
+#include <util.h>
 
 // Simple alpha FAT32 driver according to the Microsoft specification
 // Copyright (C) 2023 Panagiotis
@@ -12,33 +13,33 @@
 
 bool initiateFat32(uint32_t disk, uint8_t partition_num) {
   fat = (FAT32 *)malloc(sizeof(FAT32));
-  // fatinitf("[+] FAT32: Initializing...");
+  fatinitf("[+] FAT32: Initializing...");
 
   mbr_partition *partPtr = (mbr_partition *)malloc(sizeof(mbr_partition));
   openDisk(disk, partition_num, partPtr);
   fat->partition = partPtr;
 
-  // fatinitf("\n[+] FAT32: Reading disk0 at lba %d...",
-  //          fat->partition->lba_first_sector);
+  fatinitf("\n[+] FAT32: Reading disk0 at lba %d...",
+           fat->partition->lba_first_sector);
   uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
   getDiskBytes(rawArr, fat->partition->lba_first_sector, 1);
 
-  // fatinitf("\n[+] FAT32: Checking if disk0 at lba %d is FAT32 formatted...",
-  //          fat->partition->lba_first_sector);
+  fatinitf("\n[+] FAT32: Checking if disk0 at lba %d is FAT32 formatted...",
+           fat->partition->lba_first_sector);
 
-  fat = (FAT32 *)rawArr;
+  // this mistake will be classified as the most MalwarePad thing ever
+  // fat = (FAT32 *)rawArr;
+  memcpy(fat, rawArr, SECTOR_SIZE); // first 512 bytes can be copied exactly
 
   if (fat->sector_count == 0 || fat->reserved_sectors == 0 ||
       fat->sectors_per_track == 0 || fat->volume_id == 0) {
-    // fatinitf("\n[+] FAT32: Failed to parse FAT information... This kernel
-    // only "
-    //          "supports FAT32!\n");
+    fatinitf("\n[+] FAT32: Failed to parse FAT information... This kernel only "
+             "supports FAT32!\n");
     return false;
   }
   if (rawArr[66] != FAT_SIGNATURE1 && rawArr[66] != FAT_SIGNATURE2) {
-    // fatinitf("\n[+] FAT32: Incorrect disk signature! This kernel only
-    // supports "
-    //          "FAT32!\n");
+    fatinitf("\n[+] FAT32: Incorrect disk signature! This kernel only supports "
+             "FAT32!\n");
     return false;
   }
 
@@ -51,17 +52,17 @@ bool initiateFat32(uint32_t disk, uint8_t partition_num) {
 
   fat->works = true;
 
-  // fatinitf("\n[+] FAT32: Valid FAT32 formatted drive: [%X] %.11s",
-  //          fat->volume_id, fat->volume_label);
-  // fatinitf("\n    [+] Sector count: %d", fat->sector_count);
-  // fatinitf("\n    [+] FAT's: %d", fat->number_of_fat);
-  // fatinitf("\n    [+] Reserved sectors: %d", fat->reserved_sectors);
-  // fatinitf("\n    [+] Sectors / FAT: %d", fat->sectors_per_fat);
-  // fatinitf("\n    [+] Sectors / track: %d", fat->sectors_per_track);
-  // fatinitf("\n    [+] Sectors / cluster: %d", fat->sectors_per_cluster);
-  // fatinitf("\n");
+  fatinitf("\n[+] FAT32: Valid FAT32 formatted drive: [%X] %.11s",
+           fat->volume_id, fat->volume_label);
+  fatinitf("\n    [+] Sector count: %d", fat->sector_count);
+  fatinitf("\n    [+] FAT's: %d", fat->number_of_fat);
+  fatinitf("\n    [+] Reserved sectors: %d", fat->reserved_sectors);
+  fatinitf("\n    [+] Sectors / FAT: %d", fat->sectors_per_fat);
+  fatinitf("\n    [+] Sectors / track: %d", fat->sectors_per_track);
+  fatinitf("\n    [+] Sectors / cluster: %d", fat->sectors_per_cluster);
+  fatinitf("\n");
 
-  // free(rawArr);
+  free(rawArr);
 
   return true;
 }

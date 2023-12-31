@@ -86,6 +86,7 @@ void write_sectors_ATA_PIO(uint32_t LBA, uint8_t sector_count,
     for (int i = 0; i < 256; i++) {
       outportl(0x1F0, bytes[i]);
     }
+    bytes += 256;
   }
 }
 
