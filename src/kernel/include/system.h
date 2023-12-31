@@ -1,4 +1,5 @@
 #include "multiboot2.h"
+#include "printf.h"
 #include "types.h"
 
 #ifndef SYSTEM_H

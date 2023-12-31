@@ -1,5 +1,6 @@
-#include <syscalls.h>
 #include <isr.h>
+#include <serial.h>
+#include <syscalls.h>
 #include <system.h>
 #include <task.h>
 
