@@ -48,15 +48,16 @@ void task3() {
 
 void testingInit() {
 #if SOME_NETWORKING_STUFF
-  netPacket *packet = (netPacket *)malloc(sizeof(netPacket));
-  int        size = 4096;
-  packet->data = malloc(4096);
-  memset(packet->data, 0, 4096);
-  memset(packet->header.destination_mac, 0, 6);
-  memcpy(packet->header.source_mac, selectedNIC->MAC, 6);
-  packet->header.ethertype = 0;
-  printf("sending...\n");
-  sendNe2000(selectedNIC, packet, size);
+  // netPacket *packet = (netPacket *)malloc(sizeof(netPacket));
+  // int        size = 4096;
+  // packet->data = malloc(4096);
+  // memset(packet->data, 0, 4096);
+  // memset(packet->header.destination_mac, 0, 6);
+  // memcpy(packet->header.source_mac, selectedNIC->MAC, 6);
+  // packet->header.ethertype = 0;
+  // printf("sending...\n");
+  // sendNe2000(selectedNIC, packet, size);
+  testArpBroadcast();
 #endif
 #if PCI_READ
   for (uint8_t bus = 0; bus < PCI_MAX_BUSES; bus++) {

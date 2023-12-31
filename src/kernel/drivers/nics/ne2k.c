@@ -12,6 +12,11 @@ bool initiateNe2000(PCIdevice *device) {
   if (!isNe2000(device))
     return false;
 
+#ifndef BUGGY_NE2k
+  debugf("[+] Ne2k: ignored\n");
+  return false;
+#endif
+
   PCIgeneralDevice *details =
       (PCIgeneralDevice *)malloc(sizeof(PCIgeneralDevice));
   GetGeneralDevice(device, details);
@@ -75,7 +80,12 @@ bool initiateNe2000(PCIdevice *device) {
   return true;
 }
 
-void sendNe2000(NIC *nic, netPacket *packet, uint32_t packetSize) {
+void sendNe2000(NIC *nic, void *packet, uint32_t packetSize) {
+#ifndef BUGGY_NE2k
+  debugf("[+] Ne2k: ignored\n");
+  return false;
+#endif
+
   ne2k_interface *info = (ne2k_interface *)nic->infoLocation;
   uint16_t        iobase = info->iobase;
 
@@ -88,13 +98,8 @@ void sendNe2000(NIC *nic, netPacket *packet, uint32_t packetSize) {
   outportb(iobase + NE2K_REG_COMMAND, 0x12);            // start remote w DMA
 
   uint8_t *rawPacket = (uint8_t *)packet;
-  for (int i = 0; i < sizeof(netPacketHeader); i++)
-    outportb(iobase + NE2K_REG_DATA, rawPacket[i]);
-
-  uint8_t *rawPacketData = (uint8_t *)packet->data;
   for (int i = 0; i < packetSize; i++)
-    outportb(iobase + NE2K_REG_DATA + sizeof(netPacketHeader),
-             rawPacketData[i]);
+    outportb(iobase + NE2K_REG_DATA, rawPacket[i]);
 
   while ((inportb(iobase + NE2K_REG_ISR) & (1UL << 6UL)) == 0)
     ; // poll ISR register until bit 6 (Remote DMA completed) is set.

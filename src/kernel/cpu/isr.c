@@ -1,5 +1,7 @@
 #include <isr.h>
+#include <nic_controller.h>
 #include <paging.h>
+#include <rtl8139.h>
 #include <syscalls.h>
 #include <system.h>
 #include <task.h>
@@ -58,6 +60,9 @@ void remap_pic() {
   outportb(0xA1, 0x00);
 }
 
+typedef void (*FunctionPtr)(AsmPassedInterrupt *regs);
+FunctionPtr irqHandlers[16]; // IRQs 0 - 15
+
 void isr_install() {
   // IRQs 0 - 15 -> 32 - 48
   remap_pic();
@@ -75,29 +80,35 @@ void isr_install() {
   asm("sti");
 }
 
+void registerIRQhandler(uint8_t id, void *handler) {
+  irqHandlers[id] = handler;
+}
+
 void handle_interrupt(AsmPassedInterrupt regs) {
   // if (regs.interrupt != 32 && regs.interrupt != 33 && regs.interrupt != 46)
   //   debugf("int %d!\n", regs.interrupt);
   if (regs.interrupt >= 32 && regs.interrupt <= 47) { // IRQ
+    switch (regs.interrupt) {
+    case 32 + 0: // irq0
+      timerTick();
+      break;
+
+    default: // execute other handlers
+      if (irqHandlers[regs.interrupt - 32])
+        irqHandlers[regs.interrupt - 32](&regs);
+      break;
+    }
+
     if (regs.interrupt >= 40) {
       outportb(0xA0, 0x20);
     }
     outportb(0x20, 0x20);
-
-    switch (regs.interrupt) {
-    case 32:
-      timerTick();
-      break;
-
-    default:
-      break;
-    }
   } else if (regs.interrupt >= 0 && regs.interrupt <= 31) { // ISR
-    // if (regs.interrupt == 14) {
-    //   unsigned int err_pos;
-    //   asm volatile("mov %%cr2, %0" : "=r"(err_pos));
-    //   debugf("Page fault occured at: %x\n", err_pos);
-    // }
+    if (regs.interrupt == 14) {
+      unsigned int err_pos;
+      asm volatile("mov %%cr2, %0" : "=r"(err_pos));
+      debugf("Page fault occured at: %x\n", err_pos);
+    }
     debugf(format, exceptions[regs.interrupt]);
     // if (framebuffer == KERNEL_GFX)
     //   printf(format, exceptions[regs.interrupt]);

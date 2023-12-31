@@ -13,7 +13,7 @@ TARGET_IMG = ../../disk.img
 TARGET_VMWARE = ../../disk.vmdk
 TARGET_ISO = ../../cavOS.iso
 
-OBJS = $(TARGET)/obj/kasm.o $(TARGET)/obj/kc.o $(TARGET)/obj/idt.o $(TARGET)/obj/ata.o $(TARGET)/obj/printf.o $(TARGET)/obj/isr.o $(TARGET)/obj/kb.o $(TARGET)/obj/string.o $(TARGET)/obj/system.o $(TARGET)/obj/util.o $(TARGET)/obj/shell.o $(TARGET)/obj/disk.o $(TARGET)/obj/fat32.o $(TARGET)/obj/rtc.o $(TARGET)/obj/testing.o $(TARGET)/obj/pmm.o $(TARGET)/obj/gdtasm.o $(TARGET)/obj/gdt.o $(TARGET)/obj/timer.o $(TARGET)/obj/schedule.o $(TARGET)/obj/pci.o $(TARGET)/obj/israsm.o $(TARGET)/obj/taskasm.o $(TARGET)/obj/task.o $(TARGET)/obj/liballoc.o $(TARGET)/obj/vga.o $(TARGET)/obj/console.o $(TARGET)/obj/backupconsole.o $(TARGET)/obj/serial.o $(TARGET)/obj/elf.o $(TARGET)/obj/paging.o $(TARGET)/obj/vmm.o $(TARGET)/obj/syscalls.o $(TARGET)/obj/fat32_utils.o $(TARGET)/obj/fat32_fat.o $(TARGET)/obj/fat32_lfn.o $(TARGET)/obj/ne2k.o $(TARGET)/obj/nic_controller.o
+OBJS = $(TARGET)/obj/kasm.o $(TARGET)/obj/kc.o $(TARGET)/obj/idt.o $(TARGET)/obj/ata.o $(TARGET)/obj/printf.o $(TARGET)/obj/isr.o $(TARGET)/obj/kb.o $(TARGET)/obj/string.o $(TARGET)/obj/system.o $(TARGET)/obj/util.o $(TARGET)/obj/shell.o $(TARGET)/obj/disk.o $(TARGET)/obj/fat32.o $(TARGET)/obj/rtc.o $(TARGET)/obj/testing.o $(TARGET)/obj/pmm.o $(TARGET)/obj/gdtasm.o $(TARGET)/obj/gdt.o $(TARGET)/obj/timer.o $(TARGET)/obj/schedule.o $(TARGET)/obj/pci.o $(TARGET)/obj/israsm.o $(TARGET)/obj/taskasm.o $(TARGET)/obj/task.o $(TARGET)/obj/liballoc.o $(TARGET)/obj/vga.o $(TARGET)/obj/console.o $(TARGET)/obj/backupconsole.o $(TARGET)/obj/serial.o $(TARGET)/obj/elf.o $(TARGET)/obj/paging.o $(TARGET)/obj/vmm.o $(TARGET)/obj/syscalls.o $(TARGET)/obj/fat32_utils.o $(TARGET)/obj/fat32_fat.o $(TARGET)/obj/fat32_lfn.o $(TARGET)/obj/ne2k.o $(TARGET)/obj/nic_controller.o $(TARGET)/obj/arp.o $(TARGET)/obj/rtl8139.o
 OUTPUT = $(TARGET)/boot/kernel.bin
 
 all:$(OBJS)
@@ -52,8 +52,11 @@ $(TARGET)/obj/task.o:multitasking/task.c
 $(TARGET)/obj/elf.o:utilities/elf.c
 	$(COMPILER) $(CFLAGS) utilities/elf.c -o $(TARGET)/obj/elf.o 
 	
-$(TARGET)/obj/ne2k.o:drivers/nics/ne2k/ne2k.c
-	$(COMPILER) $(CFLAGS) drivers/nics/ne2k/ne2k.c -o $(TARGET)/obj/ne2k.o 
+$(TARGET)/obj/ne2k.o:drivers/nics/ne2k.c
+	$(COMPILER) $(CFLAGS) drivers/nics/ne2k.c -o $(TARGET)/obj/ne2k.o 
+	
+$(TARGET)/obj/rtl8139.o:drivers/nics/rtl8139.c
+	$(COMPILER) $(CFLAGS) drivers/nics/rtl8139.c -o $(TARGET)/obj/rtl8139.o 
 	
 $(TARGET)/obj/nic_controller.o:drivers/nics/nic_controller.c
 	$(COMPILER) $(CFLAGS) drivers/nics/nic_controller.c -o $(TARGET)/obj/nic_controller.o 
@@ -81,6 +84,9 @@ $(TARGET)/obj/pci.o:drivers/pci.c
 	
 $(TARGET)/obj/gdt.o:cpu/gdt.c
 	$(COMPILER) $(CFLAGS) cpu/gdt.c -o $(TARGET)/obj/gdt.o 
+
+$(TARGET)/obj/arp.o:networking/arp.c
+	$(COMPILER) $(CFLAGS) networking/arp.c -o $(TARGET)/obj/arp.o 
 		
 $(TARGET)/obj/kc.o:entry/kernel.c
 	$(COMPILER) $(CFLAGS) entry/kernel.c -o $(TARGET)/obj/kc.o 
@@ -159,12 +165,12 @@ clean:
 	rm -f $(TARGET_IMG) $(TARGET_VMWARE) $(TARGET_ISO)
 
 qemu:
-	qemu-system-i386 -d guest_errors -serial stdio -drive file=$(TARGET_IMG),format=raw -m 1g -netdev user,id=mynet0 -net nic,model=ne2k_pci,netdev=mynet0
+	qemu-system-i386 -d guest_errors -serial stdio -drive file=$(TARGET_IMG),format=raw -m 1g -netdev user,id=mynet0 -net nic,model=rtl8139,netdev=mynet0
 
 qemu_dbg:
-	qemu-system-i386 -d guest_errors,int -no-shutdown -no-reboot -serial stdio -drive file=$(TARGET_IMG),format=raw -m 1g -netdev user,id=mynet0 -net nic,model=ne2k_pci,netdev=mynet0 -s -S
+	qemu-system-i386 -d guest_errors -no-shutdown -no-reboot -serial stdio -drive file=$(TARGET_IMG),format=raw -m 1g -netdev user,id=mynet0 -net nic,model=rtl8139,netdev=mynet0 -object filter-dump,id=id,netdev=mynet0,file=../../netdmp.pcapng
 
 qemu_iso:
-	qemu-system-i386 -d guest_errors -serial stdio -drive file=$(TARGET_ISO),format=raw -m 1g -netdev user,id=mynet0 -net nic,model=ne2k_pci,netdev=mynet0
+	qemu-system-i386 -d guest_errors -serial stdio -drive file=$(TARGET_ISO),format=raw -m 1g -netdev user,id=mynet0 -net nic,model=rtl8139,netdev=mynet0
 
 dev:clean disk qemu_dbg

@@ -5,6 +5,9 @@ target/software/*.cav
 disk.img
 disk.vmdk
 
+# Wireshark network dumps
+*.pcapng
+
 # Could obviously contain sensitive data
 .idea/
 Session.vim

@@ -15,6 +15,7 @@ typedef struct {
 
 void isr_install();
 void handle_interrupt(AsmPassedInterrupt regs);
+void registerIRQhandler(uint8_t id, void *handler);
 
 void  asm_isr_exit();
 void *asm_isr_redirect_table[];

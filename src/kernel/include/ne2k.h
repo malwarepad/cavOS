@@ -41,6 +41,6 @@ typedef struct ne2k_interface {
 } ne2k_interface;
 
 bool initiateNe2000(PCIdevice *device);
-void sendNe2000(NIC *nic, netPacket *packet, uint32_t packetSize);
+void sendNe2000(NIC *nic, void *packet, uint32_t packetSize);
 
 #endif

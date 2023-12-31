@@ -109,5 +109,10 @@ void initiatePCI();
 int  FilterDevice(uint8_t bus, uint8_t slot, uint8_t function);
 void GetDevice(PCIdevice *device, uint8_t bus, uint8_t slot, uint8_t function);
 void GetGeneralDevice(PCIdevice *device, PCIgeneralDevice *out);
+void ConfigWriteDword(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset,
+                      uint32_t conf);
+
+uint32_t combineWord(uint16_t msb, uint16_t lsb);
+uint8_t  exportByte(uint32_t target, bool first);
 
 #endif

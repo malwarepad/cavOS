@@ -6,6 +6,7 @@
 uint32_t sysalloc_base;
 
 void *VirtualAllocate(int pages);
+void *VirtualAllocatePhysicallyContiguous(int pages);
 int   VirtualFree(void *ptr, int pages);
 
 #endif

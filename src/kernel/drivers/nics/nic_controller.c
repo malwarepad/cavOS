@@ -1,5 +1,8 @@
 #include <ne2k.h>
 #include <nic_controller.h>
+#include <rtl8139.h>
+#include <system.h>
+#include <util.h>
 
 // Manager for all connected network interfaces
 // Copyright (C) 2023 Panagiotis
@@ -13,6 +16,7 @@ void initiateNetworking() {
 
 void initiateNIC(PCIdevice *device) {
   initiateNe2000(device);
+  initiateRTL8139(device);
   // ill add more NICs in the future
   // (lie)
 }
@@ -36,4 +40,31 @@ NIC *createNewNIC() {
   }
   selectedNIC = nic;
   return nic;
+}
+
+void sendPacket(NIC *nic, uint8_t *destination_mac, void *data, uint32_t size,
+                uint16_t protocol) {
+  netPacketHeader *packet = malloc(sizeof(netPacketHeader) + size);
+  void            *packetData = (void *)packet + sizeof(netPacketHeader);
+
+  memcpy(packet->source_mac, nic->MAC, 6);
+  memset(packet->destination_mac, 0, 6);
+  packet->ethertype = switch_endian_16(protocol);
+
+  memcpy(packetData, data, size);
+
+  switch (nic->type) {
+  case NE2000:
+    sendNe2000(nic, packet, sizeof(netPacketHeader) + size);
+    break;
+  case RTL8139:
+    sendRTL8139(nic, packet, sizeof(netPacketHeader) + size);
+    break;
+  }
+
+  free(packet);
+}
+
+void handlePacket(NIC *nic, void *packet, uint32_t size) {
+  // handle packet
 }

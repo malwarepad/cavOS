@@ -25,6 +25,14 @@ uint16_t ConfigReadWord(uint8_t bus, uint8_t slot, uint8_t func,
   return tmp;
 }
 
+void ConfigWriteDword(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset,
+                      uint32_t conf) {
+  uint32_t address = (uint32_t)((bus << 16) | (slot << 11) | (func << 8) |
+                                (offset & 0xfc) | ((uint32_t)0x80000000));
+  outportl(PCI_CONFIG_ADDRESS, address);
+  outportl(PCI_CONFIG_DATA, conf);
+}
+
 uint8_t exportByte(uint32_t target, bool first) {
   if (first)
     return target & ~0xFF00;

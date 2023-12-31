@@ -29,6 +29,23 @@ void *VirtualAllocate(int pages) {
   return (void *)base;
 }
 
+void *VirtualAllocatePhysicallyContiguous(int pages) {
+  lockInterrupts();
+  void *physical = BitmapAllocate(pages);
+  for (int i = 0; i < pages; i++) {
+    VirtualMap(sysalloc_base + i * PAGE_SIZE, physical + i * PAGE_SIZE, 0);
+  }
+  memset((void *)sysalloc_base, 0, pages);
+  void *target = (void *)sysalloc_base;
+  sysalloc_base += pages * PAGE_SIZE;
+  // for (int i = 0; i < 3; i++) {
+  //   VirtualUnmap(sysalloc_base + i * PAGE_SIZE);
+  // }
+  // return physical;
+  releaseInterrupts();
+  return target;
+}
+
 int VirtualFree(void *ptr, int pages) {
   lockInterrupts();
   for (int i = 0; i < pages; i++) {
