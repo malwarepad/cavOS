@@ -10,11 +10,23 @@ typedef enum NIC_TYPE { NE2000, RTL8139 } NIC_TYPE;
 
 typedef struct NIC NIC;
 
+// why are there arp stuff here???!
+#define ARP_TABLE_LEN 512
+typedef struct arpTableEntry {
+  uint8_t ip[4];
+  uint8_t mac[6];
+} arpTableEntry;
+
 struct NIC {
   NIC_TYPE type;
   uint32_t infoLocation;
-  uint8_t  MAC[5];
+  uint8_t  MAC[6];
+  uint8_t  ip[4];
   uint8_t  irq;
+
+  // ARP
+  arpTableEntry arpTable[ARP_TABLE_LEN];
+  uint32_t      arpTableCurr;
 
   NIC *next;
 };
@@ -39,6 +51,9 @@ typedef struct netPacket {
   netPacketHeader header;
   void           *data;
 } netPacket;
+
+/* Ethertypes/Protocols */
+enum NET_ETHERTYPES { NET_ETHERTYPE_ARP = 0x0806 };
 
 void sendPacket(NIC *nic, uint8_t *destination_mac, void *data, uint32_t size,
                 uint16_t protocol);

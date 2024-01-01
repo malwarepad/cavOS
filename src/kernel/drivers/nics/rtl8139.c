@@ -20,9 +20,14 @@ uint8_t TSD_array[4] = {0x10, 0x14, 0x18, 0x1C};
 // Track current packet (when receiving)
 uint32_t currentPacket;
 
+// Defaults (should be 0.0.0.0 but whatever)
+uint8_t defaultIP[4] = {10, 0, 2, 0};
+
 bool isRTL8139(PCIdevice *device) {
   return (device->vendor_id == 0x10ec && device->device_id == 0x8139);
 }
+
+#define RTL8139_DEBUG 0
 
 // todo: make an API which ensures each PCI device has it's own IRQ
 void interruptHandler(AsmPassedInterrupt *regs) {
@@ -32,10 +37,14 @@ void interruptHandler(AsmPassedInterrupt *regs) {
   uint16_t status = inportw(iobase + RTL8139_REG_ISR);
 
   if (status & RTL8139_STATUS_TOK) {
-    debugf("Packet sent\n");
+#ifdef RTL8139_DEBUG
+    debugf("[networking//rtl8139//irq] Packet sent\n");
+#endif
   }
   if (status & RTL8139_STATUS_ROK) {
-    debugf("Received packet. Processing...\n");
+#ifdef RTL8139_DEBUG
+    debugf("[networking//rtl8139//irq] Processing packet...\n");
+#endif
     receiveRTL8139(selectedNIC);
   }
   outportw(info->iobase + RTL8139_REG_ISR, 0x5);
@@ -109,6 +118,8 @@ bool initiateRTL8139(PCIdevice *device) {
   nic->MAC[4] = MAC5_6 >> 0;
   nic->MAC[5] = MAC5_6 >> 8;
 
+  memcpy(nic->ip, defaultIP, 4);
+
   // waste of memory:
   // debugf("    [+] MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n",
   //        selectedNIC->MAC[0], selectedNIC->MAC[1], selectedNIC->MAC[2],
@@ -132,6 +143,8 @@ void sendRTL8139(NIC *nic, void *packet, uint32_t packetSize) {
   outportl(iobase + TSD_array[info->tx_curr++], packetSize);
   if (info->tx_curr > 3)
     info->tx_curr = 0;
+
+  free(contiguousContainer); // the IRQ hits before this segement is reached
 }
 
 void receiveRTL8139(NIC *nic) {

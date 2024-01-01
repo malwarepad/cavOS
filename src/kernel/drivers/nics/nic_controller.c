@@ -1,3 +1,4 @@
+#include <arp.h>
 #include <ne2k.h>
 #include <nic_controller.h>
 #include <rtl8139.h>
@@ -48,7 +49,7 @@ void sendPacket(NIC *nic, uint8_t *destination_mac, void *data, uint32_t size,
   void            *packetData = (void *)packet + sizeof(netPacketHeader);
 
   memcpy(packet->source_mac, nic->MAC, 6);
-  memset(packet->destination_mac, 0, 6);
+  memcpy(packet->destination_mac, destination_mac, 6);
   packet->ethertype = switch_endian_16(protocol);
 
   memcpy(packetData, data, size);
@@ -66,5 +67,17 @@ void sendPacket(NIC *nic, uint8_t *destination_mac, void *data, uint32_t size,
 }
 
 void handlePacket(NIC *nic, void *packet, uint32_t size) {
-  // handle packet
+  netPacketHeader *header = (netPacketHeader *)packet;
+  void            *body = (void *)((uint32_t)packet + sizeof(netPacketHeader));
+  switch (switch_endian_16(header->ethertype)) {
+  case NET_ETHERTYPE_ARP:
+    netArpHandle(nic, body);
+    break;
+  default:
+    debugf("[networking//RAW] odd ethertype: exact{%X} reversed{%X}",
+           header->ethertype, switch_endian_16(header->ethertype));
+    break;
+  }
+
+  free(packet);
 }

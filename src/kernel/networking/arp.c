@@ -8,42 +8,118 @@
 // Converts MAC -> IP(v4)
 // Copyright (C) 2023 Panagiotis
 
-uint8_t emptyMAC[6] = {0, 0, 0, 0, 0, 0};
+// Xerox destination (zero'd)
+uint8_t broadcastMAC[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
-// DO NOT USE THIS YET!
-// (just a test ARP broadcast)
-void testArpBroadcast() {
-  NIC *nic = selectedNIC;
-  if (!nic)
-    return;
+/* Arp tables (send help) */
+void registerArpTableEntry(NIC *nic, uint8_t *ip, uint8_t *mac) {
+  arpTableEntry *entry = &nic->arpTable[nic->arpTableCurr++];
 
-  arpPacket *arp = malloc(sizeof(arpPacket));
+  memcpy(entry->ip, ip, ARP_PROTOCOL_SIZE);
+  memcpy(entry->mac, mac, ARP_HARDWARE_SIZE);
 
-  arp->hardware_type = switch_endian_16(0x1);
-  arp->protocol_type = switch_endian_16(0x0800);
-  arp->hardware_size = 6;
-  arp->protocol_size = 4;
-  arp->opcode = switch_endian_16(ARP_OP_REQUEST);
+  // Overwrite table from the start
+  if (nic->arpTableCurr >= ARP_TABLE_LEN)
+    nic->arpTableCurr = 0;
+}
 
-  for (int i = 0; i < 6; i++) {
-    arp->sender_mac[i] = nic->MAC[i];
-    arp->target_mac[i] = 0;
+arpTableEntry *lookupArpTable(NIC *nic, uint8_t *ip) {
+  for (int i = 0; i < ARP_TABLE_LEN; i++) {
+    if (*(uint32_t *)(&nic->arpTable[i].ip[0]) == *(uint32_t *)(ip))
+      return &nic->arpTable[i];
   }
 
-  arp->sender_ip[0] = 10;
-  arp->sender_ip[1] = 0;
-  arp->sender_ip[2] = 2;
-  arp->sender_ip[3] = 0;
+  return 0; // null ptr
+}
 
-  arp->target_ip[0] = 192;
-  arp->target_ip[1] = 168;
-  arp->target_ip[2] = 2;
-  arp->target_ip[3] = 5;
+/* The send/respond functions don't manipualte the arc table at all, that's the
+ * job of the handle function, called by the generic NIC interface controller*/
+
+void netArpSend(NIC *nic, uint8_t *ip) {
+  arpPacket *arp = malloc(sizeof(arpPacket));
+  memset(arp, 0, sizeof(arpPacket));
+
+  arp->hardware_type = switch_endian_16(ARP_HARDWARE_TYPE);
+  arp->protocol_type = switch_endian_16(ARP_PROTOCOL_TYPE);
+  arp->hardware_size = ARP_HARDWARE_SIZE;
+  arp->protocol_size = ARP_PROTOCOL_SIZE;
+  arp->opcode = switch_endian_16(ARP_OP_REQUEST);
+
+  memcpy(arp->sender_ip, nic->ip, ARP_PROTOCOL_SIZE);
+  memcpy(arp->sender_mac, nic->MAC, ARP_HARDWARE_SIZE);
+
+  memset(arp->target_mac, 0, ARP_HARDWARE_SIZE); // we don't know it!
+  memcpy(arp->target_ip, ip, ARP_PROTOCOL_SIZE);
 
   // Send packet
-  printf("sending...\n");
-  sendPacket(nic, emptyMAC, arp, sizeof(arpPacket), 0x0806);
+  sendPacket(nic, broadcastMAC, arp, sizeof(arpPacket), NET_ETHERTYPE_ARP);
 
   free(arp);
-  printf("sent!\n");
+}
+
+void netArpReply(NIC *nic, arpPacket *arpRequest) {
+  arpPacket *arpResponse = (arpPacket *)malloc(sizeof(arpPacket));
+  memset(arpResponse, 0, sizeof(arpPacket));
+
+  arpResponse->hardware_type = switch_endian_16(ARP_HARDWARE_TYPE);
+  arpResponse->protocol_type = switch_endian_16(ARP_PROTOCOL_TYPE);
+  arpResponse->hardware_size = ARP_HARDWARE_SIZE;
+  arpResponse->protocol_size = ARP_PROTOCOL_SIZE;
+  arpResponse->opcode = switch_endian_16(ARP_OP_REPLY);
+
+  memcpy(arpResponse->sender_ip, nic->ip, ARP_PROTOCOL_SIZE);
+  memcpy(arpResponse->sender_mac, nic->MAC, ARP_HARDWARE_SIZE);
+
+  memcpy(arpResponse->target_mac, arpRequest->sender_mac, ARP_HARDWARE_SIZE);
+  memcpy(arpResponse->target_ip, arpRequest->sender_ip, ARP_PROTOCOL_SIZE);
+
+  // Send packet
+  sendPacket(nic, arpRequest->sender_mac, arpResponse, sizeof(arpPacket),
+             NET_ETHERTYPE_ARP);
+
+  free(arpResponse);
+}
+
+void netArpHandle(NIC *nic, arpPacket *packet) {
+  switch (switch_endian_16(packet->opcode)) {
+  case ARP_OP_REQUEST:
+    netArpReply(nic, packet);
+    break;
+  case ARP_OP_REPLY:
+    // no need to reply to a response... lol.
+    break;
+  default:
+    debugf("[networking//arp] odd opcode: exact{%X} reversed{%X}",
+           packet->opcode, switch_endian_16(packet->opcode));
+    break;
+  }
+
+  if (!lookupArpTable(nic, packet->sender_ip)) { // unless already stored
+    // store the ip & mac regardless of request
+    registerArpTableEntry(nic, packet->sender_ip, packet->sender_mac);
+  }
+}
+
+// The ONLY function an end user should interact with
+bool netArpGetIPv4(NIC *nic, const uint8_t *ip, uint8_t *mac) {
+  if (memcmp(nic->ip, ip, 4)) {
+    // your own ip dummy
+    memcpy(mac, nic->ip, 6);
+    return true;
+  }
+
+  arpTableEntry *tableEntry = lookupArpTable(nic, ip);
+  if (tableEntry) {
+    memcpy(mac, tableEntry->mac, 6);
+    return true;
+  }
+
+  netArpSend(nic, ip);
+  sleep(1000); // t = 1000 ms = 1 s
+
+  arpTableEntry *tableEntryRetry = lookupArpTable(nic, ip);
+  if (tableEntryRetry) {
+    memcpy(mac, tableEntryRetry->mac, 6);
+    return true;
+  }
 }

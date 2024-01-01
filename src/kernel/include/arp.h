@@ -1,3 +1,4 @@
+#include "nic_controller.h"
 #include "types.h"
 
 #ifndef ARP_H
@@ -20,6 +21,16 @@ enum ARPOperation {
   ARP_OP_REPLY = 0x02,
 };
 
-void testArpBroadcast();
+#define ARP_HARDWARE_TYPE 0x0001
+#define ARP_PROTOCOL_TYPE 0x0800
+
+#define MAC_BYTE_SIZE 6  // MAC addresses are always 6 bytes long
+#define IPv4_BYTE_SIZE 4 // IP(v4) addresses are always 4 bytes long
+
+#define ARP_HARDWARE_SIZE MAC_BYTE_SIZE
+#define ARP_PROTOCOL_SIZE IPv4_BYTE_SIZE
+
+void netArpSend(NIC *nic, uint8_t *ip);
+void netArpHandle(NIC *nic, arpPacket *packet);
 
 #endif
