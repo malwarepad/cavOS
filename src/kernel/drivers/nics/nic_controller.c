@@ -78,6 +78,4 @@ void handlePacket(NIC *nic, void *packet, uint32_t size) {
            header->ethertype, switch_endian_16(header->ethertype));
     break;
   }
-
-  free(packet);
 }
