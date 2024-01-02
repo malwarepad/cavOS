@@ -37,12 +37,12 @@ void interruptHandler(AsmPassedInterrupt *regs) {
   uint16_t status = inportw(iobase + RTL8139_REG_ISR);
 
   if (status & RTL8139_STATUS_TOK) {
-#ifdef RTL8139_DEBUG
+#if RTL8139_DEBUG
     debugf("[networking//rtl8139//irq] Packet sent\n");
 #endif
   }
   if (status & RTL8139_STATUS_ROK) {
-#ifdef RTL8139_DEBUG
+#if RTL8139_DEBUG
     debugf("[networking//rtl8139//irq] Processing packet...\n");
 #endif
     receiveRTL8139(selectedNIC);

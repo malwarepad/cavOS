@@ -58,8 +58,6 @@ void testingInit() {
   // packet->header.ethertype = 0;
   // printf("sending...\n");
   // sendNe2000(selectedNIC, packet, size);
-  uint8_t thing[4] = {192, 168, 122, 253};
-  netArpSend(selectedNIC, thing);
 #endif
 #if PCI_READ
   for (uint8_t bus = 0; bus < PCI_MAX_BUSES; bus++) {

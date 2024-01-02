@@ -74,7 +74,7 @@ void handlePacket(NIC *nic, void *packet, uint32_t size) {
     netArpHandle(nic, body);
     break;
   default:
-    debugf("[networking//RAW] odd ethertype: exact{%X} reversed{%X}",
+    debugf("[networking//RAW] odd ethertype: exact{%X} reversed{%X}\n",
            header->ethertype, switch_endian_16(header->ethertype));
     break;
   }

@@ -30,7 +30,11 @@ enum ARPOperation {
 #define ARP_HARDWARE_SIZE MAC_BYTE_SIZE
 #define ARP_PROTOCOL_SIZE IPv4_BYTE_SIZE
 
+bool netArpGetIPv4(NIC *nic, const uint8_t *ip, uint8_t *mac);
+
 void netArpSend(NIC *nic, uint8_t *ip);
 void netArpHandle(NIC *nic, arpPacket *packet);
+
+void debugArpTable(NIC *nic);
 
 #endif

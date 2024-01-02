@@ -1,3 +1,4 @@
+#include <arp.h>
 #include <fat32.h>
 #include <liballoc.h>
 #include <pci.h>
@@ -82,6 +83,37 @@ void launch_shell(int n) {
       fsList();
     } else if (strEql(ch, "readfatfile")) {
       fileReaderTest();
+    } else if (strEql(ch, "arptable")) {
+      debugArpTable(selectedNIC);
+    } else if (strEql(ch, "arping")) {
+      printf("\nTesting ARP capabilities (pinging 192.168.122.253)...\n");
+      uint8_t  thing[4] = {192, 168, 122, 1};
+      uint8_t *mac = (uint8_t *)malloc(6);
+      bool     test = netArpGetIPv4(selectedNIC, thing, mac);
+      if (!test)
+        printf("MAC address cannot be parsed!\n");
+      else
+        printf("MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", mac[0], mac[1], mac[2],
+               mac[3], mac[4], mac[5]);
+
+      free(mac);
+    } else if (strEql(ch, "net")) {
+      printf("\nWarning: networking is still very early in testing!\n");
+      printf("=========================================\n");
+      printf("==       Networking configuration      ==\n");
+      printf("==      Copyright MalwarePad 2023      ==\n");
+      printf("=========================================\n\n");
+      NIC *nic = firstNIC;
+      while (nic != 0) {
+        if (nic == selectedNIC)
+          printf("[%d]: ", nic->type);
+        else
+          printf("%d: ", nic->type);
+        printf("%02X:%02X:%02X:%02X:%02X:%02X // %d.%d.%d.%d\n", nic->MAC[0],
+               nic->MAC[1], nic->MAC[2], nic->MAC[3], nic->MAC[4], nic->MAC[5],
+               nic->ip[0], nic->ip[1], nic->ip[2], nic->ip[3]);
+        nic = nic->next;
+      }
     } else if (strEql(ch, "lspci")) {
       printf("\n");
       for (uint8_t bus = 0; bus < PCI_MAX_BUSES; bus++) {

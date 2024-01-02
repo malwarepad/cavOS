@@ -32,6 +32,22 @@ arpTableEntry *lookupArpTable(NIC *nic, uint8_t *ip) {
   return 0; // null ptr
 }
 
+void debugArpTable(NIC *nic) {
+  printf("\n");
+  for (int i = 0; i < ARP_TABLE_LEN; i++) {
+    if (!(*(uint32_t *)(&nic->arpTable[i].ip[0])))
+      continue;
+
+    printf("{ip: %d.%d.%d.%d, mac: %02X:%02X:%02X:%02X:%02X:%02X}\n",
+           nic->arpTable[i].ip[0], nic->arpTable[i].ip[1],
+           nic->arpTable[i].ip[2], nic->arpTable[i].ip[3],
+           nic->arpTable[i].mac[0], nic->arpTable[i].mac[1],
+           nic->arpTable[i].mac[2], nic->arpTable[i].mac[3],
+           nic->arpTable[i].mac[4], nic->arpTable[i].mac[5]);
+  }
+  printf("\n");
+}
+
 /* The send/respond functions don't manipualte the arc table at all, that's the
  * job of the handle function, called by the generic NIC interface controller*/
 
@@ -89,10 +105,16 @@ void netArpHandle(NIC *nic, arpPacket *packet) {
     // no need to reply to a response... lol.
     break;
   default:
-    debugf("[networking//arp] odd opcode: exact{%X} reversed{%X}",
+    debugf("[networking//arp] odd opcode: exact{%X} reversed{%X}\n",
            packet->opcode, switch_endian_16(packet->opcode));
     break;
   }
+
+  /*printf("GOT SMTH!! {ip: %d.%d.%d.%d, mac: %02X:%02X:%02X:%02X:%02X:%02X}\n",
+         packet->sender_ip[0], packet->sender_ip[1], packet->sender_ip[2],
+         packet->sender_ip[3], packet->sender_mac[0], packet->sender_mac[1],
+         packet->sender_mac[2], packet->sender_mac[3], packet->sender_mac[4],
+         packet->sender_mac[5]);*/
 
   if (!lookupArpTable(nic, packet->sender_ip)) { // unless already stored
     // store the ip & mac regardless of request
@@ -102,9 +124,9 @@ void netArpHandle(NIC *nic, arpPacket *packet) {
 
 // The ONLY function an end user should interact with
 bool netArpGetIPv4(NIC *nic, const uint8_t *ip, uint8_t *mac) {
-  if (memcmp(nic->ip, ip, 4)) {
+  if (memcmp(nic->ip, ip, 4) == 0) {
     // your own ip dummy
-    memcpy(mac, nic->ip, 6);
+    memcpy(mac, nic->MAC, 6);
     return true;
   }
 
@@ -116,10 +138,13 @@ bool netArpGetIPv4(NIC *nic, const uint8_t *ip, uint8_t *mac) {
 
   netArpSend(nic, ip);
   sleep(1000); // t = 1000 ms = 1 s
+  // todo time it out effectively with RTC
 
   arpTableEntry *tableEntryRetry = lookupArpTable(nic, ip);
   if (tableEntryRetry) {
     memcpy(mac, tableEntryRetry->mac, 6);
     return true;
   }
+
+  return false;
 }
