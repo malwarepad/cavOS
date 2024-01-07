@@ -1,154 +1,32 @@
+#include <paging.h>
 #include <pmm.h>
 #include <system.h>
 #include <util.h>
+#include <vmm.h>
 
-// Bitmap-based memory allocation algorythm
+// Physical memory space manager/allocator
 // Copyright (C) 2023 Panagiotis
 
-uint32_t *Bitmap;
-uint32_t  BitmapSizeInBlocks = 0;
-uint32_t  BitmapSizeInBytes = 0;
+void initiatePMM() {
+  DS_Bitmap *bitmap = &physical; // pointer to pmm bitmap (used later)
+  bitmap->ready = false;         // for bitmap dependency of vmm
 
-uint64_t mem_start = 0;
+  physical.BitmapSizeInBlocks = DivRoundUp(mbi_memorySize, BLOCK_SIZE);
+  physical.BitmapSizeInBytes = DivRoundUp(physical.BitmapSizeInBlocks, 8);
 
-/* Conversion utilities */
+  // paging.c uses bitframe allocation, and we need to compute and give it some
+  // temporary memory to work with
+  uint32_t pageTablesRequired =
+      DivRoundUp(DivRoundUp(physical.BitmapSizeInBytes, PAGE_SIZE), 1024);
 
-void *ToPtr(uint32_t block) {
-  uint8_t *u8Ptr = (uint8_t *)(mem_start + (block * BLOCK_SIZE));
-  return (void *)(u8Ptr);
-}
-
-uint32_t ToBlock(void *ptr) {
-  uint8_t *u8Ptr = (uint8_t *)ptr;
-  return (uint32_t)(u8Ptr - mem_start) / BLOCK_SIZE;
-}
-
-uint32_t ToBlockRoundUp(void *ptr) {
-  uint8_t *u8Ptr = (uint8_t *)ptr;
-  return (uint32_t)DivRoundUp((uint32_t)(u8Ptr - mem_start), BLOCK_SIZE);
-}
-
-/* Bitmap data structure essentials */
-
-int Get(uint32_t block) {
-  uint32_t addr = block / BLOCKS_PER_BYTE;
-  uint32_t offset = block % BLOCKS_PER_BYTE;
-  return (Bitmap[addr] & (1 << offset)) != 0;
-}
-
-void Set(uint32_t block, bool value) {
-  uint32_t addr = block / BLOCKS_PER_BYTE;
-  uint32_t offset = block % BLOCKS_PER_BYTE;
-  if (value)
-    Bitmap[addr] |= (1 << offset);
-  else
-    Bitmap[addr] &= ~(1 << offset);
-}
-
-/* Debugging functions */
-
-void BitmapDump() {
-  uint32_t repeatInterval = DivRoundUp(BitmapSizeInBlocks, BLOCKS_PER_BYTE);
-  printf("=== BYTE DUMPING %d -> %d BLOCKS ===\n", BitmapSizeInBlocks,
-         repeatInterval);
-  for (int i = 0; i < repeatInterval; i++) {
-    printf("%x ", Bitmap[i]);
-  }
-  printf("\n");
-}
-
-void BitmapDumpBlocks() {
-  debugf("=== BLOCK DUMPING %d ===\n", BitmapSizeInBlocks);
-  for (int i = 0; i < 512; i++) {
-    debugf("%d ", Get(i));
-  }
-  debugf("\n");
-}
-
-/* Marking large chunks of memory */
-
-void MarkBlocks(uint32_t start, uint32_t size, bool val) {
-  for (uint32_t i = start; i < start + size; i++) {
-    Set(i, val);
-  }
-}
-
-void MarkRegion(void *basePtr, size_t sizeBytes, int isUsed) {
-  uint32_t base;
-  size_t   size;
-
-  if (isUsed) {
-    base = ToBlock(basePtr);
-    size = DivRoundUp(sizeBytes, BLOCK_SIZE);
-  } else {
-    base = ToBlockRoundUp(basePtr);
-    size = sizeBytes / BLOCK_SIZE;
-  }
-
-  MarkBlocks(base, size, isUsed);
-}
-
-uint32_t FindFreeRegion(uint32_t blocks) {
-  uint32_t currentRegionStart = 0;
-  uint32_t currentRegionSize = 0;
-
-  for (uint32_t i = 0; i < BitmapSizeInBlocks; i++) {
-    if (Get(i)) {
-      currentRegionSize = 0;
-      currentRegionStart = i + 1;
-    } else {
-      currentRegionSize++;
-      if (currentRegionSize >= blocks)
-        return currentRegionStart;
-    }
-  }
-
-  return INVALID_BLOCK;
-}
-
-void *BitmapAllocate(uint32_t blocks) {
-  if (blocks == 0)
-    return;
-
-  uint32_t pickedRegion = FindFreeRegion(blocks);
-  if (pickedRegion == INVALID_BLOCK) {
-    printf("no!");
-    panic();
-  }
-
-  MarkBlocks(pickedRegion, blocks, 1);
-  return ToPtr(pickedRegion);
-}
-
-uint32 BitmapAllocatePageframe() {
-  uint32_t pickedRegion = FindFreeRegion(1);
-  if (pickedRegion == INVALID_BLOCK) {
-    printf("no!");
-    panic();
-  }
-  MarkBlocks(pickedRegion, 1, 1);
-
-  return (mem_start + (pickedRegion * BLOCK_SIZE));
-}
-
-void BitmapFreePageframe(uint32_t addr) { MarkRegion(addr, BLOCK_SIZE * 1, 0); }
-
-void BitmapFree(void *base, uint32_t blocks) {
-  MarkRegion(base, BLOCK_SIZE * blocks, 0);
-}
-
-void initiateBitmap() {
-  BitmapSizeInBlocks = DivRoundUp(mbi_memorySize, BLOCK_SIZE);
-  BitmapSizeInBytes = DivRoundUp(BitmapSizeInBlocks, BLOCKS_PER_BYTE);
-
-  uint8_t found = 0;
-
+  uint8_t                 found = 0;
   multiboot_memory_map_t *mmmt;
 
   for (int i = 0; i < memoryMapCnt; i++) {
     mmmt = memoryMap[i];
     if (mmmt->type == MULTIBOOT_MEMORY_AVAILABLE &&
-        (mmmt->len) >= BitmapSizeInBytes) {
+        (mmmt->len) >=
+            (physical.BitmapSizeInBytes + pageTablesRequired * PAGE_SIZE)) {
       // debugf("[%x %x - %x %x] {%x}\n", mmmt->addr_low, mmmt->len_high,
       //        mmmt->len_low, mmmt->type);
       found = 1;
@@ -156,27 +34,41 @@ void initiateBitmap() {
     }
   }
 
-  // todo: (1) access all memory instead and put bitmap on a more
-  // todo: predictable place so no overlaps happen
-
   if (!found) {
     printf(
         "[+] Bitmap allocator: Not enough memory!\n> %d required, %d found!\n",
-        BitmapSizeInBytes, mbi_memorySize);
+        physical.BitmapSizeInBytes, mbi_memorySize);
     panic();
     return 1;
   }
 
-  debugf("Bitmap size in bytes: %d\n", BitmapSizeInBytes);
+  debugf("Bitmap size in bytes: %d\n", physical.BitmapSizeInBytes);
 
-  Bitmap = (uint32_t *)(mmmt->addr + 0xC0000000); // todo: follow (1)
+  registerTmpPageFrame(mmmt->addr);
+  uint32_t pageframeStart = mmmt->addr;
+  mmmt->addr += pageTablesRequired * 4096;
 
-  //    for (int i = 0; i < BitmapSizeInBlocks; i++) Bitmap[i] = 0xffffffff;
-  for (int i = 0; i < BitmapSizeInBlocks; i++)
-    Set(i, true);
+  uint32_t bitmapStart =
+      0xD0000000 -
+      (DivRoundUp(bitmap->BitmapSizeInBytes, PAGE_SIZE) * PAGE_SIZE);
+  uint32_t bitmapStartPhys = mmmt->addr;
 
-  //    MarkBlocks(0x0, 4, false);
-  // MarkRegion((void *)(mem_start + 0x0), BLOCK_SIZE * 64, false);
+  physical.Bitmap = (uint32_t *)bitmapStart;
+  for (int i = 0; i < DivRoundUp(bitmap->BitmapSizeInBytes, PAGE_SIZE); i++) {
+    debugf("[%d] virt: %x phys: %x\n", i, bitmapStart + i * PAGE_SIZE,
+           (uint32_t)mmmt->addr + i * PAGE_SIZE);
+    VirtualMap(bitmapStart + i * PAGE_SIZE,
+               (uint32_t)mmmt->addr + i * PAGE_SIZE, 0);
+  }
+
+  // When I found memory region issues, used this for debugging
+  // for (int i = 0; i < physical.BitmapSizeInBlocks; i++) {
+  // BitmapSet(bitmap, i, true);
+  // debugf("%d/%d ", i, physical.BitmapSizeInBlocks);
+  // }
+  // debugf("\n");
+
+  memset(physical.Bitmap, 0xff, physical.BitmapSizeInBytes);
 
   // for (int i = 0; i < memoryMapCnt; i++) {
   //   mmmt = memoryMap[i];
@@ -202,26 +94,44 @@ void initiateBitmap() {
     if (mmmt->addr > mbi_memorySize)
       continue;
     if (mmmt->type == MULTIBOOT_MEMORY_AVAILABLE)
-      debugf("%lx\n", mmmt->addr);
+      debugf("%x-%x\n", (uint32_t)mmmt->addr,
+             (uint32_t)mmmt->addr + (uint32_t)mmmt->len);
     if (mmmt->type == MULTIBOOT_MEMORY_AVAILABLE && mmmt->len > best_len) {
       best_start = mmmt->addr;
       best_len = mmmt->len;
     }
   }
 
-  MarkBlocks(ToBlockRoundUp(best_start), best_len / BLOCK_SIZE, 0);
+  // todo: extend this to the whole physical memory space!
+  MarkBlocks(bitmap, ToBlockRoundUp(bitmap, best_start), best_len / BLOCK_SIZE,
+             0);
 
   for (int i = 0; i < memoryMapCnt; i++) {
     mmmt = memoryMap[i];
     if (mmmt->addr > mbi_memorySize)
       continue;
     if (mmmt->type != MULTIBOOT_MEMORY_AVAILABLE) {
-      debugf("x %lx\n", mmmt->addr);
-      MarkBlocks(ToBlock(mmmt->addr), DivRoundUp(mmmt->len, BLOCK_SIZE), 1);
+      debugf("x %x-%x\n", (uint32_t)mmmt->addr,
+             (uint32_t)mmmt->addr + (uint32_t)mmmt->len);
+      MarkBlocks(bitmap, ToBlock(bitmap, mmmt->addr),
+                 DivRoundUp(mmmt->len, BLOCK_SIZE), 1);
     }
   }
 
-  MarkRegion(Bitmap, BitmapSizeInBytes, 1);
+  MarkRegion(bitmap, (void *)bitmapStartPhys, physical.BitmapSizeInBytes, 1);
+  MarkRegion(bitmap, (void *)pageframeStart, pageTablesRequired * 4096, 1);
+  MarkRegion(&physical, (void *)0x100000, 4096 * 10, 1); // qemu hack xd
 
-  BitmapDumpBlocks();
+  // for (uint32_t base = (0x100000 / BLOCK_SIZE) / 8;
+  //      base < ((0x100000 / BLOCK_SIZE) / 8) + 128; base++) {
+  //   debugf("%02X ", physical.Bitmap[base]);
+  // }
+  // debugf("\n");
+
+  debugf("bitmapStartPhys: 0x%x{%d} pageFrameStart: 0x%x{%d}\n",
+         bitmapStartPhys, physical.BitmapSizeInBytes, pageframeStart,
+         pageTablesRequired * 4096);
+
+  BitmapDumpBlocks(bitmap);
+  bitmap->ready = true;
 }

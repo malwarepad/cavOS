@@ -1,5 +1,5 @@
-#include <paging.h>
 #include <liballoc.h>
+#include <paging.h>
 #include <types.h>
 #include <util.h>
 
@@ -14,6 +14,15 @@ int mem_num_vpages;
 #define NUM_PAGE_DIRS 256
 static uint32_t page_dirs[NUM_PAGE_DIRS][1024] __attribute__((aligned(4096)));
 static uint8_t  page_dir_used[NUM_PAGE_DIRS];
+
+// only needed for max 32 4096-blocks
+uint32_t tmppageframeStart = 0;
+void     registerTmpPageFrame(uint32_t target) { tmppageframeStart = target; }
+uint32_t TempPageFrame() {
+  uint32_t fin = tmppageframeStart;
+  tmppageframeStart += PAGE_SIZE;
+  return fin;
+}
 
 void initiatePaging() {
   // unmap the first 4 mb
@@ -86,7 +95,8 @@ void VirtualMap(uint32_t virt_addr, uint32_t phys_addr, uint32_t flags) {
 
   if (!(page_dir[pd_index] & PAGE_FLAG_PRESENT)) {
     // allocate a page table
-    uint32_t pt_paddr = BitmapAllocatePageframe();
+    uint32_t pt_paddr =
+        physical.ready ? BitmapAllocatePageframe(&physical) : TempPageFrame();
 
     page_dir[pd_index] = pt_paddr | PAGE_FLAG_PRESENT | PAGE_FLAG_WRITE |
                          PAGE_FLAG_OWNER | flags;

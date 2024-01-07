@@ -57,7 +57,7 @@ void launch_shell(int n) {
       echo(ch);
     } else if (strEql(ch, "dump")) {
       printf("\n");
-      BitmapDumpBlocks();
+      BitmapDumpBlocks(&physical);
     } else if (strEql(ch, "help")) {
       help();
     } else if (strEql(ch, "readdisk")) {

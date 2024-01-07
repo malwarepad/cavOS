@@ -86,7 +86,7 @@ void adjust_user_heap(Task *task, uint32_t new_heap_end) {
     int num = new_page_top - old_page_top;
 
     for (int i = 0; i < num; i++) {
-      uint32_t phys = BitmapAllocatePageframe();
+      uint32_t phys = BitmapAllocatePageframe(&physical);
       uint32_t virt = old_page_top * PAGE_SIZE + i * PAGE_SIZE;
 
       VirtualMap(virt, phys,

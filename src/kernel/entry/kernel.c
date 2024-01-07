@@ -78,15 +78,21 @@ int kmain(unsigned long addr) {
     }
   }
 
-  initiateBitmap(mbi);
-  MarkRegion(addr, mbi->size, false); // don't touch the god damn multiboot info
-  MarkRegion(&kernel_start,
-             ((uint32_t)&kernel_end - KERNEL_START) - (uint32_t)&kernel_start,
-             false); // not my kernel
-  MarkRegion((uint32_t)&stack_bottom - KERNEL_START, 16384 * 8,
-             false); // not my kernel stack man
-
   initiatePaging();
+  initiatePMM(mbi);
+  debugf("base: %x len: %x\n", addr - KERNEL_START, mbi->size);
+  MarkRegion(&physical, addr - KERNEL_START, mbi->size,
+             true); // don't touch the god damn multiboot info
+  debugf("base: %x len: %x\n", &kernel_start,
+         ((uint32_t)&kernel_end - KERNEL_START) - (uint32_t)&kernel_start);
+  MarkRegion(&physical, &kernel_start,
+             ((uint32_t)&kernel_end - KERNEL_START) - (uint32_t)&kernel_start,
+             true); // not my kernel
+  debugf("base: %x len: %x\n", (uint32_t)&stack_bottom - KERNEL_START,
+         16384 * 8);
+  MarkRegion(&physical, (uint32_t)&stack_bottom - KERNEL_START, 16384 * 8,
+             true); // not my kernel stack man
+  initiateVMM();
 
   for (struct multiboot_tag *tag = (struct multiboot_tag *)(addr + 8);
        tag->type != MULTIBOOT_TAG_TYPE_END;
@@ -103,9 +109,12 @@ int kmain(unsigned long addr) {
       debugf("%dx%d\n", framebufferWidth, framebufferHeight);
       uint32_t size_bytes = framebufferWidth * framebufferHeight * 4;
       uint32_t needed_page_count = size_bytes / PAGE_SIZE + 1;
+      // debugf("%x size: %d\n", (uint32_t)tagfb->common.framebuffer_addr,
+      //        needed_page_count * PAGE_SIZE);
 
       for (uint32_t i = 0; i < needed_page_count; i++) {
         uint32_t offset = i * PAGE_SIZE;
+        // debugf("mapped %x!\n", KERNEL_GFX + offset);
         VirtualMap(KERNEL_GFX + offset,
                    ((uint32_t)tagfb->common.framebuffer_addr) + offset, 0);
       }
@@ -114,9 +123,9 @@ int kmain(unsigned long addr) {
       sysalloc_base = framebuffer_end; // tmp
     }
   }
+  MarkRegion(&virtual, KERNEL_GFX, framebuffer_end - KERNEL_GFX, 1);
 
   debugf("====== DEBUGGING LOGS ======\n\n");
-
   initiateNetworking();
   initiatePCI();
   initiateTimer(1000);
@@ -135,4 +144,5 @@ int kmain(unsigned long addr) {
   printf("=========================================\n\n");
 
   launch_shell(0);
+  panic();
 }

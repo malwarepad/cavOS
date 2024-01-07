@@ -90,14 +90,18 @@ bool initiateRTL8139(PCIdevice *device) {
   }
 
   // Init the receive buffer
-  void *virtual = VirtualAllocatePhysicallyContiguous(
+  PhysicallyContiguous all = VirtualAllocatePhysicallyContiguous(
       DivRoundUp(8192 + 16 + 1500, BLOCK_SIZE));
+  void *virtual = all.virt;
   memset(virtual, 0, 8192 + 16 + 1500);
-  void *physical = VirtualToPhysical(virtual);
+  void *physical = all.phys;
   outportl(iobase + RTL8139_REG_RBSTART, (uint32)physical);
 
   // Save it (physical can be computed if needed)
   infoLocation->rx_buff_virtual = virtual;
+#if RTL8139_DEBUG
+  debugf("virtual: %x physical: %x\n", virtual, physical);
+#endif
 
   // Set the TOK and ROK bits high
   outportw(iobase + RTL8139_REG_IMR, 0x0005);
@@ -135,7 +139,8 @@ void sendRTL8139(NIC *nic, void *packet, uint32_t packetSize) {
   uint16_t           iobase = info->iobase;
 
   void *contiguousContainer =
-      VirtualAllocatePhysicallyContiguous(DivRoundUp(packetSize, BLOCK_SIZE));
+      VirtualAllocatePhysicallyContiguous(DivRoundUp(packetSize, BLOCK_SIZE))
+          .virt;
   void *phsyical = VirtualToPhysical((uint32_t)contiguousContainer);
   memcpy(contiguousContainer, packet, packetSize);
 

@@ -58,6 +58,8 @@ void testingInit() {
   // packet->header.ethertype = 0;
   // printf("sending...\n");
   // sendNe2000(selectedNIC, packet, size);
+  uint8_t ip[4] = {192, 168, 2, 1};
+  netArpSend(selectedNIC, ip);
 #endif
 #if PCI_READ
   for (uint8_t bus = 0; bus < PCI_MAX_BUSES; bus++) {
@@ -141,7 +143,7 @@ void testingInit() {
 #if FAT32_ALLOC_STRESS_TEST
   for (int i = 0; i < 64; i++) {
     FAT32_Directory *dir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));
-    openFile(dir, "/lorem.txt");
+    openFile(dir, "/files/lorem.txt");
     char *out = (char *)malloc(dir->filesize);
     readFileContents(&out, dir);
     debugf("%s\n", out);
