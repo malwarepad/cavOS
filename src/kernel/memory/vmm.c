@@ -22,8 +22,9 @@ void initiateVMM() {
     uint32_t fr = BitmapAllocatePageframe(&physical);
     VirtualMap(bitmaploc + i * PAGE_SIZE, fr,
                0); // 101000 + i * PAGE_SIZE
-    debugf("%d/%d (%x)\n", i, DivRoundUp(virtual.BitmapSizeInBytes, BLOCK_SIZE),
-           fr);
+    debugf("[vmm] Memory mapping %d/%d: virt{%x} phys{%x}\n", i,
+           DivRoundUp(virtual.BitmapSizeInBytes, BLOCK_SIZE),
+           bitmaploc + i * PAGE_SIZE, fr);
   }
 
   virtual.Bitmap = (uint8_t *)bitmaploc;
@@ -40,14 +41,14 @@ void initiateVMM() {
 void *VirtualAllocate(int pages) {
   void *output = BitmapAllocate(&virtual, pages);
   if (!output) {
-    debugf("[virtual//allocate] Virtual kernel memory ran out!\n");
+    debugf("[vmm::alloc] Virtual kernel memory ran out!\n");
     panic();
   }
 
   for (int i = 0; i < pages; i++) {
     uint32_t pageframe = BitmapAllocatePageframe(&physical);
     if (!pageframe) {
-      debugf("[virtual//allocate] Physical kernel memory ran out!\n");
+      debugf("[vmm::alloc] Physical kernel memory ran out!\n");
       panic();
     }
     VirtualMap(output + i * PAGE_SIZE, pageframe, 0);
@@ -62,12 +63,12 @@ PhysicallyContiguous VirtualAllocatePhysicallyContiguous(int pages) {
   void                *phys = BitmapAllocate(&physical, pages);
 
   if (!virt) {
-    debugf("[virtual//allocate//pc] Virtual kernel memory ran out!\n");
+    debugf("[vmm::allocPC] Virtual kernel memory ran out!\n");
     panic();
   }
 
   if (!phys) {
-    debugf("[virtual//allocate//pc] Physical kernel memory ran out!\n");
+    debugf("[vmm::allocPC] Physical kernel memory ran out!\n");
     panic();
   }
 
@@ -76,7 +77,7 @@ PhysicallyContiguous VirtualAllocatePhysicallyContiguous(int pages) {
   }
 
 #if VMM_DEBUG
-  debugf("[virtual//contiguous] virt: %x phys: %x\n", virt, phys);
+  debugf("[vmm::allocPC] Found region: virt{%x} phys{%x}\n", virt, phys);
 #endif
 
   out.virt = virt;
@@ -89,7 +90,7 @@ int VirtualFree(void *ptr, int pages) {
     uint32_t virtaddr = ptr + (i * PAGE_SIZE);
     uint32_t physaddr = (uint32_t)VirtualToPhysical(virtaddr);
 #if VMM_DEBUG
-    debugf("unmapping %x\n", physaddr);
+    debugf("[vmm::free] virt{%x} phys{%x}\n", virtaddr, physaddr);
 #endif
     MarkRegion(&physical, physaddr, 1, 0);
   }

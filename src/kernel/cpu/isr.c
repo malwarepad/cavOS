@@ -11,41 +11,41 @@
 
 char *format = "Kernel panic: %s!\n";
 
-char *exceptions[] = {"Division By Zero",
-                      "Debug",
-                      "Non Maskable Interrupt",
-                      "Breakpoint",
-                      "Into Detected Overflow",
-                      "Out of Bounds",
-                      "Invalid Opcode",
-                      "No Coprocessor",
+char *exceptions[] = {"[isr] Division By Zero",
+                      "[isr] Debug",
+                      "[isr] Non Maskable Interrupt",
+                      "[isr] Breakpoint",
+                      "[isr] Into Detected Overflow",
+                      "[isr] Out of Bounds",
+                      "[isr] Invalid Opcode",
+                      "[isr] No Coprocessor",
 
-                      "Double Fault",
-                      "Coprocessor Segment Overrun",
-                      "Bad TSS",
-                      "Segment Not Present",
-                      "Stack Fault",
-                      "General Protection Fault",
-                      "Page Fault",
-                      "Unknown Interrupt",
+                      "[isr] Double Fault",
+                      "[isr] Coprocessor Segment Overrun",
+                      "[isr] Bad TSS",
+                      "[isr] Segment Not Present",
+                      "[isr] Stack Fault",
+                      "[isr] General Protection Fault",
+                      "[isr] Page Fault",
+                      "[isr] Unknown Interrupt",
 
-                      "Coprocessor Fault",
-                      "Alignment Check",
-                      "Machine Check",
-                      "Reserved",
-                      "Reserved",
-                      "Reserved",
-                      "Reserved",
-                      "Reserved",
+                      "[isr] Coprocessor Fault",
+                      "[isr] Alignment Check",
+                      "[isr] Machine Check",
+                      "[isr] Reserved",
+                      "[isr] Reserved",
+                      "[isr] Reserved",
+                      "[isr] Reserved",
+                      "[isr] Reserved",
 
-                      "Reserved",
-                      "Reserved",
-                      "Reserved",
-                      "Reserved",
-                      "Reserved",
-                      "Reserved",
-                      "Reserved",
-                      "Reserved"};
+                      "[isr] Reserved",
+                      "[isr] Reserved",
+                      "[isr] Reserved",
+                      "[isr] Reserved",
+                      "[isr] Reserved",
+                      "[isr] Reserved",
+                      "[isr] Reserved",
+                      "[isr] Reserved"};
 
 void remap_pic() {
   outportb(0x20, 0x11);
@@ -85,8 +85,6 @@ void registerIRQhandler(uint8_t id, void *handler) {
 }
 
 void handle_interrupt(AsmPassedInterrupt regs) {
-  // if (regs.interrupt != 32 && regs.interrupt != 33 && regs.interrupt != 46)
-  //   debugf("int %d!\n", regs.interrupt);
   if (regs.interrupt >= 32 && regs.interrupt <= 47) { // IRQ
     switch (regs.interrupt) {
     case 32 + 0: // irq0
@@ -107,14 +105,13 @@ void handle_interrupt(AsmPassedInterrupt regs) {
     if (regs.interrupt == 14) {
       unsigned int err_pos;
       asm volatile("mov %%cr2, %0" : "=r"(err_pos));
-      debugf("Page fault occured at: %x\n", err_pos);
+      debugf("[isr] Page fault occured at: %x\n", err_pos);
     }
     debugf(format, exceptions[regs.interrupt]);
     // if (framebuffer == KERNEL_GFX)
     //   printf(format, exceptions[regs.interrupt]);
     panic();
   } else if (regs.interrupt == 0x80) {
-    // debugf("syscall %d!\n", regs.eax);
     syscallHandler(&regs);
   }
 }

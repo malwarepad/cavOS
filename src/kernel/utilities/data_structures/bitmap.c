@@ -99,7 +99,7 @@ uint32_t FindFreeRegion(DS_Bitmap *bitmap, uint32_t blocks) {
     }
   }
 
-  debugf("[bitbit] didn't find jack shit\n");
+  debugf("[bitmap] Didn't find jack shit!\n");
   return INVALID_BLOCK;
 }
 

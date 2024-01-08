@@ -34,14 +34,18 @@ void initiateConsole() {
 
   FAT32_Directory dir;
   if (!openFile(&dir, DEFAULT_FONT_PATH)) {
+    debugf("[console] Could not open default font file: %s!\n",
+           DEFAULT_FONT_PATH);
     printf("Cannot open VGA font!\n");
     return;
   }
-  // debugf("size -> %d\n", dir.filesize);
+  // debugf("[console::font] filesize{%d}\n", dir.filesize);
   uint8_t *buff = (uint8_t *)malloc(dir.filesize);
   readFileContents(&buff, &dir);
 
   ssfn_src = buff;
+  debugf("[console] Initiated with font: filepath{%s} filesize{%d}\n",
+         DEFAULT_FONT_PATH, dir.filesize);
 }
 
 void drawClearScreen() {
@@ -81,7 +85,9 @@ void drawCharacter(int charnum) {
     return;
   }
 
-  // debugf("[before] x=%d y=%d\n", ssfn_dst.x, ssfn_dst.y);
+  // debugf("[console::ptr] Before drawing: x{%d} y{%d}\n", ssfn_dst.x,
+  //        ssfn_dst.y);
   ssfn_putc(charnum); // 8x16 (x=8, y=16)
-  // debugf("[after] x=%d y=%d\n", ssfn_dst.x, ssfn_dst.y);
+  // debugf("[console::ptr] After drawing: x{%d} y{%d}\n", ssfn_dst.x,
+  //        ssfn_dst.y);
 }

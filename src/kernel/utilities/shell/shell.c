@@ -41,6 +41,7 @@ void task3() {
 }
 
 void launch_shell(int n) {
+  debugf("[shell] Kernel-land shell launched: n{%d}\n", n);
   char *ch = (char *)malloc(200);
   char *data[64];
   char *prompt = "$ ";

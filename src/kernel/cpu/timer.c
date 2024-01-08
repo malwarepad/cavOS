@@ -11,6 +11,7 @@ void initiateTimer(uint32_t reload_value) {
 
   outportb(0x40, l);
   outportb(0x40, h);
+  debugf("[timer] Ready to fire: frequency{%dMHz}\n", timerFrequency);
 }
 
 void timerTick() {

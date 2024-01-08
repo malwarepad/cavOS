@@ -105,7 +105,7 @@ void netArpHandle(NIC *nic, arpPacket *packet) {
     // no need to reply to a response... lol.
     break;
   default:
-    debugf("[networking//arp] odd opcode: exact{%X} reversed{%X}\n",
+    debugf("[networking::arp] Got an odd opcode: exact{%X} reversed{%X}\n",
            packet->opcode, switch_endian_16(packet->opcode));
     break;
   }

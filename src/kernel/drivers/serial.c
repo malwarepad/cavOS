@@ -15,7 +15,7 @@ void serial_enable(int device) {
 }
 
 void initiateSerial() {
-  debugf("Installing serial...\n");
+  debugf("[serial] Installing serial...\n");
 
   serial_enable(COM1);
   // serial_enable(COM2);
@@ -43,16 +43,14 @@ void serial_send(int device, char out) {
 }
 
 int debug(char c, int *arg) {
-  outportb(0xE9, c);
+  // outportb(0xE9, c);
   serial_send(COM1, c);
 }
 
 int debugf(const char *format, ...) {
+
   va_list va;
   va_start(va, format);
-  // const out_fct_wrap_type out_fct_wrap = { debug, 2 };
-  // const int ret = _vsnprintf(_out_fct, (char*)(uintptr_t)&out_fct_wrap,
-  // (size_t)-1, format, va);
   int ret = vfctprintf(debug, 0, format, va);
   va_end(va);
   return ret;

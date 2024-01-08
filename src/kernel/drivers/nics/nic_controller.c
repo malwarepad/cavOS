@@ -13,6 +13,7 @@ void initiateNetworking() {
   // rest on device-specific initialization
   firstNIC = 0;
   selectedNIC = 0;
+  debugf("[networking] Ready to scan for NICs..\n");
 }
 
 void initiateNIC(PCIdevice *device) {
@@ -74,8 +75,8 @@ void handlePacket(NIC *nic, void *packet, uint32_t size) {
     netArpHandle(nic, body);
     break;
   default:
-    debugf("[networking//RAW] odd ethertype: exact{%X} reversed{%X}\n",
-           header->ethertype, switch_endian_16(header->ethertype));
+    debugf("[nics] Odd ethertype: exact{%X} reversed{%X}\n", header->ethertype,
+           switch_endian_16(header->ethertype));
     break;
   }
 }

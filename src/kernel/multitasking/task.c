@@ -75,7 +75,8 @@ void create_task(uint32_t id, uint32_t eip, bool kernel_task,
 
 void adjust_user_heap(Task *task, uint32_t new_heap_end) {
   if (new_heap_end <= task->heap_start) {
-    debugf("Tried to adjust heap behind current values!");
+    debugf("[task] Tried to adjust heap behind current values: id{%d}\n",
+           task->id);
     return;
   }
 
@@ -95,8 +96,9 @@ void adjust_user_heap(Task *task, uint32_t new_heap_end) {
       memset((void *)virt, 0, PAGE_SIZE);
     }
   } else if (new_page_top < old_page_top) {
-    debugf("New page is lower than old page!\n");
-    printf("New page is lower than old page!\n");
+    debugf("[task] New page is lower than old page: id{%d}\n", task->id);
+    // optional:
+    // printf("[task] New page is lower than old page: id{%d}\n", task->id);
     panic();
   }
 
@@ -153,6 +155,8 @@ void initiateTasks() {
   current_task->state = TASK_STATE_READY;
   current_task->pagedir = GetPageDirectory();
   current_task->kernel_task = true;
+
+  debugf("[tasks] Current execution ready for multitasking\n");
 
   // task 0 represents the execution we're in right now
 }

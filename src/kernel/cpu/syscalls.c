@@ -16,7 +16,7 @@ void syscallHandler(AsmPassedInterrupt *regs) {
   void    *handler = syscalls[id];
 
   if (!handler) {
-    debugf("Tried to access syscall %d (doesn't exist)!\n", id);
+    debugf("[syscalls] Tried to access syscall{%d} (doesn't exist)!\n", id);
     return;
   }
 
@@ -43,14 +43,15 @@ bool running = false;
 // System calls themselves
 #define SYSCALL_TEST 0x0
 static void syscallTest(char *msg) {
-  debugf("Got test syscall from process %d: %s\n", current_task->id, msg);
+  debugf("[syscalls] Got test syscall from process{%d}: %s\n", current_task->id,
+         msg);
   printf("Got test syscall from process %d: %s\n", current_task->id, msg);
 }
 
 #define SYSCALL_EXIT_TASK 0x1
 static void syscallExitTask(int return_code) {
-  // debugf("Exiting task %d with return code %d!\n", current_task->id,
-  //        return_code);
+  debugf("[scheduler] Exiting task{%d} with return code{%d}!\n",
+         current_task->id, return_code);
   kill_task(current_task->id);
 }
 
@@ -86,6 +87,18 @@ static void syscallPrintChar(char character) {
 // todo (also fix ps/2 kb driver)
 static char syscallReadChar() { return 'a'; }
 
+uint16_t countSyscalls() {
+  uint16_t tmp = 0;
+  for (int i = 0; i < MAX_SYSCALLS; i++) {
+    if (syscalls[i])
+      tmp++;
+    else
+      return tmp;
+  }
+
+  return tmp;
+}
+
 void initiateSyscalls() {
   registerSyscall(SYSCALL_TEST, syscallTest);
   registerSyscall(SYSCALL_EXIT_TASK, syscallExitTask);
@@ -97,4 +110,7 @@ void initiateSyscalls() {
   registerSyscall(SYSCALL_ADJUST_HEAP_END, syscallAdjustHeapEnd);
   registerSyscall(SYSCALL_PRINT_CHAR, syscallPrintChar);
   registerSyscall(SYSCALL_READ_CHAR, syscallReadChar);
+
+  debugf("[syscalls] System calls are ready to fire: %d/%d\n", countSyscalls(),
+         MAX_SYSCALLS);
 }

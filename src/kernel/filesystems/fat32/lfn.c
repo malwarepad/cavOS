@@ -8,7 +8,9 @@
 
 bool lfnCmp(uint32_t clusterNum, uint16_t nthOf32, char *str) {
 #if FAT32_DBG_PROMPTS
-  debugf("[LFNcmp] comparing clusterNum=%d nthOf32=%d\n", clusterNum, nthOf32);
+  debugf("[fat32::lfn::compare] Searching against clusterNum{%d} nthOf32{%d} "
+         "str{%s}...\n",
+         clusterNum, nthOf32, str);
 #endif
   uint16_t *lfn = calcLfn(clusterNum, nthOf32);
   uint32_t  lfnlen = 0;
@@ -18,8 +20,10 @@ bool lfnCmp(uint32_t clusterNum, uint16_t nthOf32, char *str) {
   while (str[strlen] != '\0')
     strlen++;
 #if FAT32_DBG_PROMPTS
-  debugf("[LFNcmp] %x lfnlen: %d strlen: %d [cluster:%d nth=%d]\n\n", lfn[0],
-         lfnlen, strlen, clusterNum, nthOf32);
+  debugf("[fat32::lfn::compare] Comparing with firstByte{%x} lfnlen{%d} "
+         "strlen{%d} "
+         "[cluster:%d nth=%d]\n\n",
+         lfn[0], lfnlen, strlen, clusterNum, nthOf32);
 #endif
   if (lfnlen != strlen)
     return false;
@@ -45,7 +49,9 @@ bool isLFNentry(uint8_t *rawArr, uint32_t clusterNum, uint16_t entry) {
                            fat->sectors_per_cluster * SECTOR_SIZE - 32);
     bool res = dir->attributes == 0x0F;
 #if FAT32_DBG_PROMPTS
-    debugf("res %d attr %x!\n", res, dir->attributes);
+    debugf("[fat32::lfn::check] Completed LFS entry check: result{%d} "
+           "attributes{%x}!\n",
+           res, dir->attributes);
 #endif
     free(newRawArr);
     return res;
@@ -73,7 +79,9 @@ uint16_t *calcLfn(uint32_t clusterNum, uint16_t nthOf32) {
     uint32_t lba = fat->cluster_begin_lba +
                    (clusterNum - 2 - currCluster) * fat->sectors_per_cluster;
 #if FAT32_DBG_PROMPTS
-    debugf("[calcLFN//scan] lba=%d nthOf32=%d clusterNum=%d currCluster=%d\n",
+    debugf("[fat32::lfn::calculate] Calculating LFN full filename: lba{%d} "
+           "nthOf32{%d} clusterNum{%d} "
+           "currCluster{%d}\n",
            lba, nthOf32, clusterNum, currCluster);
 #endif
     getDiskBytes(rawArr, lba, fat->sectors_per_cluster);
@@ -86,14 +94,14 @@ uint16_t *calcLfn(uint32_t clusterNum, uint16_t nthOf32) {
       FAT32_LFN *lfn = (FAT32_LFN *)((uint32_t)rawArr + 32 * i);
 
 #if FAT32_DBG_PROMPTS
-      debugf("[calcLFN//cluster] [%x:%x] ", lba * 512 + 32 * i,
+      debugf("[fat32::lfn::calculate] [%x:%x] ", lba * 512 + 32 * i,
              (fat->cluster_begin_lba +
               (clusterNum - 2) * fat->sectors_per_cluster) *
                  (fat->sectors_per_cluster * SECTOR_SIZE));
       for (int i = 0; i < 32; i++) {
         debugf("%02x ", ((uint8_t *)lfn)[i]);
       }
-      debugf("\n[calcLFN//cluster] lfn order: %d\n", lfn->order);
+      debugf("\n[fat32::lfn::calculate] order{%d}\n", lfn->order);
 #endif
       if (lfn->attributes != 0x0F) {
         // printf("end of long \n", i);
@@ -110,6 +118,10 @@ uint16_t *calcLfn(uint32_t clusterNum, uint16_t nthOf32) {
 
       for (uint8_t j = 0; j < 2; j++)
         filenameAssign(filename, &currFilenamePos, lfn->char_sequence_3[j]);
+
+#if FAT32_DBG_PROMPTS
+      debugf("\n\n");
+#endif
 
       // if ((rawArr[32 * i] & 0x40) != 0) { // last long
       //   printf(" last long detected [index=%d] \n", i);

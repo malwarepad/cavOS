@@ -37,7 +37,7 @@ void outportl(uint16_t portid, uint32_t value) {
 }
 
 void panic() {
-  debugf("Kernel panic triggered!\n");
+  debugf("[kernel] Kernel panic triggered!\n");
   asm("cli");
   asm("hlt");
 }

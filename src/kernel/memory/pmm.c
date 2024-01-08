@@ -35,14 +35,11 @@ void initiatePMM() {
   }
 
   if (!found) {
-    printf(
-        "[+] Bitmap allocator: Not enough memory!\n> %d required, %d found!\n",
-        physical.BitmapSizeInBytes, mbi_memorySize);
+    debugf("[pmm] Not enough memory: required{%d} found{%d}!\n",
+           physical.BitmapSizeInBytes, mbi_memorySize);
     panic();
     return 1;
   }
-
-  debugf("Bitmap size in bytes: %d\n", physical.BitmapSizeInBytes);
 
   registerTmpPageFrame(mmmt->addr);
   uint32_t pageframeStart = mmmt->addr;
@@ -54,9 +51,11 @@ void initiatePMM() {
   uint32_t bitmapStartPhys = mmmt->addr;
 
   physical.Bitmap = (uint32_t *)bitmapStart;
-  for (int i = 0; i < DivRoundUp(bitmap->BitmapSizeInBytes, PAGE_SIZE); i++) {
-    debugf("[%d] virt: %x phys: %x\n", i, bitmapStart + i * PAGE_SIZE,
-           (uint32_t)mmmt->addr + i * PAGE_SIZE);
+
+  uint32_t pagesRequired = DivRoundUp(bitmap->BitmapSizeInBytes, PAGE_SIZE);
+  for (int i = 0; i < pagesRequired; i++) {
+    debugf("[pmm] Memory mapping %d/%d: virt{%x} phys{%x}\n", i, pagesRequired,
+           bitmapStart + i * PAGE_SIZE, (uint32_t)mmmt->addr + i * PAGE_SIZE);
     VirtualMap(bitmapStart + i * PAGE_SIZE,
                (uint32_t)mmmt->addr + i * PAGE_SIZE, 0);
   }
@@ -94,7 +93,7 @@ void initiatePMM() {
     if (mmmt->addr > mbi_memorySize)
       continue;
     if (mmmt->type == MULTIBOOT_MEMORY_AVAILABLE)
-      debugf("%x-%x\n", (uint32_t)mmmt->addr,
+      debugf("[mm] %x-%x\n", (uint32_t)mmmt->addr,
              (uint32_t)mmmt->addr + (uint32_t)mmmt->len);
     if (mmmt->type == MULTIBOOT_MEMORY_AVAILABLE && mmmt->len > best_len) {
       best_start = mmmt->addr;
@@ -111,7 +110,7 @@ void initiatePMM() {
     if (mmmt->addr > mbi_memorySize)
       continue;
     if (mmmt->type != MULTIBOOT_MEMORY_AVAILABLE) {
-      debugf("x %x-%x\n", (uint32_t)mmmt->addr,
+      debugf("[mm] [x] %x-%x\n", (uint32_t)mmmt->addr,
              (uint32_t)mmmt->addr + (uint32_t)mmmt->len);
       MarkBlocks(bitmap, ToBlock(bitmap, mmmt->addr),
                  DivRoundUp(mmmt->len, BLOCK_SIZE), 1);
@@ -128,10 +127,11 @@ void initiatePMM() {
   // }
   // debugf("\n");
 
-  debugf("bitmapStartPhys: 0x%x{%d} pageFrameStart: 0x%x{%d}\n",
+  debugf("[pmm] Bitmap initiated: bitmapStartPhys{0x%x}{%d} "
+         "pageFrameStart{0x%x}{%d} size{%d}\n",
          bitmapStartPhys, physical.BitmapSizeInBytes, pageframeStart,
-         pageTablesRequired * 4096);
+         pageTablesRequired * 4096, physical.BitmapSizeInBytes);
 
-  BitmapDumpBlocks(bitmap);
+  // BitmapDumpBlocks(bitmap);
   bitmap->ready = true;
 }

@@ -14,24 +14,24 @@ bool elf_check_file(Elf32_Ehdr *hdr) {
   if (!hdr)
     return false;
   if (hdr->e_ident[EI_MAG0] != ELFMAG0) {
-    debugf("ELF Header EI_MAG0 incorrect.\n");
+    debugf("[elf] Header EI_MAG0 incorrect.\n");
     return false;
   }
   if (hdr->e_ident[EI_MAG1] != ELFMAG1) {
-    debugf("ELF Header EI_MAG1 incorrect.\n");
+    debugf("[elf] Header EI_MAG1 incorrect.\n");
     return false;
   }
   if (hdr->e_ident[EI_MAG2] != ELFMAG2) {
-    debugf("ELF Header EI_MAG2 incorrect.\n");
+    debugf("[elf] Header EI_MAG2 incorrect.\n");
     return false;
   }
   if (hdr->e_ident[EI_MAG3] != ELFMAG3) {
-    debugf("ELF Header EI_MAG3 incorrect.\n");
+    debugf("[elf] Header EI_MAG3 incorrect.\n");
     return false;
   }
   if (hdr->e_ident[EI_CLASS] != ELFCLASS32 ||
       hdr->e_machine != ELF_x86_MACHINE) {
-    debugf("ELF architecture is not supported.\n");
+    debugf("[elf] Architecture is not supported.\n");
     return false;
   }
   return true;
@@ -43,11 +43,11 @@ uint32_t elf_execute(char *filepath) {
   // Open & read executable file
   FAT32_Directory *dir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));
   if (!openFile(dir, filepath)) {
-    debugf("Could not open %s\n", filepath);
+    debugf("[elf] Could not open %s\n", filepath);
     return 0;
   }
 #if ELF_DEBUG
-  debugf("[executing %s] filesize=%d\n", filepath, dir->filesize);
+  debugf("[elf] Executing %s: filesize{%d}\n", filepath, dir->filesize);
 #endif
   uint8_t *out = (uint8_t *)malloc(dir->filesize);
   readFileContents(&out, dir);
@@ -56,7 +56,7 @@ uint32_t elf_execute(char *filepath) {
   Elf32_Ehdr *elf_ehdr = (Elf32_Ehdr *)(out);
 
   if (!elf_check_file(elf_ehdr)) {
-    debugf("File %s is not a valid cavOS ELF32 executable!\n", filepath);
+    debugf("[elf] File %s is not a valid cavOS ELF32 executable!\n", filepath);
     return 0;
   }
 
@@ -74,8 +74,11 @@ uint32_t elf_execute(char *filepath) {
 
   int32_t id = create_taskid();
   if (id == -1) {
-    debugf("Cannot fetch task id... You probably reached the task limit!");
-    printf("Cannot fetch task id... You probably reached the task limit!");
+    debugf(
+        "[elf] Cannot fetch task id... You probably reached the task limit!");
+    // optional
+    // printf("[elf] Cannot fetch task id... You probably reached the task
+    // limit!");
     panic();
   }
 
@@ -102,7 +105,8 @@ uint32_t elf_execute(char *filepath) {
     memset(file_start, 0, file_end - file_start);
 
 #if ELF_DEBUG
-    debugf("[phdr] type=%d offset=%x vaddr=%x size=%x alignment=%x\n",
+    debugf("[elf] Program header: type{%d} offset{%x} vaddr{%x} size{%x} "
+           "alignment{%x}\n",
            elf_phdr->p_type, elf_phdr->p_offset, elf_phdr->p_vaddr,
            elf_phdr->p_memsz, elf_phdr->p_align);
 #endif
@@ -113,7 +117,7 @@ uint32_t elf_execute(char *filepath) {
   for (int i = 0; i < elf_ehdr->e_shnum; i++) {
     Elf32_Shdr *elf_shdr = (Elf32_Shdr *)((uint32_t)out + elf_ehdr->e_shoff +
                                           i * elf_ehdr->e_shentsize);
-    debugf("[shdr] type=%d offset=%x\n", elf_shdr->sh_type,
+    debugf("[elf] Section header: type{%d} offset{%x}\n", elf_shdr->sh_type,
            elf_shdr->sh_offset);
   }
 #endif
@@ -126,7 +130,7 @@ uint32_t elf_execute(char *filepath) {
   }
 
 #if ELF_DEBUG
-  debugf("[new pagedir] offset=%x\n", pagedir);
+  debugf("[elf] New pagedir: offset{%x}\n", pagedir);
 #endif
 
   create_task(id, (uint32_t)elf_ehdr->e_entry, true,

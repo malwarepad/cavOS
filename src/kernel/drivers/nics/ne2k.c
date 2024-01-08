@@ -11,9 +11,10 @@ bool isNe2000(PCIdevice *device) {
 bool initiateNe2000(PCIdevice *device) {
   if (!isNe2000(device))
     return false;
+  debugf("[pci::ne2k] Ne2000 NIC detected!\n");
 
 #ifndef BUGGY_NE2k
-  debugf("[+] Ne2k: ignored\n");
+  debugf("[pci::ne2k] Ignored!\n");
   return false;
 #endif
 
@@ -70,10 +71,10 @@ bool initiateNe2000(PCIdevice *device) {
   outportb(iobase + NE2K_REG_COMMAND, (1 << 5) | 1); // page 0, no DMA, stop
 
   // waste of memory:
-  // debugf("    [+] MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n",
+  // debugf(
+  //        "[pci::ne2k] MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n",
   //        selectedNIC->MAC[0], selectedNIC->MAC[1], selectedNIC->MAC[2],
   //        selectedNIC->MAC[3], selectedNIC->MAC[4], selectedNIC->MAC[5]);
-  debugf("irq%d\n", details->interruptLine);
 
   free(details);
 
@@ -82,7 +83,7 @@ bool initiateNe2000(PCIdevice *device) {
 
 void sendNe2000(NIC *nic, void *packet, uint32_t packetSize) {
 #ifndef BUGGY_NE2k
-  debugf("[+] Ne2k: ignored\n");
+  debugf("[pci::ne2k] Ignored!\n");
   return false;
 #endif
 

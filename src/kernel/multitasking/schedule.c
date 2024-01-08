@@ -33,12 +33,14 @@ void schedule() {
 
 #if SCHEDULE_DEBUG
   if (old->id != 0 || next->id != 0)
-    debugf("switching context from %d to %d\n", old->id, next->id);
+    debugf("[scheduler] Switching context: id{%d} -> id{%d}\n", old->id,
+           next->id);
 #endif
   // switch context, may not return here
   switch_context(old, next);
 #if SCHEDULE_DEBUG
   if (old->id != 0 || next->id != 0)
-    debugf("switched context from %d to %d\n", old->id, next->id);
+    debugf("[scheduler] Switched context: id{%d} -> id{%d}\n", old->id,
+           next->id);
 #endif
 }

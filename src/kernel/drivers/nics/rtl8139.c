@@ -38,12 +38,12 @@ void interruptHandler(AsmPassedInterrupt *regs) {
 
   if (status & RTL8139_STATUS_TOK) {
 #if RTL8139_DEBUG
-    debugf("[networking//rtl8139//irq] Packet sent\n");
+    debugf("[pci::rtl8139] IRQ notification: Packet sent\n");
 #endif
   }
   if (status & RTL8139_STATUS_ROK) {
 #if RTL8139_DEBUG
-    debugf("[networking//rtl8139//irq] Processing packet...\n");
+    debugf("[pci::rtl8139] IRQ notification: Processing packet...\n");
 #endif
     receiveRTL8139(selectedNIC);
   }
@@ -53,6 +53,8 @@ void interruptHandler(AsmPassedInterrupt *regs) {
 bool initiateRTL8139(PCIdevice *device) {
   if (!isRTL8139(device))
     return false;
+
+  debugf("[pci::rtl8139] RTL-8139 NIC detected!\n");
 
   PCIgeneralDevice *details =
       (PCIgeneralDevice *)malloc(sizeof(PCIgeneralDevice));
@@ -99,9 +101,8 @@ bool initiateRTL8139(PCIdevice *device) {
 
   // Save it (physical can be computed if needed)
   infoLocation->rx_buff_virtual = virtual;
-#if RTL8139_DEBUG
-  debugf("virtual: %x physical: %x\n", virtual, physical);
-#endif
+  debugf("[pci::rtl8139] RX buffer allocated: virtual{%x} physical{%x}\n",
+         virtual, physical);
 
   // Set the TOK and ROK bits high
   outportw(iobase + RTL8139_REG_IMR, 0x0005);
@@ -125,7 +126,8 @@ bool initiateRTL8139(PCIdevice *device) {
   memcpy(nic->ip, defaultIP, 4);
 
   // waste of memory:
-  // debugf("    [+] MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n",
+  // debugf(
+  //        "[pci::ne2k] MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n",
   //        selectedNIC->MAC[0], selectedNIC->MAC[1], selectedNIC->MAC[2],
   //        selectedNIC->MAC[3], selectedNIC->MAC[4], selectedNIC->MAC[5]);
 
@@ -168,7 +170,7 @@ void receiveRTL8139(NIC *nic) {
   handlePacket(nic, packet, packetLength);
   free(packet);
 
-  // waste of memory:
+  // to be removed:
   // debugf("WE GOT A PACKET!\n");
   // for (int i = 0; i < packetLength; i++)
   //   debugf("%02X ", ((uint8_t *)packet)[i]);
