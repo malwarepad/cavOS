@@ -43,7 +43,7 @@ char *readStr(char *buffstr) {
 
   while (reading) {
     if (inportb(0x64) & 0x1) {
-      uint8 scanCode = inportb(0x60);
+      uint8_t scanCode = inportb(0x60);
 
       // Shift checks
       if (shifted == 1 && scanCode & 0x80) {

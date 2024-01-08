@@ -19,7 +19,7 @@ void timerTick() {
 }
 
 void sleep(uint32_t time) {
-  uint64 target = timerTicks + (time);
+  uint64_t target = timerTicks + (time);
   while (target > timerTicks) {
   }
 }

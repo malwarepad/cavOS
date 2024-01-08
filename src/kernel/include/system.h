@@ -1,13 +1,12 @@
 #include "multiboot2.h"
-#include "printf.h"
 #include "types.h"
 
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
 // Ports
-uint8 inportb(uint16 _port);
-void  outportb(uint16 _port, uint8 _data);
+uint8_t inportb(uint16_t _port);
+void    outportb(uint16_t _port, uint8_t _data);
 
 uint16_t inportw(uint16_t port);
 void     outportw(unsigned short port, unsigned short data);

@@ -4,21 +4,12 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-typedef signed char   int8;
-typedef unsigned char uint8;
+#define low_16(address) (uint16_t)((address) & 0xFFFF)
+#define high_16(address) (uint16_t)(((address) >> 16) & 0xFFFF)
 
-typedef signed short   int16;
-typedef unsigned short uint16;
-
-typedef signed int   int32;
-typedef unsigned int uint32;
-
-typedef signed long long   int64;
-typedef unsigned long long uint64;
-
-#define low_16(address) (uint16)((address) & 0xFFFF)
-#define high_16(address) (uint16)(((address) >> 16) & 0xFFFF)
-
+#define PRINTF_ALIAS_STANDARD_FUNCTION_NAMES_SOFT 1
+#define PRINTF_ALIAS_STANDARD_FUNCTION_NAMES 1
 #include "printf.h"
+#include "serial.h"
 
 #endif

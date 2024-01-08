@@ -123,7 +123,7 @@ void BitmapFree(DS_Bitmap *bitmap, void *base, uint32_t blocks) {
 
 /* Pageframes (1 block) */
 
-uint32 BitmapAllocatePageframe(DS_Bitmap *bitmap) {
+uint32_t BitmapAllocatePageframe(DS_Bitmap *bitmap) {
   uint32_t pickedRegion = FindFreeRegion(bitmap, 1);
   // if (pickedRegion == INVALID_BLOCK) {
   //   printf("no!");

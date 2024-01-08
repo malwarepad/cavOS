@@ -86,7 +86,7 @@ PhysicallyContiguous VirtualAllocatePhysicallyContiguous(int pages) {
 
 int VirtualFree(void *ptr, int pages) {
   for (int i = 0; i < pages; i++) {
-    uint32   virtaddr = ptr + (i * PAGE_SIZE);
+    uint32_t virtaddr = ptr + (i * PAGE_SIZE);
     uint32_t physaddr = (uint32_t)VirtualToPhysical(virtaddr);
 #if VMM_DEBUG
     debugf("unmapping %x\n", physaddr);

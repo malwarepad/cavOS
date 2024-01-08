@@ -34,6 +34,6 @@ void     MarkRegion(DS_Bitmap *bitmap, void *basePtr, uint32_t sizeBytes,
 uint32_t FindFreeRegion(DS_Bitmap *bitmap, uint32_t blocks);
 void    *BitmapAllocate(DS_Bitmap *bitmap, uint32_t blocks);
 
-uint32 BitmapAllocatePageframe(DS_Bitmap *bitmap);
+uint32_t BitmapAllocatePageframe(DS_Bitmap *bitmap);
 
 #endif

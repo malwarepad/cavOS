@@ -95,7 +95,7 @@ bool initiateRTL8139(PCIdevice *device) {
   void *virtual = all.virt;
   memset(virtual, 0, 8192 + 16 + 1500);
   void *physical = all.phys;
-  outportl(iobase + RTL8139_REG_RBSTART, (uint32)physical);
+  outportl(iobase + RTL8139_REG_RBSTART, (uint32_t)physical);
 
   // Save it (physical can be computed if needed)
   infoLocation->rx_buff_virtual = virtual;

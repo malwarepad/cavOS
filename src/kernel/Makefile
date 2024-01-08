@@ -1,7 +1,7 @@
 COMPILER = ~/opt/cross/bin/i686-elf-gcc
 LINKER = ~/opt/cross/bin/i686-elf-ld
 ASSEMBLER = nasm
-CFLAGS = -m32 -c -ffreestanding -w -fcommon -Iinclude/ -g -DPRINTF_INCLUDE_CONFIG_H=1 -DPRINTF_ALIAS_STANDARD_FUNCTION_NAMES_SOFT=1
+CFLAGS = -m32 -c -ffreestanding -w -fcommon -Iinclude/ -g
 ASFLAGS = -f elf32
 LDFLAGS = -m elf_i386 -T boot/link.ld
 
@@ -107,7 +107,7 @@ $(TARGET)/obj/vga.o:drivers/vga.c
 	$(COMPILER) $(CFLAGS) drivers/vga.c -o $(TARGET)/obj/vga.o
 
 $(TARGET)/obj/printf.o:drivers/printf.c
-	$(COMPILER) $(CFLAGS) drivers/printf.c -o $(TARGET)/obj/printf.o
+	$(COMPILER) $(CFLAGS) drivers/printf.c -o $(TARGET)/obj/printf.o -DPRINTF_INCLUDE_CONFIG_H=1
 
 $(TARGET)/obj/ata.o:drivers/ata.c
 	$(COMPILER) $(CFLAGS) drivers/ata.c -o $(TARGET)/obj/ata.o
