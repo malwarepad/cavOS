@@ -1,10 +1,12 @@
 #include <arp.h>
 #include <elf.h>
 #include <fat32.h>
+#include <icmp.h>
 #include <ne2k.h>
 #include <pci.h>
 #include <task.h>
 #include <testing.h>
+#include <udp.h>
 #include <util.h>
 #include <vmm.h>
 
@@ -58,8 +60,20 @@ void testingInit() {
   // packet->header.ethertype = 0;
   // printf("sending...\n");
   // sendNe2000(selectedNIC, packet, size);
-  uint8_t ip[4] = {192, 168, 2, 1};
-  netArpSend(selectedNIC, ip);
+
+  // # get router mac
+  uint8_t gateway[] = {10, 0, 2, 2};
+  uint8_t macout[6];
+  bool    res = netArpGetIPv4(selectedNIC, gateway, macout);
+  if (res)
+    debugf("ROUTER IS AT: %02X:%02X:%02X:%02X:%02X:%02X\n", macout[0],
+           macout[1], macout[2], macout[3], macout[4], macout[5]);
+  else
+    debugf("couldn't find it!\n");
+
+  // # use router mac
+  uint8_t target[] = {1, 1, 1, 1};
+  netICMPsendPing(selectedNIC, macout, target);
 #endif
 #if PCI_READ
   for (uint8_t bus = 0; bus < PCI_MAX_BUSES; bus++) {

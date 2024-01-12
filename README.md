@@ -43,11 +43,16 @@ Important to mention these goals may never be satisfied, take a very long time t
   - [ ] Fat32: Write operations
   - [x] Fat32: Full LFN support
 - Networking stack
-  - [ ] Ne2000 driver
-  - [ ] ARP requests
-  - [ ] TCP requests
-  - [ ] UDP requests
+  - [x] RTL-8139 driver
+  - [ ] RTL-8169 driver
+  - [x] ARP
+  - [x] UDP
+  - [x] IPv4
+  - [x] ICMP
   - [ ] DHCP
+  - [ ] DNS
+  - [ ] TCP
+  - [ ] HTTP
 - Userspace 
   - [ ] Some sort of LibC
   - [ ] cavOS Specific Toolchain

@@ -2,6 +2,7 @@
 #include <liballoc.h>
 #include <ne2k.h>
 #include <system.h>
+#include <timer.h>
 #include <util.h>
 
 // ARP (Address Resolution Protocol)
@@ -137,10 +138,15 @@ bool netArpGetIPv4(NIC *nic, const uint8_t *ip, uint8_t *mac) {
   }
 
   netArpSend(nic, ip);
-  sleep(1000); // t = 1000 ms = 1 s
-  // todo time it out effectively with RTC
 
+  uint64_t       caputre = timerTicks;
   arpTableEntry *tableEntryRetry = lookupArpTable(nic, ip);
+
+  // retry until either half a second passes or we get a reply
+  while (!tableEntryRetry && timerTicks < (caputre + ARP_TIMEOUT)) {
+    tableEntryRetry = lookupArpTable(nic, ip);
+  }
+
   if (tableEntryRetry) {
     memcpy(mac, tableEntryRetry->mac, 6);
     return true;

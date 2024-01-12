@@ -24,6 +24,8 @@ enum ARPOperation {
 #define ARP_HARDWARE_TYPE 0x0001
 #define ARP_PROTOCOL_TYPE 0x0800
 
+#define ARP_TIMEOUT 500
+
 #define MAC_BYTE_SIZE 6  // MAC addresses are always 6 bytes long
 #define IPv4_BYTE_SIZE 4 // IP(v4) addresses are always 4 bytes long
 

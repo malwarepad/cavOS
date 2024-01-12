@@ -53,7 +53,7 @@ typedef struct netPacket {
 } netPacket;
 
 /* Ethertypes/Protocols */
-enum NET_ETHERTYPES { NET_ETHERTYPE_ARP = 0x0806 };
+enum NET_ETHERTYPES { NET_ETHERTYPE_ARP = 0x0806, NET_ETHERTYPE_IPV4 = 0x0800 };
 
 void sendPacket(NIC *nic, uint8_t *destination_mac, void *data, uint32_t size,
                 uint16_t protocol);

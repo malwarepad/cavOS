@@ -36,6 +36,8 @@ void interruptHandler(AsmPassedInterrupt *regs) {
 
   uint16_t status = inportw(iobase + RTL8139_REG_ISR);
 
+  outportw(info->iobase + RTL8139_REG_ISR, 0x5);
+
   if (status & RTL8139_STATUS_TOK) {
 #if RTL8139_DEBUG
     debugf("[pci::rtl8139] IRQ notification: Packet sent\n");
@@ -47,7 +49,10 @@ void interruptHandler(AsmPassedInterrupt *regs) {
 #endif
     receiveRTL8139(selectedNIC);
   }
-  outportw(info->iobase + RTL8139_REG_ISR, 0x5);
+
+  if (!(status & RTL8139_STATUS_TOK) && !(status & RTL8139_STATUS_ROK))
+    debugf("[pci::rtl8139] IRQ notification: Unknown interrupt, status{%x}\n",
+           status);
 }
 
 bool initiateRTL8139(PCIdevice *device) {
@@ -66,7 +71,6 @@ bool initiateRTL8139(PCIdevice *device) {
   nic->type = RTL8139;
   nic->infoLocation = 0; // no extra info needed... yet.
   nic->irq = details->interruptLine;
-  registerIRQhandler(nic->irq, &interruptHandler);
 
   rtl8139_interface *infoLocation =
       (rtl8139_interface *)malloc(sizeof(rtl8139_interface));
@@ -107,11 +111,14 @@ bool initiateRTL8139(PCIdevice *device) {
   // Set the TOK and ROK bits high
   outportw(iobase + RTL8139_REG_IMR, 0x0005);
 
-  // (1 << 7) is the WRAP bit, 0xf is AB+AM+APM+AAP
-  outportl(iobase + 0x44, 0xf | (1 << 7));
+  // Order of the last two IO ports matters..
+  // https://forum.osdev.org/viewtopic.php?f=1&t=33107
 
   // Sets the RE and TE bits high
   outportb(iobase + RTL8139_REG_CMD, 0x0C);
+
+  // (1 << 7) is the WRAP bit, 0xf is AB+AM+APM+AAP
+  outportl(iobase + 0x44, 0xf | (1 << 7));
 
   uint32_t MAC0_5 = inportl(iobase + RTL8139_REG_MAC0_5);
   uint16_t MAC5_6 = inportw(iobase + RTL8139_REG_MAC5_6);
@@ -132,6 +139,13 @@ bool initiateRTL8139(PCIdevice *device) {
   //        selectedNIC->MAC[3], selectedNIC->MAC[4], selectedNIC->MAC[5]);
 
   free(details);
+  registerIRQhandler(nic->irq, &interruptHandler);
+
+  // Solve QEMU's weird fiddleness by "kindly" reminding it to wake up our
+  // device!
+  outportb(iobase + RTL8139_REG_POWERUP, 0x0);
+  outportb(iobase + RTL8139_REG_POWERUP, 0x0);
+  outportb(iobase + RTL8139_REG_POWERUP, 0x0);
 
   return true;
 }

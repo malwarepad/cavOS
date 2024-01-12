@@ -1,4 +1,5 @@
 #include <arp.h>
+#include <ipv4.h>
 #include <ne2k.h>
 #include <nic_controller.h>
 #include <rtl8139.h>
@@ -74,6 +75,10 @@ void handlePacket(NIC *nic, void *packet, uint32_t size) {
   case NET_ETHERTYPE_ARP:
     netArpHandle(nic, body);
     break;
+  case NET_ETHERTYPE_IPV4:
+    netIPv4Receive(nic, (uint32_t)packet + sizeof(netPacketHeader),
+                   (uint32_t)packet + sizeof(netPacketHeader) +
+                       sizeof(IPv4header));
   default:
     debugf("[nics] Odd ethertype: exact{%X} reversed{%X}\n", header->ethertype,
            switch_endian_16(header->ethertype));
