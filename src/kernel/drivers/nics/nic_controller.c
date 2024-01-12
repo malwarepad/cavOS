@@ -76,9 +76,8 @@ void handlePacket(NIC *nic, void *packet, uint32_t size) {
     netArpHandle(nic, body);
     break;
   case NET_ETHERTYPE_IPV4:
-    netIPv4Receive(nic, (uint32_t)packet + sizeof(netPacketHeader),
-                   (uint32_t)packet + sizeof(netPacketHeader) +
-                       sizeof(IPv4header));
+    netIPv4Receive(nic, packet, size);
+    break;
   default:
     debugf("[nics] Odd ethertype: exact{%X} reversed{%X}\n", header->ethertype,
            switch_endian_16(header->ethertype));

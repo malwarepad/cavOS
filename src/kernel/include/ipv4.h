@@ -24,6 +24,6 @@ typedef struct IPv4header {
 
 void netIPv4Send(NIC *nic, uint8_t *destination_mac, uint8_t *destination_ip,
                  void *data, uint32_t data_size, uint8_t protocol);
-void netIPv4Receive(NIC *nic, IPv4header *header, void *data);
+void netIPv4Receive(NIC *nic, void *body, uint32_t size);
 
 #endif

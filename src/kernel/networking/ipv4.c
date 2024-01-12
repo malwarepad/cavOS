@@ -36,12 +36,15 @@ void netIPv4Send(NIC *nic, uint8_t *destination_mac, uint8_t *destination_ip,
 
   sendPacket(nic, destination_mac, final, sizeof(IPv4header) + data_size,
              0x0800);
+
+  free(final);
 }
 
-void netIPv4Receive(NIC *nic, IPv4header *header, void *data) {
+void netIPv4Receive(NIC *nic, void *body, uint32_t size) {
+  IPv4header *header = (uint32_t)body + sizeof(netPacketHeader);
   switch (header->protocol) {
   case ICMP_PROTOCOL:
-    netICMPreceive(nic, header, data, (uint32_t)data + sizeof(icmpHeader));
+    netICMPreceive(nic, body, size);
     break;
 
   default:

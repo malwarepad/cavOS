@@ -26,4 +26,6 @@ void netUdpSend(NIC *nic, uint8_t *destination_mac, uint8_t *destination_ip,
 
   netIPv4Send(nic, destination_mac, destination_ip, final,
               sizeof(udpHeader) + data_size, UDP_PROTOCOL);
+
+  free(final);
 }

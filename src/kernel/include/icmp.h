@@ -28,6 +28,6 @@ typedef enum ICMP_TYPE {
 
 void netICMPsendPing(NIC *nic, uint8_t *destination_mac,
                      uint8_t *destination_ip);
-void netICMPreceive(NIC *nic, IPv4header *ipv4, icmpHeader *icmp, void *data);
+void netICMPreceive(NIC *nic, void *packet, uint32_t size);
 
 #endif
