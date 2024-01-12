@@ -100,7 +100,8 @@ void netArpReply(NIC *nic, arpPacket *arpRequest) {
 void netArpHandle(NIC *nic, arpPacket *packet) {
   switch (switch_endian_16(packet->opcode)) {
   case ARP_OP_REQUEST:
-    netArpReply(nic, packet);
+    if (memcmp(packet->target_ip, nic->ip, 4) == 0)
+      netArpReply(nic, packet);
     break;
   case ARP_OP_REPLY:
     // no need to reply to a response... lol.
