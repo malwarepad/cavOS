@@ -93,6 +93,7 @@ int VirtualFree(void *ptr, int pages) {
     debugf("[vmm::free] virt{%x} phys{%x}\n", virtaddr, physaddr);
 #endif
     MarkRegion(&physical, physaddr, 1, 0);
+    VirtualUnmap(virtaddr);
   }
   MarkRegion(&virtual, ptr, pages * PAGE_SIZE, 0);
   // releaseInterrupts();

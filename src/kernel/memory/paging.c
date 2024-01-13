@@ -1,5 +1,7 @@
+#include <bitmap.h>
 #include <liballoc.h>
 #include <paging.h>
+#include <pmm.h>
 #include <types.h>
 #include <util.h>
 
@@ -173,7 +175,7 @@ uint32_t VirtualUnmap(uint32_t virt_addr) {
     uint32_t pde = page_dir[pd_index];
     if (pde & PAGE_FLAG_OWNER) {
       uint32_t pt_paddr = P_PHYS_ADDR(pde);
-      BitmapFreePageframe(pt_paddr);
+      BitmapFreePageframe(&physical, pt_paddr);
       page_dir[pd_index] = 0;
     }
   }
@@ -182,7 +184,7 @@ uint32_t VirtualUnmap(uint32_t virt_addr) {
 
   // free it here for now
   if (pte & PAGE_FLAG_OWNER) {
-    BitmapFreePageframe(P_PHYS_ADDR(pte));
+    BitmapFreePageframe(&physical, P_PHYS_ADDR(pte));
   }
 
   if (prev_page_dir != 0) {
@@ -242,13 +244,13 @@ void PageDirectoryFree(uint32_t *page_dir) {
       uint32_t pte = ptable[j];
 
       if (pte & PAGE_FLAG_OWNER) {
-        BitmapFreePageframe(P_PHYS_ADDR(pte));
+        BitmapFreePageframe(&physical, P_PHYS_ADDR(pte));
       }
     }
     memset(ptable, 0, 0x1000);
 
     if (pde & PAGE_FLAG_OWNER) {
-      BitmapFreePageframe(P_PHYS_ADDR(pde));
+      BitmapFreePageframe(&physical, P_PHYS_ADDR(pde));
     }
     pd[i] = 0;
   }

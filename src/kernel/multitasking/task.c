@@ -127,7 +127,7 @@ void kill_task(uint32_t id) {
     for (int i = 0; i < num; i++) {
       uint32_t virt = heap_start * PAGE_SIZE + i * PAGE_SIZE;
       uint32_t phys = VirtualToPhysical(virt);
-      BitmapFreePageframe(phys);
+      BitmapFreePageframe(&physical, phys);
     }
   }
 

@@ -1,6 +1,8 @@
+#include <bitmap.h>
 #include <elf.h>
 #include <fat32.h>
 #include <paging.h>
+#include <pmm.h>
 #include <system.h>
 #include <task.h>
 #include <util.h>
@@ -93,7 +95,8 @@ uint32_t elf_execute(char *filepath) {
     uint32_t pagesRequired = DivRoundUp(elf_phdr->p_memsz, 0x1000);
     for (int j = 0; j < pagesRequired; j++) {
       uint32_t vaddr = (elf_phdr->p_vaddr & ~0xFFF) + j * 0x1000;
-      VirtualMap(vaddr, BitmapAllocatePageframe(),
+      uint32_t paddr = BitmapAllocatePageframe(&physical);
+      VirtualMap(vaddr, paddr,
                  PAGE_FLAG_OWNER | PAGE_FLAG_USER | PAGE_FLAG_WRITE);
     }
 
@@ -125,7 +128,7 @@ uint32_t elf_execute(char *filepath) {
   // Map the user stack (for variables & such)
   for (int i = 0; i < USER_STACK_PAGES; i++) {
     VirtualMap(USER_STACK_BOTTOM - USER_STACK_PAGES * 0x1000 + i * 0x1000,
-               BitmapAllocatePageframe(),
+               BitmapAllocatePageframe(&physical),
                PAGE_FLAG_OWNER | PAGE_FLAG_USER | PAGE_FLAG_WRITE);
   }
 

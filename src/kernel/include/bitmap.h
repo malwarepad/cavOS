@@ -35,5 +35,6 @@ uint32_t FindFreeRegion(DS_Bitmap *bitmap, uint32_t blocks);
 void    *BitmapAllocate(DS_Bitmap *bitmap, uint32_t blocks);
 
 uint32_t BitmapAllocatePageframe(DS_Bitmap *bitmap);
+void     BitmapFreePageframe(DS_Bitmap *bitmap, uint32_t addr);
 
 #endif
