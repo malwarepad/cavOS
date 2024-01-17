@@ -29,3 +29,62 @@ void netUdpSend(NIC *nic, uint8_t *destination_mac, uint8_t *destination_ip,
 
   free(final);
 }
+
+udpHandler *netUdpRegister(NIC *nic, uint16_t port, void *targetHandler) {
+  netUdpRemove(nic, port); // ensure no old ones left
+
+  udpHandler *handler = (udpHandler *)malloc(sizeof(udpHandler));
+  memset(handler, 0, sizeof(udpHandler));
+  udpHandler *curr = nic->firstUdpHandler;
+  while (1) {
+    if (curr == 0) {
+      // means this is our first one
+      nic->firstUdpHandler = handler;
+      break;
+    }
+    if (curr->next == 0) {
+      // next is non-existent (end of linked list)
+      curr->next = handler;
+      break;
+    }
+    curr = curr->next; // cycle
+  }
+
+  handler->handler = targetHandler;
+  handler->port = port;
+  handler->next = 0; // null ptr
+  return handler;
+}
+
+bool netUdpRemove(NIC *nic, uint16_t port) {
+  udpHandler *curr = nic->firstUdpHandler;
+  while (curr) {
+    if (curr->next == port)
+      break;
+    curr = curr->next;
+  }
+  if (!curr)
+    return false;
+
+  udpHandler *target = curr->next;
+  curr->next = target->next; // remove reference
+  free(target);              // free remaining memory
+
+  return true;
+}
+
+void netUdpReceive(NIC *nic, void *body, uint32_t size) {
+  udpHeader *header =
+      (uint32_t)body + sizeof(netPacketHeader) + sizeof(IPv4header);
+
+  udpHandler *browse = nic->firstUdpHandler;
+  while (browse) {
+    if (browse->port == switch_endian_16(header->destination_port))
+      break;
+    browse = browse->next;
+  }
+  if (!browse || !browse->handler)
+    return;
+
+  browse->handler(nic, body, size);
+}

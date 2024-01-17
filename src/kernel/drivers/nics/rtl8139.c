@@ -20,9 +20,6 @@ uint8_t TSD_array[4] = {0x10, 0x14, 0x18, 0x1C};
 // Track current packet (when receiving)
 uint32_t currentPacket;
 
-// Defaults (should be 0.0.0.0 but whatever)
-uint8_t defaultIP[4] = {10, 0, 2, 0};
-
 bool isRTL8139(PCIdevice *device) {
   return (device->vendor_id == 0x10ec && device->device_id == 0x8139);
 }

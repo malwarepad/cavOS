@@ -17,19 +17,39 @@ typedef struct arpTableEntry {
   uint8_t mac[6];
 } arpTableEntry;
 
+// why are there udp stuff here???!
+typedef void (*UdpHandlerFunction)(NIC *nic, void *body, uint32_t size);
+typedef struct udpHandler udpHandler;
+struct udpHandler {
+  uint16_t           port; // dest
+  UdpHandlerFunction handler;
+
+  udpHandler *next;
+};
+
 struct NIC {
   NIC_TYPE type;
   uint32_t infoLocation;
   uint8_t  MAC[6];
   uint8_t  ip[4];
+  uint8_t  serverIp[4];
+  uint8_t  dnsIp[4];
+  uint8_t  subnetMask[4];
   uint8_t  irq;
 
   // ARP
   arpTableEntry arpTable[ARP_TABLE_LEN];
   uint32_t      arpTableCurr;
 
+  // UDP
+  udpHandler *firstUdpHandler;
+
+  // DHCP
+  uint32_t dhcpTransactionID;
+
   NIC *next;
 };
+#define defaultIP ((uint8_t[]){0, 0, 0, 0})
 
 NIC *firstNIC;
 NIC *selectedNIC;

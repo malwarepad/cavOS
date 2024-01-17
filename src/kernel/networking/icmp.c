@@ -17,7 +17,7 @@ void netICMPsendPing(NIC *nic, uint8_t *destination_mac,
 
   header->type = ICMP_ECHO;
   header->code = 0;
-  header->checksum = checksum(header, sizeof(header));
+  header->checksum = checksum(header, sizeof(icmpHeader));
 
   netIPv4Send(nic, destination_mac, destination_ip, final, sizeof(icmpHeader),
               ICMP_PROTOCOL);

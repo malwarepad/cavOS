@@ -16,5 +16,10 @@ typedef struct udpHeader {
 void netUdpSend(NIC *nic, uint8_t *destination_mac, uint8_t *destination_ip,
                 void *data, uint32_t data_size, uint16_t source_port,
                 uint16_t destination_port);
+void netUdpReceive(NIC *nic, void *body, uint32_t size);
+
+// udp handlers
+udpHandler *netUdpRegister(NIC *nic, uint16_t port, void *targetHandler);
+bool        netUdpRemove(NIC *nic, uint16_t port);
 
 #endif

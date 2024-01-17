@@ -1,4 +1,5 @@
 #include <arp.h>
+#include <dhcp.h>
 #include <ipv4.h>
 #include <ne2k.h>
 #include <nic_controller.h>
@@ -18,8 +19,9 @@ void initiateNetworking() {
 }
 
 void initiateNIC(PCIdevice *device) {
-  initiateNe2000(device);
-  initiateRTL8139(device);
+  if (initiateNe2000(device) || initiateRTL8139(device)) {
+    netDHCPinit(selectedNIC); // selectedNIC = newly created NIC structure
+  }
   // ill add more NICs in the future
   // (lie)
 }
@@ -27,6 +29,10 @@ void initiateNIC(PCIdevice *device) {
 // returns UNINITIALIZED!! NIC struct
 NIC *createNewNIC() {
   NIC *nic = (NIC *)malloc(sizeof(NIC));
+
+  memset(nic, 0, sizeof(NIC));
+  nic->dhcpTransactionID = rand();
+
   NIC *curr = firstNIC;
   while (1) {
     if (curr == 0) {

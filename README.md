@@ -49,7 +49,7 @@ Important to mention these goals may never be satisfied, take a very long time t
   - [x] UDP
   - [x] IPv4
   - [x] ICMP
-  - [ ] DHCP
+  - [x] DHCP
   - [ ] DNS
   - [ ] TCP
   - [ ] HTTP

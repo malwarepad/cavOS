@@ -110,9 +110,14 @@ void launch_shell(int n) {
           printf("[%d]: ", nic->type);
         else
           printf("%d: ", nic->type);
-        printf("%02X:%02X:%02X:%02X:%02X:%02X // %d.%d.%d.%d\n", nic->MAC[0],
-               nic->MAC[1], nic->MAC[2], nic->MAC[3], nic->MAC[4], nic->MAC[5],
-               nic->ip[0], nic->ip[1], nic->ip[2], nic->ip[3]);
+        printf("%02X:%02X:%02X:%02X:%02X:%02X: IPv4{%d.%d.%d.%d} "
+               "SubnetMask{%d.%d.%d.%d} Router{%d.%d.%d.%d} DNS{%d.%d.%d.%d}\n",
+               nic->MAC[0], nic->MAC[1], nic->MAC[2], nic->MAC[3], nic->MAC[4],
+               nic->MAC[5], nic->ip[0], nic->ip[1], nic->ip[2], nic->ip[3],
+               nic->subnetMask[0], nic->subnetMask[1], nic->subnetMask[2],
+               nic->subnetMask[3], nic->serverIp[0], nic->serverIp[1],
+               nic->serverIp[2], nic->serverIp[3], nic->dnsIp[0], nic->dnsIp[1],
+               nic->dnsIp[2], nic->dnsIp[3]);
         nic = nic->next;
       }
     } else if (strEql(ch, "lspci")) {

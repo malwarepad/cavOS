@@ -3,6 +3,7 @@
 #include <ipv4.h>
 #include <liballoc.h>
 #include <system.h>
+#include <udp.h>
 #include <util.h>
 
 // IP(v4) layer (https://en.wikipedia.org/wiki/Internet_Protocol_version_4)
@@ -45,6 +46,10 @@ void netIPv4Receive(NIC *nic, void *body, uint32_t size) {
   switch (header->protocol) {
   case ICMP_PROTOCOL:
     netICMPreceive(nic, body, size);
+    break;
+
+  case UDP_PROTOCOL:
+    netUdpReceive(nic, body, size);
     break;
 
   default:
