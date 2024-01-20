@@ -4,7 +4,10 @@
 #include <icmp.h>
 #include <ne2k.h>
 #include <pci.h>
+#include <string.h>
+#include <system.h>
 #include <task.h>
+#include <tcp.h>
 #include <testing.h>
 #include <udp.h>
 #include <util.h>
@@ -49,6 +52,30 @@ void task3() {
 }
 #endif
 
+void handler(NIC *nic, void *request, uint32_t size,
+             tcpConnection *connection) {
+  IPv4header *ipv4 = (uint32_t)request + sizeof(netPacketHeader);
+  tcpHeader  *tcpReq =
+      (uint32_t)request + sizeof(netPacketHeader) + sizeof(IPv4header);
+  uint8_t *tcpBody = (uint32_t)tcpReq + sizeof(tcpHeader);
+  uint32_t tcpSize =
+      (switch_endian_16(ipv4->length) - sizeof(IPv4header) - sizeof(tcpHeader));
+  // if ((tcpBody[0] == 'H' && tcpBody[1] == 'T' && tcpBody[2] == 'T' &&
+  //      tcpBody[3] == 'P') ||
+  //     (tcpBody[0] == 'u' && tcpBody[1] == 'r' && tcpBody[2] == 'e')) {
+  //   for (int i = 0; i < (switch_endian_16(ipv4->length) - sizeof(IPv4header)
+  //   -
+  //                        sizeof(tcpHeader));
+  //        i++) {
+  // debugf("%c", tcpBody[i]);
+  // }
+  if (tcpSize)
+    netTcpAck(nic, connection);
+
+  debugf("size{%d}\n", tcpSize);
+  // }
+}
+
 void testingInit() {
 #if SOME_NETWORKING_STUFF
   // netPacket *packet = (netPacket *)malloc(sizeof(netPacket));
@@ -61,10 +88,9 @@ void testingInit() {
   // printf("sending...\n");
   // sendNe2000(selectedNIC, packet, size);
 
-  // # get router mac
-  uint8_t gateway[] = {10, 0, 2, 2};
+  // # 1: get router mac
   uint8_t macout[6];
-  bool    res = netArpGetIPv4(selectedNIC, gateway, macout);
+  bool    res = netArpGetIPv4(selectedNIC, selectedNIC->serverIp, macout);
   if (res)
     debugf("ROUTER IS AT: %02X:%02X:%02X:%02X:%02X:%02X\n", macout[0],
            macout[1], macout[2], macout[3], macout[4], macout[5]);
@@ -74,6 +100,33 @@ void testingInit() {
   // # use router mac
   uint8_t target[] = {1, 1, 1, 1};
   netICMPsendPing(selectedNIC, macout, target);
+
+  // # 2: tcp
+  uint8_t        tcpIp[] = {34, 223, 124, 45};
+  tcpConnection *connection = netTcpConnect(selectedNIC, tcpIp, 5111, 80);
+
+  netTcpAwaitOpen(connection);
+
+  char *hexString = "GET /online/ HTTP/1.1\r\nHost: "
+                    "brightsilvermajesticbirds.neverssl.com\r\n\r\n";
+
+  netTcpSend(selectedNIC, connection, ACK_FLAG | PSH_FLAG, hexString,
+             strlength(hexString));
+  sleep(3500);
+  netTcpClose(selectedNIC, connection);
+  while (connection->open) {
+    if (!netTcpReceive(connection))
+      continue;
+    tcpPacketHeader *packet = netTcpReceive(connection);
+    tcpHeader       *head = (uint32_t)packet + sizeof(tcpPacketHeader);
+    uint8_t         *body =
+        (uint32_t)packet + sizeof(tcpPacketHeader) + sizeof(tcpHeader);
+    for (int i = 0; i < (packet->size - sizeof(tcpHeader)); i++) {
+      debugf("%c", body[i]);
+    }
+    netTcpDiscardPacket(connection, packet);
+  }
+  netTcpCleanup(selectedNIC, connection);
 #endif
 #if PCI_READ
   for (uint8_t bus = 0; bus < PCI_MAX_BUSES; bus++) {

@@ -59,11 +59,16 @@ udpHandler *netUdpRegister(NIC *nic, uint16_t port, void *targetHandler) {
 bool netUdpRemove(NIC *nic, uint16_t port) {
   udpHandler *curr = nic->firstUdpHandler;
   while (curr) {
-    if (curr->next == port)
+    if (curr->next && (udpHandler *)(curr->next)->port == port)
       break;
     curr = curr->next;
   }
-  if (!curr)
+  if (nic->firstUdpHandler && nic->firstUdpHandler->port == port) {
+    udpHandler *target = nic->firstUdpHandler;
+    nic->firstUdpHandler = target->next;
+    free(target);
+    return true;
+  } else if (!curr)
     return false;
 
   udpHandler *target = curr->next;
@@ -86,5 +91,5 @@ void netUdpReceive(NIC *nic, void *body, uint32_t size) {
   if (!browse || !browse->handler)
     return;
 
-  browse->handler(nic, body, size);
+  browse->handler(nic, body, size, browse);
 }

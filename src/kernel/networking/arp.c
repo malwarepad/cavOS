@@ -1,4 +1,5 @@
 #include <arp.h>
+#include <checksum.h>
 #include <liballoc.h>
 #include <ne2k.h>
 #include <system.h>
@@ -125,12 +126,14 @@ void netArpHandle(NIC *nic, arpPacket *packet) {
 }
 
 // The ONLY function an end user should interact with
-bool netArpGetIPv4(NIC *nic, const uint8_t *ip, uint8_t *mac) {
-  if (memcmp(nic->ip, ip, 4) == 0) {
+bool netArpGetIPv4(NIC *nic, const uint8_t *ipInput, uint8_t *mac) {
+  if (memcmp(nic->ip, ipInput, 4) == 0) {
     // your own ip dummy
     memcpy(mac, nic->MAC, 6);
     return true;
   }
+
+  const uint8_t *ip = isLocalIPv4(ipInput) ? ipInput : nic->serverIp;
 
   arpTableEntry *tableEntry = lookupArpTable(nic, ip);
   if (tableEntry) {

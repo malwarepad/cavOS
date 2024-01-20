@@ -84,6 +84,9 @@ void handlePacket(NIC *nic, void *packet, uint32_t size) {
   case NET_ETHERTYPE_IPV4:
     netIPv4Receive(nic, packet, size);
     break;
+  case NET_ETHERTYPE_IPV6:
+    // fuck IPv6
+    break;
   default:
     debugf("[nics] Odd ethertype: exact{%X} reversed{%X}\n", header->ethertype,
            switch_endian_16(header->ethertype));

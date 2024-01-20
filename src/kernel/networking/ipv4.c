@@ -3,6 +3,7 @@
 #include <ipv4.h>
 #include <liballoc.h>
 #include <system.h>
+#include <tcp.h>
 #include <udp.h>
 #include <util.h>
 
@@ -50,6 +51,10 @@ void netIPv4Receive(NIC *nic, void *body, uint32_t size) {
 
   case UDP_PROTOCOL:
     netUdpReceive(nic, body, size);
+    break;
+
+  case TCP_PROTOCOL:
+    netTcpReceiveInternal(nic, body, size);
     break;
 
   default:

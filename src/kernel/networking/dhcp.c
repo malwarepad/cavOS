@@ -143,6 +143,7 @@ void netDHCPreceive(NIC *nic, void *body, uint32_t size) {
     break;
   case DHCP_ACK:
     // done...
+    netUdpRemove(nic, 68);
     break;
   default:
     debugf("[networking::dhcp] Odd DHCP message type! %d\n", dhcpMessageType);

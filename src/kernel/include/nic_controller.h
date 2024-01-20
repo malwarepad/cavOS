@@ -18,13 +18,38 @@ typedef struct arpTableEntry {
 } arpTableEntry;
 
 // why are there udp stuff here???!
-typedef void (*UdpHandlerFunction)(NIC *nic, void *body, uint32_t size);
+typedef void (*NetHandlerFunction)(NIC *nic, void *body, uint32_t size,
+                                   void *extras);
 typedef struct udpHandler udpHandler;
 struct udpHandler {
   uint16_t           port; // dest
-  UdpHandlerFunction handler;
+  NetHandlerFunction handler;
 
   udpHandler *next;
+};
+
+// why are there tcp stuff here???!
+typedef struct tcpPacketHeader tcpPacketHeader;
+struct tcpPacketHeader {
+  tcpPacketHeader *next;
+  uint32_t         size;
+};
+typedef struct tcpConnection tcpConnection;
+struct tcpConnection {
+  bool     open;
+  bool     closing;
+  uint16_t client_port; // dest
+  uint16_t server_port;
+
+  uint8_t server_ip[4];
+  // NetHandlerFunction handler; not a good idea, it bypasses other interrutps
+  // from going through!
+
+  uint32_t client_seq_number;
+  uint32_t client_ack_number;
+
+  tcpPacketHeader *firstPendingPacket;
+  tcpConnection   *next;
 };
 
 struct NIC {
@@ -43,6 +68,9 @@ struct NIC {
 
   // UDP
   udpHandler *firstUdpHandler;
+
+  // TCP
+  tcpConnection *firstTcpConnection;
 
   // DHCP
   uint32_t dhcpTransactionID;
@@ -73,7 +101,11 @@ typedef struct netPacket {
 } netPacket;
 
 /* Ethertypes/Protocols */
-enum NET_ETHERTYPES { NET_ETHERTYPE_ARP = 0x0806, NET_ETHERTYPE_IPV4 = 0x0800 };
+enum NET_ETHERTYPES {
+  NET_ETHERTYPE_ARP = 0x0806,
+  NET_ETHERTYPE_IPV4 = 0x0800,
+  NET_ETHERTYPE_IPV6 = 0x86DD
+};
 
 void sendPacket(NIC *nic, uint8_t *destination_mac, void *data, uint32_t size,
                 uint16_t protocol);
