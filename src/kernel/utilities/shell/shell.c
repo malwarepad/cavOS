@@ -1,5 +1,7 @@
 #include <arp.h>
+#include <checksum.h>
 #include <fat32.h>
+#include <icmp.h>
 #include <liballoc.h>
 #include <pci.h>
 #include <rtc.h>
@@ -87,17 +89,27 @@ void launch_shell(int n) {
     } else if (strEql(ch, "arptable")) {
       debugArpTable(selectedNIC);
     } else if (strEql(ch, "arping")) {
-      printf("\nTesting ARP capabilities (pinging 192.168.122.253)...\n");
-      uint8_t  thing[4] = {192, 168, 122, 1};
-      uint8_t *mac = (uint8_t *)malloc(6);
-      bool     test = netArpGetIPv4(selectedNIC, thing, mac);
+      uint8_t ip[4];
+      uint8_t mac[6];
+      printf("\nInsert IP address: ");
+      ipPrompt(ip);
+      printf("\n");
+
+      bool test = netArpGetIPv4(selectedNIC, ip, mac);
       if (!test)
         printf("MAC address cannot be parsed!\n");
       else
         printf("MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", mac[0], mac[1], mac[2],
                mac[3], mac[4], mac[5]);
+    } else if (strEql(ch, "ping")) {
+      uint8_t ip[4];
+      uint8_t mac[6];
+      printf("\nInsert IP address: ");
+      ipPrompt(ip);
+      printf("\n");
 
-      free(mac);
+      netArpGetIPv4(selectedNIC, ip, mac);
+      netICMPsendPing(selectedNIC, mac, ip);
     } else if (strEql(ch, "net")) {
       printf("\nWarning: networking is still very early in testing!\n");
       printf("=========================================\n");

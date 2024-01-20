@@ -1,4 +1,5 @@
 #include <checksum.h>
+#include <kb.h>
 #include <system.h>
 #include <tcp.h>
 #include <udp.h>
@@ -63,4 +64,18 @@ bool isLocalIPv4(uint8_t *ip) {
   return (ipAddress & 0xFF000000) == 0x0A000000 || // 10.0.0.0/8
          (ipAddress & 0xFFF00000) == 0xAC100000 || // 172.16.0.0/12
          (ipAddress & 0xFFFF0000) == 0xC0A80000;   // 192.168.0.0/16
+}
+
+void ipPrompt(uint8_t *out) {
+  char *curr = (char *)malloc(8);
+
+  for (uint8_t i = 0; i < 4; i++) {
+    memset(curr, 0, 8);
+    readStr(curr);
+    if (i < 3)
+      printf(".");
+    out[i] = atoi(curr);
+  }
+
+  free(curr);
 }
