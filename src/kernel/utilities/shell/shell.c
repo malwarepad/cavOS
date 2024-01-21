@@ -80,6 +80,40 @@ void launch_shell(int n) {
                height, 255, 255, 255);
       ssfn_dst.y += height + 16;
       printf("\n");
+    } else if (strEql(ch, "drawimg")) {
+      printf("\nInput cavimg file's path: ");
+      char *buff = (char *)malloc(1024);
+      readStr(buff);
+      printf("\n");
+      FAT32_Directory *dir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));
+      if (!openFile(dir, buff)) {
+        printf("File cannot be found!\n");
+        continue;
+      }
+      char *out = (char *)malloc(dir->filesize);
+      readFileContents(&out, dir);
+      clearScreen();
+
+      uint32_t width = 800;
+      uint32_t height = 600;
+      uint32_t max = width * height;
+      for (int i = 0; i < max; ++i) {
+        int bufferPos = i * 3;
+
+        int r = out[bufferPos];
+        int g = out[bufferPos + 1];
+        int b = out[bufferPos + 2];
+
+        int x = i % width;
+        int y = i / width;
+
+        drawPixel(x, y, r, g, b);
+      }
+      ssfn_dst.y += height + 16;
+
+      free(out);
+      free(dir);
+      free(buff);
     } else if (strEql(ch, "readfatcluster")) {
       fatCluster();
     } else if (strEql(ch, "readfatroot")) {
