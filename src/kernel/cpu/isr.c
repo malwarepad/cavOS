@@ -86,6 +86,10 @@ void registerIRQhandler(uint8_t id, void *handler) {
 
 void handle_interrupt(AsmPassedInterrupt regs) {
   if (regs.interrupt >= 32 && regs.interrupt <= 47) { // IRQ
+    if (regs.interrupt >= 40) {
+      outportb(0xA0, 0x20);
+    }
+    outportb(0x20, 0x20);
     switch (regs.interrupt) {
     case 32 + 0: // irq0
       timerTick();
@@ -96,11 +100,6 @@ void handle_interrupt(AsmPassedInterrupt regs) {
         irqHandlers[regs.interrupt - 32](&regs);
       break;
     }
-
-    if (regs.interrupt >= 40) {
-      outportb(0xA0, 0x20);
-    }
-    outportb(0x20, 0x20);
   } else if (regs.interrupt >= 0 && regs.interrupt <= 31) { // ISR
     if (regs.interrupt == 14) {
       unsigned int err_pos;
