@@ -6,9 +6,6 @@
 // "requested privilage level"
 #define RPL_USER 3
 
-// fixed number of tasks for simplicity
-#define MAX_TASKS 16
-
 #define KERNEL_TASK 0
 
 // matches the stack of switch_context in kernel.asm
@@ -24,7 +21,9 @@ typedef struct {
 #define TASK_STATE_READY 1
 #define TASK_STATE_IDLE 2
 
-typedef struct {
+typedef struct Task Task;
+
+struct Task {
   uint32_t id;
 
   // each task has its own kernel stack
@@ -50,17 +49,21 @@ typedef struct {
 
   uint32_t heap_start;
   uint32_t heap_end;
-} Task;
 
-Task  tasks[MAX_TASKS];
-Task *current_task;
+  Task *next;
+};
+
+Task *dummyTask;
+Task *firstTask;
+Task *currentTask;
 
 bool tasksInitiated;
 
-void initiateTasks();
-void create_task(uint32_t id, uint32_t eip, bool kernel_task,
-                 uint32_t *pagedir);
-void adjust_user_heap(Task *task, uint32_t new_heap_end);
-void kill_task(uint32_t id);
+void     initiateTasks();
+void     create_task(uint32_t id, uint32_t eip, bool kernel_task,
+                     uint32_t *pagedir);
+void     adjust_user_heap(Task *task, uint32_t new_heap_end);
+void     kill_task(uint32_t id);
+uint8_t *getTaskState(uint16_t id);
 
 #endif

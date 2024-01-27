@@ -35,6 +35,7 @@ void initiateVMM() {
   MarkRegion(&virtual, 0xcfff8000, 0xD0000000 - 0xcfff8000, 1);
   MarkRegion(&virtual, 0xC0000000, 0x1000000, 1);
   MarkRegion(&virtual, 0xFFFFF000, 0xFFFFFFFF - 0xFFFFF000, 1);
+  MarkRegion(&virtual, 0xFFC00000, 0xFFFFFFFF - 0xFFC00000, 1);
   virtual.ready = true;
 }
 

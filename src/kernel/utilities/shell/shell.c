@@ -3,6 +3,7 @@
 #include <fat32.h>
 #include <icmp.h>
 #include <liballoc.h>
+#include <paging.h>
 #include <pci.h>
 #include <rtc.h>
 #include <shell.h>
@@ -207,15 +208,14 @@ void launch_shell(int n) {
       printf("\nFile path to executable: ");
       char *filepath = (char *)malloc(200);
       readStr(filepath);
+      printf("\n");
       uint32_t id = elf_execute(filepath);
       if (!id) {
-        printf("\nFailure executing %s!\n", filepath);
+        printf("Failure executing %s!\n", filepath);
         continue;
       }
 
-      printf("\n");
-
-      while (tasks[id].state == TASK_STATE_READY) {
+      while (getTaskState(id)) {
       }
 
       free(filepath);

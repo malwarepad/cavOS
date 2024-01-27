@@ -3,7 +3,7 @@
 
 bits 32
 
-extern current_task
+extern currentTask
 extern tss
 
 ; void switch_context(Task* old, Task* new);

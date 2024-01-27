@@ -5,6 +5,7 @@
 #include <schedule.h>
 #include <system.h>
 #include <task.h>
+#include <util.h>
 
 // Task manager allowing for task management
 // Copyright (C) 2023 Panagiotis
@@ -12,8 +13,6 @@
 void create_task(uint32_t id, uint32_t eip, bool kernel_task,
                  uint32_t *pagedir) {
   lockInterrupts();
-
-  memset(&tasks[id], 0, sizeof(Task));
 
   // when a task gets context switched to for the first time,
   // switch_context is going to start popping values from the stack into
@@ -60,15 +59,29 @@ void create_task(uint32_t id, uint32_t eip, bool kernel_task,
   // jump directly to isr_exit and exit the interrupt
   context->return_eip = (uint32_t)asm_isr_exit;
 
-  tasks[id].kesp_bottom = kernel_stack;
-  tasks[id].kesp = (uint32_t)kesp;
-  tasks[id].id = id;
-  tasks[id].kernel_task = kernel_task;
-  tasks[id].state = TASK_STATE_READY;
-  tasks[id].pagedir = pagedir;
+  Task *browse = firstTask;
+  while (browse) {
+    if (!browse->next)
+      break; // found final
+    browse = browse->next;
+  }
+  if (!browse) {
+    debugf("[scheduler] Something went wrong with init!\n");
+    panic();
+  }
+  Task *target = (Task *)malloc(sizeof(Task));
+  memset(target, 0, sizeof(Task));
+  browse->next = target;
 
-  tasks[id].heap_start = USER_HEAP_START;
-  tasks[id].heap_end = USER_HEAP_START;
+  target->kesp_bottom = kernel_stack;
+  target->kesp = (uint32_t)kesp;
+  target->id = id;
+  target->kernel_task = kernel_task;
+  target->state = TASK_STATE_READY;
+  target->pagedir = pagedir;
+
+  target->heap_start = USER_HEAP_START;
+  target->heap_end = USER_HEAP_START;
 
   releaseInterrupts();
 }
@@ -108,16 +121,24 @@ void adjust_user_heap(Task *task, uint32_t new_heap_end) {
 void kill_task(uint32_t id) {
   lockInterrupts();
 
-  Task *task = &tasks[id];
-  if (task->state == TASK_STATE_DEAD)
+  Task *browse = firstTask;
+  while (browse) {
+    if (browse->next && (Task *)(browse->next)->id == id)
+      break;
+    browse = browse->next;
+  }
+  Task *task = browse->next;
+  if (!task || task->state == TASK_STATE_DEAD)
     return;
 
-  PageDirectoryFree(task->pagedir);
+  browse->next = task->next;
+
   uint32_t *kernel_stack = (uint32_t *)((task->kesp_bottom) + (0x1000 - 16));
   free(kernel_stack);
-  memset(&tasks[id], 0, sizeof(Task));
 
   // free user heap
+  uint32_t *defaultPagedir = GetPageDirectory();
+  ChangePageDirectory(task->pagedir);
   int heap_start = DivRoundUp(task->heap_start, PAGE_SIZE);
   int heap_end = DivRoundUp(task->heap_end, PAGE_SIZE);
 
@@ -130,32 +151,55 @@ void kill_task(uint32_t id) {
       BitmapFreePageframe(&physical, phys);
     }
   }
+  ChangePageDirectory(defaultPagedir);
+  PageDirectoryFree(task->pagedir);
 
-  // task->state = TASK_STATE_DEAD;
-  // num_tasks--;
+  // funny workaround to save state somewhere
+  memset(dummyTask, 0, sizeof(Task));
+  if (currentTask == task)
+    currentTask = dummyTask;
+  free(task);
 
   schedule(); // go to the next task (will re-enable interrupts)
 }
 
+uint8_t *getTaskState(uint16_t id) {
+  Task *browse = firstTask;
+  while (browse) {
+    if (browse->id == id)
+      break;
+    browse = browse->next;
+  }
+  if (!browse)
+    return 0;
+
+  return browse->state;
+}
+
 int16_t create_taskid() {
-  for (int i = 1; i < MAX_TASKS; i++) {
-    if (tasks[i].state != TASK_STATE_IDLE && tasks[i].state != TASK_STATE_READY)
-      return i;
+  Task    *browse = firstTask;
+  uint16_t max = 0;
+  while (browse) {
+    max = browse->id;
+    browse = browse->next;
   }
 
-  return -1;
+  return max + 1;
 }
 
 void initiateTasks() {
+  dummyTask = (Task *)malloc(sizeof(Task));
+  memset(dummyTask, 0, sizeof(Task));
+  firstTask = (Task *)malloc(sizeof(Task));
+  memset(firstTask, 0, sizeof(Task));
+
+  currentTask = firstTask;
+  currentTask->id = KERNEL_TASK;
+  currentTask->state = TASK_STATE_READY;
+  currentTask->pagedir = GetPageDirectory();
+  currentTask->kernel_task = true;
+
   tasksInitiated = true;
-  memset((uint8_t *)tasks, 0, sizeof(Task) * MAX_TASKS);
-
-  current_task = &tasks[KERNEL_TASK];
-  current_task->id = KERNEL_TASK;
-  current_task->state = TASK_STATE_READY;
-  current_task->pagedir = GetPageDirectory();
-  current_task->kernel_task = true;
-
   debugf("[tasks] Current execution ready for multitasking\n");
 
   // task 0 represents the execution we're in right now

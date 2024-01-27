@@ -43,20 +43,20 @@ bool running = false;
 // System calls themselves
 #define SYSCALL_TEST 0x0
 static void syscallTest(char *msg) {
-  debugf("[syscalls] Got test syscall from process{%d}: %s\n", current_task->id,
+  debugf("[syscalls] Got test syscall from process{%d}: %s\n", currentTask->id,
          msg);
-  printf("Got test syscall from process %d: %s\n", current_task->id, msg);
+  printf("Got test syscall from process %d: %s\n", currentTask->id, msg);
 }
 
 #define SYSCALL_EXIT_TASK 0x1
 static void syscallExitTask(int return_code) {
   debugf("[scheduler] Exiting task{%d} with return code{%d}!\n",
-         current_task->id, return_code);
-  kill_task(current_task->id);
+         currentTask->id, return_code);
+  kill_task(currentTask->id);
 }
 
 #define SYSCALL_GETPID 0x2
-static uint32_t syscallGetPid() { return current_task->id; }
+static uint32_t syscallGetPid() { return currentTask->id; }
 
 #define SYSCALL_GETARGC 0x3
 static int syscallGetArgc() { return 6; }
@@ -67,14 +67,14 @@ static *sampleArgv[] = {"./main.c", "one", "two", "three", "four", "five"};
 static char *syscallGetArgv(int curr) { return sampleArgv[curr]; }
 
 #define SYSCALL_GET_HEAP_START 0x5
-static uint32_t syscallGetHeapStart() { return current_task->heap_start; }
+static uint32_t syscallGetHeapStart() { return currentTask->heap_start; }
 
 #define SYSCALL_GET_HEAP_END 0x6
-static uint32_t syscallGetHeapEnd() { return current_task->heap_end; }
+static uint32_t syscallGetHeapEnd() { return currentTask->heap_end; }
 
 #define SYSCALL_ADJUST_HEAP_END 0x7
 static void syscallAdjustHeapEnd(uint32_t heap_end) {
-  adjust_user_heap(current_task, heap_end);
+  adjust_user_heap(currentTask, heap_end);
 }
 
 #define SYSCALL_PRINT_CHAR 0x8
