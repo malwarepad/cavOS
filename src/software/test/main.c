@@ -23,6 +23,10 @@ int main(int argc, char **argv) {
 
   printf("Process PID: %ld\n", syscallGetPid());
 
+  int dec;
+  scanf("%d", &dec);
+  printf("\nyou entered: %d\n", dec);
+
   for (int i = 0; i < argc; i++) {
     syscallTest(argv[i]);
   }
@@ -36,7 +40,7 @@ int main(int argc, char **argv) {
   dumpHeapInfo();
 
   char *msg = "hello world!\n";
-  syscallPrint(msg, strlength(msg));
+  syscallWrite(0, msg, strlength(msg));
 
   return 1;
 }

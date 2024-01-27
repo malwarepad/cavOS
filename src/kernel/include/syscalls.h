@@ -5,7 +5,7 @@
 #ifndef SYSCALLS_H
 #define SYSCALLS_H
 
-#define MAX_SYSCALLS 64
+#define MAX_SYSCALLS 420
 uint32_t syscalls[MAX_SYSCALLS];
 
 void registerSyscall(uint32_t id, void *handler);

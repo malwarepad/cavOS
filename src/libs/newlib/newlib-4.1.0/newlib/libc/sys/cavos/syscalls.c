@@ -26,7 +26,11 @@ int fstat(int file, struct stat *st) {
   st->st_mode = S_IFCHR;
   return 0;
 }
-int getpid(void) { return 1; }
+int getpid(void) {
+  uint32_t res;
+  asm volatile("int $0x80" : "=a"(res) : "a"(20));
+  return res;
+}
 int isatty(int file) { return 1; }
 int kill(int pid, int sig) {
   errno = EINVAL;
@@ -36,13 +40,16 @@ int link(char *old, char *new) {
   errno = EMLINK;
   return -1;
 }
-int     lseek(int file, int ptr, int dir) { return 0; }
-int     open(const char *name, int flags, ...) { return -1; }
-int     read(int file, char *ptr, int len) { return 0; }
+int lseek(int file, int ptr, int dir) { return 0; }
+int open(const char *name, int flags, ...) { return -1; }
+int read(int file, char *ptr, int len) {
+  asm volatile("int $0x80" ::"a"(3), "b"(file), "c"(ptr), "d"(len));
+  return len;
+}
 caddr_t sbrk(int incr) {
   uint32_t start_end;
-  asm volatile("int $0x80" : "=a"(start_end) : "a"(6));
-  asm volatile("int $0x80" ::"a"(7), "b"(start_end + incr));
+  asm volatile("int $0x80" : "=a"(start_end) : "a"(403));
+  asm volatile("int $0x80" ::"a"(404), "b"(start_end + incr));
 
   return (caddr_t)start_end;
 }
@@ -60,7 +67,7 @@ int wait(int *status) {
   return -1;
 }
 int write(int file, char *ptr, int len) {
-  asm volatile("int $0x80" ::"a"(8), "b"(ptr), "c"(len));
+  asm volatile("int $0x80" ::"a"(4), "b"(file), "c"(ptr), "d"(len));
   return len;
 }
 // int gettimeofday(struct timeval *p, struct timezone *z);
