@@ -63,21 +63,32 @@ static void syscallFork(int file, char *str, uint32_t count) {
 
 #define SYSCALL_READ 0x3
 static void syscallRead(int file, char *str, uint32_t count) {
-  // todo: respect limit
-  readStr(str);
+  if (file == 0 || file == 1) {
+    // console fb
+    // todo: respect limit, allow multitasking, etc
+    readStr(str);
+  }
 }
 
 #define SYSCALL_WRITE 0x4
 static void syscallWrite(int file, char *str, uint32_t count) {
-  for (int i = 0; i < count; i++) {
-    serial_send(COM1, str[i]);
-    printfch(str[i]);
+  if (file == 0 || file == 1) {
+    // console fb
+    for (int i = 0; i < count; i++) {
+      serial_send(COM1, str[i]);
+      printfch(str[i]);
+    }
   }
 }
 
-#define SYSCALL_READ_CHAR 0x9
-// todo (also fix ps/2 kb driver)
-static char syscallReadChar() { return 'a'; }
+#define SYSCALL_OPEN 0x5
+int syscallOpen(char *filename, int flags, uint16_t mode) {
+  // todo: vfs & file openings!
+  debugf("[syscall::open] filename{%s} flags{%d} mode{%d}\n", filename, flags,
+         mode);
+
+  return -1;
+}
 
 #define SYSCALL_GETPID 20
 static uint32_t syscallGetPid() { return currentTask->id; }
@@ -124,7 +135,7 @@ void initiateSyscalls() {
   registerSyscall(SYSCALL_ADJUST_HEAP_END, syscallAdjustHeapEnd);
   registerSyscall(SYSCALL_WRITE, syscallWrite);
   registerSyscall(SYSCALL_READ, syscallRead);
-  registerSyscall(SYSCALL_READ_CHAR, syscallReadChar);
+  registerSyscall(SYSCALL_OPEN, syscallOpen);
 
   debugf("[syscalls] System calls are ready to fire: %d/%d\n", countSyscalls(),
          MAX_SYSCALLS);

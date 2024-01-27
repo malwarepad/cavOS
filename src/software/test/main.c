@@ -27,6 +27,8 @@ int main(int argc, char **argv) {
   scanf("%d", &dec);
   printf("\nyou entered: %d\n", dec);
 
+  fopen("/files/lorem.txt", "r");
+
   for (int i = 0; i < argc; i++) {
     syscallTest(argv[i]);
   }

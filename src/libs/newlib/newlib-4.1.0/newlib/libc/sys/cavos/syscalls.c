@@ -10,11 +10,11 @@
 #undef errno
 extern int errno;
 
-void _exit() {}
-int  close(int file) { return -1; }
-// char **environ; pointer to array of char * strings that define the current
-// environment variables
-int execve(char *name, char **argv, char **env) {
+void   _exit() {}
+int    close(int file) { return -1; }
+char  *__env[1] = {0};
+char **environ = __env;
+int    execve(char *name, char **argv, char **env) {
   errno = ENOMEM;
   return -1;
 }
@@ -31,7 +31,7 @@ int getpid(void) {
   asm volatile("int $0x80" : "=a"(res) : "a"(20));
   return res;
 }
-int isatty(int file) { return 1; }
+int isatty(int file) { return file == 1 || file == 0; }
 int kill(int pid, int sig) {
   errno = EINVAL;
   return -1;
@@ -41,7 +41,11 @@ int link(char *old, char *new) {
   return -1;
 }
 int lseek(int file, int ptr, int dir) { return 0; }
-int open(const char *name, int flags, ...) { return -1; }
+int open(const char *name, int flags, ...) {
+  int ret;
+  asm volatile("int $0x80" : "=a"(ret) : "a"(5), "b"(name), "c"(flags), "d"(0));
+  return ret;
+}
 int read(int file, char *ptr, int len) {
   asm volatile("int $0x80" ::"a"(3), "b"(file), "c"(ptr), "d"(len));
   return len;
