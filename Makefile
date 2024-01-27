@@ -3,8 +3,12 @@ all: disk
 # https://stackoverflow.com/questions/3931741/why-does-make-think-the-target-is-up-to-date
 .PHONY: disk tools clean qemu qemu_dbg vmware dev kernel
 
+newlib:
+	chmod +x src/libs/newlib/build.sh
+	./src/libs/newlib/build.sh --noreplace
+
 # Primary (disk creation)
-disk:
+disk: newlib
 	@$(MAKE) -C src/libs/system
 	@$(MAKE) -C src/software/test
 	@$(MAKE) -C src/kernel disk

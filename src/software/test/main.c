@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdio.h>
 #include <system.h>
 
 #include "utils.h" // for itoa and atoi
@@ -20,11 +21,7 @@ int main(int argc, char **argv) {
   argc = argc;
   argv = argv;
 
-  int  pid = syscallGetPid();
-  char str[50];
-  itoa(pid, str);
-
-  syscallTest(str);
+  printf("Process PID: %ld\n", syscallGetPid());
 
   for (int i = 0; i < argc; i++) {
     syscallTest(argv[i]);
@@ -39,8 +36,7 @@ int main(int argc, char **argv) {
   dumpHeapInfo();
 
   char *msg = "hello world!\n";
-  for (int i = 0; i < strlength(msg); i++)
-    syscallPrintChar(msg[i]);
+  syscallPrint(msg, strlength(msg));
 
   return 1;
 }

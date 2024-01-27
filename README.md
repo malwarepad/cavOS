@@ -2,16 +2,6 @@
 
 ![Preview of the OS](./docs/preview.png)
 
-## Table Of Contents
-
-- [Cave-Like Operating System](#cave-like-operating-system)
-  - [Table Of Contents](#table-of-contents)
-  - [Purpose](#purpose)
-  - [Status](#status)
-  - [Goals](#goals)
-  - [Compiling](#compiling)
-  - [License](#license)
-
 ## Purpose
 
 **This is an OS I am making in my free time purely for fun.** I am learning a bunch of things about OS development while writing it. I had no plans to make it a public project, but after a few suggestions I decided to do it. 
@@ -20,7 +10,7 @@
 
 **For now it has a basic, monolithic kernel and a few drivers built into it**. In addition the whole shell is crammed up inside the kernel creating a very compact operating system. 
 
-The utilities are really simple, as **I have almost zero plans to make it bloated with useless apps/games**. If I ever do it in the future I'll create patches or generally have an option to exclude it from even compiling. It's important to mention that most of the software included doesn't use the full potential of the kernel. **You're supposed to write the stuff you want for yourself.** 
+**Userspace status:** I'm still trying to figure out what kind of design I will follow. In the meantime, system calls might be unreliable, so I'd suggest not relying on them...
 
 ***To conclude everything, it needs a lot of polishing, time, and lines of code to be an OS that you could dual boot with your current installation.*** 
 
@@ -51,10 +41,10 @@ Important to mention these goals may never be satisfied, take a very long time t
   - [x] ICMP
   - [x] DHCP
   - [ ] DNS
-  - [ ] TCP
+  - [x] TCP
   - [ ] HTTP
 - Userspace 
-  - [ ] Some sort of LibC
+  - [x] Some sort of LibC
   - [ ] cavOS Specific Toolchain
   - [ ] Move to ring3
   - [x] ELF32 parsing

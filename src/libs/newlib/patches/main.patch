@@ -1,0 +1,101 @@
+From 4696d57771be3be4a0b2181bbe6c6731d6c73bef Mon Sep 17 00:00:00 2001
+From: Panagiotis <contact@malwarepad.com>
+Date: Sat, 27 Jan 2024 10:43:02 +0200
+Subject: [PATCH 1/5] shit
+
+---
+ newlib/configure.host              |  3 +++
+ newlib/libc/sys/configure.in       |  1 +
+ 6 files changed, 75 insertions(+)
+
+diff --git a/newlib/configure.host b/newlib/configure.host
+index 1ddbb6c..8a759ca 100644
+--- a/newlib/configure.host
++++ b/newlib/configure.host
+@@ -370,6 +370,9 @@ case "${host_cpu}" in
+   z8k)
+ 	machine_dir=z8k
+ 	;;
++	i[3-7]86-*-cavos*)
++  sys_dir=cavos
++  ;;
+   spu)
+ 	stdio_dir=
+ 	libm_machine_dir=spu
+diff --git a/newlib/libc/sys/configure.in b/newlib/libc/sys/configure.in
+index a65d1e7..06396ab 100644
+--- a/newlib/libc/sys/configure.in
++++ b/newlib/libc/sys/configure.in
+@@ -50,6 +50,7 @@ if test -n "${sys_dir}"; then
+ 	tirtos) AC_CONFIG_SUBDIRS(tirtos) ;;
+ 	w65) AC_CONFIG_SUBDIRS(w65) ;;
+ 	z8ksim) AC_CONFIG_SUBDIRS(z8ksim) ;;
++	cavos) AC_CONFIG_SUBDIRS(cavos) ;;
+   esac;
+ fi
+ 
+-- 
+2.34.1
+
+
+From 548c1dc007db4b0c44c079502bdebf6c5bb45cff Mon Sep 17 00:00:00 2001
+From: Panagiotis <contact@malwarepad.com>
+Date: Sat, 27 Jan 2024 11:18:01 +0200
+Subject: [PATCH 2/5] fr
+
+---
+ newlib/configure.host | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/newlib/configure.host b/newlib/configure.host
+index 8a759ca..40ff371 100644
+--- a/newlib/configure.host
++++ b/newlib/configure.host
+@@ -370,9 +370,6 @@ case "${host_cpu}" in
+   z8k)
+ 	machine_dir=z8k
+ 	;;
+-	i[3-7]86-*-cavos*)
+-  sys_dir=cavos
+-  ;;
+   spu)
+ 	stdio_dir=
+ 	libm_machine_dir=spu
+@@ -636,6 +633,9 @@ case "${host}" in
+   z8k-*-coff)
+ 	sys_dir=z8ksim
+ 	;;
++	i[3-7]86-*-cavos*)
++  sys_dir=cavos
++  ;;
+ esac
+ 
+ # Host specific flag settings -- usually for features that are not
+-- 
+2.34.1
+
+
+From 2daa77f41e43dde6afce776dda510d349f420c28 Mon Sep 17 00:00:00 2001
+From: Panagiotis <contact@malwarepad.com>
+Date: Sat, 27 Jan 2024 11:22:44 +0200
+Subject: [PATCH 3/5] fr
+
+---
+ config.sub | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/config.sub b/config.sub
+index 75bb6a3..53abb01 100755
+--- a/config.sub
++++ b/config.sub
+@@ -1363,7 +1363,7 @@ case $os in
+ 	     | powermax* | dnix* | nx6 | nx7 | sei* | dragonfly* \
+ 	     | skyos* | haiku* | rdos* | toppers* | drops* | es* \
+ 	     | onefs* | tirtos* | phoenix* | fuchsia* | redox* | bme* \
+-	     | midnightbsd* | amdhsa* | unleashed* | emscripten*)
++	     | midnightbsd* | amdhsa* | unleashed* | emscripten* | cavos*)
+ 	# Remember, each alternative MUST END IN *, to match a version number.
+ 		;;
+ 	qnx*)
+-- 
+2.34.1
