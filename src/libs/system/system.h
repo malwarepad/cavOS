@@ -18,4 +18,4 @@ char    *syscallGetArgv(int curr);
 uint32_t syscallGetHeapStart();
 uint32_t syscallGetHeapEnd();
 void     syscallAdjustHeapEnd(uint32_t heap_end);
-void     syscallPrintChar(char character);
+void     syscallPrint(char *str, uint32_t count);

@@ -47,6 +47,6 @@ void syscallAdjustHeapEnd(uint32_t heap_end) {
   asm volatile("int $0x80" ::"a"(SYSCALL_ADJUST_HEAP_END), "b"(heap_end));
 }
 
-void syscallPrintChar(char character) {
-  asm volatile("int $0x80" ::"a"(SYSCALL_PRINT_CHAR), "b"(character));
+void syscallPrint(char *str, uint32_t count) {
+  asm volatile("int $0x80" ::"a"(SYSCALL_PRINT_CHAR), "b"(str), "c"(count));
 }

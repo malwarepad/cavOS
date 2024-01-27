@@ -4,6 +4,8 @@
 #include <system.h>
 #include <task.h>
 
+// todo: make this atl slightly linux-compatible
+
 void registerSyscall(uint32_t id, void *handler) {
   if (id > MAX_SYSCALLS)
     return;
@@ -78,9 +80,11 @@ static void syscallAdjustHeapEnd(uint32_t heap_end) {
 }
 
 #define SYSCALL_PRINT_CHAR 0x8
-static void syscallPrintChar(char character) {
-  serial_send(COM1, character);
-  printfch(character);
+static void syscallPrint(char *str, uint32_t count) {
+  for (int i = 0; i < count; i++) {
+    serial_send(COM1, str[i]);
+    printfch(str[i]);
+  }
 }
 
 #define SYSCALL_READ_CHAR 0x9
@@ -108,7 +112,7 @@ void initiateSyscalls() {
   registerSyscall(SYSCALL_GET_HEAP_START, syscallGetHeapStart);
   registerSyscall(SYSCALL_GET_HEAP_END, syscallGetHeapEnd);
   registerSyscall(SYSCALL_ADJUST_HEAP_END, syscallAdjustHeapEnd);
-  registerSyscall(SYSCALL_PRINT_CHAR, syscallPrintChar);
+  registerSyscall(SYSCALL_PRINT_CHAR, syscallPrint);
   registerSyscall(SYSCALL_READ_CHAR, syscallReadChar);
 
   debugf("[syscalls] System calls are ready to fire: %d/%d\n", countSyscalls(),
