@@ -1,3 +1,4 @@
+#include "fat32.h"
 #include "types.h"
 
 #ifndef TASK_H
@@ -49,6 +50,8 @@ struct Task {
 
   uint32_t heap_start;
   uint32_t heap_end;
+
+  OpenFile *firstFile;
 
   Task *next;
 };

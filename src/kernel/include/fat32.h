@@ -87,6 +87,17 @@ typedef struct FAT32_LFN {
 } __attribute__((packed)) FAT32_LFN;
 #pragma pack(pop)
 
+typedef struct OpenFile OpenFile;
+
+struct OpenFile {
+  int              id;
+  uint32_t         pointer;
+  uint32_t         tmp1;
+  FAT32_Directory *dir;
+
+  OpenFile *next;
+};
+
 FAT32 *fat;
 
 #define FAT32_DBG_PROMPTS 0

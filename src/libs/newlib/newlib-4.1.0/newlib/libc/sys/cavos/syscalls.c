@@ -10,8 +10,12 @@
 #undef errno
 extern int errno;
 
-void   _exit() {}
-int    close(int file) { return -1; }
+void _exit() {}
+int  close(int file) {
+  int ret;
+  asm volatile("int $0x80" : "=a"(ret) : "a"(6), "b"(file));
+  return ret;
+}
 char  *__env[1] = {0};
 char **environ = __env;
 int    execve(char *name, char **argv, char **env) {
@@ -47,8 +51,9 @@ int open(const char *name, int flags, ...) {
   return ret;
 }
 int read(int file, char *ptr, int len) {
-  asm volatile("int $0x80" ::"a"(3), "b"(file), "c"(ptr), "d"(len));
-  return len;
+  uint32_t ret;
+  asm volatile("int $0x80" : "=a"(ret) : "a"(3), "b"(file), "c"(ptr), "d"(len));
+  return ret;
 }
 caddr_t sbrk(int incr) {
   uint32_t start_end;

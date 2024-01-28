@@ -1,8 +1,10 @@
+#include <fat32.h>
 #include <isr.h>
 #include <serial.h>
 #include <syscalls.h>
 #include <system.h>
 #include <task.h>
+#include <util.h>
 
 void registerSyscall(uint32_t id, void *handler) {
   if (id > MAX_SYSCALLS)
@@ -62,32 +64,99 @@ static void syscallFork(int file, char *str, uint32_t count) {
 }
 
 #define SYSCALL_READ 0x3
-static void syscallRead(int file, char *str, uint32_t count) {
+static uint32_t syscallRead(int file, char *str, uint32_t count) {
+  debugf("[syscalls::read] file{%d} str{%x} count{%d}\n", file, str, count);
   if (file == 0 || file == 1) {
     // console fb
     // todo: respect limit, allow multitasking, etc
     readStr(str);
+    return count;
   }
+
+  OpenFile *browse = currentTask->firstFile;
+  while (browse) {
+    if (browse->id == file)
+      break;
+    browse = browse->next;
+  }
+  if (!browse) {
+    // handle
+    return 0;
+  }
+  // uint32_t read = readForTask(browse, str, count);
+  // readFileContents(&str, browse->dir);
+  return count;
 }
 
 #define SYSCALL_WRITE 0x4
 static void syscallWrite(int file, char *str, uint32_t count) {
+  debugf("[syscalls::write] file{%d} str{%x} count{%d}\n", file, str, count);
   if (file == 0 || file == 1) {
     // console fb
     for (int i = 0; i < count; i++) {
       serial_send(COM1, str[i]);
       printfch(str[i]);
     }
+    return;
   }
 }
 
+int openId = 2;
 #define SYSCALL_OPEN 0x5
-int syscallOpen(char *filename, int flags, uint16_t mode) {
-  // todo: vfs & file openings!
-  debugf("[syscall::open] filename{%s} flags{%d} mode{%d}\n", filename, flags,
-         mode);
+static int syscallOpen(char *filename, int flags, uint16_t mode) {
+  FAT32_Directory *dir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));
+  if (!openFile(dir, filename)) {
+    free(dir);
+    return -1;
+  }
+  OpenFile *target = (OpenFile *)malloc(sizeof(OpenFile));
+  memset(target, 0, sizeof(OpenFile));
+  OpenFile *browse = currentTask->firstFile;
+  while (1) {
+    if (browse == 0) {
+      // means this is our first one
+      currentTask->firstFile = target;
+      break;
+    }
+    if (browse->next == 0) {
+      // next is non-existent (end of linked list)
+      browse->next = target;
+      break;
+    }
+    browse = browse->next;
+  }
+  // free(dir);
+  target->dir = dir;
+  target->id = openId++;
 
-  return -1;
+  int out = target->id;
+  debugf("opened %d\n", out);
+  return out;
+}
+
+#define SYSCALL_CLOSE 0x6
+static int syscallClose(int file) {
+  OpenFile *browse = currentTask->firstFile;
+  while (browse) {
+    if (browse->next && (OpenFile *)(browse->next)->id == file)
+      break;
+    browse = browse->next;
+  }
+  OpenFile *target;
+  if (currentTask->firstFile && currentTask->firstFile->id == file) {
+    target = currentTask->firstFile;
+    currentTask->firstFile = target->next;
+  } else if (!browse) {
+    return -1;
+  } else {
+    target = browse->next;
+    browse->next = target->next;
+  }
+
+  free(target->dir);
+  free(target);
+
+  return 1;
 }
 
 #define SYSCALL_GETPID 20
@@ -136,6 +205,7 @@ void initiateSyscalls() {
   registerSyscall(SYSCALL_WRITE, syscallWrite);
   registerSyscall(SYSCALL_READ, syscallRead);
   registerSyscall(SYSCALL_OPEN, syscallOpen);
+  registerSyscall(SYSCALL_CLOSE, syscallClose);
 
   debugf("[syscalls] System calls are ready to fire: %d/%d\n", countSyscalls(),
          MAX_SYSCALLS);
