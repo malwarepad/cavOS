@@ -154,6 +154,15 @@ void kill_task(uint32_t id) {
   ChangePageDirectory(defaultPagedir);
   PageDirectoryFree(task->pagedir);
 
+  // close any left open files
+  OpenFile *file = task->firstFile;
+  while (file) {
+    OpenFile *curr = file;
+    file = file->next;
+    free(curr->dir);
+    free(curr);
+  }
+
   // funny workaround to save state somewhere
   memset(dummyTask, 0, sizeof(Task));
   if (currentTask == task)
