@@ -9,43 +9,43 @@
 // ISR Entry configurator
 // Copyright (C) 2023 Panagiotis
 
-char *format = "Kernel panic: %s!\n";
+char *format = "[isr] Kernel panic: %s!\n";
 
-char *exceptions[] = {"[isr] Division By Zero",
-                      "[isr] Debug",
-                      "[isr] Non Maskable Interrupt",
-                      "[isr] Breakpoint",
-                      "[isr] Into Detected Overflow",
-                      "[isr] Out of Bounds",
-                      "[isr] Invalid Opcode",
-                      "[isr] No Coprocessor",
+char *exceptions[] = {"Division By Zero",
+                      "Debug",
+                      "Non Maskable Interrupt",
+                      "Breakpoint",
+                      "Into Detected Overflow",
+                      "Out of Bounds",
+                      "Invalid Opcode",
+                      "No Coprocessor",
 
-                      "[isr] Double Fault",
-                      "[isr] Coprocessor Segment Overrun",
-                      "[isr] Bad TSS",
-                      "[isr] Segment Not Present",
-                      "[isr] Stack Fault",
-                      "[isr] General Protection Fault",
-                      "[isr] Page Fault",
-                      "[isr] Unknown Interrupt",
+                      "Double Fault",
+                      "Coprocessor Segment Overrun",
+                      "Bad TSS",
+                      "Segment Not Present",
+                      "Stack Fault",
+                      "General Protection Fault",
+                      "Page Fault",
+                      "Unknown Interrupt",
 
-                      "[isr] Coprocessor Fault",
-                      "[isr] Alignment Check",
-                      "[isr] Machine Check",
-                      "[isr] Reserved",
-                      "[isr] Reserved",
-                      "[isr] Reserved",
-                      "[isr] Reserved",
-                      "[isr] Reserved",
+                      "Coprocessor Fault",
+                      "Alignment Check",
+                      "Machine Check",
+                      "Reserved",
+                      "Reserved",
+                      "Reserved",
+                      "Reserved",
+                      "Reserved",
 
-                      "[isr] Reserved",
-                      "[isr] Reserved",
-                      "[isr] Reserved",
-                      "[isr] Reserved",
-                      "[isr] Reserved",
-                      "[isr] Reserved",
-                      "[isr] Reserved",
-                      "[isr] Reserved"};
+                      "Reserved",
+                      "Reserved",
+                      "Reserved",
+                      "Reserved",
+                      "Reserved",
+                      "Reserved",
+                      "Reserved",
+                      "Reserved"};
 
 void remap_pic() {
   outportb(0x20, 0x11);
@@ -84,6 +84,12 @@ void registerIRQhandler(uint8_t id, void *handler) {
   irqHandlers[id] = handler;
 }
 
+void handleTaskFault(AsmPassedInterrupt *regs) {
+  debugf("[isr::task] Killing task{%d} because of %s!\n", currentTask->id,
+         exceptions[regs->interrupt]);
+  kill_task(currentTask->id);
+}
+
 void handle_interrupt(AsmPassedInterrupt regs) {
   if (regs.interrupt >= 32 && regs.interrupt <= 47) { // IRQ
     if (regs.interrupt >= 40) {
@@ -101,6 +107,15 @@ void handle_interrupt(AsmPassedInterrupt regs) {
       break;
     }
   } else if (regs.interrupt >= 0 && regs.interrupt <= 31) { // ISR
+    if (systemCallOnProgress)
+      debugf("[isr] Happened from system call!\n");
+
+    if (!systemCallOnProgress && currentTask->id != KERNEL_TASK &&
+        !currentTask->kernel_task) {
+      handleTaskFault(&regs);
+      return;
+    }
+
     if (regs.interrupt == 14) {
       unsigned int err_pos;
       asm volatile("mov %%cr2, %0" : "=r"(err_pos));
@@ -111,6 +126,8 @@ void handle_interrupt(AsmPassedInterrupt regs) {
     //   printf(format, exceptions[regs.interrupt]);
     panic();
   } else if (regs.interrupt == 0x80) {
+    systemCallOnProgress = true;
     syscallHandler(&regs);
+    systemCallOnProgress = false;
   }
 }

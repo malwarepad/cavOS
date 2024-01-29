@@ -30,6 +30,7 @@
 char *center = "                   ";
 
 int kmain(unsigned long addr) {
+  systemCallOnProgress = false;
   systemDiskInit = false;
   if (addr & 7) {
     debugf("[boot] Unaligned mbi: 0x%x!\n", addr);
