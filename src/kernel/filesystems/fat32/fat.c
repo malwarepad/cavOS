@@ -9,7 +9,7 @@
 // File Allocation Table parsing/manipulation functions
 // Copyright (C) 2023 Panagiotis
 
-uint32_t getFatEntry(uint32_t cluster) {
+uint32_t getFatEntry(FAT32 *fat, uint32_t cluster) {
   uint32_t lba = fat->fat_begin_lba + (cluster * 4 / SECTOR_SIZE);
   uint32_t entryOffset = (cluster * 4) % SECTOR_SIZE;
 
@@ -28,7 +28,7 @@ uint32_t getFatEntry(uint32_t cluster) {
   return result;
 }
 
-void setFatEntry(uint32_t cluster, uint32_t value) {
+void setFatEntry(FAT32 *fat, uint32_t cluster, uint32_t value) {
   uint32_t lba = fat->fat_begin_lba + (cluster * 4 / SECTOR_SIZE);
   uint32_t entryOffset = (cluster * 4) % SECTOR_SIZE;
 

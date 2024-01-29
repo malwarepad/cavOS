@@ -1,4 +1,5 @@
 #include "disk.h"
+#include "fs_controller.h"
 #include "types.h"
 
 #ifndef FAT32_H
@@ -47,10 +48,9 @@ typedef struct {
   // uint8_t extended_section[54];
 
   // extras
-  uint32_t       fat_begin_lba;
-  uint32_t       cluster_begin_lba;
-  bool           works;
-  mbr_partition *partition;
+  uint32_t fat_begin_lba;
+  uint32_t cluster_begin_lba;
+  bool     works;
 
 } __attribute__((packed)) FAT32;
 
@@ -87,42 +87,32 @@ typedef struct FAT32_LFN {
 } __attribute__((packed)) FAT32_LFN;
 #pragma pack(pop)
 
-typedef struct OpenFile OpenFile;
-
-struct OpenFile {
-  int              id;
-  uint32_t         pointer;
-  uint32_t         tmp1;
-  FAT32_Directory *dir;
-
-  OpenFile *next;
-};
-
-FAT32 *fat;
-
 #define FAT32_DBG_PROMPTS 0
 #define fatinitf debugf
 
 // fat32.c
-bool initiateFat32(uint32_t disk, uint8_t partition_num);
-bool openFile(pFAT32_Directory dir, char *filename);
-void readFileContents(char **rawOut, pFAT32_Directory dir);
-bool deleteFile(char *filename);
+bool isFat32(mbr_partition *mbr);
+bool initiateFat32(MountPoint *mnt);
+void finaliseFat32(MountPoint *mnt);
+bool fatOpenFile(FAT32 *fat, pFAT32_Directory dir, char *filename);
+void readFileContents(FAT32 *fat, char **rawOut, pFAT32_Directory dir);
+bool deleteFile(FAT32 *fat, char *filename);
 
 // utils.c
 char *formatToShort8_3Format(char *directory);
 void  filenameAssign(uint16_t *filename, uint32_t *currFilenamePos,
                      uint16_t character);
-bool  showCluster(uint32_t clusterNum, uint8_t attrLimitation);
-void  fileReaderTest();
+bool  showCluster(FAT32 *fat, uint32_t clusterNum, uint8_t attrLimitation);
+void  fileReaderTest(FAT32 *fat);
 
 // fatutils.c
-uint32_t getFatEntry(uint32_t cluster);
-void     setFatEntry(uint32_t cluster, uint32_t value);
+uint32_t getFatEntry(FAT32 *fat, uint32_t cluster);
+void     setFatEntry(FAT32 *fat, uint32_t cluster, uint32_t value);
 
 // lfn.c
-bool      isLFNentry(uint8_t *rawArr, uint32_t clusterNum, uint16_t entry);
-bool      lfnCmp(uint32_t clusterNum, uint16_t nthOf32, char *str);
-uint16_t *calcLfn(uint32_t clusterNum, uint16_t nthOf32);
+bool      isLFNentry(FAT32 *fat, uint8_t *rawArr, uint32_t clusterNum,
+                     uint16_t entry);
+bool      lfnCmp(FAT32 *fat, uint32_t clusterNum, uint16_t nthOf32, char *str);
+uint16_t *calcLfn(FAT32 *fat, uint32_t clusterNum, uint16_t nthOf32);
 
 #endif

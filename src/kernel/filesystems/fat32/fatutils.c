@@ -59,7 +59,7 @@ void filenameAssign(uint16_t *filename, uint32_t *currFilenamePos,
 
 // --- Debugging interfaces below --- //
 
-void fileReaderTest() {
+void fileReaderTest(FAT32 *fat) {
   if (!fat->works) {
     printf("\nFAT32 was not initalized properly on boot!\n");
     return;
@@ -76,21 +76,22 @@ void fileReaderTest() {
   printf("\n");
 
   FAT32_Directory dir;
-  if (!openFile(&dir, choice)) {
+  if (!fatOpenFile(fat, &dir, choice)) {
     printf("Cannot find file!\n");
     return;
   }
 
   // showFile(&dir);
   char *out = (char *)malloc(dir.filesize);
-  readFileContents(&out, &dir);
+  readFileContents(fat, &out, &dir);
   printf("%s", out);
   free(out);
   printf("\n\n");
 }
 
 // todo, redo this crap
-bool showCluster(uint32_t clusterNum, uint8_t attrLimitation) // NOT 0, NOT 1
+bool showCluster(FAT32 *fat, uint32_t clusterNum,
+                 uint8_t attrLimitation) // NOT 0, NOT 1
 {
   if (clusterNum < 2)
     return 0;
@@ -119,11 +120,11 @@ bool showCluster(uint32_t clusterNum, uint8_t attrLimitation) // NOT 0, NOT 1
     printf("[%d] attr: 0x%2X | created: %2d/%2d/%4d | ", directory->ntReserved,
            directory->attributes, createdDay, createdMonth, createdYear);
     bool lfn = false;
-    lfn = isLFNentry(rawArr, clusterNum, i);
+    lfn = isLFNentry(fat, rawArr, clusterNum, i);
     printf("%s", directory->filename);
     printf("\n");
     if (lfn) {
-      uint16_t *str = calcLfn(clusterNum, i);
+      uint16_t *str = calcLfn(fat, clusterNum, i);
       for (int i = 0; str[i] != '\0'; i++) {
         printf("%c", str[i]);
       }
@@ -133,10 +134,10 @@ bool showCluster(uint32_t clusterNum, uint8_t attrLimitation) // NOT 0, NOT 1
   }
 
   if (rawArr[fat->sectors_per_cluster * SECTOR_SIZE - 32] != 0) {
-    unsigned int nextCluster = getFatEntry(clusterNum);
+    unsigned int nextCluster = getFatEntry(fat, clusterNum);
     if (nextCluster == 0)
       return 1;
-    showCluster(nextCluster, attrLimitation);
+    showCluster(fat, nextCluster, attrLimitation);
   }
 
   free(rawArr);

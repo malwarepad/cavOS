@@ -2,7 +2,6 @@
 #include <backupconsole.h>
 #include <console.h>
 #include <disk.h>
-#include <fat32.h>
 #include <gdt.h>
 #include <idt.h>
 #include <isr.h>
@@ -31,6 +30,7 @@
 char *center = "                   ";
 
 int kmain(unsigned long addr) {
+  systemDiskInit = false;
   if (addr & 7) {
     debugf("[boot] Unaligned mbi: 0x%x!\n", addr);
     panic();
@@ -131,8 +131,8 @@ int kmain(unsigned long addr) {
   initiateNetworking();
   initiatePCI();
   initiateTimer(1000);
-  initiateFat32(0, 0);
-
+  firstMountPoint = 0;
+  fsMount("/", CONNECTOR_ATAPIO, 0, 0);
   initiateConsole();
 
   initiateSyscalls();

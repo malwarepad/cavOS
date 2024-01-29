@@ -44,6 +44,9 @@ void releaseInterrupts();
 #define clearScreen drawClearScreen
 void printfch(int character);
 
+// Has root (system) drive been initialized?
+bool systemDiskInit;
+
 // Endianness
 uint16_t switch_endian_16(uint16_t val);
 uint32_t switch_endian_32(uint32_t val);

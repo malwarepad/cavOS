@@ -1,6 +1,5 @@
 #include <arp.h>
 #include <elf.h>
-#include <fat32.h>
 #include <icmp.h>
 #include <ne2k.h>
 #include <pci.h>

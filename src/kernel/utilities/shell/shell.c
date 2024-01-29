@@ -1,6 +1,5 @@
 #include <arp.h>
 #include <checksum.h>
-#include <fat32.h>
 #include <icmp.h>
 #include <liballoc.h>
 #include <paging.h>
@@ -86,13 +85,14 @@ void launch_shell(int n) {
       char *buff = (char *)malloc(1024);
       readStr(buff);
       printf("\n");
-      FAT32_Directory *dir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));
-      if (!openFile(dir, buff)) {
+      OpenFile *dir = fsKernelOpen(buff);
+      if (!dir) {
         printf("File cannot be found!\n");
         continue;
       }
-      char *out = (char *)malloc(dir->filesize);
-      readFileContents(&out, dir);
+      char *out = (char *)malloc(fsGetFilesize(dir));
+      fsReadFullFile(dir, out);
+      fsKernelClose(dir);
       clearScreen();
 
       uint32_t width = 800;
@@ -113,14 +113,25 @@ void launch_shell(int n) {
       ssfn_dst.y += height + 16;
 
       free(out);
-      free(dir);
       free(buff);
-    } else if (strEql(ch, "readfatcluster")) {
-      fatCluster();
-    } else if (strEql(ch, "readfatroot")) {
-      fsList();
-    } else if (strEql(ch, "readfatfile")) {
-      fileReaderTest();
+    } else if (strEql(ch, "readfile")) {
+      printf("\nInput file: ");
+      char *buff = (char *)malloc(1024);
+      readStr(buff);
+      printf("\n");
+      OpenFile *dir = fsKernelOpen(buff);
+      if (!dir) {
+        printf("File cannot be found!\n");
+        continue;
+      }
+      uint32_t filesize = fsGetFilesize(dir);
+      char    *out = (char *)malloc(filesize);
+      fsReadFullFile(dir, out);
+      fsKernelClose(dir);
+      for (int i = 0; i < filesize; i++) {
+        printf("%c", out[i]);
+      }
+      printf("\n");
     } else if (strEql(ch, "arptable")) {
       debugArpTable(selectedNIC);
     } else if (strEql(ch, "arping")) {
@@ -200,11 +211,6 @@ void launch_shell(int n) {
     } else if (strEql(ch, "color")) {
       set_background_color();
     } else if (strEql(ch, "exec")) {
-      if (!fat->works) {
-        printf("\nFAT32 was not initalized properly on boot!\n");
-        continue;
-      }
-
       printf("\nFile path to executable: ");
       char *filepath = (char *)malloc(200);
       readStr(filepath);
@@ -309,39 +315,18 @@ void help() {
   printf("\n= exec           : Runs a cavOS binary of your choice       =");
   printf("\n=============================================================\n");
   printf("\n========================= FILESYSTEM ========================");
+  printf("\n= readfile       : Read a file's contents                   =");
   printf("\n= readdisk       : Tests out the disk reading algorythm     =");
-  printf("\n= readfatcluster : Tests out FAT32 cluster reading          =");
-  printf("\n= readfatroot    : Browse root directory  (not ready)       =");
-  printf("\n= readfatfile    : Read a file's contents (not ready)       =");
-  // printf("\n= readfatfile    : Browse and read files interactively      =");
+  printf("\n=============================================================\n");
+  printf("\n========================= NETWORKING ========================");
+  printf("\n= net            : Get info about your NICs (+DHCP)         =");
+  printf("\n= arptable       : Output the ARP table                     =");
+  printf("\n= arping         : Ask a local IP for it's MAC address      =");
+  printf("\n= ping           : Send an ICMP request to an IP            =");
   printf("\n=============================================================\n");
 }
 
 int isdigit(char c) { return c >= '0' && c <= '9'; }
-
-void fatCluster() {
-  if (!fat->works) {
-    printf("\nFAT32 was not initalized properly on boot!\n");
-    return;
-  }
-
-  clearScreen();
-  printf("=========================================\n");
-  printf("====     cavOS cluster reader 1.0    ====\n");
-  printf("====    Copyright MalwarePad 2023    ====\n");
-  printf("=========================================\n");
-
-  printf("\nDo NOT ask for cluster 0 or 1. They simply do NOT exist on "
-         "FAT32!\nCluster 2 -> starting point (/)");
-  printf("\nInsert cluster number: ");
-
-  char *choice = (char *)malloc(200);
-  readStr(choice);
-  int cluster = atoi(choice);
-  printf("\nReading FAT cluster %d\n\r\n", cluster);
-  showCluster(cluster, NULL);
-  free(choice);
-}
 
 void readDisk() {
   // if (!fat->works) {
@@ -374,94 +359,4 @@ void readDisk() {
   printf("\r\n");
   free(rawArr);
   free(choice);
-}
-
-void fsList() {
-  if (!fat->works) {
-    printf("\nFAT32 was not initalized properly on boot!\n");
-    return;
-  }
-
-  clearScreen();
-  printf("=========================================\n");
-  printf("====        cavOS readroot 1.0       ====\n");
-  printf("====    Copyright MalwarePad 2023    ====\n");
-  printf("=========================================\n");
-
-  int cluster = 2;
-  int previous = 0;
-  // unsigned char *innArr;
-  while (cluster >= 2) {
-    showCluster(cluster, 0); // 0x10
-
-    printf("\nEnter root directory choice (folder name OR '}' to exit):");
-    printf("\n> ");
-    char choice[200];
-    readStr(choice);
-    if (strlength(choice) > 11) {
-      printf("\nInvalid options!\n");
-      continue;
-    }
-
-    if (strEql(choice, "}")) {
-      cluster = 0;
-      printf("\n");
-      break;
-    } else if (strEql(choice, "{")) {
-      clearScreen();
-      continue;
-    } else if (strEql(choice, "..") && previous != 0) {
-      cluster = previous;
-    }
-
-    printf("\n");
-
-    int lba = fat->cluster_begin_lba + (cluster - 2) * fat->sectors_per_cluster;
-
-    int more = 1;
-    while (more) {
-      uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
-      getDiskBytes(rawArr, lba, 1);
-      for (int i = 0; i < (SECTOR_SIZE / 32); i++) {
-        if (rawArr[32 * i] == 0) {
-          break;
-          more = 0;
-        }
-        for (int o = 0; o < 11; o++) {
-          // todo better alg
-          if ((rawArr[32 * i + o] == choice[o] ||
-               (rawArr[32 * i + o] == 0x20) && o == 10)) {
-            // cluster = ((uint32_t)rawArr[32 * i + 20] << 24) |
-            //           ((uint32_t)rawArr[32 * i + 26] << 16) |
-            //           ((uint32_t)rawArr[32 * i + 21] << 8) | rawArr[32 * i +
-            //           27];
-            previous = cluster;
-            cluster = rawArr[32 * i + 26] | (rawArr[32 * i + 27] << 8);
-            printf("\n");
-            // printf("Hexadecimal: %x, Decimal:%d, {%x %x %x %x}\n", cluster,
-            //        cluster, rawArr[32 * i + 20], rawArr[32 * i + 21],
-            //        rawArr[32 * i + 26], rawArr[32 * i + 27]);
-            o = 12;
-            i = (SECTOR_SIZE / 32) + 1;
-            more = 0;
-          } else if (rawArr[32 * i + o] != choice[o] &&
-                     rawArr[32 * i + o] != 0x20) {
-            o = 12;
-          }
-        }
-      }
-      if (more && rawArr[SECTOR_SIZE - 32] != 0) {
-        unsigned int newCluster = getFatEntry(cluster);
-        if (newCluster == 0) {
-          more = 0;
-          break;
-        }
-        cluster = newCluster;
-        lba = fat->cluster_begin_lba + (cluster - 2) * fat->sectors_per_cluster;
-        more = 1;
-      } else
-        more = 0;
-      free(rawArr);
-    }
-  }
 }

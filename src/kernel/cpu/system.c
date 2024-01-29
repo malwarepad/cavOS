@@ -1,6 +1,5 @@
 #include <backupconsole.h>
 #include <console.h>
-#include <fat32.h>
 #include <system.h>
 
 // Source code for handling ports via assembly references
@@ -63,7 +62,7 @@ void releaseInterrupts() {
 }
 
 void printfch(int character) {
-  if (fat->works == 1)
+  if (systemDiskInit == 1)
     drawCharacter(character);
   else
     preFSconsole(character);

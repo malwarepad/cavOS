@@ -6,44 +6,45 @@
 // Simple alpha FAT32 driver according to the Microsoft specification
 // Copyright (C) 2023 Panagiotis
 
-// #define FAT32_PARTITION_OFFSET_LBA 2048 // 1048576, 1MB
-
-// todo. allow multiple FAT32* structures by implicitly passing them to
-// todo. functions instead of using a global one declared at compile time
-
-bool initiateFat32(uint32_t disk, uint8_t partition_num) {
-  fat = (FAT32 *)malloc(sizeof(FAT32));
-
-  mbr_partition *partPtr = (mbr_partition *)malloc(sizeof(mbr_partition));
-  openDisk(disk, partition_num, partPtr);
-  fat->partition = partPtr;
-
-  debugf("[fat32] Initializing: disk{%d} partition{%d} lba{%d}...\n", disk,
-         partition_num, fat->partition->lba_first_sector);
+bool isFat32(mbr_partition *mbr) {
   uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
-  getDiskBytes(rawArr, fat->partition->lba_first_sector, 1);
+  getDiskBytes(rawArr, mbr->lba_first_sector, 1);
+
+  FAT32 *fat = (FAT32 *)rawArr;
+
+  bool ret = fat->sector_count == 0 || fat->reserved_sectors == 0 ||
+             fat->sectors_per_track == 0 || fat->volume_id == 0 ||
+             (rawArr[66] != FAT_SIGNATURE1 && rawArr[66] != FAT_SIGNATURE2);
+
+  free(rawArr);
+
+  return !ret;
+}
+
+bool initiateFat32(MountPoint *mnt) {
+  FAT32 *fat = (FAT32 *)malloc(sizeof(FAT32));
+  mnt->fsInfo = fat;
+
+  mbr_partition *partPtr = &mnt->mbr;
+
+  debugf("[fat32] Initializing: disk{%d} partition{%d} lba{%d}...\n", mnt->disk,
+         mnt->partition, partPtr->lba_first_sector);
+  uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
+  getDiskBytes(rawArr, partPtr->lba_first_sector, 1);
 
   // this mistake will be classified as the most MalwarePad thing ever
   // fat = (FAT32 *)rawArr;
   memcpy(fat, rawArr, SECTOR_SIZE); // first 512 bytes can be copied exactly
 
-  if (fat->sector_count == 0 || fat->reserved_sectors == 0 ||
-      fat->sectors_per_track == 0 || fat->volume_id == 0) {
-    debugf("[fat32] Failed to parse FAT information... This kernel only "
-           "supports FAT32!\n");
-    return false;
-  }
-  if (rawArr[66] != FAT_SIGNATURE1 && rawArr[66] != FAT_SIGNATURE2) {
-    debugf("[fat32] Incorrect disk signature! This kernel only supports "
-           "FAT32!\n");
+  if (!isFat32(partPtr)) {
+    debugf("[fat32] NEVER initialize a drive without checking properly!\n");
+    panic();
     return false;
   }
 
-  fat->partition =
-      partPtr; // at "fat = (FAT32 *)rawArr;" we already overwrote the main ptr
-  fat->fat_begin_lba = fat->partition->lba_first_sector + fat->reserved_sectors;
-  fat->cluster_begin_lba = fat->partition->lba_first_sector +
-                           fat->reserved_sectors +
+  // at "fat = (FAT32 *)rawArr;" we already overwrote the main ptr
+  fat->fat_begin_lba = partPtr->lba_first_sector + fat->reserved_sectors;
+  fat->cluster_begin_lba = partPtr->lba_first_sector + fat->reserved_sectors +
                            (fat->number_of_fat * fat->sectors_per_fat);
 
   fat->works = true;
@@ -61,7 +62,9 @@ bool initiateFat32(uint32_t disk, uint8_t partition_num) {
   return true;
 }
 
-bool findFile(pFAT32_Directory fatdir, uint32_t initialCluster,
+void finaliseFat32(MountPoint *mnt) { free(mnt->fsInfo); }
+
+bool findFile(FAT32 *fat, pFAT32_Directory fatdir, uint32_t initialCluster,
               char *filename) {
   uint32_t clusterNum = initialCluster;
   uint8_t *rawArr = (uint8_t *)malloc(fat->sectors_per_cluster * SECTOR_SIZE);
@@ -78,8 +81,8 @@ bool findFile(pFAT32_Directory fatdir, uint32_t initialCluster,
       debugf("[fat32::findFile] Scanning file: clusterNum{%d} i{%d} fc{%c}\n",
              clusterNum, i, rawArr[32 * i]);
 #endif
-      if (isLFNentry(rawArr, clusterNum, i)
-              ? lfnCmp(clusterNum, i, filename)
+      if (isLFNentry(fat, rawArr, clusterNum, i)
+              ? lfnCmp(fat, clusterNum, i, filename)
               : (memcmp(rawArr + (32 * i), formatToShort8_3Format(filename),
                         11) == 0)) {
         *fatdir = *(pFAT32_Directory)(&rawArr[32 * i]);
@@ -101,7 +104,7 @@ bool findFile(pFAT32_Directory fatdir, uint32_t initialCluster,
     }
 
     if (rawArr[fat->sectors_per_cluster * SECTOR_SIZE - 32] != 0) {
-      uint32_t nextCluster = getFatEntry(clusterNum);
+      uint32_t nextCluster = getFatEntry(fat, clusterNum);
       if (nextCluster == 0) {
         memset(fatdir, 0, sizeof(FAT32_Directory));
         free(rawArr);
@@ -116,7 +119,7 @@ bool findFile(pFAT32_Directory fatdir, uint32_t initialCluster,
   }
 }
 
-void readFileContents(char **rawOut, pFAT32_Directory dir) {
+void readFileContents(FAT32 *fat, char **rawOut, pFAT32_Directory dir) {
 #if FAT32_DBG_PROMPTS
   debugf("[fat32::read] Reading file contents: filesize{%d} cluster{%d}\n",
          dir->filesize, dir->firstClusterLow);
@@ -154,7 +157,7 @@ void readFileContents(char **rawOut, pFAT32_Directory dir) {
       curr++;
     }
     uint32_t old = currCluster;
-    currCluster = getFatEntry(old);
+    currCluster = getFatEntry(fat, old);
     if (currCluster == 0) {
 #if FAT32_DBG_PROMPTS
       debugf("[fat32::read] Reached hard end (0x0), showing last cluster: "
@@ -167,7 +170,7 @@ void readFileContents(char **rawOut, pFAT32_Directory dir) {
   free(rawArr);
 }
 
-bool openFile(pFAT32_Directory dir, char *filename) {
+bool fatOpenFile(FAT32 *fat, pFAT32_Directory dir, char *filename) {
   if (filename[0] != '/')
     return 0;
 
@@ -181,7 +184,7 @@ bool openFile(pFAT32_Directory dir, char *filename) {
     if (filename[i] == '/' || (i + 1) == len) {
       if ((i + 1) == len)
         tmpBuff[index++] = filename[i];
-      if (!findFile(dir, dir->firstClusterLow, tmpBuff)) {
+      if (!findFile(fat, dir, dir->firstClusterLow, tmpBuff)) {
         debugf("[fat32::open] Could not open file %s!\n", filename);
         free(tmpBuff);
         return false;
@@ -198,9 +201,9 @@ bool openFile(pFAT32_Directory dir, char *filename) {
   return true;
 }
 
-bool deleteFile(char *filename) {
+bool deleteFile(FAT32 *fat, char *filename) {
   FAT32_Directory fatdir;
-  if (!openFile(&fatdir, filename))
+  if (!fatOpenFile(fat, &fatdir, filename))
     return false;
   uint8_t *rawArr = (uint8_t *)malloc(fat->sectors_per_cluster * SECTOR_SIZE);
   getDiskBytes(rawArr, fatdir.lba, fat->sectors_per_cluster);
@@ -210,9 +213,9 @@ bool deleteFile(char *filename) {
   // invalidate
   uint32_t currCluster = fatdir.firstClusterLow;
   while (1) {
-    setFatEntry(currCluster, 0);
+    setFatEntry(fat, currCluster, 0);
     uint32_t old = currCluster;
-    currCluster = getFatEntry(old);
+    currCluster = getFatEntry(fat, old);
     if (currCluster == 0)
       break;
   }

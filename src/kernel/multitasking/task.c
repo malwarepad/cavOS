@@ -156,12 +156,14 @@ void kill_task(uint32_t id) {
 
   // close any left open files
   OpenFile *file = task->firstFile;
+  Task     *old = currentTask;
+  currentTask = task;
   while (file) {
-    OpenFile *curr = file;
+    int id = file->id;
     file = file->next;
-    free(curr->dir);
-    free(curr);
+    fsUserClose(id);
   }
+  currentTask = old;
 
   // funny workaround to save state somewhere
   memset(dummyTask, 0, sizeof(Task));

@@ -23,6 +23,7 @@ typedef struct {
   uint32_t sector_count;
 } mbr_partition;
 
-void openDisk(uint32_t disk, uint8_t partition, mbr_partition *out);
+bool openDisk(uint32_t disk, uint8_t partition, mbr_partition *out);
+bool validateMbr(uint8_t *mbrSector);
 
 #endif

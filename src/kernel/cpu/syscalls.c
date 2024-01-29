@@ -101,63 +101,13 @@ static void syscallWrite(int file, char *str, uint32_t count) {
   }
 }
 
-int openId = 2;
 #define SYSCALL_OPEN 0x5
 static int syscallOpen(char *filename, int flags, uint16_t mode) {
-  FAT32_Directory *dir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));
-  if (!openFile(dir, filename)) {
-    free(dir);
-    return -1;
-  }
-  OpenFile *target = (OpenFile *)malloc(sizeof(OpenFile));
-  memset(target, 0, sizeof(OpenFile));
-  OpenFile *browse = currentTask->firstFile;
-  while (1) {
-    if (browse == 0) {
-      // means this is our first one
-      currentTask->firstFile = target;
-      break;
-    }
-    if (browse->next == 0) {
-      // next is non-existent (end of linked list)
-      browse->next = target;
-      break;
-    }
-    browse = browse->next;
-  }
-  // free(dir);
-  target->dir = dir;
-  target->id = openId++;
-
-  int out = target->id;
-  debugf("opened %d\n", out);
-  return out;
+  return fsUserOpen(filename, flags, mode);
 }
 
 #define SYSCALL_CLOSE 0x6
-static int syscallClose(int file) {
-  OpenFile *browse = currentTask->firstFile;
-  while (browse) {
-    if (browse->next && (OpenFile *)(browse->next)->id == file)
-      break;
-    browse = browse->next;
-  }
-  OpenFile *target;
-  if (currentTask->firstFile && currentTask->firstFile->id == file) {
-    target = currentTask->firstFile;
-    currentTask->firstFile = target->next;
-  } else if (!browse) {
-    return -1;
-  } else {
-    target = browse->next;
-    browse->next = target->next;
-  }
-
-  free(target->dir);
-  free(target);
-
-  return 1;
-}
+static int syscallClose(int file) { return fsUserClose(file); }
 
 #define SYSCALL_GETPID 20
 static uint32_t syscallGetPid() { return currentTask->id; }

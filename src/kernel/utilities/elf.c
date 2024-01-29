@@ -1,6 +1,6 @@
 #include <bitmap.h>
 #include <elf.h>
-#include <fat32.h>
+#include <fs_controller.h>
 #include <paging.h>
 #include <pmm.h>
 #include <system.h>
@@ -43,16 +43,17 @@ uint32_t elf_execute(char *filepath) {
   lockInterrupts();
 
   // Open & read executable file
-  FAT32_Directory *dir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));
-  if (!openFile(dir, filepath)) {
+  OpenFile *dir = fsKernelOpen(filepath);
+  if (!dir) {
     debugf("[elf] Could not open %s\n", filepath);
     return 0;
   }
 #if ELF_DEBUG
   debugf("[elf] Executing %s: filesize{%d}\n", filepath, dir->filesize);
 #endif
-  uint8_t *out = (uint8_t *)malloc(dir->filesize);
-  readFileContents(&out, dir);
+  uint8_t *out = (uint8_t *)malloc(fsGetFilesize(dir));
+  fsReadFullFile(dir, out);
+  fsKernelClose(dir);
 
   // Cast ELF32 header
   Elf32_Ehdr *elf_ehdr = (Elf32_Ehdr *)(out);
@@ -141,7 +142,6 @@ uint32_t elf_execute(char *filepath) {
 
   // Cleanup...
   free(out);
-  free(dir);
   ChangePageDirectory(oldpagedir);
 
   releaseInterrupts();

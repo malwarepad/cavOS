@@ -6,13 +6,13 @@
 // FAT32's "(L)ong (F)ile(N)ame" entry parsing
 // Copyright (C) 2023 Panagiotis
 
-bool lfnCmp(uint32_t clusterNum, uint16_t nthOf32, char *str) {
+bool lfnCmp(FAT32 *fat, uint32_t clusterNum, uint16_t nthOf32, char *str) {
 #if FAT32_DBG_PROMPTS
   debugf("[fat32::lfn::compare] Searching against clusterNum{%d} nthOf32{%d} "
          "str{%s}...\n",
          clusterNum, nthOf32, str);
 #endif
-  uint16_t *lfn = calcLfn(clusterNum, nthOf32);
+  uint16_t *lfn = calcLfn(fat, clusterNum, nthOf32);
   uint32_t  lfnlen = 0;
   uint32_t  strlen = 0;
   while (lfn[lfnlen] != '\0')
@@ -37,7 +37,8 @@ bool lfnCmp(uint32_t clusterNum, uint16_t nthOf32, char *str) {
   return true;
 }
 
-bool isLFNentry(uint8_t *rawArr, uint32_t clusterNum, uint16_t entry) {
+bool isLFNentry(FAT32 *fat, uint8_t *rawArr, uint32_t clusterNum,
+                uint16_t entry) {
   if (entry == 0) { // first entry of cluster
     uint8_t *newRawArr =
         (uint8_t *)malloc(fat->sectors_per_cluster * SECTOR_SIZE);
@@ -62,7 +63,7 @@ bool isLFNentry(uint8_t *rawArr, uint32_t clusterNum, uint16_t entry) {
   return dir->attributes == 0x0F;
 }
 
-uint16_t *calcLfn(uint32_t clusterNum, uint16_t nthOf32) {
+uint16_t *calcLfn(FAT32 *fat, uint32_t clusterNum, uint16_t nthOf32) {
   if (clusterNum < 2)
     return 0;
 

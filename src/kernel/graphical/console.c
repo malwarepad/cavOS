@@ -1,5 +1,5 @@
 #include <console.h>
-#include <fat32.h>
+#include <fs_controller.h>
 #include <system.h>
 #define _STDINT_H
 #define SSFN_CONSOLEBITMAP_CONTROL
@@ -32,20 +32,21 @@ void initiateConsole() {
   ssfn_dst.fg =
       rgbToHex(textcolor[0], textcolor[1], textcolor[2]); /* foreground color */
 
-  FAT32_Directory dir;
-  if (!openFile(&dir, DEFAULT_FONT_PATH)) {
+  OpenFile *dir = fsKernelOpen(DEFAULT_FONT_PATH);
+  if (!dir) {
     debugf("[console] Could not open default font file: %s!\n",
            DEFAULT_FONT_PATH);
     printf("Cannot open VGA font!\n");
     return;
   }
-  // debugf("[console::font] filesize{%d}\n", dir.filesize);
-  uint8_t *buff = (uint8_t *)malloc(dir.filesize);
-  readFileContents(&buff, &dir);
+  uint32_t filesize = fsGetFilesize(dir);
+  uint8_t *buff = (uint8_t *)malloc(filesize);
+  fsReadFullFile(dir, buff);
 
   ssfn_src = buff;
+  fsKernelClose(dir);
   debugf("[console] Initiated with font: filepath{%s} filesize{%d}\n",
-         DEFAULT_FONT_PATH, dir.filesize);
+         DEFAULT_FONT_PATH, filesize);
 }
 
 void drawClearScreen() {
