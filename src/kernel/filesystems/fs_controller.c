@@ -309,7 +309,7 @@ uint32_t fsGetFilesize(OpenFile *file) {
 void fsReadFullFile(OpenFile *file, char *out) {
   switch (file->mountPoint->filesystem) {
   case FS_FAT32:
-    readFileContents(file->mountPoint->fsInfo, &out, file->dir);
+    readFileContents(file->mountPoint->fsInfo, out, file->dir);
     break;
   }
 }

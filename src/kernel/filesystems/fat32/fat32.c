@@ -119,10 +119,11 @@ bool findFile(FAT32 *fat, pFAT32_Directory fatdir, uint32_t initialCluster,
   }
 }
 
-void readFileContents(FAT32 *fat, char **rawOut, pFAT32_Directory dir) {
+void readFileContents(FAT32 *fat, char *out, pFAT32_Directory dir) {
 #if FAT32_DBG_PROMPTS
   debugf("[fat32::read] Reading file contents: filesize{%d} cluster{%d}\n",
-         dir->filesize, dir->firstClusterLow);
+         dir->filesize,
+         ClusterComb(dir->firstClusterHigh, dir->firstClusterLow));
 #endif
   if (dir->attributes != 0x20) {
     debugf(
@@ -131,9 +132,9 @@ void readFileContents(FAT32 *fat, char **rawOut, pFAT32_Directory dir) {
     return;
   }
 
-  char    *out = *rawOut;
   uint32_t curr = 0;
-  uint32_t currCluster = dir->firstClusterLow;
+  uint32_t currCluster =
+      ClusterComb(dir->firstClusterHigh, dir->firstClusterLow);
   uint8_t *rawArr = (uint8_t *)malloc(fat->sectors_per_cluster * SECTOR_SIZE);
   while (1) { // DIV_ROUND_CLOSEST(dir->filesize, SECTOR_SIZE)
     uint32_t lba =
@@ -178,13 +179,16 @@ bool fatOpenFile(FAT32 *fat, pFAT32_Directory dir, char *filename) {
   uint32_t len = strlength(filename);
   char    *tmpBuff = (char *)malloc(len + 1);
   dir->firstClusterLow = 2;
+  dir->firstClusterHigh = 0;
   memset(tmpBuff, '\0', len);
 
   for (uint32_t i = 1; i < len; i++) { // skip index 0
     if (filename[i] == '/' || (i + 1) == len) {
       if ((i + 1) == len)
         tmpBuff[index++] = filename[i];
-      if (!findFile(fat, dir, dir->firstClusterLow, tmpBuff)) {
+      if (!findFile(fat, dir,
+                    ClusterComb(dir->firstClusterHigh, dir->firstClusterLow),
+                    tmpBuff)) {
         debugf("[fat32::open] Could not open file %s!\n", filename);
         free(tmpBuff);
         return false;
@@ -202,16 +206,19 @@ bool fatOpenFile(FAT32 *fat, pFAT32_Directory dir, char *filename) {
 }
 
 bool deleteFile(FAT32 *fat, char *filename) {
-  FAT32_Directory fatdir;
-  if (!fatOpenFile(fat, &fatdir, filename))
+  FAT32_Directory *fatdir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));
+  if (!fatOpenFile(fat, &fatdir, filename)) {
+    free(fatdir);
     return false;
+  }
   uint8_t *rawArr = (uint8_t *)malloc(fat->sectors_per_cluster * SECTOR_SIZE);
-  getDiskBytes(rawArr, fatdir.lba, fat->sectors_per_cluster);
-  rawArr[32 * fatdir.currEntry] = FAT_DELETED;
-  write_sectors_ATA_PIO(fatdir.lba, fat->sectors_per_cluster, rawArr);
+  getDiskBytes(rawArr, fatdir->lba, fat->sectors_per_cluster);
+  rawArr[32 * fatdir->currEntry] = FAT_DELETED;
+  write_sectors_ATA_PIO(fatdir->lba, fat->sectors_per_cluster, rawArr);
 
   // invalidate
-  uint32_t currCluster = fatdir.firstClusterLow;
+  uint32_t currCluster =
+      ClusterComb(fatdir->firstClusterHigh, fatdir->firstClusterLow);
   while (1) {
     setFatEntry(fat, currCluster, 0);
     uint32_t old = currCluster;
@@ -220,5 +227,6 @@ bool deleteFile(FAT32 *fat, char *filename) {
       break;
   }
 
+  free(fatdir);
   return true;
 }

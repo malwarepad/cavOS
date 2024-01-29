@@ -90,12 +90,14 @@ typedef struct FAT32_LFN {
 #define FAT32_DBG_PROMPTS 0
 #define fatinitf debugf
 
+#define ClusterComb(high, low) (((uint32_t)(high) << 16) | (uint32_t)(low))
+
 // fat32.c
 bool isFat32(mbr_partition *mbr);
 bool initiateFat32(MountPoint *mnt);
 void finaliseFat32(MountPoint *mnt);
 bool fatOpenFile(FAT32 *fat, pFAT32_Directory dir, char *filename);
-void readFileContents(FAT32 *fat, char **rawOut, pFAT32_Directory dir);
+void readFileContents(FAT32 *fat, char *out, pFAT32_Directory dir);
 bool deleteFile(FAT32 *fat, char *filename);
 
 // utils.c
