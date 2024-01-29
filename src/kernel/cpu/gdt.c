@@ -3,6 +3,10 @@
 // GDT & TSS Entry configurator
 // Copyright (C) 2023 Panagiotis
 
+static GDTEntry   gdt_entries[NUM_GDT_ENTRIES];
+static GDTPointer gdt_pointer;
+static TSS        tss;
+
 void set_gdt_entry(uint32_t num, uint32_t base, uint32_t limit, uint8_t access,
                    uint8_t flags) {
   gdt_entries[num].base_low = (base & 0xFFFF);
@@ -33,3 +37,5 @@ void setup_gdt() {
   asm_flush_gdt((uint32_t)&gdt_pointer);
   asm_flush_tss();
 }
+
+void update_tss_esp0(uint32_t esp0) { tss.esp0 = esp0; }

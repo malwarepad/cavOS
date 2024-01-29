@@ -28,7 +28,7 @@ void schedule() {
   currentTask = next;
 
   // update tss
-  tss.esp0 = next->kesp_bottom;
+  update_tss_esp0(next->kesp_bottom);
 
 #if SCHEDULE_DEBUG
   // if (old->id != 0 || next->id != 0)
