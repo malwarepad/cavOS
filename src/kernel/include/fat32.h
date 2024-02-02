@@ -93,19 +93,20 @@ typedef struct FAT32_LFN {
 #define ClusterComb(high, low) (((uint32_t)(high) << 16) | (uint32_t)(low))
 
 // fat32.c
-bool isFat32(mbr_partition *mbr);
-bool initiateFat32(MountPoint *mnt);
-void finaliseFat32(MountPoint *mnt);
-bool fatOpenFile(FAT32 *fat, pFAT32_Directory dir, char *filename);
-void readFileContents(FAT32 *fat, char *out, pFAT32_Directory dir);
-bool deleteFile(FAT32 *fat, char *filename);
+bool     isFat32(mbr_partition *mbr);
+bool     initiateFat32(MountPoint *mnt);
+void     finaliseFat32(MountPoint *mnt);
+bool     fatOpenFile(FAT32 *fat, pFAT32_Directory dir, char *filename);
+uint32_t readFileContents(OpenFile *file, FAT32 *fat, char *out, uint32_t limit,
+                          pFAT32_Directory dir);
+bool     deleteFile(FAT32 *fat, char *filename);
+bool     fat32Seek(OpenFile *fd, uint32_t pos);
 
 // utils.c
 char *formatToShort8_3Format(char *directory);
 void  filenameAssign(uint16_t *filename, uint32_t *currFilenamePos,
                      uint16_t character);
 bool  showCluster(FAT32 *fat, uint32_t clusterNum, uint8_t attrLimitation);
-void  fileReaderTest(FAT32 *fat);
 
 // fatutils.c
 uint32_t getFatEntry(FAT32 *fat, uint32_t cluster);

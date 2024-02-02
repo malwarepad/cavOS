@@ -50,7 +50,9 @@ bool      fsKernelClose(OpenFile *file);
 
 int fsUserOpen(char *filename, int flags, uint16_t mode);
 int fsUserClose(int fd);
+int fsUserSeek(uint32_t fd, int offset, int whence);
 
+uint32_t fsRead(OpenFile *file, char *out, uint32_t limit);
 void     fsReadFullFile(OpenFile *file, char *out);
 uint32_t fsGetFilesize(OpenFile *file);
 

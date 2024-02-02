@@ -119,7 +119,8 @@ bool findFile(FAT32 *fat, pFAT32_Directory fatdir, uint32_t initialCluster,
   }
 }
 
-void readFileContents(FAT32 *fat, char *out, pFAT32_Directory dir) {
+uint32_t readFileContents(OpenFile *file, FAT32 *fat, char *out, uint32_t limit,
+                          pFAT32_Directory dir) {
 #if FAT32_DBG_PROMPTS
   debugf("[fat32::read] Reading file contents: filesize{%d} cluster{%d}\n",
          dir->filesize,
@@ -129,14 +130,21 @@ void readFileContents(FAT32 *fat, char *out, pFAT32_Directory dir) {
     debugf(
         "[fat32::read] Seriously tried to read non-file entry (0x%02X attr)\n",
         dir->attributes);
-    return;
+    return 0;
   }
 
-  uint32_t curr = 0;
+  if (file->pointer >= dir->filesize) {
+    return 0;
+  }
+
+  uint32_t count = 0;
   uint32_t currCluster =
-      ClusterComb(dir->firstClusterHigh, dir->firstClusterLow);
+      file->tmp1 ? file->tmp1
+                 : ClusterComb(dir->firstClusterHigh, dir->firstClusterLow);
   uint8_t *rawArr = (uint8_t *)malloc(fat->sectors_per_cluster * SECTOR_SIZE);
-  while (1) { // DIV_ROUND_CLOSEST(dir->filesize, SECTOR_SIZE)
+  bool     scanning = true;
+  uint16_t init = file->pointer % (fat->sectors_per_cluster * SECTOR_SIZE);
+  while (scanning) {
     uint32_t lba =
         fat->cluster_begin_lba + (currCluster - 2) * fat->sectors_per_cluster;
     getDiskBytes(rawArr, lba, fat->sectors_per_cluster);
@@ -144,21 +152,25 @@ void readFileContents(FAT32 *fat, char *out, pFAT32_Directory dir) {
     debugf("[fat32::read] Scanning file: hex{0x%x} dec{%d}\n", currCluster,
            currCluster);
 #endif
-    for (uint16_t j = 0; j < fat->sectors_per_cluster * SECTOR_SIZE; j++) {
-      if (curr > dir->filesize) {
+    for (uint16_t j = init; j < fat->sectors_per_cluster * SECTOR_SIZE; j++) {
+      init = 0;
+
+      out[count] = rawArr[j];
+      if (file->pointer >= dir->filesize || (count + 1) >= limit) {
 #if FAT32_DBG_PROMPTS
         debugf("[fat32::read] Reached filesize end (limit) at: hex{0x%x} "
                "dec{%d} (in bytes)\n",
                currCluster, currCluster);
 #endif
-        free(rawArr);
-        return;
+        scanning = false;
+        break;
       }
-      out[curr] = rawArr[j];
-      curr++;
+      count++;
+      file->pointer++;
     }
     uint32_t old = currCluster;
     currCluster = getFatEntry(fat, old);
+    file->tmp1 = currCluster;
     if (currCluster == 0) {
 #if FAT32_DBG_PROMPTS
       debugf("[fat32::read] Reached hard end (0x0), showing last cluster: "
@@ -169,6 +181,12 @@ void readFileContents(FAT32 *fat, char *out, pFAT32_Directory dir) {
     }
   }
   free(rawArr);
+  if (file->pointer < dir->filesize) {
+    // here we increase since it's not the last one
+    file->pointer++;  // ready for next
+    return count + 1; // we also read [0]
+  }
+  return count;
 }
 
 bool fatOpenFile(FAT32 *fat, pFAT32_Directory dir, char *filename) {
@@ -229,4 +247,28 @@ bool deleteFile(FAT32 *fat, char *filename) {
 
   free(fatdir);
   return true;
+}
+
+bool fat32Seek(OpenFile *fd, uint32_t pos) {
+  FAT32           *fat = fd->mountPoint->fsInfo;
+  FAT32_Directory *dir = fd->dir;
+  uint32_t         currCluster =
+      ClusterComb(dir->firstClusterHigh, dir->firstClusterLow);
+  uint32_t cnt = 0;
+  while (1) {
+    cnt += fat->sectors_per_cluster * SECTOR_SIZE;
+    if (cnt >= pos) {
+      // here we are
+      fd->tmp1 = currCluster;
+      fd->pointer = pos;
+      return true;
+    }
+
+    uint32_t old = currCluster;
+    currCluster = getFatEntry(fat, old);
+    if (currCluster == 0)
+      break;
+  }
+
+  return false;
 }

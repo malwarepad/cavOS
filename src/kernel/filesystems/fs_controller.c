@@ -306,10 +306,46 @@ uint32_t fsGetFilesize(OpenFile *file) {
   return 0;
 }
 
+uint32_t fsRead(OpenFile *file, char *out, uint32_t limit) {
+  uint32_t ret = 0;
+  switch (file->mountPoint->filesystem) {
+  case FS_FAT32:
+    ret =
+        readFileContents(file, file->mountPoint->fsInfo, out, limit, file->dir);
+    break;
+  }
+  return ret;
+}
+
 void fsReadFullFile(OpenFile *file, char *out) {
   switch (file->mountPoint->filesystem) {
   case FS_FAT32:
-    readFileContents(file->mountPoint->fsInfo, out, file->dir);
+    uint32_t read = readFileContents(file, file->mountPoint->fsInfo, out,
+                                     fsGetFilesize(file), file->dir);
     break;
   }
+}
+
+#define SEEK_SET 0  // start + offset
+#define SEEK_CURR 1 // current + offset
+#define SEEK_END 2  // end + offset
+int fsUserSeek(uint32_t fd, int offset, int whence) {
+  OpenFile *file = fsUserNodeFetch(currentTask, fd);
+  int       target = offset;
+  if (whence == SEEK_SET)
+    target += 0;
+  else if (whence == SEEK_CURR)
+    target += file->pointer;
+  else if (whence == SEEK_END)
+    target += fsGetFilesize(file);
+
+  bool ret = false;
+  switch (file->mountPoint->filesystem) {
+  case FS_FAT32:
+    ret = fat32Seek(file, target);
+    break;
+  }
+  if (!ret)
+    return -1;
+  return target;
 }

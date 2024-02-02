@@ -58,7 +58,7 @@ static void syscallExitTask(int return_code) {
 }
 
 #define SYSCALL_FORK 2
-static void syscallFork(int file, char *str, uint32_t count) {
+static void syscallFork() {
   // todo: fork 🍴
   debugf("[syscalls] %d tried to fork()\n", currentTask->id);
 }
@@ -83,9 +83,9 @@ static uint32_t syscallRead(int file, char *str, uint32_t count) {
     // handle
     return 0;
   }
-  // uint32_t read = readForTask(browse, str, count);
-  // readFileContents(&str, browse->dir);
-  return count;
+  uint32_t read = fsRead(browse, str, count);
+  debugf("\nread = %d\n", read);
+  return read;
 }
 
 #define SYSCALL_WRITE 0x4
@@ -108,6 +108,13 @@ static int syscallOpen(char *filename, int flags, uint16_t mode) {
 
 #define SYSCALL_CLOSE 0x6
 static int syscallClose(int file) { return fsUserClose(file); }
+
+#define SYSCALL_LSEEK 19
+static int syscallLseek(uint32_t file, int offset, int whence) {
+  debugf("[syscalls::seek] file{%d} offset{%d} whence{%d}\n", file, offset,
+         whence);
+  return fsUserSeek(file, offset, whence);
+}
 
 #define SYSCALL_GETPID 20
 static uint32_t syscallGetPid() { return currentTask->id; }
@@ -156,6 +163,7 @@ void initiateSyscalls() {
   registerSyscall(SYSCALL_READ, syscallRead);
   registerSyscall(SYSCALL_OPEN, syscallOpen);
   registerSyscall(SYSCALL_CLOSE, syscallClose);
+  registerSyscall(SYSCALL_LSEEK, syscallLseek);
 
   debugf("[syscalls] System calls are ready to fire: %d/%d\n", countSyscalls(),
          MAX_SYSCALLS);

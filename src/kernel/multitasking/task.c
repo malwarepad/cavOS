@@ -90,6 +90,7 @@ void adjust_user_heap(Task *task, uint32_t new_heap_end) {
   if (new_heap_end <= task->heap_start) {
     debugf("[task] Tried to adjust heap behind current values: id{%d}\n",
            task->id);
+    kill_task(task->id);
     return;
   }
 
@@ -110,9 +111,8 @@ void adjust_user_heap(Task *task, uint32_t new_heap_end) {
     }
   } else if (new_page_top < old_page_top) {
     debugf("[task] New page is lower than old page: id{%d}\n", task->id);
-    // optional:
-    // printf("[task] New page is lower than old page: id{%d}\n", task->id);
-    panic();
+    kill_task(task->id);
+    return;
   }
 
   task->heap_end = new_heap_end;

@@ -134,6 +134,25 @@ int kmain(unsigned long addr) {
   initiateTimer(1000);
   firstMountPoint = 0;
   fsMount("/", CONNECTOR_ATAPIO, 0, 0);
+
+  // OpenFile *fr = fsKernelOpen("/files/lorem.txt");
+  // char     *a = (char *)malloc(1026);
+  // while (1) {
+  //   memset(a, 0, 1026);
+  //   uint32_t bytes = fsRead(fr, a, 1024);
+  //   // debugf("[f] %d\n", bytes);
+
+  //   for (int i = 0; i < 1024; i++) {
+  //     debugf("%c", a[i]);
+  //   }
+  //   debugf("\n\n");
+
+  //   debugf("ptr: %d\n", fr->pointer);
+  //   if (bytes == 0)
+  //     break;
+  // }
+
+  // panic();
   initiateConsole();
 
   initiateSyscalls();

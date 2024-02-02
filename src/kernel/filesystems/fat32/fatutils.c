@@ -59,36 +59,6 @@ void filenameAssign(uint16_t *filename, uint32_t *currFilenamePos,
 
 // --- Debugging interfaces below --- //
 
-void fileReaderTest(FAT32 *fat) {
-  if (!fat->works) {
-    printf("\nFAT32 was not initalized properly on boot!\n");
-    return;
-  }
-  clearScreen();
-  printf("=========================================\n");
-  printf("====      cavOS file reader 1.0      ====\n");
-  printf("====    Copyright MalwarePad 2023    ====\n");
-  printf("=========================================\n");
-
-  printf("\nFile path + filename (i.e. /untitled.txt):\n> ");
-  char *choice = (char *)malloc(200);
-  readStr(choice);
-  printf("\n");
-
-  FAT32_Directory dir;
-  if (!fatOpenFile(fat, &dir, choice)) {
-    printf("Cannot find file!\n");
-    return;
-  }
-
-  // showFile(&dir);
-  char *out = (char *)malloc(dir.filesize);
-  readFileContents(fat, &out, &dir);
-  printf("%s", out);
-  free(out);
-  printf("\n\n");
-}
-
 // todo, redo this crap
 bool showCluster(FAT32 *fat, uint32_t clusterNum,
                  uint8_t attrLimitation) // NOT 0, NOT 1

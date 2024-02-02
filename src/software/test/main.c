@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
   dumpHeapInfo();
 
   syscallTest("adjusting program heap...");
-  syscallAdjustHeapEnd(syscallGetHeapStart() + 0x1000);
+  syscallAdjustHeapEnd(syscallGetHeapEnd() + 0x1000);
 
   dumpHeapInfo();
 

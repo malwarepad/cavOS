@@ -10,7 +10,7 @@
 #undef errno
 extern int errno;
 
-void _exit() {}
+void _exit(int code) { asm volatile("int $0x80" ::"a"(1), "b"(code)); }
 int  close(int file) {
   int ret;
   asm volatile("int $0x80" : "=a"(ret) : "a"(6), "b"(file));
@@ -44,7 +44,13 @@ int link(char *old, char *new) {
   errno = EMLINK;
   return -1;
 }
-int lseek(int file, int ptr, int dir) { return 0; }
+int lseek(int file, int ptr, int dir) {
+  int ret;
+  asm volatile("int $0x80"
+               : "=a"(ret)
+               : "a"(19), "b"(file), "c"(ptr), "d"(dir));
+  return ret;
+}
 int open(const char *name, int flags, ...) {
   int ret;
   asm volatile("int $0x80" : "=a"(ret) : "a"(5), "b"(name), "c"(flags), "d"(0));
