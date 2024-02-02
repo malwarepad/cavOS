@@ -76,7 +76,7 @@ void handler(NIC *nic, void *request, uint32_t size,
 }
 
 void testingInit() {
-  elf_execute("/software/testing.cav");
+  // elf_execute("/software/testing.cav");
 #if SOME_NETWORKING_STUFF
   // netPacket *packet = (netPacket *)malloc(sizeof(netPacket));
   // int        size = 4096;
