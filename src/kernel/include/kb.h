@@ -3,6 +3,6 @@
 #ifndef KB_H
 #define KB_H
 
-char *readStr(char *buffstr);
+uint32_t readStr(char *buffstr);
 
 #endif

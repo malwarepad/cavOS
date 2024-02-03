@@ -35,7 +35,7 @@ char shiftedCharacterTable[] = {
     0,    0,    0,    0,    0,    0,    0,    0x2C,
 };
 
-char *readStr(char *buffstr) {
+uint32_t readStr(char *buffstr) {
   uint32_t i = 0;
   bool     reading = true;
   int      shifted = 0;
@@ -81,5 +81,5 @@ char *readStr(char *buffstr) {
     }
   }
   // buffstr[i - 1] = 0;
-  return buffstr;
+  return i;
 }

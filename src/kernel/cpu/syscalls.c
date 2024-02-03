@@ -69,8 +69,10 @@ static uint32_t syscallRead(int file, char *str, uint32_t count) {
   if (file == 0 || file == 1) {
     // console fb
     // todo: respect limit, allow multitasking, etc
-    readStr(str);
-    return count;
+    uint32_t fr = readStr(str);
+    str[strlength(str)] = '\n';
+    str[strlength(str) + 1] = '\0';
+    return fr + 1;
   }
 
   OpenFile *browse = currentTask->firstFile;

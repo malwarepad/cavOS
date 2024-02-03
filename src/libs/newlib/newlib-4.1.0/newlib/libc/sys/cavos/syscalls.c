@@ -85,4 +85,4 @@ int write(int file, char *ptr, int len) {
   asm volatile("int $0x80" ::"a"(4), "b"(file), "c"(ptr), "d"(len));
   return len;
 }
-// int gettimeofday(struct timeval *p, struct timezone *z);
+int gettimeofday(struct timeval *p, void *z) { return -1; }
