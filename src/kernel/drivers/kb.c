@@ -1,4 +1,6 @@
 #include <kb.h>
+#include <paging.h>
+#include <task.h>
 
 #include <system.h>
 
@@ -35,51 +37,135 @@ char shiftedCharacterTable[] = {
     0,    0,    0,    0,    0,    0,    0,    0x2C,
 };
 
-uint32_t readStr(char *buffstr) {
-  uint32_t i = 0;
-  bool     reading = true;
-  int      shifted = 0;
-  int      capsLocked = 0;
+bool shifted = false;
+bool capsLocked = false;
 
-  while (reading) {
-    if (inportb(0x64) & 0x1) {
-      uint8_t scanCode = inportb(0x60);
+char    *kbBuff = 0;
+uint32_t kbCurr = 0;
+uint32_t kbMax = 0;
+uint32_t kbTaskId = 0;
 
-      // Shift checks
-      if (shifted == 1 && scanCode & 0x80) {
-        if ((scanCode & 0x7F) == 42) // & 0x7F clears the release
-          shifted = 0;
+char handleKbEvent() {
+  if (inportb(0x64) & 0x1) {
+    uint8_t scanCode = inportb(0x60);
+
+    // Shift checks
+    if (shifted == 1 && scanCode & 0x80) {
+      if ((scanCode & 0x7F) == 42) // & 0x7F clears the release
+      {
+        shifted = 0;
+        return 0;
+      }
+    }
+
+    if (scanCode < sizeof(characterTable) && !(scanCode & 0x80)) {
+      char character = (shifted || capsLocked) ? shiftedCharacterTable[scanCode]
+                                               : characterTable[scanCode];
+
+      if (character != 0) { // Normal char
+        return character;
       }
 
-      if (scanCode < sizeof(characterTable) && !(scanCode & 0x80)) {
-        char character = (shifted || capsLocked)
-                             ? shiftedCharacterTable[scanCode]
-                             : characterTable[scanCode];
-
-        if (character != 0) { // Normal char
-          printfch(character);
-          buffstr[i] = character;
-          i++;
-        } else if (scanCode == 28) // Enter
-        {
-          buffstr[i] = '\0';
-          reading = false;
-        } else if (scanCode == 14) // Backspace
-        {
-          if (i > 0) {
-            printfch('\b');
-            i--;
-            buffstr[i + 1] = 0;
-            buffstr[i] = 0;
-          }
-        } else if (scanCode == 42) { // Shift
-          shifted = 1;
-        } else if (scanCode == 58) { // Caps lock
-          capsLocked = !capsLocked;
-        }
+      switch (scanCode) {
+      case SCANCODE_ENTER:
+        return CHARACTER_ENTER;
+        break;
+      case SCANCODE_BACK:
+        return CHARACTER_BACK;
+        break;
+      case SCANCODE_SHIFT:
+        shifted = 1;
+        break;
+      case SCANCODE_CAPS:
+        capsLocked = !capsLocked;
+        break;
       }
     }
   }
-  // buffstr[i - 1] = 0;
-  return i;
+
+  return 0;
 }
+
+// used by the kernel atm
+uint32_t readStr(char *buffstr) {
+  bool res = kbTaskRead(KERNEL_TASK, buffstr, 1024, false);
+  if (!res)
+    return 0;
+
+  uint32_t ret = 0;
+  while (kbBuff) {
+    ret = kbCurr;
+  }
+  return ret;
+}
+
+bool kbTaskRead(uint32_t taskId, char *buff, uint32_t limit,
+                bool changeTaskState) {
+  while (kbIsOccupied())
+    ;
+  Task *task = getTask(taskId);
+  if (!task)
+    return false;
+
+  kbBuff = buff;
+  kbCurr = 0;
+  kbMax = limit;
+  kbTaskId = taskId;
+
+  if (changeTaskState)
+    task->state = TASK_STATE_WAITING_INPUT;
+  return true;
+}
+
+void kbReset() {
+  kbBuff = 0;
+  kbCurr = 0;
+  kbMax = 0;
+  kbTaskId = 0;
+}
+
+void initiateKb() { kbReset(); }
+
+void kbFinaliseStream() {
+  Task *task = getTask(kbTaskId);
+  if (task) {
+    task->tmpRecV = kbCurr;
+    task->state = TASK_STATE_READY;
+  }
+  kbReset();
+}
+
+void kbIrq() {
+  char out = handleKbEvent();
+  if (!kbBuff || !out)
+    return;
+
+  void *pagedirOld = GetPageDirectory();
+  Task *task = getTask(kbTaskId);
+  if (task)
+    ChangePageDirectory(task->pagedir);
+
+  switch (out) {
+  case CHARACTER_ENTER:
+    kbBuff[kbCurr] = '\0';
+    kbFinaliseStream();
+    break;
+  case CHARACTER_BACK:
+    if (kbCurr > 0) {
+      printfch('\b');
+      kbCurr--;
+      kbBuff[kbCurr + 1] = 0;
+      kbBuff[kbCurr] = 0;
+    }
+    break;
+  default:
+    printfch(out);
+    kbBuff[kbCurr++] = out;
+    break;
+  }
+
+  if (task)
+    ChangePageDirectory(pagedirOld);
+}
+
+bool kbIsOccupied() { return !!kbBuff; }

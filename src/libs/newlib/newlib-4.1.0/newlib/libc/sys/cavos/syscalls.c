@@ -82,7 +82,8 @@ int wait(int *status) {
   return -1;
 }
 int write(int file, char *ptr, int len) {
-  asm volatile("int $0x80" ::"a"(4), "b"(file), "c"(ptr), "d"(len));
-  return len;
+  uint32_t ret;
+  asm volatile("int $0x80" : "=a"(ret) : "a"(4), "b"(file), "c"(ptr), "d"(len));
+  return ret;
 }
 int gettimeofday(struct timeval *p, void *z) { return -1; }

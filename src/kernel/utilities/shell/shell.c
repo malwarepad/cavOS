@@ -132,6 +132,10 @@ void launch_shell(int n) {
         printf("%c", out[i]);
       }
       printf("\n");
+    } else if (strEql(ch, "crack")) {
+      Task *fr = firstTask->next;
+      fr->state = TASK_STATE_READY;
+      printf("\n");
     } else if (strEql(ch, "arptable")) {
       debugArpTable(selectedNIC);
     } else if (strEql(ch, "arping")) {

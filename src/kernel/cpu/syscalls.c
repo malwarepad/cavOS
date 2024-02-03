@@ -1,5 +1,8 @@
 #include <fat32.h>
+#include <gdt.h>
 #include <isr.h>
+#include <kb.h>
+#include <schedule.h>
 #include <serial.h>
 #include <syscalls.h>
 #include <system.h>
@@ -68,10 +71,19 @@ static uint32_t syscallRead(int file, char *str, uint32_t count) {
   debugf("[syscalls::read] file{%d} str{%x} count{%d}\n", file, str, count);
   if (file == 0 || file == 1) {
     // console fb
-    // todo: respect limit, allow multitasking, etc
-    uint32_t fr = readStr(str);
-    str[strlength(str)] = '\n';
-    str[strlength(str) + 1] = '\0';
+    if (kbIsOccupied()) {
+      return -1;
+    }
+
+    // start reading
+    // todo: respect limit
+    kbTaskRead(currentTask->id, str, count, true);
+    schedule(); // leave this task/execution (awaiting return)
+
+    // finalise
+    uint32_t fr = currentTask->tmpRecV;
+    str[fr] = '\n';
+    str[fr + 1] = '\0';
     return fr + 1;
   }
 
@@ -91,7 +103,7 @@ static uint32_t syscallRead(int file, char *str, uint32_t count) {
 }
 
 #define SYSCALL_WRITE 0x4
-static void syscallWrite(int file, char *str, uint32_t count) {
+static int syscallWrite(int file, char *str, uint32_t count) {
   debugf("[syscalls::write] file{%d} str{%x} count{%d}\n", file, str, count);
   if (file == 0 || file == 1) {
     // console fb
@@ -99,8 +111,10 @@ static void syscallWrite(int file, char *str, uint32_t count) {
       serial_send(COM1, str[i]);
       printfch(str[i]);
     }
-    return;
+    return count;
   }
+
+  return -1;
 }
 
 #define SYSCALL_OPEN 0x5

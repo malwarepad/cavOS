@@ -18,9 +18,12 @@ typedef struct {
   uint32_t return_eip;
 } TaskReturnContext;
 
-#define TASK_STATE_DEAD 0
-#define TASK_STATE_READY 1
-#define TASK_STATE_IDLE 2
+typedef enum TASK_STATE {
+  TASK_STATE_DEAD = 0,
+  TASK_STATE_READY = 1,
+  TASK_STATE_IDLE = 2,
+  TASK_STATE_WAITING_INPUT = 3,
+} TASK_STATE;
 
 typedef struct Task Task;
 
@@ -51,6 +54,8 @@ struct Task {
   uint32_t heap_start;
   uint32_t heap_end;
 
+  uint32_t tmpRecV;
+
   OpenFile *firstFile;
 
   Task *next;
@@ -67,6 +72,7 @@ void     create_task(uint32_t id, uint32_t eip, bool kernel_task,
                      uint32_t *pagedir);
 void     adjust_user_heap(Task *task, uint32_t new_heap_end);
 void     kill_task(uint32_t id);
-uint8_t *getTaskState(uint16_t id);
+uint8_t *getTaskState(uint32_t id);
+Task    *getTask(uint32_t id);
 
 #endif

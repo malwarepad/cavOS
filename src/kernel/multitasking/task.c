@@ -174,7 +174,7 @@ void kill_task(uint32_t id) {
   schedule(); // go to the next task (will re-enable interrupts)
 }
 
-uint8_t *getTaskState(uint16_t id) {
+uint8_t *getTaskState(uint32_t id) {
   Task *browse = firstTask;
   while (browse) {
     if (browse->id == id)
@@ -185,6 +185,16 @@ uint8_t *getTaskState(uint16_t id) {
     return 0;
 
   return browse->state;
+}
+
+Task *getTask(uint32_t id) {
+  Task *browse = firstTask;
+  while (browse) {
+    if (browse->id == id)
+      break;
+    browse = browse->next;
+  }
+  return browse;
 }
 
 int16_t create_taskid() {

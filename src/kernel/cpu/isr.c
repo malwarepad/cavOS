@@ -1,4 +1,5 @@
 #include <isr.h>
+#include <kb.h>
 #include <nic_controller.h>
 #include <paging.h>
 #include <rtl8139.h>
@@ -99,6 +100,10 @@ void handle_interrupt(AsmPassedInterrupt regs) {
     switch (regs.interrupt) {
     case 32 + 0: // irq0
       timerTick();
+      break;
+
+    case 32 + 1: // irq1
+      kbIrq();
       break;
 
     default: // execute other handlers
