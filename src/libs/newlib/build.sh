@@ -24,7 +24,7 @@ if ! test -f "$SCRIPTPATH/newlib-4.1.0/README"; then
 	cd ../
 fi
 
-export PREFIX="$HOME/opt/bin"
+export PREFIX="$HOME/opt/autotools_newlib"
 
 # No specific autotools versions installed
 if ! test -f "$PREFIX/bin/automake"; then
