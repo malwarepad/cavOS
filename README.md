@@ -1,6 +1,6 @@
 # Cave-Like Operating System
 
-![Preview of the OS](./docs/preview.png)
+![Preview of the OS](https://raw.malwarepad.com/cavos/images/preview.png)
 
 ## Purpose
 
