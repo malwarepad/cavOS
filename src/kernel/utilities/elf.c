@@ -46,6 +46,7 @@ uint32_t elf_execute(char *filepath) {
   OpenFile *dir = fsKernelOpen(filepath);
   if (!dir) {
     debugf("[elf] Could not open %s\n", filepath);
+    releaseInterrupts();
     return 0;
   }
 #if ELF_DEBUG
@@ -60,6 +61,7 @@ uint32_t elf_execute(char *filepath) {
 
   if (!elf_check_file(elf_ehdr)) {
     debugf("[elf] File %s is not a valid cavOS ELF32 executable!\n", filepath);
+    releaseInterrupts();
     return 0;
   }
 

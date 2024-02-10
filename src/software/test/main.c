@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
   argc = argc;
   argv = argv;
 
-  printf("Process PID: %ld\n", syscallGetPid());
+  printf("Process PID: %d\n", syscallGetPid());
 
   int dec;
   scanf("%d", &dec);
