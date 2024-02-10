@@ -2,6 +2,7 @@
 target/obj/*
 target/boot/*.bin
 target/software/*.cav
+target/usr/lib
 disk.img
 disk.vmdk
 
