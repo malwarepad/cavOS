@@ -1,5 +1,5 @@
-COMPILER = ~/opt/cross/bin/i686-elf-gcc
-LINKER = ~/opt/cross/bin/i686-elf-ld
+COMPILER = ~/opt/cross/bin/i686-cavos-gcc
+LINKER = ~/opt/cross/bin/i686-cavos-ld
 ASSEMBLER = nasm
 CFLAGS = -m32 -c -ffreestanding -w -fcommon -Iinclude/ -g
 ASFLAGS = -f elf32

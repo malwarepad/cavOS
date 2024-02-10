@@ -81,3 +81,7 @@ cd cavos-build
 make clean
 make all -j$(nproc)
 make install
+
+# Copy libraries (and update headers)
+mkdir -p "$SCRIPTPATH/../target/usr/"
+cp -r "$PREFIX/i686-cavos/"* "$SCRIPTPATH/../../../target/usr/"

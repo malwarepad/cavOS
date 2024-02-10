@@ -129,6 +129,8 @@ static int syscallClose(int file) { return fsUserClose(file); }
 static int syscallLseek(uint32_t file, int offset, int whence) {
   debugf("[syscalls::seek] file{%d} offset{%d} whence{%d}\n", file, offset,
          whence);
+  if (file == 0 || file == 1)
+    return -1;
   return fsUserSeek(file, offset, whence);
 }
 

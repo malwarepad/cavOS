@@ -1,0 +1,155 @@
+From 4f1b6e4a264f73f626361985fb125268cf0cb525 Mon Sep 17 00:00:00 2001
+From: Panagiotis <contact@malwarepad.com>
+Date: Sat, 10 Feb 2024 12:04:57 +0200
+Subject: [PATCH 1/2] a
+
+---
+ bfd/config.bfd                    | 10 ++++++++++
+ config.sub                        |  2 +-
+ gas/configure.tgt                 |  1 +
+ ld/Makefile.am                    |  1 +
+ ld/configure.tgt                  |  9 +++++++++
+ ld/emulparams/elf_i386_cavos.sh   |  2 ++
+ ld/emulparams/elf_x86_64_cavos.sh |  1 +
+ 7 files changed, 25 insertions(+), 1 deletion(-)
+ create mode 100644 ld/emulparams/elf_i386_cavos.sh
+ create mode 100644 ld/emulparams/elf_x86_64_cavos.sh
+
+diff --git a/bfd/config.bfd b/bfd/config.bfd
+index cfe58247..77631eb5 100644
+--- a/bfd/config.bfd
++++ b/bfd/config.bfd
+@@ -240,7 +240,17 @@ esac
+ 
+ case "${targ}" in
+ # START OF targmatch.h
++  i[3-7]86-*-cavos*)
++    targ_defvec=i386_elf32_vec
++    targ_selvecs=
++    targ64_selvecs=x86_64_elf64_vec
++    ;;
+ #ifdef BFD64
++  x86_64-*-cavos*)
++    targ_defvec=x86_64_elf64_vec
++    targ_selvecs=i386_elf32_vec
++    want64=true
++    ;;
+   aarch64-*-darwin*)
+     targ_defvec=aarch64_mach_o_vec
+     targ_selvecs="arm_mach_o_vec mach_o_le_vec mach_o_be_vec mach_o_fat_vec"
+diff --git a/config.sub b/config.sub
+index dba16e84..790d3d34 100755
+--- a/config.sub
++++ b/config.sub
+@@ -1753,7 +1753,7 @@ case $os in
+ 	     | skyos* | haiku* | rdos* | toppers* | drops* | es* \
+ 	     | onefs* | tirtos* | phoenix* | fuchsia* | redox* | bme* \
+ 	     | midnightbsd* | amdhsa* | unleashed* | emscripten* | wasi* \
+-	     | nsk* | powerunix* | genode* | zvmoe* | qnx* | emx* | zephyr* \
++	     | nsk* | powerunix* | genode* | zvmoe* | qnx* | emx* | cavos* | zephyr* \
+ 	     | fiwix* )
+ 		;;
+ 	# This one is extra strict with allowed versions
+diff --git a/gas/configure.tgt b/gas/configure.tgt
+index 62f806bd..cb36e6ec 100644
+--- a/gas/configure.tgt
++++ b/gas/configure.tgt
+@@ -125,6 +125,7 @@ esac
+ generic_target=${cpu_type}-$vendor-$os
+ # Note: This table is alpha-sorted, please try to keep it that way.
+ case ${generic_target} in
++  i386-*-cavos*)    fmt=elf em=gnu ;;
+   aarch64*-*-elf*)			fmt=elf;;
+   aarch64*-*-fuchsia*)			fmt=elf;;
+   aarch64*-*-haiku*)			fmt=elf em=haiku ;;
+diff --git a/ld/Makefile.am b/ld/Makefile.am
+index b55a873d..46229b86 100644
+--- a/ld/Makefile.am
++++ b/ld/Makefile.am
+@@ -776,6 +776,7 @@ $(ALL_EMULATION_SOURCES) $(ALL_64_EMULATION_SOURCES): $(GEN_DEPENDS)
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32xtensa.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf32z80.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_i386.Pc@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_i386_cavos.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_i386_be.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_i386_fbsd.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_i386_haiku.Pc@am__quote@
+diff --git a/ld/configure.tgt b/ld/configure.tgt
+index c7acf3f1..170933e6 100644
+--- a/ld/configure.tgt
++++ b/ld/configure.tgt
+@@ -43,6 +43,15 @@ targ64_extra_libpath=
+ # Please try to keep this table more or less in alphabetic order - it
+ # makes it much easier to lookup a specific archictecture.
+ case "${targ}" in
++i[3-7]86-*-cavos*)
++			targ_emul=elf_i386_cavos
++			targ_extra_emuls=elf_i386
++			targ64_extra_emuls="elf_x86_64_cavos elf_x86_64"
++			;;
++x86_64-*-cavos*)
++			targ_emul=elf_x86_64_cavos
++			targ_extra_emuls="elf_i386_cavos elf_x86_64 elf_i386"
++			;;
+ aarch64_be-*-elf)	targ_emul=aarch64elfb
+ 			targ_extra_emuls="aarch64elf aarch64elf32 aarch64elf32b armelfb armelf"
+ 			;;
+diff --git a/ld/emulparams/elf_i386_cavos.sh b/ld/emulparams/elf_i386_cavos.sh
+new file mode 100644
+index 00000000..06482257
+--- /dev/null
++++ b/ld/emulparams/elf_i386_cavos.sh
+@@ -0,0 +1,2 @@
++source_sh ${srcdir}/emulparams/elf_i386.sh
++TEXT_START_ADDR=0x08000000
+diff --git a/ld/emulparams/elf_x86_64_cavos.sh b/ld/emulparams/elf_x86_64_cavos.sh
+new file mode 100644
+index 00000000..59e7df71
+--- /dev/null
++++ b/ld/emulparams/elf_x86_64_cavos.sh
+@@ -0,0 +1 @@
++source_sh ${srcdir}/emulparams/elf_x86_64.sh
+-- 
+2.34.1
+
+
+From f5f7c055f1f48a7c2e3e23ff3f1c7e965a2ac0e6 Mon Sep 17 00:00:00 2001
+From: Panagiotis <contact@malwarepad.com>
+Date: Sat, 10 Feb 2024 12:39:34 +0200
+Subject: [PATCH 2/2] whoops
+
+---
+ ld/Makefile.am | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/ld/Makefile.am b/ld/Makefile.am
+index 46229b86..0d7b7072 100644
+--- a/ld/Makefile.am
++++ b/ld/Makefile.am
+@@ -278,6 +278,7 @@ ALL_EMULATION_SOURCES = \
+ 	eelf32xtensa.c \
+ 	eelf32z80.c \
+ 	eelf_i386.c \
++	eelf_i386_cavos.c \
+ 	eelf_i386_be.c \
+ 	eelf_i386_fbsd.c \
+ 	eelf_i386_haiku.c \
+@@ -460,6 +461,7 @@ ALL_64_EMULATION_SOURCES = \
+ 	eelf_l1om_fbsd.c \
+ 	eelf_mipsel_haiku.c \
+ 	eelf_x86_64.c \
++	eelf_x86_64_cavos.c \
+ 	eelf_x86_64_cloudabi.c \
+ 	eelf_x86_64_fbsd.c \
+ 	eelf_x86_64_haiku.c \
+@@ -956,6 +958,7 @@ $(ALL_EMULATION_SOURCES) $(ALL_64_EMULATION_SOURCES): $(GEN_DEPENDS)
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_l1om_fbsd.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_mipsel_haiku.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_x86_64.Pc@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_x86_64_cavos.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_x86_64_cloudabi.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_x86_64_fbsd.Pc@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eelf_x86_64_haiku.Pc@am__quote@
+-- 
+2.34.1
+

@@ -1,7 +1,13 @@
 all: disk
 
 # https://stackoverflow.com/questions/3931741/why-does-make-think-the-target-is-up-to-date
-.PHONY: disk tools clean qemu qemu_dbg vmware dev kernel
+.PHONY: disk tools clean qemu qemu_dbg vmware dev kernel newlib renewlib cleannewlib
+
+renewlib: cleannewlib newlib
+
+cleannewlib:
+	rm -rf src/libs/newlib/cavos-build
+	rm -rf src/libs/newlib/cavos-out/i686-cavos/
 
 newlib:
 	chmod +x src/libs/newlib/build.sh

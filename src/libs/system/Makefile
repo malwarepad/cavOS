@@ -1,5 +1,5 @@
-COMPILER = ~/opt/cross/bin/i686-elf-gcc
-ARCHIVER = ~/opt/cross/bin/i686-elf-ar
+COMPILER = ~/opt/cross/bin/i686-cavos-gcc
+ARCHIVER = ~/opt/cross/bin/i686-cavos-ar
 CFLAGS = -std=gnu99 -ffreestanding -Wall -Wextra -fno-builtin -nostartfiles -nostdlib -c -fpic
 
 BIN_OUTPUT = main.cav
