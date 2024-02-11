@@ -4,7 +4,7 @@
 #define PCI_H
 
 // Limits
-#define PCI_MAX_BUSES 8
+#define PCI_MAX_BUSES 256
 #define PCI_MAX_DEVICES 32
 #define PCI_MAX_FUNCTIONS 8
 

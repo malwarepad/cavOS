@@ -135,7 +135,7 @@ void GetGeneralDevice(PCIdevice *device, PCIgeneralDevice *out) {
 }
 
 void initiatePCI() {
-  for (uint8_t bus = 0; bus < PCI_MAX_BUSES; bus++) {
+  for (uint16_t bus = 0; bus < PCI_MAX_BUSES; bus++) {
     for (uint8_t slot = 0; slot < PCI_MAX_DEVICES; slot++) {
       for (uint8_t function = 0; function < PCI_MAX_FUNCTIONS; function++) {
         if (!FilterDevice(bus, slot, function))
