@@ -128,6 +128,9 @@ int kmain(unsigned long addr) {
   }
   MarkRegion(&virtual, KERNEL_GFX, framebuffer_end - KERNEL_GFX, 1);
 
+  drawClearScreen();
+  preFSconsoleInit();
+
   debugf("\n====== REACHED SYSTEM ======\n");
   initiateNetworking();
   initiatePCI();

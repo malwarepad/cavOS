@@ -1,5 +1,6 @@
 #include <backupconsole.h>
 #include <system.h>
+#include <util.h>
 #define _STDINT_H
 #include <ssfn.h>
 
@@ -11,6 +12,8 @@
 
 // int width = 0;
 // int height = 0;
+
+void preFSconsoleInit() { memset(&ssfn_dst, 0, sizeof(ssfn_dst)); }
 
 void preFSconsole(int charnum) {
   char font[2057] = {
@@ -192,13 +195,13 @@ void preFSconsole(int charnum) {
   int w;
   int h;
 
-  if (height == framebufferHeight) {
-    clearScreen();
-  }
-
   if (width > (framebufferWidth - 20)) {
     width = 0;
     height = height + 16;
+  }
+
+  if (height >= framebufferHeight) {
+    clearScreen();
   }
 
   if (width < -2 && height > 34) {

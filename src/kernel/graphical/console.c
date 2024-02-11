@@ -22,13 +22,11 @@ uint32_t rgbaToHex(int r, int g, int b, int a) {
 }
 
 void initiateConsole() {
-  drawClearScreen();
-
   ssfn_dst.ptr = framebuffer;     /* address of the linear frame buffer */
   ssfn_dst.w = framebufferWidth;  /* width */
   ssfn_dst.h = framebufferHeight; /* height */
   ssfn_dst.p = framebufferPitch;  /* bytes per line */
-  ssfn_dst.x = ssfn_dst.y = 0;    /* pen position */
+  // ssfn_dst.x = ssfn_dst.y = 0;    /* pen position */
   ssfn_dst.fg =
       rgbToHex(textcolor[0], textcolor[1], textcolor[2]); /* foreground color */
 
