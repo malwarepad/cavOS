@@ -4,6 +4,7 @@
 #include <ne2k.h>
 #include <nic_controller.h>
 #include <rtl8139.h>
+#include <rtl8169.h>
 #include <system.h>
 #include <util.h>
 
@@ -19,7 +20,8 @@ void initiateNetworking() {
 }
 
 void initiateNIC(PCIdevice *device) {
-  if (initiateNe2000(device) || initiateRTL8139(device)) {
+  if (initiateNe2000(device) || initiateRTL8139(device) ||
+      initiateRTL8169(device)) {
     netDHCPinit(selectedNIC); // selectedNIC = newly created NIC structure
   }
   // ill add more NICs in the future
@@ -68,6 +70,9 @@ void sendPacket(NIC *nic, uint8_t *destination_mac, void *data, uint32_t size,
     break;
   case RTL8139:
     sendRTL8139(nic, packet, sizeof(netPacketHeader) + size);
+    break;
+  case RTL8169:
+    sendRTL8169(nic, packet, sizeof(netPacketHeader) + size);
     break;
   }
 

@@ -34,7 +34,7 @@ Important to mention these goals may never be satisfied, take a very long time t
   - [x] Fat32: Full LFN support
 - Networking stack
   - [x] RTL-8139 driver
-  - [ ] RTL-8169 driver
+  - [x] RTL-8169 driver
   - [x] ARP
   - [x] UDP
   - [x] IPv4
