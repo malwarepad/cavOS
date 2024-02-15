@@ -85,7 +85,7 @@ typedef struct PCIdevice {
 } PCIdevice;
 
 typedef struct PCIgeneralDevice {
-  uint32_t bar[5];
+  uint32_t bar[6];
 
   uint32_t cardBusCISPtr;
 
