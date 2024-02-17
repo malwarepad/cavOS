@@ -1,7 +1,6 @@
 #include "types.h"
 
 #define SECTOR_SIZE 512
-#define getDiskBytes read_sectors_ATA_PIO
 
 #ifndef DISK_H
 #define DISK_H
@@ -25,5 +24,6 @@ typedef struct {
 
 bool openDisk(uint32_t disk, uint8_t partition, mbr_partition *out);
 bool validateMbr(uint8_t *mbrSector);
+void getDiskBytes(uint8_t *target_address, uint32_t LBA, uint8_t sector_count);
 
 #endif

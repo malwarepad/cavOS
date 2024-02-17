@@ -23,6 +23,7 @@ Important to mention these goals may never be satisfied, take a very long time t
   - [x] Scheduling
   - [x] Multitasking
 - Device drivers
+  - [x] AHCI
   - [x] ATA pio
   - [x] PCI read
   - [x] Serial driver

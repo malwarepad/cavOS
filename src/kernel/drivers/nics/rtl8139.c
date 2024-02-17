@@ -26,7 +26,6 @@ bool isRTL8139(PCIdevice *device) {
 
 #define RTL8139_DEBUG 0
 
-// todo: make an API which ensures each PCI device has it's own IRQ
 void interruptHandler(AsmPassedInterrupt *regs) {
   rtl8139_interface *info = (rtl8139_interface *)selectedNIC->infoLocation;
   uint16_t           iobase = info->iobase;

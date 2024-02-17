@@ -1,3 +1,4 @@
+#include <ahci.h>
 #include <nic_controller.h>
 #include <pci.h>
 #include <system.h>
@@ -146,6 +147,10 @@ void initiatePCI() {
         switch (device->class_id) {
         case PCI_CLASS_CODE_NETWORK_CONTROLLER:
           initiateNIC(device);
+          break;
+        case PCI_CLASS_CODE_MASS_STORAGE_CONTROLLER:
+          if (device->subclass_id == 0x6)
+            initiateAHCI(device);
           break;
         default:
           break;

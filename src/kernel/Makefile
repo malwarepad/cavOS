@@ -13,7 +13,7 @@ TARGET_IMG = ../../disk.img
 TARGET_VMWARE = ../../disk.vmdk
 TARGET_ISO = ../../cavOS.iso
 
-OBJS = $(TARGET)/obj/kasm.o $(TARGET)/obj/kc.o $(TARGET)/obj/idt.o $(TARGET)/obj/ata.o $(TARGET)/obj/printf.o $(TARGET)/obj/isr.o $(TARGET)/obj/kb.o $(TARGET)/obj/string.o $(TARGET)/obj/system.o $(TARGET)/obj/util.o $(TARGET)/obj/shell.o $(TARGET)/obj/disk.o $(TARGET)/obj/fat32.o $(TARGET)/obj/rtc.o $(TARGET)/obj/testing.o $(TARGET)/obj/pmm.o $(TARGET)/obj/gdtasm.o $(TARGET)/obj/gdt.o $(TARGET)/obj/timer.o $(TARGET)/obj/schedule.o $(TARGET)/obj/pci.o $(TARGET)/obj/israsm.o $(TARGET)/obj/taskasm.o $(TARGET)/obj/task.o $(TARGET)/obj/liballoc.o $(TARGET)/obj/vga.o $(TARGET)/obj/console.o $(TARGET)/obj/backupconsole.o $(TARGET)/obj/serial.o $(TARGET)/obj/elf.o $(TARGET)/obj/paging.o $(TARGET)/obj/vmm.o $(TARGET)/obj/syscalls.o $(TARGET)/obj/fat32_utils.o $(TARGET)/obj/fat32_fat.o $(TARGET)/obj/fat32_lfn.o $(TARGET)/obj/ne2k.o $(TARGET)/obj/nic_controller.o $(TARGET)/obj/arp.o $(TARGET)/obj/rtl8139.o $(TARGET)/obj/bitmap.o $(TARGET)/obj/ipv4.o $(TARGET)/obj/udp.o $(TARGET)/obj/checksum.o $(TARGET)/obj/icmp.o $(TARGET)/obj/dhcp.o $(TARGET)/obj/tcp.o $(TARGET)/obj/fs_controller.o $(TARGET)/obj/rtl8169.o
+OBJS = $(TARGET)/obj/kasm.o $(TARGET)/obj/kc.o $(TARGET)/obj/idt.o $(TARGET)/obj/ata.o $(TARGET)/obj/printf.o $(TARGET)/obj/isr.o $(TARGET)/obj/kb.o $(TARGET)/obj/string.o $(TARGET)/obj/system.o $(TARGET)/obj/util.o $(TARGET)/obj/shell.o $(TARGET)/obj/disk.o $(TARGET)/obj/fat32.o $(TARGET)/obj/rtc.o $(TARGET)/obj/testing.o $(TARGET)/obj/pmm.o $(TARGET)/obj/gdtasm.o $(TARGET)/obj/gdt.o $(TARGET)/obj/timer.o $(TARGET)/obj/schedule.o $(TARGET)/obj/pci.o $(TARGET)/obj/israsm.o $(TARGET)/obj/taskasm.o $(TARGET)/obj/task.o $(TARGET)/obj/liballoc.o $(TARGET)/obj/vga.o $(TARGET)/obj/console.o $(TARGET)/obj/backupconsole.o $(TARGET)/obj/serial.o $(TARGET)/obj/elf.o $(TARGET)/obj/paging.o $(TARGET)/obj/vmm.o $(TARGET)/obj/syscalls.o $(TARGET)/obj/fat32_utils.o $(TARGET)/obj/fat32_fat.o $(TARGET)/obj/fat32_lfn.o $(TARGET)/obj/ne2k.o $(TARGET)/obj/nic_controller.o $(TARGET)/obj/arp.o $(TARGET)/obj/rtl8139.o $(TARGET)/obj/bitmap.o $(TARGET)/obj/ipv4.o $(TARGET)/obj/udp.o $(TARGET)/obj/checksum.o $(TARGET)/obj/icmp.o $(TARGET)/obj/dhcp.o $(TARGET)/obj/tcp.o $(TARGET)/obj/fs_controller.o $(TARGET)/obj/ahci.o $(TARGET)/obj/rtl8169.o
 OUTPUT = $(TARGET)/boot/kernel.bin
 
 all:$(OBJS)
@@ -132,6 +132,9 @@ $(TARGET)/obj/printf.o:drivers/printf.c
 
 $(TARGET)/obj/ata.o:drivers/ata.c
 	$(COMPILER) $(CFLAGS) drivers/ata.c -o $(TARGET)/obj/ata.o
+
+$(TARGET)/obj/ahci.o:drivers/ahci.c
+	$(COMPILER) $(CFLAGS) drivers/ahci.c -o $(TARGET)/obj/ahci.o
 
 $(TARGET)/obj/disk.o:drivers/disk.c
 	$(COMPILER) $(CFLAGS) drivers/disk.c -o $(TARGET)/obj/disk.o

@@ -132,9 +132,9 @@ int kmain(unsigned long addr) {
   preFSconsoleInit();
 
   debugf("\n====== REACHED SYSTEM ======\n");
+  initiateTimer(1000);
   initiateNetworking();
   initiatePCI();
-  initiateTimer(1000);
   firstMountPoint = 0;
   fsMount("/", CONNECTOR_ATAPIO, 0, 0);
 
