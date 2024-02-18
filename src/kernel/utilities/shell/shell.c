@@ -172,7 +172,7 @@ void launch_shell(int n) {
           printf("[%d]: ", nic->type);
         else
           printf("%d: ", nic->type);
-        printf("%02X:%02X:%02X:%02X:%02X:%02X: IPv4{%d.%d.%d.%d} "
+        printf("%02X:%02X:%02X:%02X:%02X:%02X IPv4{%d.%d.%d.%d} "
                "SubnetMask{%d.%d.%d.%d} Router{%d.%d.%d.%d} DNS{%d.%d.%d.%d}\n",
                nic->MAC[0], nic->MAC[1], nic->MAC[2], nic->MAC[3], nic->MAC[4],
                nic->MAC[5], nic->ip[0], nic->ip[1], nic->ip[2], nic->ip[3],

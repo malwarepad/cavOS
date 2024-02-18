@@ -50,7 +50,7 @@ void debugArpTable(NIC *nic) {
   printf("\n");
 }
 
-/* The send/respond functions don't manipualte the arc table at all, that's the
+/* The send/respond functions don't manipualte the arp table at all, that's the
  * job of the handle function, called by the generic NIC interface controller*/
 
 void netArpSend(NIC *nic, uint8_t *ip) {

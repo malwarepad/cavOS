@@ -4,6 +4,8 @@
 #ifndef IPV4_H
 #define IPV4_H
 
+#define IPV4_MAX 65535
+
 typedef struct IPv4header {
   uint8_t ihl : 4;
   uint8_t version : 4; // network endian switch, version should be first
