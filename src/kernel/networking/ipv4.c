@@ -62,6 +62,14 @@ bool netIPv4Verify(NIC *nic, IPv4header *header) {
   if (*(uint32_t *)(&header->destination_address[0]) &&
       *(uint32_t *)(&header->destination_address[0]) != (uint32_t)-1 &&
       memcmp(header->destination_address, nic->ip, 4)) {
+    // Exception: Some routers remember past IPs and send DHCP requests using
+    // those... We let said requests go through and later check them via the
+    // transaction ID
+    if (header->protocol == UDP_PROTOCOL &&
+        switch_endian_16(((udpHeader *)((uint32_t)header + sizeof(IPv4header)))
+                             ->destination_port) == 68)
+      return true;
+
     debugf("[networking::ipv4] Bad IP, ignoring: %d:%d:%d:%d\n",
            header->destination_address[0], header->destination_address[1],
            header->destination_address[2], header->destination_address[3]);
