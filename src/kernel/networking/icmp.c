@@ -25,17 +25,22 @@ void netICMPsendPing(NIC *nic, uint8_t *destination_mac,
   free(final);
 }
 
-void netICMPreply(NIC *nic, uint8_t *destination_mac, uint8_t *destination_ip) {
-  uint8_t    *final = malloc(sizeof(icmpHeader));
+void netICMPreply(NIC *nic, uint8_t *destination_mac, uint8_t *destination_ip,
+                  icmpHeader *requestHeader, void *body, uint32_t body_size) {
+  uint32_t    finalSize = sizeof(icmpHeader) + body_size;
+  uint8_t    *final = malloc(finalSize);
   icmpHeader *header = (icmpHeader *) final;
 
-  memset(header, 0, sizeof(icmpHeader));
+  memset(final, 0, finalSize);
 
   header->type = ICMP_REPLY;
   header->code = 0;
-  header->checksum = checksum(header, sizeof(header));
 
-  netIPv4Send(nic, destination_mac, destination_ip, final, sizeof(icmpHeader),
+  header->restOfHeader = requestHeader->restOfHeader;
+  memcpy((uint32_t) final + sizeof(icmpHeader), body, body_size);
+  header->checksum = checksum(final, finalSize);
+
+  netIPv4Send(nic, destination_mac, destination_ip, final, finalSize,
               ICMP_PROTOCOL);
 
   free(final);
@@ -48,7 +53,10 @@ void netICMPreceive(NIC *nic, void *packet, uint32_t size) {
 
   switch (icmp->type) {
   case ICMP_ECHO:
-    netICMPreply(nic, rawHeader->source_mac, ipv4->source_address);
+    netICMPreply(nic, rawHeader->source_mac, ipv4->source_address, icmp,
+                 (uint32_t)icmp + sizeof(icmpHeader),
+                 size - sizeof(netPacketHeader) - sizeof(IPv4header) -
+                     sizeof(icmpHeader));
     break;
 
   case ICMP_REPLY:
