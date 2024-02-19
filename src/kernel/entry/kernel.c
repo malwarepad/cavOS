@@ -25,7 +25,7 @@
 #include <vmm.h>
 
 // Kernel entry file
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 char *center = "                   ";
 
@@ -165,7 +165,7 @@ int kmain(unsigned long addr) {
 
   printf("=========================================\n");
   printf("==     Cave-Like Operating System      ==\n");
-  printf("==      Copyright MalwarePad 2023      ==\n");
+  printf("==      Copyright MalwarePad 2024      ==\n");
   printf("=========================================\n\n");
 
   launch_shell(0);

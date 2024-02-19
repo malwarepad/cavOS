@@ -2,7 +2,7 @@
 #include <util.h>
 
 // String management file
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 uint32_t strlength(char *ch) {
   uint32_t i = 0; // Changed counter to 0

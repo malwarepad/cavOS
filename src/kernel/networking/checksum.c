@@ -7,7 +7,7 @@
 
 // Compute the internet checksum
 // (shamelessly stolen from https://tools.ietf.org/html/rfc1071)
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 uint16_t checksum(void *addr, int count) {
   register uint32_t sum = 0;

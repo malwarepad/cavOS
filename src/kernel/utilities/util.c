@@ -1,7 +1,7 @@
 #include <util.h>
 
 // Utilities used inside source code
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 #define LONG_MASK (sizeof(unsigned long) - 1)
 void memset(void *_dst, int val, size_t len) {

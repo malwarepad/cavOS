@@ -8,7 +8,7 @@
 
 // An actual TCP implementation! (kinda)
 // Tried to keep the code as simple as I could, good for educational purposes
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 /* Only linked-list utilities (CANNOT be used by themselves) */
 bool netTcpRemoveChain(NIC *nic, uint16_t port) {

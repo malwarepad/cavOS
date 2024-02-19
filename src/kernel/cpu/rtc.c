@@ -1,13 +1,13 @@
 #include <rtc.h>
 
 // Real-Time Clock implementation
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 // most code from the excellent https://wiki.osdev.org/CMOS#The_Real-Time_Clock
 // reference
 
 // Change this each year!
-#define CURRENT_YEAR 2023
+#define CURRENT_YEAR 2024
 
 int century_register = 0x00; // Set by ACPI table parsing code if possible
 

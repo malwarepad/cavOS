@@ -4,7 +4,7 @@
 #include <system.h>
 
 // FAT32's "(L)ong (F)ile(N)ame" entry parsing
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 bool lfnCmp(FAT32 *fat, uint32_t clusterNum, uint16_t nthOf32, char *str) {
 #if FAT32_DBG_PROMPTS

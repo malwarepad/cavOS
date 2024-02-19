@@ -9,7 +9,7 @@
 #include <util.h>
 
 // Manager for all connected network interfaces
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 void initiateNetworking() {
   // start off with no first NIC and no selected one

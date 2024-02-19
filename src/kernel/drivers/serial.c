@@ -2,7 +2,7 @@
 #include <stdarg.h>
 
 // Simple serial driver for debugging
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 void serial_enable(int device) {
   outportb(device + 1, 0x00);

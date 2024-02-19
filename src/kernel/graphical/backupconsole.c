@@ -5,7 +5,7 @@
 #include <ssfn.h>
 
 // Pre-filesystem console
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 #define width ssfn_dst.x
 #define height ssfn_dst.y

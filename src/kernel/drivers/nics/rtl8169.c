@@ -10,7 +10,7 @@
 
 // Realtek RTL8169 network card support (10/100/1000Mbit)
 // (as per https://wiki.osdev.org/RTL8169, clones may be different)
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 #define DEBUG_RTL8169 0
 

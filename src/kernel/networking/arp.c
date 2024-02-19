@@ -8,7 +8,7 @@
 
 // ARP (Address Resolution Protocol)
 // Converts MAC -> IP(v4)
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 // Xerox destination (zero'd)
 uint8_t broadcastMAC[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};

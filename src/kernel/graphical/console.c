@@ -7,7 +7,7 @@
 #include <ssfn.h>
 
 // Kernel console implementation
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 int bg_color[] = {0, 0, 0};
 int textcolor[] = {255, 255, 255};

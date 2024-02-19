@@ -8,7 +8,7 @@
 #include <task.h>
 
 // ISR Entry configurator
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 char *format = "[isr] Kernel panic: %s!\n";
 

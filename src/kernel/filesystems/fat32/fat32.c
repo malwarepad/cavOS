@@ -4,7 +4,7 @@
 #include <util.h>
 
 // Simple alpha FAT32 driver according to the Microsoft specification
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 bool isFat32(mbr_partition *mbr) {
   uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);

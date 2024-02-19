@@ -4,7 +4,7 @@
 #include <system.h>
 
 // PCI driver
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 uint16_t ConfigReadWord(uint8_t bus, uint8_t slot, uint8_t func,
                         uint8_t offset) {

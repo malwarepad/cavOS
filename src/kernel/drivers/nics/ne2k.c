@@ -2,7 +2,7 @@
 #include <system.h>
 
 // Ne2000 network interface driver
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 bool isNe2000(PCIdevice *device) {
   return (device->vendor_id == 0x10ec && device->device_id == 0x8029);

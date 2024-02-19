@@ -3,7 +3,7 @@
 #include <system.h>
 
 // Source code for handling ports via assembly references
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 uint8_t inportb(uint16_t _port) {
   uint8_t rv;

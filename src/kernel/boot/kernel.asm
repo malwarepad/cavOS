@@ -1,5 +1,5 @@
 ; Kernel boot file
-; Copyright (C) 2023 Panagiotis
+; Copyright (C) 2024 Panagiotis
 
 MBOOT_HEADER_MAGIC  equ 0xE85250D6
 MBOOT_ARCH          equ 0x00000000

@@ -6,7 +6,7 @@
 
 // Internet Control Message Protocol
 // (basically just /usr/bin/ping)
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 void netICMPsendPing(NIC *nic, uint8_t *destination_mac,
                      uint8_t *destination_ip) {

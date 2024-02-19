@@ -6,7 +6,7 @@
 #include <util.h>
 
 // System-wide page table & directory management
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 static void enable_paging();
 static void invalidate(int vaddr);

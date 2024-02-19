@@ -13,7 +13,7 @@
 #include <vmm.h>
 
 // Testing stuff
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 #define SOME_NETWORKING_STUFF 0
 #define PCI_READ 0

@@ -8,7 +8,7 @@
 #include <util.h>
 
 // ELF parser
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 #define ELF_DEBUG 0
 

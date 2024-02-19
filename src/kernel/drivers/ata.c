@@ -1,7 +1,7 @@
 #include <ata.h>
 
 // Ata pio driver
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 #define STATUS_BSY 0x80
 #define STATUS_RDY 0x40

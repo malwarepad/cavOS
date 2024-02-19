@@ -4,7 +4,7 @@
 #include <system.h>
 
 // Various utilities for the FAT32's filesystem
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 char *formatToShort8_3Format(char *directory) {
   static char out[12]; // 8 characters + dot + 3 characters + null terminator

@@ -7,7 +7,7 @@
 // the entry to the fat32 filesystem!
 
 // File Allocation Table parsing/manipulation functions
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 uint32_t getFatEntry(FAT32 *fat, uint32_t cluster) {
   uint32_t lba = fat->fat_begin_lba + (cluster * 4 / SECTOR_SIZE);

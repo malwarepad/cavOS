@@ -2,7 +2,7 @@
 
 // Bitmap-based memory region manager
 // 10000000 -> first block is allocated, other are free :")
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 /* Conversion utilities */
 

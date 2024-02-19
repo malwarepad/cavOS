@@ -16,7 +16,7 @@
 #include <ssfn.h>
 
 // Shell driver
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 void task1() {
   for (int i = 0; i < 8; i++) {
@@ -164,7 +164,7 @@ void launch_shell(int n) {
       printf("\nWarning: networking is still very early in testing!\n");
       printf("=========================================\n");
       printf("==       Networking configuration      ==\n");
-      printf("==      Copyright MalwarePad 2023      ==\n");
+      printf("==      Copyright MalwarePad 2024      ==\n");
       printf("=========================================\n\n");
       NIC *nic = firstNIC;
       while (nic != 0) {
@@ -246,7 +246,7 @@ void launch_shell(int n) {
       printf("\n");
       printf("=========================================\n");
       printf("==        cavOS kernel shell 1.6       ==\n");
-      printf("==      Copyright MalwarePad 2023      ==\n");
+      printf("==      Copyright MalwarePad 2024      ==\n");
       printf("=========================================\n\n");
     } else if (strEql(ch, "fetch")) {
       fetch();
@@ -341,7 +341,7 @@ void readDisk() {
   clearScreen();
   printf("=========================================\n");
   printf("====        cavOS readdisk 1.0       ====\n");
-  printf("====    Copyright MalwarePad 2023    ====\n");
+  printf("====    Copyright MalwarePad 2024    ====\n");
   printf("=========================================\n");
 
   printf("\n1MB grub sector: LBA=0 Offset=0, FAT32 sector: LBA=2048 "

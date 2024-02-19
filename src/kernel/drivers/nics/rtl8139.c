@@ -10,7 +10,7 @@
 
 // Realtek RTL8139 network card support (10/100Mbit)
 // (as per https://wiki.osdev.org/RTL8139, clones may be different)
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 // Four TXAD register, you must use a different one to send packet each time(for
 // example, use the first one, second... fourth and back to the first)

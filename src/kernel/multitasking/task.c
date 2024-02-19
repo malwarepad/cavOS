@@ -8,7 +8,7 @@
 #include <util.h>
 
 // Task manager allowing for task management
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 void create_task(uint32_t id, uint32_t eip, bool kernel_task,
                  uint32_t *pagedir) {

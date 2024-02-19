@@ -1,7 +1,7 @@
 #include <gdt.h>
 
 // GDT & TSS Entry configurator
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 static GDTEntry   gdt_entries[NUM_GDT_ENTRIES];
 static GDTPointer gdt_pointer;

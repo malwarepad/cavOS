@@ -8,7 +8,7 @@
 #include <util.h>
 
 // IP(v4) layer (https://en.wikipedia.org/wiki/Internet_Protocol_version_4)
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 void netIPv4Send(NIC *nic, uint8_t *destination_mac, uint8_t *destination_ip,
                  void *data, uint32_t data_size, uint8_t protocol) {

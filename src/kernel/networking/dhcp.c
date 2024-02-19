@@ -8,7 +8,7 @@
 
 // Dynamic Host Configuration Protocol, according to:
 // https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 uint8_t dhcpBroadcastMAC[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 uint8_t dhcpBroadcastIp[] = {0xff, 0xff, 0xff, 0xff};

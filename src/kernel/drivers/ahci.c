@@ -8,7 +8,7 @@
 
 // Generic AHCI driver (tested on real hardware)
 // Tried to keep the code as simple as I could, good for educational purposes
-// Copyright (C) 2023 Panagiotis
+// Copyright (C) 2024 Panagiotis
 
 ahci *ahciNew() {
   ahci *target = (ahci *)malloc(sizeof(ahci));
