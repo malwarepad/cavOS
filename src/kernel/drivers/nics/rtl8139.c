@@ -18,7 +18,7 @@ uint8_t TSAD_array[4] = {0x20, 0x24, 0x28, 0x2C};
 uint8_t TSD_array[4] = {0x10, 0x14, 0x18, 0x1C};
 
 // Track current packet (when receiving)
-uint32_t currentPacket;
+uint32_t currentPacket = 0;
 
 bool isRTL8139(PCIdevice *device) {
   return (device->vendor_id == 0x10ec && device->device_id == 0x8139);
@@ -30,25 +30,32 @@ void interruptHandler(AsmPassedInterrupt *regs) {
   rtl8139_interface *info = (rtl8139_interface *)selectedNIC->infoLocation;
   uint16_t           iobase = info->iobase;
 
-  uint16_t status = inportw(iobase + RTL8139_REG_ISR);
+  while (1) {
+    uint16_t status = inportw(iobase + RTL8139_REG_ISR);
 
-  outportw(info->iobase + RTL8139_REG_ISR, 0x5);
+    outportw(info->iobase + RTL8139_REG_ISR, 0x5);
 
-  if (status & RTL8139_STATUS_TOK) {
+    if (!status)
+      break;
+
+    if (status & RTL8139_STATUS_TOK) {
 #if RTL8139_DEBUG
-    debugf("[pci::rtl8139] IRQ notification: Packet sent\n");
+      debugf("[pci::rtl8139] IRQ notification: Packet sent\n");
 #endif
-  }
-  if (status & RTL8139_STATUS_ROK) {
+    }
+    if (status & RTL8139_STATUS_ROK) {
 #if RTL8139_DEBUG
-    debugf("[pci::rtl8139] IRQ notification: Processing packet...\n");
+      debugf("[pci::rtl8139] IRQ notification: Processing packet...\n");
 #endif
-    receiveRTL8139(selectedNIC);
-  }
+      // while (!(inportb(iobase + 0x37) & 0x01)) {
+      receiveRTL8139(selectedNIC);
+      // }
+    }
 
-  if (!(status & RTL8139_STATUS_TOK) && !(status & RTL8139_STATUS_ROK))
-    debugf("[pci::rtl8139] IRQ notification: Unknown interrupt, status{%x}\n",
-           status);
+    if (!(status & RTL8139_STATUS_TOK) && !(status & RTL8139_STATUS_ROK))
+      debugf("[pci::rtl8139] IRQ notification: Unknown interrupt, status{%x}\n",
+             status);
+  }
 }
 
 bool initiateRTL8139(PCIdevice *device) {
@@ -91,7 +98,7 @@ bool initiateRTL8139(PCIdevice *device) {
   while ((inportb(iobase + RTL8139_REG_CMD) & 0x10) != 0) {
   }
 
-  // Init the receive buffer
+  // Init the receive buffer (8192 + 16 + 1500)
   PhysicallyContiguous all = VirtualAllocatePhysicallyContiguous(
       DivRoundUp(8192 + 16 + 1500, BLOCK_SIZE));
   void *virtual = all.virt;
@@ -169,7 +176,14 @@ void receiveRTL8139(NIC *nic) {
   uint16_t           iobase = info->iobase;
 
   uint16_t *buffer = (uint16_t *)(info->rx_buff_virtual + currentPacket);
-  uint16_t  packetLength = *(buffer + 1);
+
+  // while ((port_byte_in(iobase + 0x37) & 0x01) == 0) {
+  uint16_t packetStatus = *(buffer);
+  uint16_t packetLength = *(buffer + 1);
+  if (!packetStatus || packetStatus == 0xe1e3) {
+    debugf("[pci::rtl8139] FATAL! Bad packet status{%x}!\n", packetStatus);
+    return;
+  }
 
   // we don't need the packet's pointer & length
   buffer += 2;
@@ -177,7 +191,7 @@ void receiveRTL8139(NIC *nic) {
   void *packet = malloc(packetLength);
   memcpy(packet, buffer, packetLength);
 
-  handlePacket(nic, packet, packetLength);
+  handlePacket(nic, packet, packetLength - 4); // remove control bit
   free(packet);
 
   // to be removed:
@@ -186,8 +200,9 @@ void receiveRTL8139(NIC *nic) {
   //   debugf("%02X ", ((uint8_t *)packet)[i]);
 
   currentPacket = (currentPacket + packetLength + 4 + 3) & (~3);
-  if (currentPacket > 8192)
+  if (currentPacket >= 8192)
     currentPacket -= 8192;
 
   outportw(iobase + 0x38, currentPacket - 0x10);
+  // }
 }
