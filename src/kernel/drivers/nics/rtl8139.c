@@ -175,34 +175,33 @@ void receiveRTL8139(NIC *nic) {
   rtl8139_interface *info = (rtl8139_interface *)nic->infoLocation;
   uint16_t           iobase = info->iobase;
 
-  uint16_t *buffer = (uint16_t *)(info->rx_buff_virtual + currentPacket);
+  while ((inportb(iobase + 0x37) & 0x01) == 0) {
+    uint16_t *buffer = (uint16_t *)(info->rx_buff_virtual + currentPacket);
+    uint16_t  packetStatus = *(buffer);
+    uint16_t  packetLength = *(buffer + 1);
+    if (!packetStatus || packetStatus == 0xe1e3) {
+      debugf("[pci::rtl8139] FATAL! Bad packet status{%x}!\n", packetStatus);
+      return;
+    }
 
-  // while ((port_byte_in(iobase + 0x37) & 0x01) == 0) {
-  uint16_t packetStatus = *(buffer);
-  uint16_t packetLength = *(buffer + 1);
-  if (!packetStatus || packetStatus == 0xe1e3) {
-    debugf("[pci::rtl8139] FATAL! Bad packet status{%x}!\n", packetStatus);
-    return;
+    // we don't need the packet's pointer & length
+    buffer += 2;
+
+    void *packet = malloc(packetLength);
+    memcpy(packet, buffer, packetLength);
+
+    handlePacket(nic, packet, packetLength - 4); // remove control bit
+    free(packet);
+
+    // to be removed:
+    // debugf("WE GOT A PACKET!\n");
+    // for (int i = 0; i < packetLength; i++)
+    //   debugf("%02X ", ((uint8_t *)packet)[i]);
+
+    currentPacket = (currentPacket + packetLength + 4 + 3) & (~3);
+    if (currentPacket >= 8192)
+      currentPacket -= 8192;
+
+    outportw(iobase + 0x38, currentPacket - 0x10);
   }
-
-  // we don't need the packet's pointer & length
-  buffer += 2;
-
-  void *packet = malloc(packetLength);
-  memcpy(packet, buffer, packetLength);
-
-  handlePacket(nic, packet, packetLength - 4); // remove control bit
-  free(packet);
-
-  // to be removed:
-  // debugf("WE GOT A PACKET!\n");
-  // for (int i = 0; i < packetLength; i++)
-  //   debugf("%02X ", ((uint8_t *)packet)[i]);
-
-  currentPacket = (currentPacket + packetLength + 4 + 3) & (~3);
-  if (currentPacket >= 8192)
-    currentPacket -= 8192;
-
-  outportw(iobase + 0x38, currentPacket - 0x10);
-  // }
 }
