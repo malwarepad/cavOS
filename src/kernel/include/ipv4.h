@@ -6,6 +6,11 @@
 
 #define IPV4_MAX 65535
 
+// little endian, end-to-start, 16 bit masks
+#define IPV4_FLAGS_DONT_FRAGMENT (1 << 12)
+#define IPV4_FLAGS_MORE_FRAGMENTS (1 << 13)
+#define IPV4_FLAGS_RESV (1 << 14)
+
 typedef struct IPv4header {
   uint8_t ihl : 4;
   uint8_t version : 4; // network endian switch, version should be first
@@ -14,8 +19,7 @@ typedef struct IPv4header {
   uint16_t length;
   uint16_t id;
 
-  uint16_t frag_offset : 13;
-  uint16_t flags : 3; // same ugly network endian switch
+  uint16_t flags;
 
   uint8_t  ttl;
   uint8_t  protocol;

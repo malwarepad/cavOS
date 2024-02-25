@@ -24,8 +24,6 @@ void initiateNIC(PCIdevice *device) {
       initiateRTL8169(device)) {
     netDHCPinit(selectedNIC); // selectedNIC = newly created NIC structure
   }
-  // ill add more NICs in the future
-  // (lie)
 }
 
 // returns UNINITIALIZED!! NIC struct
@@ -34,6 +32,7 @@ NIC *createNewNIC() {
 
   memset(nic, 0, sizeof(NIC));
   nic->dhcpTransactionID = rand();
+  nic->mtu = 1500;
 
   NIC *curr = firstNIC;
   while (1) {
@@ -82,6 +81,18 @@ void sendPacket(NIC *nic, uint8_t *destination_mac, void *data, uint32_t size,
 void handlePacket(NIC *nic, void *packet, uint32_t size) {
   netPacketHeader *header = (netPacketHeader *)packet;
   void            *body = (void *)((uint32_t)packet + sizeof(netPacketHeader));
+
+  if (memcmp(header->destination_mac, nic->MAC, 6) != 0 &&
+      memcmp(header->destination_mac, macBroadcast, 6) != 0 &&
+      memcmp(header->destination_mac, macZero, 6) != 0) {
+    printf("[nics] Packet isn't intended for us, ignoring! "
+           "dest{%02X:%02X:%02X:%02X:%02X:%02X}\n",
+           header->destination_mac[0], header->destination_mac[1],
+           header->destination_mac[2], header->destination_mac[3],
+           header->destination_mac[4], header->destination_mac[5]);
+    return;
+  }
+
   switch (switch_endian_16(header->ethertype)) {
   case NET_ETHERTYPE_ARP:
     netArpHandle(nic, body);

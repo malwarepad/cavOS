@@ -52,9 +52,16 @@ void interruptHandler(AsmPassedInterrupt *regs) {
       // }
     }
 
-    if (!(status & RTL8139_STATUS_TOK) && !(status & RTL8139_STATUS_ROK))
+    // if (status & (1 << 4)) {
+    // }
+
+    if (!(status & RTL8139_STATUS_TOK) && !(status & RTL8139_STATUS_ROK)) {
+#if RTL8139_DEBUG
       debugf("[pci::rtl8139] IRQ notification: Unknown interrupt, status{%x}\n",
              status);
+#endif
+      break;
+    }
   }
 }
 
@@ -72,6 +79,7 @@ bool initiateRTL8139(PCIdevice *device) {
 
   NIC *nic = createNewNIC();
   nic->type = RTL8139;
+  nic->mintu = 60;
   nic->infoLocation = 0; // no extra info needed... yet.
   nic->irq = details->interruptLine;
 

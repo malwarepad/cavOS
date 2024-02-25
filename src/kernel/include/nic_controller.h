@@ -10,6 +10,29 @@ typedef enum NIC_TYPE { NE2000, RTL8139, RTL8169 } NIC_TYPE;
 
 typedef struct NIC NIC;
 
+// why are there ipv4 stuff here???!
+typedef struct IPv4fragmentedPacketRaw IPv4fragmentedPacketRaw;
+struct IPv4fragmentedPacketRaw {
+  uint16_t index;
+  uint16_t size;
+  uint8_t *buffer;
+
+  IPv4fragmentedPacketRaw *next;
+};
+typedef struct IPv4fragmentedPacket IPv4fragmentedPacket;
+struct IPv4fragmentedPacket {
+  // todo: create a system for discarding those...
+  uint8_t                  source_address[4];
+  uint16_t                 id;
+  IPv4fragmentedPacketRaw *firstPacket;
+  IPv4fragmentedPacketRaw *lastPacket;
+
+  uint32_t curr;
+  uint32_t max;
+
+  IPv4fragmentedPacket *next;
+};
+
 // why are there arp stuff here???!
 #define ARP_TABLE_LEN 512
 typedef struct arpTableEntry {
@@ -54,6 +77,8 @@ struct tcpConnection {
 
 struct NIC {
   NIC_TYPE type;
+  uint16_t mtu;
+  uint8_t  mintu;
   uint32_t infoLocation;
   uint8_t  MAC[6];
   uint8_t  ip[4];
@@ -61,6 +86,9 @@ struct NIC {
   uint8_t  dnsIp[4];
   uint8_t  subnetMask[4];
   uint8_t  irq;
+
+  // IPv4
+  IPv4fragmentedPacket *firstFragmentedPacket;
 
   // ARP
   arpTableEntry arpTable[ARP_TABLE_LEN];
@@ -73,11 +101,14 @@ struct NIC {
   tcpConnection *firstTcpConnection;
 
   // DHCP
+  bool     dhcpUdpRegistered;
   uint32_t dhcpTransactionID;
 
   NIC *next;
 };
 #define defaultIP ((uint8_t[]){0, 0, 0, 0})
+#define macBroadcast ((uint8_t[]){255, 255, 255, 255, 255, 255})
+#define macZero ((uint8_t[]){0, 0, 0, 0, 0, 0})
 
 NIC *firstNIC;
 NIC *selectedNIC;

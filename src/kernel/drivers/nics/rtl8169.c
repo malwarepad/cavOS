@@ -56,7 +56,7 @@ void interruptHandlerRTL8169(AsmPassedInterrupt *regs) {
       uint32_t low = info->RxDescriptors[i].low_buf;
       uint32_t high = info->RxDescriptors[i].high_buf;
 
-      handlePacket(selectedNIC, info->packetBuffers[i], buffSize);
+      handlePacket(selectedNIC, info->packetBuffers[i], buffSize - 4);
 
       info->RxDescriptors[i].command |= RTL8169_OWN;
     }
@@ -141,6 +141,7 @@ bool initiateRTL8169(PCIdevice *device) {
 
   NIC *nic = createNewNIC();
   nic->type = RTL8169;
+  nic->mintu = 60;
   nic->infoLocation = 0; // no extra info needed... yet.
   nic->irq = details->interruptLine;
 

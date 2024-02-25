@@ -190,7 +190,10 @@ void netDHCPinit(NIC *nic) {
 
   body[sizeof(dhcpHeader) + (extras++)] = 0xff;
 
-  netUdpRegister(nic, 68, netDHCPreceive);
+  if (!nic->dhcpUdpRegistered) {
+    netUdpRegister(nic, 68, netDHCPreceive);
+    nic->dhcpUdpRegistered = true;
+  }
   netUdpSend(nic, dhcpBroadcastMAC, dhcpBroadcastIp, body,
              sizeof(dhcpHeader) + extras, 68, 67);
 
