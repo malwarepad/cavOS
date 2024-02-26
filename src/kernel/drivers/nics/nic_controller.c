@@ -85,7 +85,7 @@ void handlePacket(NIC *nic, void *packet, uint32_t size) {
   if (memcmp(header->destination_mac, nic->MAC, 6) != 0 &&
       memcmp(header->destination_mac, macBroadcast, 6) != 0 &&
       memcmp(header->destination_mac, macZero, 6) != 0) {
-    printf("[nics] Packet isn't intended for us, ignoring! "
+    debugf("[nics] Packet isn't intended for us, ignoring! "
            "dest{%02X:%02X:%02X:%02X:%02X:%02X}\n",
            header->destination_mac[0], header->destination_mac[1],
            header->destination_mac[2], header->destination_mac[3],
