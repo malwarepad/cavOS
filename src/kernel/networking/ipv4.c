@@ -2,6 +2,7 @@
 #include <icmp.h>
 #include <ipv4.h>
 #include <liballoc.h>
+#include <linked_list.h>
 #include <system.h>
 #include <tcp.h>
 #include <udp.h>
@@ -34,50 +35,9 @@ IPv4fragmentedPacket *netIPv4FindFragmentedPkg(NIC *nic, uint8_t *ip,
   return curr;
 }
 
-IPv4fragmentedPacket *netIPv4RegisterFragmentedPkg(NIC *nic) {
-  IPv4fragmentedPacket *fragment =
-      (IPv4fragmentedPacket *)malloc(sizeof(IPv4fragmentedPacket));
-  memset(fragment, 0, sizeof(IPv4fragmentedPacket));
-  IPv4fragmentedPacket *curr = nic->firstFragmentedPacket;
-  while (1) {
-    if (curr == 0) {
-      // means this is our first one
-      nic->firstFragmentedPacket = fragment;
-      break;
-    }
-    if (curr->next == 0) {
-      // next is non-existent (end of linked list)
-      curr->next = fragment;
-      break;
-    }
-    curr = curr->next; // cycle
-  }
-  return fragment;
-}
-
 bool netIPv4RemoveFragmentedPkg(NIC *nic, uint8_t *ip, uint16_t id) {
-  IPv4fragmentedPacket *curr = nic->firstFragmentedPacket;
-  while (curr) {
-    if (curr->next && (IPv4fragmentedPacket *)(curr->next)->id == id &&
-        memcmp(&((IPv4fragmentedPacket *)(curr->next)->source_address)[0], ip,
-               4) == 0)
-      break;
-    curr = curr->next;
-  }
-  if (nic->firstFragmentedPacket && nic->firstFragmentedPacket->id == id &&
-      memcmp(&nic->firstFragmentedPacket->source_address[0], ip, 4) == 0) {
-    IPv4fragmentedPacket *target = nic->firstFragmentedPacket;
-    nic->firstFragmentedPacket = target->next;
-    free(target);
-    return true;
-  } else if (!curr)
-    return false;
-
-  IPv4fragmentedPacket *target = curr->next;
-  curr->next = target->next; // remove reference
-  free(target);              // free remaining memory
-
-  return true;
+  return LinkedListRemove(&nic->firstFragmentedPacket,
+                          netIPv4FindFragmentedPkg(nic, ip, id));
 }
 
 /* IPv4 fragmentation: Packet fragment cleanup/finalization */
@@ -129,6 +89,8 @@ uint32_t netIPv4FinishFragmentedPkg(NIC *nic, uint8_t *ip, uint16_t id,
   *target = finalBuffer;
   return finalSize;
 }
+
+/* Standard verification, not related with fragments! */
 
 bool netIPv4Verify(NIC *nic, IPv4header *header, uint32_t size) {
   if (header->version != 0x04) {
@@ -196,7 +158,8 @@ void netIPv4Receive(NIC *nic, void *body, uint32_t size) {
         netIPv4FindFragmentedPkg(nic, header->source_address, id);
     if (!currFrag) {
       // first fragment we received, register the whole struct
-      currFrag = netIPv4RegisterFragmentedPkg(nic);
+      currFrag = (IPv4fragmentedPacket *)LinkedListAllocate(
+          &nic->firstFragmentedPacket, sizeof(IPv4fragmentedPacket));
       memcpy(currFrag->source_address, header->source_address, 4);
       currFrag->id = id;
     }

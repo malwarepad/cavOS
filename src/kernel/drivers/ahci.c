@@ -1,5 +1,6 @@
 #include <ahci.h>
 #include <isr.h>
+#include <linked_list.h>
 #include <paging.h>
 #include <pmm.h>
 #include <timer.h>
@@ -9,28 +10,6 @@
 // Generic AHCI driver (tested on real hardware)
 // Tried to keep the code as simple as I could, good for educational purposes
 // Copyright (C) 2024 Panagiotis
-
-ahci *ahciNew() {
-  ahci *target = (ahci *)malloc(sizeof(ahci));
-  memset(target, 0, sizeof(ahci));
-  ahci *curr = firstAhci;
-  while (1) {
-    if (curr == 0) {
-      // means this is our first one
-      firstAhci = target;
-      break;
-    }
-    if (curr->next == 0) {
-      // next is non-existent (end of linked list)
-      curr->next = target;
-      break;
-    }
-    curr = curr->next; // cycle
-  }
-
-  target->next = 0; // null ptr
-  return target;
-}
 
 bool isAHCIcontroller(PCIdevice *device) {
   return (device->vendor_id == 0x15ad && device->device_id == 0x07e0) ||
@@ -303,7 +282,7 @@ bool initiateAHCI(PCIdevice *device) {
                    command_status);
 
   uint32_t base = details->bar[5] & 0xFFFFFFF0;
-  ahci    *ahciPtr = ahciNew();
+  ahci    *ahciPtr = LinkedListAllocate(&firstAhci, sizeof(ahci));
 
   uint32_t pages = DivRoundUp(sizeof(HBA_MEM), PAGE_SIZE);
   HBA_MEM *mem = (HBA_MEM *)BitmapAllocate(&virtual, pages); //!

@@ -2,37 +2,23 @@
 #include <disk.h>
 #include <fat32.h>
 #include <fs_controller.h>
+#include <linked_list.h>
 #include <string.h>
 #include <system.h>
 #include <task.h>
 #include <util.h>
 
 bool fsUnmount(MountPoint *mnt) {
-  MountPoint *browse = firstMountPoint;
-  while (browse) {
-    if (browse->next == mnt)
-      break;
-    browse = browse->next;
-  }
-  MountPoint *target;
-  if (firstMountPoint == mnt) {
-    target = firstMountPoint;
-    firstMountPoint = target->next;
-  } else if (browse) {
-    target = browse->next;
-    browse->next = target->next;
-  } else {
-    target = mnt;
-  }
+  LinkedListUnregister(&firstMountPoint, mnt);
 
-  switch (target->filesystem) {
+  switch (mnt->filesystem) {
   case FS_FAT32:
-    finaliseFat32(target);
+    finaliseFat32(mnt);
     break;
   }
 
-  free(target->prefix);
-  free(target);
+  free(mnt->prefix);
+  free(mnt);
 
   return true;
 }
@@ -40,22 +26,8 @@ bool fsUnmount(MountPoint *mnt) {
 // prefix MUST end with '/': /mnt/handle/
 MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
                     uint8_t partition) {
-  MountPoint *browse = firstMountPoint;
-  MountPoint *mount = (MountPoint *)malloc(sizeof(MountPoint));
-  memset(mount, 0, sizeof(MountPoint));
-  while (1) {
-    if (browse == 0) {
-      // means this is our first one
-      firstMountPoint = mount;
-      break;
-    }
-    if (browse->next == 0) {
-      // next is non-existent (end of linked list)
-      browse->next = mount;
-      break;
-    }
-    browse = browse->next; // cycle
-  }
+  MountPoint *mount =
+      (MountPoint *)LinkedListAllocate(&firstMountPoint, sizeof(MountPoint));
 
   uint32_t strlen = strlength(prefix);
   mount->prefix = (char *)(malloc(strlen + 1));
@@ -88,66 +60,19 @@ MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
 }
 
 OpenFile *fsKernelRegisterNode() {
-  OpenFile *target = (OpenFile *)malloc(sizeof(OpenFile));
-  memset(target, 0, sizeof(OpenFile));
-  OpenFile *browse = firstKernelFile;
-  while (1) {
-    if (browse == 0) {
-      // means this is our first one
-      firstKernelFile = target;
-      break;
-    }
-    if (browse->next == 0) {
-      // next is non-existent (end of linked list)
-      browse->next = target;
-      break;
-    }
-    browse = browse->next;
-  }
-
-  return target;
+  return LinkedListAllocate(&firstKernelFile, sizeof(OpenFile));
 }
 
-OpenFile *fsKernelUnregisterNode(OpenFile *file) {
-  OpenFile *browse = firstKernelFile;
-  while (browse) {
-    if (browse->next == file)
-      break;
-    browse = browse->next;
-  }
-  OpenFile *target;
-  if (firstKernelFile == file) {
-    target = firstKernelFile;
-    firstKernelFile = target->next;
-  } else if (browse) {
-    target = browse->next;
-    browse->next = target->next;
-  } else {
-    target = file;
-  }
-
-  return target;
+bool fsKernelUnregisterNode(OpenFile *file) {
+  return LinkedListUnregister(&firstKernelFile, file);
 }
 
 OpenFile *fsUserRegisterNode(Task *task) {
-  OpenFile *target = (OpenFile *)malloc(sizeof(OpenFile));
-  memset(target, 0, sizeof(OpenFile));
-  OpenFile *browse = task->firstFile;
-  while (1) {
-    if (browse == 0) {
-      // means this is our first one
-      task->firstFile = target;
-      break;
-    }
-    if (browse->next == 0) {
-      // next is non-existent (end of linked list)
-      browse->next = target;
-      break;
-    }
-    browse = browse->next;
-  }
+  return LinkedListAllocate(&task->firstFile, sizeof(OpenFile));
+}
 
-  return target;
+bool fsUserUnregisterNode(Task *task, OpenFile *file) {
+  return LinkedListUnregister(&task->firstFile, file);
 }
 
 OpenFile *fsUserNodeFetch(Task *task, int fd) {
@@ -158,27 +83,6 @@ OpenFile *fsUserNodeFetch(Task *task, int fd) {
     browse = browse->next;
   }
   return browse;
-}
-
-OpenFile *fsUserUnregisterNode(Task *task, OpenFile *file) {
-  OpenFile *browse = task->firstFile;
-  while (browse) {
-    if (browse->next == file)
-      break;
-    browse = browse->next;
-  }
-  OpenFile *target;
-  if (task->firstFile == file) {
-    target = task->firstFile;
-    task->firstFile = target->next;
-  } else if (browse) {
-    target = browse->next;
-    browse->next = target->next;
-  } else {
-    target = file;
-  }
-
-  return target;
 }
 
 bool fsCloseFsSpecific(OpenFile *file) {

@@ -1,5 +1,6 @@
 #include <isr.h>
 #include <kb.h>
+#include <linked_list.h>
 #include <nic_controller.h>
 #include <paging.h>
 #include <rtl8139.h>
@@ -65,10 +66,10 @@ typedef void (*FunctionPtr)(AsmPassedInterrupt *regs);
 // FunctionPtr irqHandlers[16]; // IRQs 0 - 15
 typedef struct irqHandler irqHandler;
 struct irqHandler {
+  irqHandler *next;
+
   uint8_t      id;
   FunctionPtr *handler;
-
-  irqHandler *next;
 };
 irqHandler *firstIrqHandler = 0;
 
@@ -91,22 +92,8 @@ void isr_install() {
 
 void registerIRQhandler(uint8_t id, void *handler) {
   // printf("IRQ %d reserved!\n", id);
-  irqHandler *target = (irqHandler *)malloc(sizeof(irqHandler));
-  memset(target, 0, sizeof(irqHandler));
-  irqHandler *curr = firstIrqHandler;
-  while (1) {
-    if (curr == 0) {
-      // means this is our first one
-      firstIrqHandler = target;
-      break;
-    }
-    if (curr->next == 0) {
-      // next is non-existent (end of linked list)
-      curr->next = target;
-      break;
-    }
-    curr = curr->next; // cycle
-  }
+  irqHandler *target =
+      (irqHandler *)LinkedListAllocate(&firstIrqHandler, sizeof(irqHandler));
 
   target->id = id;
   target->handler = handler;

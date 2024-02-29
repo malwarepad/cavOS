@@ -1,6 +1,7 @@
 #include <arp.h>
 #include <dhcp.h>
 #include <ipv4.h>
+#include <linked_list.h>
 #include <ne2k.h>
 #include <nic_controller.h>
 #include <rtl8139.h>
@@ -28,26 +29,10 @@ void initiateNIC(PCIdevice *device) {
 
 // returns UNINITIALIZED!! NIC struct
 NIC *createNewNIC() {
-  NIC *nic = (NIC *)malloc(sizeof(NIC));
+  NIC *nic = LinkedListAllocate(&firstNIC, sizeof(NIC));
 
-  memset(nic, 0, sizeof(NIC));
   nic->dhcpTransactionID = rand();
   nic->mtu = 1500;
-
-  NIC *curr = firstNIC;
-  while (1) {
-    if (curr == 0) {
-      // means this is our first one
-      firstNIC = nic;
-      break;
-    }
-    if (curr->next == 0) {
-      // next is non-existent (end of linked list)
-      curr->next = nic;
-      break;
-    }
-    curr = curr->next; // cycle
-  }
   selectedNIC = nic;
   return nic;
 }

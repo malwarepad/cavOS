@@ -178,12 +178,12 @@ typedef enum {
 typedef struct ahci ahci;
 
 struct ahci {
+  ahci *next;
+
   void    *clbVirt[32];
   void    *ctbaVirt[32];
   uint32_t sata; // bitmap (32 ports -> 32 bits)
   HBA_MEM *mem;
-
-  ahci *next;
 };
 
 ahci *firstAhci;

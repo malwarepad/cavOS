@@ -9,6 +9,8 @@ typedef enum CONNECTOR { CONNECTOR_ATAPIO } CONNECTOR;
 
 typedef struct MountPoint MountPoint;
 struct MountPoint {
+  MountPoint *next;
+
   char *prefix;
 
   uint32_t  disk;
@@ -19,12 +21,12 @@ struct MountPoint {
 
   mbr_partition mbr;
   void         *fsInfo;
-
-  MountPoint *next;
 };
 
 typedef struct OpenFile OpenFile;
 struct OpenFile {
+  OpenFile *next;
+
   int id;
 
   uint32_t pointer;
@@ -32,8 +34,6 @@ struct OpenFile {
 
   MountPoint *mountPoint;
   void       *dir;
-
-  OpenFile *next;
 };
 
 OpenFile *firstKernelFile;
