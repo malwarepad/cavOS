@@ -39,7 +39,7 @@ bool elf_check_file(Elf32_Ehdr *hdr) {
   return true;
 }
 
-uint32_t elf_execute(char *filepath) {
+uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
   lockInterrupts();
 
   // Open & read executable file
@@ -139,7 +139,7 @@ uint32_t elf_execute(char *filepath) {
   debugf("[elf] New pagedir: offset{%x}\n", pagedir);
 #endif
 
-  create_task(id, (uint32_t)elf_ehdr->e_entry, false, pagedir);
+  create_task(id, (uint32_t)elf_ehdr->e_entry, false, pagedir, argc, argv);
 
   // Cleanup...
   free(out);

@@ -219,7 +219,10 @@ void launch_shell(int n) {
       char *filepath = (char *)malloc(200);
       readStr(filepath);
       printf("\n");
-      uint32_t id = elf_execute(filepath);
+
+      uint32_t *argv = malloc(4);
+      argv[0] = (uint32_t)filepath;
+      uint32_t id = elf_execute(filepath, 1, argv);
       if (!id) {
         printf("Failure executing %s!\n", filepath);
         continue;
@@ -231,9 +234,9 @@ void launch_shell(int n) {
       free(filepath);
     } else if (strEql(ch, "proctest")) {
       printf("\n");
-      create_task(1, (uint32_t)task1, true, PageDirectoryAllocate());
-      create_task(2, (uint32_t)task2, true, PageDirectoryAllocate());
-      create_task(3, (uint32_t)task3, true, PageDirectoryAllocate());
+      create_task(1, (uint32_t)task1, true, PageDirectoryAllocate(), 0, 0);
+      create_task(2, (uint32_t)task2, true, PageDirectoryAllocate(), 0, 0);
+      create_task(3, (uint32_t)task3, true, PageDirectoryAllocate(), 0, 0);
     } else if (strEql(ch, "cwm")) {
       printf("\n%s\n",
              "After taking some time off the project, I realized I was "

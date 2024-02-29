@@ -3,6 +3,7 @@
 #include <liballoc.h>
 #include <paging.h>
 #include <schedule.h>
+#include <string.h>
 #include <system.h>
 #include <task.h>
 #include <util.h>
@@ -10,8 +11,8 @@
 // Task manager allowing for task management
 // Copyright (C) 2024 Panagiotis
 
-void create_task(uint32_t id, uint32_t eip, bool kernel_task,
-                 uint32_t *pagedir) {
+void create_task(uint32_t id, uint32_t eip, bool kernel_task, uint32_t *pagedir,
+                 uint32_t argc, char **argv) {
   lockInterrupts();
 
   // when a task gets context switched to for the first time,
@@ -82,6 +83,42 @@ void create_task(uint32_t id, uint32_t eip, bool kernel_task,
 
   target->heap_start = USER_HEAP_START;
   target->heap_end = USER_HEAP_START;
+
+  if (!kernel_task) {
+    // yeah, we will need to construct a stackframe...
+    void *oldPagedir = GetPageDirectory();
+    ChangePageDirectory(target->pagedir);
+
+    uint32_t argSpace = 0;
+    for (int i = 0; i < argc; i++)
+      argSpace += strlength(argv[i]) + 1; // null terminator
+    uint32_t totalSpace = (argc * 4) + argSpace;
+
+    uint32_t *argPtr = target->heap_end;
+    adjust_user_heap(target, target->heap_end + totalSpace);
+    // memset(argPtr, 0, argSpace);
+
+    uint32_t curr = 0;
+    for (int i = 0; i < argc; i++) {
+      uint32_t len = strlength(argv[i]);
+      uint8_t *ptr = (uint32_t)argPtr + argc * 4 + curr;
+
+      memcpy(ptr, argv[i], len);
+      ptr[len] = '\0'; // null terminator
+
+      argPtr[i] = ptr;
+      curr += len + 1;
+    }
+
+    VirtualMap(USER_STACK_BOTTOM, BitmapAllocatePageframe(&physical),
+               PAGE_FLAG_WRITE | PAGE_FLAG_USER | PAGE_FLAG_OWNER);
+    uint32_t *stack_frame = (uint32_t *)(USER_STACK_BOTTOM);
+    memset(stack_frame, 0, 4096);
+    stack_frame[1] = argc;             // int argc (32-bit signed)
+    stack_frame[2] = (uint32_t)argPtr; // char** argv
+
+    ChangePageDirectory(oldPagedir);
+  }
 
   releaseInterrupts();
 }

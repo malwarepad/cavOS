@@ -33,6 +33,11 @@ int main(int argc, char **argv) {
   argc = argc;
   argv = argv;
 
+  printf("args: %d\n", argc);
+  for (int i = 0; i < argc; i++) {
+    printf("arg%d: %s\n", i, argv[i]);
+  }
+
   printf("Process PID: %d\n", syscallGetPid());
 
   int dec;
@@ -49,9 +54,9 @@ int main(int argc, char **argv) {
   // closeControlled(file3);
   // closeControlled(file4);
 
-  for (int i = 0; i < argc; i++) {
-    syscallTest(argv[i]);
-  }
+  // for (int i = 0; i < argc; i++) {
+  //   syscallTest(argv[i]);
+  // }
 
   syscallTest("testing program heap...");
   dumpHeapInfo();

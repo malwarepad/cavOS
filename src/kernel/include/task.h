@@ -67,11 +67,11 @@ Task *currentTask;
 
 bool tasksInitiated;
 
-void     initiateTasks();
-void     create_task(uint32_t id, uint32_t eip, bool kernel_task,
-                     uint32_t *pagedir);
-void     adjust_user_heap(Task *task, uint32_t new_heap_end);
-void     kill_task(uint32_t id);
+void initiateTasks();
+void create_task(uint32_t id, uint32_t eip, bool kernel_task, uint32_t *pagedir,
+                 uint32_t argc, char **argv);
+void adjust_user_heap(Task *task, uint32_t new_heap_end);
+void kill_task(uint32_t id);
 uint8_t *getTaskState(uint32_t id);
 Task    *getTask(uint32_t id);
 

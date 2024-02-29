@@ -92,6 +92,6 @@ enum Elf_Type {
 
 bool     elf_check_file(Elf32_Ehdr *hdr);
 int16_t  create_taskid();
-uint32_t elf_execute(char *filepath);
+uint32_t elf_execute(char *filepath, uint32_t argc, char **argv);
 
 #endif

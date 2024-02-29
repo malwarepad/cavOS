@@ -75,8 +75,10 @@ void handler(NIC *nic, void *request, uint32_t size,
   // }
 }
 
+// char *argv[] = {"./testing.cav", "--no-color", "-p"};
+
 void testingInit() {
-  // elf_execute("/software/testing.cav");
+  // elf_execute("/software/testing.cav", 3, argv);
 #if SOME_NETWORKING_STUFF
   // netPacket *packet = (netPacket *)malloc(sizeof(netPacket));
   // int        size = 4096;
