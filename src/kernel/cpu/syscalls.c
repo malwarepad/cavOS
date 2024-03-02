@@ -16,31 +16,39 @@ void registerSyscall(uint32_t id, void *handler) {
   syscalls[id] = handler;
 }
 
-void syscallHandler(AsmPassedInterrupt *regs) {
+AsmPassedInterrupt *currGlobalRegs = 0;
+void                syscallHandler(AsmPassedInterrupt *regs) {
   uint32_t id = regs->eax;
   void    *handler = syscalls[id];
 
   if (!handler) {
+    regs->eax = -1;
     debugf("[syscalls] Tried to access syscall{%d} (doesn't exist)!\n", id);
     return;
   }
 
+  currGlobalRegs = regs;
+
   int ret;
+  // previously used "r"(regs->*)
   asm volatile("push %1 \n"
-               "push %2 \n"
-               "push %3 \n"
-               "push %4 \n"
-               "push %5 \n"
-               "call *%6 \n"
-               "pop %%ebx \n"
-               "pop %%ebx \n"
-               "pop %%ebx \n"
-               "pop %%ebx \n"
-               "pop %%ebx \n"
+                              "push %2 \n"
+                              "push %3 \n"
+                              "push %4 \n"
+                              "push %5 \n"
+                              "push %6 \n"
+                              "call *%7 \n"
+                              "pop %%ebx \n"
+                              "pop %%ebx \n"
+                              "pop %%ebx \n"
+                              "pop %%ebx \n"
+                              "pop %%ebx \n"
+                              "pop %%ebx \n"
                : "=a"(ret)
-               : "r"(regs->edi), "r"(regs->esi), "r"(regs->edx), "r"(regs->ecx),
-                 "r"(regs->ebx), "r"(handler));
+               : "g"(regs->ebp), "g"(regs->edi), "g"(regs->esi), "g"(regs->edx),
+                 "g"(regs->ecx), "g"(regs->ebx), "g"(handler));
   regs->eax = ret;
+  currGlobalRegs = regs;
 }
 
 bool running = false;
@@ -134,8 +142,56 @@ static int syscallLseek(uint32_t file, int offset, int whence) {
   return fsUserSeek(file, offset, whence);
 }
 
+#define SYSCALL_BRK 45
+static int syscallBrk(uint32_t brk) {
+  if (!brk)
+    return currentTask->heap_end;
+
+  if (brk < currentTask->heap_end)
+    return -1;
+
+  adjust_user_heap(currentTask, brk);
+
+  return currentTask->heap_end;
+}
+
 #define SYSCALL_GETPID 20
 static uint32_t syscallGetPid() { return currentTask->id; }
+
+typedef struct iovec {
+  void  *iov_base; /* Pointer to data.  */
+  size_t iov_len;  /* Length of data.  */
+} iovec;
+
+#define SYSCALL_WRITEV 146
+static int syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
+  int cnt = 0;
+
+  for (int i = 0; i < ioVcnt; i++) {
+    iovec *curr = (uint32_t)iov + i * sizeof(iovec);
+
+    // debugf("[syscalls::writev] fd{%d} iov_base{%x} iov_len{%x} iovcnt{%d}\n",
+    //        fd, curr->iov_base, curr->iov_len, ioVcnt);
+    int singleCnt = syscallWrite(fd, curr->iov_base, curr->iov_len);
+    if (singleCnt == -1)
+      return cnt;
+
+    cnt += singleCnt;
+  }
+
+  return cnt;
+}
+
+#define SYSCALL_MMAP2 192
+static int syscallMmap2(uint32_t addr, uint32_t length, uint32_t prot,
+                        uint32_t flags, uint32_t fd, uint32_t pgoffset) {
+  debugf("[syscalls::mmap2] UNIMPLEMENTED! addr{%x} len{%x} prot{%x} flags{%x} "
+         "fd{%x} "
+         "pgoffset{%x}\n",
+         addr, length, prot, flags, fd, pgoffset);
+
+  return -1;
+}
 
 #define SYSCALL_GETARGC 400
 static int syscallGetArgc() { return 6; }
@@ -182,6 +238,9 @@ void initiateSyscalls() {
   registerSyscall(SYSCALL_OPEN, syscallOpen);
   registerSyscall(SYSCALL_CLOSE, syscallClose);
   registerSyscall(SYSCALL_LSEEK, syscallLseek);
+  registerSyscall(SYSCALL_BRK, syscallBrk);
+  registerSyscall(SYSCALL_MMAP2, syscallMmap2);
+  registerSyscall(SYSCALL_WRITEV, syscallWriteV);
 
   debugf("[syscalls] System calls are ready to fire: %d/%d\n", countSyscalls(),
          MAX_SYSCALLS);

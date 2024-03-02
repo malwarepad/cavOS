@@ -92,16 +92,31 @@ void create_task(uint32_t id, uint32_t eip, bool kernel_task, uint32_t *pagedir,
     uint32_t argSpace = 0;
     for (int i = 0; i < argc; i++)
       argSpace += strlength(argv[i]) + 1; // null terminator
-    uint32_t totalSpace = (argc * 4) + argSpace;
+    uint32_t totalSpacePages =
+        DivRoundUp(4 + (argc * 4) + 10 + argSpace, PAGE_SIZE);
+    uint32_t totalSpace = totalSpacePages * PAGE_SIZE;
+    // argc +  argv ptrs + environ(todo) + argvs
 
-    uint32_t *argPtr = target->heap_end;
-    adjust_user_heap(target, target->heap_end + totalSpace);
+    for (int i = 0; i < totalSpacePages; i++)
+      VirtualMap(USER_STACK_BOTTOM + i * PAGE_SIZE,
+                 BitmapAllocatePageframe(&physical),
+                 PAGE_FLAG_WRITE | PAGE_FLAG_USER | PAGE_FLAG_OWNER);
+
+    uint32_t *argcPtr = USER_STACK_BOTTOM;
+    uint32_t *argPtr = USER_STACK_BOTTOM + 4; // skip argc
     // memset(argPtr, 0, argSpace);
+
+    *argcPtr = argc;
+
+    // environ (for the time being)
+    uint32_t *environPtr = USER_STACK_BOTTOM + 4 + (argc * 4);
+    memset(environPtr, 0, 10);
+    environPtr[0] = &environPtr[5];
 
     uint32_t curr = 0;
     for (int i = 0; i < argc; i++) {
       uint32_t len = strlength(argv[i]);
-      uint8_t *ptr = (uint32_t)argPtr + argc * 4 + curr;
+      uint8_t *ptr = (uint32_t)argcPtr + 4 + (argc * 4) + 10 + curr;
 
       memcpy(ptr, argv[i], len);
       ptr[len] = '\0'; // null terminator
@@ -109,13 +124,6 @@ void create_task(uint32_t id, uint32_t eip, bool kernel_task, uint32_t *pagedir,
       argPtr[i] = ptr;
       curr += len + 1;
     }
-
-    VirtualMap(USER_STACK_BOTTOM, BitmapAllocatePageframe(&physical),
-               PAGE_FLAG_WRITE | PAGE_FLAG_USER | PAGE_FLAG_OWNER);
-    uint32_t *stack_frame = (uint32_t *)(USER_STACK_BOTTOM);
-    memset(stack_frame, 0, 4096);
-    stack_frame[1] = argc;             // int argc (32-bit signed)
-    stack_frame[2] = (uint32_t)argPtr; // char** argv
 
     ChangePageDirectory(oldPagedir);
   }
