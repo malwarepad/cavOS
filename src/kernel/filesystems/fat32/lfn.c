@@ -46,7 +46,7 @@ bool isLFNentry(FAT32 *fat, uint8_t *rawArr, uint32_t clusterNum,
                    (clusterNum - 2 - 1) * fat->sectors_per_cluster;
     getDiskBytes(newRawArr, lba, fat->sectors_per_cluster);
     pFAT32_Directory dir =
-        (pFAT32_Directory)((uint32_t)newRawArr +
+        (pFAT32_Directory)((size_t)newRawArr +
                            fat->sectors_per_cluster * SECTOR_SIZE - 32);
     bool res = dir->attributes == 0x0F;
 #if FAT32_DBG_PROMPTS
@@ -58,8 +58,7 @@ bool isLFNentry(FAT32 *fat, uint8_t *rawArr, uint32_t clusterNum,
     return res;
   }
 
-  pFAT32_Directory dir =
-      (pFAT32_Directory)((uint32_t)rawArr + (entry - 1) * 32);
+  pFAT32_Directory dir = (pFAT32_Directory)((size_t)rawArr + (entry - 1) * 32);
   return dir->attributes == 0x0F;
 }
 
@@ -92,7 +91,7 @@ uint16_t *calcLfn(FAT32 *fat, uint32_t clusterNum, uint16_t nthOf32) {
         nthOf32 = 33;
         currCluster++;
       }
-      FAT32_LFN *lfn = (FAT32_LFN *)((uint32_t)rawArr + 32 * i);
+      FAT32_LFN *lfn = (FAT32_LFN *)((size_t)rawArr + 32 * i);
 
 #if FAT32_DBG_PROMPTS
       debugf("[fat32::lfn::calculate] [%x:%x] ", lba * 512 + 32 * i,

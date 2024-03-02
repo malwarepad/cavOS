@@ -99,9 +99,8 @@ bool fsCloseFsSpecific(OpenFile *file) {
 
 bool fsOpenFsSpecific(char *filename, MountPoint *mnt, OpenFile *target) {
   bool  res = false;
-  char *strippedFilename =
-      (char *)((uint32_t)filename + strlength(mnt->prefix) -
-               1); // -1 for putting start slash
+  char *strippedFilename = (char *)((size_t)filename + strlength(mnt->prefix) -
+                                    1); // -1 for putting start slash
   switch (mnt->filesystem) {
   case FS_FAT32:
     FAT32_Directory *dir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));

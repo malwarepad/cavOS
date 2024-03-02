@@ -35,7 +35,7 @@ void setFatEntry(FAT32 *fat, uint32_t cluster, uint32_t value) {
   uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
   getDiskBytes(rawArr, lba, 1);
 
-  uint32_t *rawArr32 = (uint32_t)rawArr;
+  uint32_t *rawArr32 = (uint32_t *)rawArr;
   rawArr32[entryOffset / 4] = value;
 
   write_sectors_ATA_PIO(lba, 1, rawArr32);

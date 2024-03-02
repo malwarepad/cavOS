@@ -65,7 +65,7 @@ void sendPacket(NIC *nic, uint8_t *destination_mac, void *data, uint32_t size,
 
 void handlePacket(NIC *nic, void *packet, uint32_t size) {
   netPacketHeader *header = (netPacketHeader *)packet;
-  void            *body = (void *)((uint32_t)packet + sizeof(netPacketHeader));
+  void            *body = (void *)((size_t)packet + sizeof(netPacketHeader));
 
   if (memcmp(header->destination_mac, nic->MAC, 6) != 0 &&
       memcmp(header->destination_mac, macBroadcast, 6) != 0 &&

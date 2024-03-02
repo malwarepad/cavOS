@@ -77,13 +77,13 @@ uint32_t netIPv4FinishFragmentedPkg(NIC *nic, uint8_t *ip, uint16_t id,
 
   IPv4fragmentedPacketRaw *browse = ref->firstPacket;
   while (browse) {
-    memcpy((uint32_t)finalBuffer + (uint32_t)insertStartSize + browse->index,
+    memcpy((size_t)finalBuffer + (size_t)insertStartSize + browse->index,
            browse->buffer, browse->size);
     browse = browse->next;
   }
 
   netIPv4DiscardFragmentedPkg(nic, ip, id);
-  IPv4header *header = (uint32_t)finalBuffer + sizeof(netPacketHeader);
+  IPv4header *header = (size_t)finalBuffer + sizeof(netPacketHeader);
   header->length = switch_endian_16(finalSize); // just in case
 
   *target = finalBuffer;
@@ -119,7 +119,7 @@ bool netIPv4Verify(NIC *nic, IPv4header *header, uint32_t size) {
     // those... We let said requests go through and later check them via the
     // transaction ID
     if (header->protocol == UDP_PROTOCOL &&
-        switch_endian_16(((udpHeader *)((uint32_t)header + sizeof(IPv4header)))
+        switch_endian_16(((udpHeader *)((size_t)header + sizeof(IPv4header)))
                              ->destination_port) == 68)
       return true;
 
@@ -133,7 +133,7 @@ bool netIPv4Verify(NIC *nic, IPv4header *header, uint32_t size) {
 }
 
 void netIPv4Receive(NIC *nic, void *body, uint32_t size) {
-  IPv4header *header = (uint32_t)body + sizeof(netPacketHeader);
+  IPv4header *header = (size_t)body + sizeof(netPacketHeader);
   if (!netIPv4Verify(nic, header, size))
     return;
 
@@ -209,7 +209,7 @@ void netIPv4Receive(NIC *nic, void *body, uint32_t size) {
     currFragRaw->index = fmOffset;
     currFragRaw->size = ipBodySize;
     currFragRaw->buffer = malloc(ipBodySize);
-    memcpy(currFragRaw->buffer, (uint32_t)header + sizeof(IPv4header),
+    memcpy(currFragRaw->buffer, (size_t)header + sizeof(IPv4header),
            ipBodySize);
 
     if (currFrag->max) {
@@ -289,7 +289,7 @@ void netIPv4SendInternal(NIC *nic, uint8_t *destination_mac,
   // calculate checksum before request's finalized
   header->checksum = checksum(header, sizeof(IPv4header));
 
-  memcpy((uint32_t) final + sizeof(IPv4header), data, data_size);
+  memcpy((size_t) final + sizeof(IPv4header), data, data_size);
 
   sendPacket(nic, destination_mac, final, finalSize, 0x0800);
 
@@ -371,7 +371,7 @@ void netIPv4Send(NIC *nic, uint8_t *destination_mac, uint8_t *destination_ip,
         continue;
       flags |= (uint16_t)(i * (dataPerEach)) / 8;
       uint8_t *buffer = malloc(bufferSize);
-      memcpy(buffer, (uint32_t)data + i * (dataPerEach), bufferSize);
+      memcpy(buffer, (size_t)data + i * (dataPerEach), bufferSize);
       netIPv4SendInternal(nic, destination_mac, destination_ip, buffer,
                           bufferSize, protocol, flags, id);
       free(buffer);

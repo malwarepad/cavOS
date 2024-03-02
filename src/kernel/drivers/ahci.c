@@ -27,7 +27,7 @@ bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
     return false;
 
   HBA_CMD_HEADER *cmdheader = (HBA_CMD_HEADER *)ahciPtr->clbVirt[portId];
-  cmdheader = (uint32_t)cmdheader + slot * sizeof(HBA_CMD_HEADER);
+  cmdheader = (size_t)cmdheader + slot * sizeof(HBA_CMD_HEADER);
   cmdheader->cfl = sizeof(FIS_REG_H2D) / sizeof(uint32_t); // Command FIS size
   cmdheader->w = 0;                                        // Read from device
   cmdheader->prdtl = (uint16_t)((count - 1) >> 4) + 1;     // PRDT entries count
@@ -40,7 +40,7 @@ bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
   // 8K bytes (16 sectors) per PRDT
   int i = 0;
   for (i = 0; i < cmdheader->prdtl - 1; i++) {
-    cmdtbl->prdt_entry[i].dba = (uint32_t)VirtualToPhysical(buf);
+    cmdtbl->prdt_entry[i].dba = (size_t)VirtualToPhysical(buf);
     cmdtbl->prdt_entry[i].dbc =
         8 * 1024 - 1; // 8K bytes (this value should always be set to 1 less
                       // than the actual value)
@@ -49,7 +49,7 @@ bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
     count -= 16;     // 16 sectors
   }
   // Last entry
-  cmdtbl->prdt_entry[i].dba = (uint32_t)VirtualToPhysical(buf);
+  cmdtbl->prdt_entry[i].dba = (size_t)VirtualToPhysical(buf);
   cmdtbl->prdt_entry[i].dbc = (count << 9) - 1; // 512 bytes per sector
   cmdtbl->prdt_entry[i].i = 1;
 
@@ -137,7 +137,7 @@ void port_rebase(ahci *ahciPtr, HBA_PORT *port, int portno) {
   HBA_CMD_HEADER *cmdheader = (HBA_CMD_HEADER *)clbVirt;
   void           *ctbaVirt = VirtualAllocate(2); // 2 pages = 8192 bytes //!
   ahciPtr->ctbaVirt[portno] = ctbaVirt;
-  uint32_t ctbaPhys = (uint32_t)VirtualToPhysical(ctbaVirt);
+  uint32_t ctbaPhys = (size_t)VirtualToPhysical(ctbaVirt);
   memset(ctbaVirt, 0, 8192);
   for (int i = 0; i < 32; i++) {
     cmdheader[i].prdtl = 8; // 8 prdt entries per command table
@@ -289,7 +289,7 @@ bool initiateAHCI(PCIdevice *device) {
   ahciPtr->mem = mem;
 
   for (int i = 0; i < pages; i++) {
-    VirtualMap((uint32_t)mem + i * PAGE_SIZE, base + i * PAGE_SIZE, 0);
+    VirtualMap((size_t)mem + i * PAGE_SIZE, base + i * PAGE_SIZE, 0);
   }
 
   // do a full HBA reset (as per 10.4.3)

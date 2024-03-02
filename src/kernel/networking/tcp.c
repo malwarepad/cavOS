@@ -84,7 +84,7 @@ tcpPacketHeader *netTcpAddPacket(NIC *nic, tcpConnection *connection,
 
   packet->size = size;
   packet->next = 0;
-  memcpy((uint32_t)packet + sizeof(tcpPacketHeader), base, size);
+  memcpy((size_t)packet + sizeof(tcpPacketHeader), base, size);
   return packet;
 }
 /* End linked-list utilities */
@@ -112,8 +112,8 @@ void netTcpDiscardPacket(tcpConnection *connection, tcpPacketHeader *header) {
 
 void netTcpReceiveInternal(NIC *nic, void *body, uint32_t size) {
   tcpHeader *header =
-      (uint32_t)body + sizeof(netPacketHeader) + sizeof(IPv4header);
-  IPv4header *ipv4 = (uint32_t)body + sizeof(netPacketHeader);
+      (size_t)body + sizeof(netPacketHeader) + sizeof(IPv4header);
+  IPv4header *ipv4 = (size_t)body + sizeof(netPacketHeader);
 
   tcpConnection *browse = nic->firstTcpConnection;
   while (browse) {
@@ -179,7 +179,7 @@ void netTcpSendGeneric(NIC *nic, uint8_t *destination_ip,
   header->checksum = 0;
   header->urgent_ptr = 0;
 
-  memcpy((uint32_t)header + sizeof(tcpHeader), payload, size);
+  memcpy((size_t)header + sizeof(tcpHeader), payload, size);
 
   header->checksum =
       tcpChecksum(body, sizeof(tcpHeader) + size, nic->ip, destination_ip);
@@ -211,7 +211,7 @@ void netTcpAck(NIC *nic, tcpConnection *connection) {
 void netTcpFinishHandshake(NIC *nic, void *request, uint32_t size,
                            tcpConnection *connection) {
   tcpHeader *tcpReq =
-      (uint32_t)request + sizeof(netPacketHeader) + sizeof(IPv4header);
+      (size_t)request + sizeof(netPacketHeader) + sizeof(IPv4header);
 
   connection->client_ack_number = switch_endian_32(tcpReq->sequence_number);
 

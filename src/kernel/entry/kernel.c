@@ -42,8 +42,8 @@ int kmain(unsigned long addr) {
   mbi = (struct multiboot_tag *)(addr + 8);
 
   initiateSerial();
-  debugf("[boot] Multiboot2 reached: mbi_virtaddr{%x} size{%x}\n",
-         (uint32_t)addr, mbi_size);
+  debugf("[boot] Multiboot2 reached: mbi_virtaddr{%x} size{%x}\n", (size_t)addr,
+         mbi_size);
 
   setup_gdt();
   isr_install();
@@ -84,13 +84,13 @@ int kmain(unsigned long addr) {
   MarkRegion(&physical, addr - KERNEL_START, mbi->size,
              true); // don't touch the god damn multiboot info
   debugf("[pmm] Reserved region: base{%x} len{%x}\n", &kernel_start,
-         ((uint32_t)&kernel_end - KERNEL_START) - (uint32_t)&kernel_start);
+         ((size_t)&kernel_end - KERNEL_START) - (size_t)&kernel_start);
   MarkRegion(&physical, &kernel_start,
-             ((uint32_t)&kernel_end - KERNEL_START) - (uint32_t)&kernel_start,
+             ((size_t)&kernel_end - KERNEL_START) - (size_t)&kernel_start,
              true); // not my kernel
   debugf("[pmm] Reserved region: base{%x} len{%x}\n",
-         (uint32_t)&stack_bottom - KERNEL_START, 16384 * 8);
-  MarkRegion(&physical, (uint32_t)&stack_bottom - KERNEL_START, 16384 * 8,
+         (size_t)&stack_bottom - KERNEL_START, 16384 * 8);
+  MarkRegion(&physical, (size_t)&stack_bottom - KERNEL_START, 16384 * 8,
              true); // not my kernel stack man
   initiateVMM();
 
@@ -112,14 +112,14 @@ int kmain(unsigned long addr) {
       uint32_t size_bytes = framebufferWidth * framebufferHeight * 4;
       uint32_t needed_page_count = size_bytes / PAGE_SIZE + 1;
       debugf("[graphics] Memory area required: addr{%x} size{%d}\n",
-             (uint32_t)tagfb->common.framebuffer_addr,
+             (size_t)tagfb->common.framebuffer_addr,
              needed_page_count * PAGE_SIZE);
 
       for (uint32_t i = 0; i < needed_page_count; i++) {
         uint32_t offset = i * PAGE_SIZE;
         // debugf("[graphics] Memory mapped at: %x!\n", KERNEL_GFX + offset);
         VirtualMap(KERNEL_GFX + offset,
-                   ((uint32_t)tagfb->common.framebuffer_addr) + offset, 0);
+                   ((size_t)tagfb->common.framebuffer_addr) + offset, 0);
       }
 
       framebuffer_end = KERNEL_GFX + (needed_page_count + 1) * PAGE_SIZE;

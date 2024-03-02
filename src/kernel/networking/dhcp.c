@@ -66,10 +66,9 @@ void netDHCPapproveOptions(NIC *nic) {
 }
 
 void netDHCPreceive(NIC *nic, void *body, uint32_t size) {
-  udpHeader *udp =
-      (uint32_t)body + sizeof(netPacketHeader) + sizeof(IPv4header);
-  dhcpHeader *dhcp = (uint32_t)udp + sizeof(udpHeader);
-  uint8_t    *dhcpOptions = (uint32_t)dhcp + sizeof(dhcpHeader);
+  udpHeader  *udp = (size_t)body + sizeof(netPacketHeader) + sizeof(IPv4header);
+  dhcpHeader *dhcp = (size_t)udp + sizeof(udpHeader);
+  uint8_t    *dhcpOptions = (size_t)dhcp + sizeof(dhcpHeader);
 
   if (switch_endian_32(dhcp->xid) != nic->dhcpTransactionID)
     return;
@@ -96,7 +95,7 @@ void netDHCPreceive(NIC *nic, void *body, uint32_t size) {
       break;
     }
     if (optionFetch)
-      dhcpOptions = (uint32_t)dhcpOptions + 1 + 1 +
+      dhcpOptions = (size_t)dhcpOptions + 1 + 1 +
                     dhcpOptions[1]; // type(1) + size(1) + rest(?)
   }
 
@@ -106,7 +105,7 @@ void netDHCPreceive(NIC *nic, void *body, uint32_t size) {
 
     // scan n2; scan all fields now, knowing it's a DHCP "OFFER"
     optionFetch = true;
-    dhcpOptions = (uint32_t)dhcp + sizeof(dhcpHeader);
+    dhcpOptions = (size_t)dhcp + sizeof(dhcpHeader);
     while (optionFetch) { // scan n2
       switch (dhcpOptions[0]) {
       case DHCP_OPTION_MESSAGE_TYPE:
@@ -116,13 +115,13 @@ void netDHCPreceive(NIC *nic, void *body, uint32_t size) {
                  dhcpOptions[2], dhcpMessageType);
         break;
       case DHCP_OPTION_ROUTER:
-        memcpy(nic->serverIp, (uint32_t)dhcpOptions + 2, 4);
+        memcpy(nic->serverIp, (size_t)dhcpOptions + 2, 4);
         break;
       case DHCP_OPTION_DNS_SERVER:
-        memcpy(nic->dnsIp, (uint32_t)dhcpOptions + 2, 4);
+        memcpy(nic->dnsIp, (size_t)dhcpOptions + 2, 4);
         break;
       case DHCP_OPTION_SUBNET_MASK:
-        memcpy(nic->subnetMask, (uint32_t)dhcpOptions + 2, 4);
+        memcpy(nic->subnetMask, (size_t)dhcpOptions + 2, 4);
         break;
       case DHCP_OPTION_LEASE_TIME:
         break;
@@ -131,7 +130,7 @@ void netDHCPreceive(NIC *nic, void *body, uint32_t size) {
         break;
       }
       if (optionFetch)
-        dhcpOptions = (uint32_t)dhcpOptions + 1 + 1 +
+        dhcpOptions = (size_t)dhcpOptions + 1 + 1 +
                       dhcpOptions[1]; // type(1) + size(1) + rest(?)
     }
 

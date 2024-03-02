@@ -168,7 +168,7 @@ static int syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
   int cnt = 0;
 
   for (int i = 0; i < ioVcnt; i++) {
-    iovec *curr = (uint32_t)iov + i * sizeof(iovec);
+    iovec *curr = (size_t)iov + i * sizeof(iovec);
 
     // debugf("[syscalls::writev] fd{%d} iov_base{%x} iov_len{%x} iovcnt{%d}\n",
     //        fd, curr->iov_base, curr->iov_len, ioVcnt);

@@ -49,7 +49,7 @@ uint16_t tcpChecksum(void *addr, uint32_t count, uint8_t *source_address,
   fakesumHeader->tcp_length = switch_endian_16(count);
   fakesumHeader->protocol = TCP_PROTOCOL;
 
-  memcpy((uint32_t)fakesumBody + sizeof(TCPchecksumIPv4), addr, count);
+  memcpy((size_t)fakesumBody + sizeof(TCPchecksumIPv4), addr, count);
 
   uint16_t res = checksum(fakesumBody, sizeof(TCPchecksumIPv4) + count);
   free(fakesumBody);

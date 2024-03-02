@@ -18,7 +18,7 @@ bool openDisk(uint32_t disk, uint8_t partition, mbr_partition *out) {
   bool ret = validateMbr(rawArr);
   if (!ret)
     return false;
-  memcpy(out, (void *)((uint32_t)rawArr + mbr_partition_indexes[partition]),
+  memcpy(out, (void *)((size_t)rawArr + mbr_partition_indexes[partition]),
          sizeof(mbr_partition));
   free(rawArr);
   return true;
