@@ -1,6 +1,6 @@
 #include <dhcp.h>
 #include <isr.h>
-#include <liballoc.h>
+#include <malloc.h>
 #include <paging.h>
 #include <pmm.h>
 #include <rtl8169.h>
@@ -93,17 +93,16 @@ void sendRTL8169(NIC *nic, void *packet, uint32_t packetSize) {
                  (packetSize & 0x3FFF);
 
   rtl8169_descriptor *desc =
-      ((rtl8169_descriptor *)((uint32_t)info->TxDescriptors +
+      ((rtl8169_descriptor *)((size_t)info->TxDescriptors +
                               (sizeof(rtl8169_descriptor) * 0)));
 
   uint32_t allocSize = DivRoundUp(packetSize, BLOCK_SIZE);
-  void    *contiguousContainer =
-      VirtualAllocatePhysicallyContiguous(allocSize).virt;
-  void *phsyical = VirtualToPhysical((uint32_t)contiguousContainer);
+  void    *contiguousContainer = VirtualAllocatePhysicallyContiguous(allocSize);
+  size_t   phys = VirtualToPhysical(contiguousContainer);
   memcpy(contiguousContainer, packet, packetSize);
 
-  desc->high_buf = 0; // nah, we're on x86
-  desc->low_buf = (uint32_t)phsyical;
+  desc->low_buf = (uint32_t)(phys & 0xFFFFFFFF);
+  desc->high_buf = (uint32_t)(phys >> 32);
   desc->vlan = 0;
   desc->command = cmd;
 
@@ -151,12 +150,12 @@ bool initiateRTL8169(PCIdevice *device) {
   nic->infoLocation = infoLocation;
 
   infoLocation->iobase = iobase;
-  PhysicallyContiguous rxDesc = VirtualAllocatePhysicallyContiguous(DivRoundUp(
+  void *rxDesc = VirtualAllocatePhysicallyContiguous(DivRoundUp(
       sizeof(rtl8169_descriptor) * RTL8169_RX_DESCRIPTORS, BLOCK_SIZE));
-  infoLocation->RxDescriptors = (rtl8169_descriptor *)rxDesc.virt;
-  PhysicallyContiguous txDesc = VirtualAllocatePhysicallyContiguous(DivRoundUp(
+  infoLocation->RxDescriptors = (rtl8169_descriptor *)rxDesc;
+  void *txDesc = VirtualAllocatePhysicallyContiguous(DivRoundUp(
       sizeof(rtl8169_descriptor) * RTL8169_TX_DESCRIPTORS, BLOCK_SIZE));
-  infoLocation->TxDescriptors = (rtl8169_descriptor *)txDesc.virt;
+  infoLocation->TxDescriptors = (rtl8169_descriptor *)txDesc;
 
   uint32_t command_status = combineWord(device->status, device->command);
   if (!(command_status & (1 << 2))) {
@@ -181,7 +180,7 @@ bool initiateRTL8169(PCIdevice *device) {
 
   for (uint32_t i = 0; i < RTL8169_RX_DESCRIPTORS; i++) {
     uint32_t rx_buffer_len = 1536;
-    uint32_t packet_buffer_address = (uint32_t)malloc(rx_buffer_len);
+    size_t   packet_buffer_address = (size_t)malloc(rx_buffer_len);
     infoLocation->packetBuffers[i] = packet_buffer_address;
     if (i == (RTL8169_RX_DESCRIPTORS - 1)) {
       infoLocation->RxDescriptors[i].command =
@@ -190,9 +189,9 @@ bool initiateRTL8169(PCIdevice *device) {
       infoLocation->RxDescriptors[i].command =
           (RTL8169_OWN | (rx_buffer_len & 0x3FFF));
     }
-    infoLocation->RxDescriptors[i].low_buf =
-        (uint32_t)VirtualToPhysical(packet_buffer_address);
-    infoLocation->RxDescriptors[i].high_buf = 0;
+    size_t phys = VirtualToPhysical(packet_buffer_address);
+    infoLocation->RxDescriptors[i].low_buf = (uint32_t)(phys & 0xFFFFFFFF);
+    infoLocation->RxDescriptors[i].high_buf = (uint32_t)(phys >> 32);
   }
 
 #if DEBUG_RTL8169
@@ -213,10 +212,12 @@ bool initiateRTL8169(PCIdevice *device) {
   printf("[pci::rtl8169] Registering TX & RX descriptors...\n");
 #endif
   outportl(iobase + 0x20,
-           txDesc.phys); /* Tell the NIC where the first Tx descriptor is */
+           VirtualToPhysical(
+               txDesc)); /* Tell the NIC where the first Tx descriptor is */
   outportl(iobase + 0x24, 0);
   outportl(iobase + 0xE4,
-           rxDesc.phys); /* Tell the NIC where the first Rx descriptor is */
+           VirtualToPhysical(
+               rxDesc)); /* Tell the NIC where the first Rx descriptor is */
   outportl(iobase + 0xE8, 0);
   outportw(iobase + 0x3C, 0xC1FF); /* Set all masks open so we get much ints */
   outportb(iobase + 0x37, 0x0C);   /* Enable Rx/Tx in the Command register */

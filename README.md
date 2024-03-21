@@ -2,67 +2,62 @@
 
 ![Preview of the OS](https://raw.malwarepad.com/cavos/images/preview.png)
 
-## Purpose
+## Why make your own OS in [insert year]?
+> **because I can.**
 
-**This is an OS I am making in my free time purely for fun.** I am learning a bunch of things about OS development while writing it. I had no plans to make it a public project, but after a few suggestions I decided to do it. 
+Having a good time is my drive for this project + I learn a lot of cool low level stuff alongside that! 
 
-## Status
+## Kernel status
+The cavOS kernel is a monolithic x86_64 one written in relatively simple C with a few bits of Intel assembly here and there. It uses the Limine bootloader and leverages the FAT32 filesystem for booting. I try to keep the code structure clean and fairly easy to understand, while avoiding too much abstraction.
 
-**For now it has a basic, monolithic kernel and a few drivers built into it**. In addition the whole shell is crammed up inside the kernel creating a very compact operating system. 
-
-**Userspace status:** I'm still trying to figure out what kind of design I will follow. In the meantime, system calls might be unreliable, so I'd suggest not relying on them...
-
-***To conclude everything, it needs a lot of polishing, time, and lines of code to be an OS that you could dual boot with your current installation.*** 
+## Userspace status
+Userspace is sort of broken right now. Kernel tasks (and kernel task scheduling) work fine, however userspace (ring3) is broken, crt0.o is non-existent, there is no stable systemcall interface and no libc... See [The x86_64 \"rewrite\"](#the-x86_64-rewrite) for more details.
 
 ## Goals
 
 Important to mention these goals may never be satisfied, take a very long time to be completed (we're talking years down the road) or may never be done at all. Furthermore, this list won't include every feature implemented or planned and can be changed at any time...
 
-- Architecture: x86 (Intel i386)
+- Life
+  - [x] Lose my sanity
+- Architecture: x86_64 (amd64)
   - [x] Interrupts: ISR, IRQ, GDT
   - [x] Scheduling
   - [x] Multitasking
 - Device drivers
   - [x] AHCI
-  - [x] ATA pio
-  - [x] PCI read
-  - [x] Serial driver
-  - [x] Keyboard
+  - [x] PCI read/write
   - [ ] Mouse
 - Filesystems
-  - [x] Fat32: Read operations
+  - [ ] Code polishing
   - [ ] Fat32: Write operations
-  - [x] Fat32: Full LFN support
 - Networking stack
-  - [x] RTL-8139 driver
-  - [x] RTL-8169 driver
-  - [x] ARP
-  - [x] UDP
-  - [x] IPv4
-  - [x] ICMP
-  - [x] DHCP
+  - [ ] Improve reliability & security
+  - [ ] Sockets
   - [ ] DNS
-  - [x] TCP
   - [ ] HTTP
+  - [ ] TLS
 - Userspace 
-  - [x] Some sort of LibC
   - [x] cavOS Specific Toolchain
-  - [x] Move to ring3
-  - [x] ELF32 parsing
+  - [x] ELF64 parsing
+  - [ ] Port musl (libc)
 - Interfaces
-  - [x] BIOS text
   - [x] Kernel shell
-  - [ ] Userland shell
-  - [ ] Distinct characteristic shell
+  - [ ] Bash port
   - [ ] Vim port
   - [ ] IRC client
 - Graphics
-  - [x] VGA driver (leveraging VESA)
-  - [ ] Full graphical userland switch
+  - [ ] idk (seriously)
+
+## The x86_64 "rewrite"
+Saturday March 2nd of 2024. Through many workarounds, "bad" decisions and an overbearing "just-works" mentality, I had pieced together a purely x86 (32-bit) kernel that could unreliably fuel userspace applications. Still holding onto old code (from back when I barely understood simple concepts, like say paging), outdated libraries and a lot of other stuff. It *sometimes* worked, but I was not satisfied.
+
+5:00PM; That afternoon I decided to start a lengthy process of migrating everything to the x86_64 architecture and ironing out plenty of reliability issues, which made for actual nightmares to debug. I basically reached a certain point to understand that quick & dity solutions only lead to completely avoidable mistakes, which were extremely hard to pinpoint after tremendous amounts of abstractions were added.
+
+As of the current commit, a lot of leftovers from x86 are present. While I migrate/rewrite everything left, this repository might contain a few unneeded stuff. Just know that those are not "unusable", they used to be part of the featureset and worked fine.
 
 ## Compiling
 
-Everything about this can be found over on `docs/install.md`. Go there for more info about building the OS correctly, cleaning unused binaries and other stuff. 
+Everything about this can be found over at [install.md](docs/install.md). Go there for more info about building the OS correctly, cleaning unused binaries and other stuff. 
 
 ## License
 

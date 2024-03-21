@@ -1,4 +1,5 @@
 #include <isr.h>
+#include <malloc.h>
 #include <rtl8139.h>
 #include <system.h>
 
@@ -11,6 +12,10 @@
 // Realtek RTL8139 network card support (10/100Mbit)
 // (as per https://wiki.osdev.org/RTL8139, clones may be different)
 // Copyright (C) 2024 Panagiotis
+
+// TODO! For legacy devices like these (with only 32-bit memory support), make
+// some sort of memory-reservation interface to reserve lower addresses for
+// usage - if (more like when) such a threshold is passed.
 
 // Four TXAD register, you must use a different one to send packet each time(for
 // example, use the first one, second... fourth and back to the first)
@@ -107,16 +112,15 @@ bool initiateRTL8139(PCIdevice *device) {
   }
 
   // Init the receive buffer (8192 + 16 + 1500)
-  PhysicallyContiguous all = VirtualAllocatePhysicallyContiguous(
+  void *virtual = VirtualAllocatePhysicallyContiguous(
       DivRoundUp(8192 + 16 + 1500, BLOCK_SIZE));
-  void *virtual = all.virt;
   memset(virtual, 0, 8192 + 16 + 1500);
-  void *physical = all.phys;
+  void *physical = VirtualToPhysical(virtual);
   outportl(iobase + RTL8139_REG_RBSTART, (uint32_t)physical);
 
   // Save it (physical can be computed if needed)
   infoLocation->rx_buff_virtual = virtual;
-  debugf("[pci::rtl8139] RX buffer allocated: virtual{%x} physical{%x}\n",
+  debugf("[pci::rtl8139] RX buffer allocated: virtual{%lx} physical{%lx}\n",
          virtual, physical);
 
   // Set the TOK and ROK bits high
@@ -166,17 +170,24 @@ void sendRTL8139(NIC *nic, void *packet, uint32_t packetSize) {
   uint16_t           iobase = info->iobase;
 
   void *contiguousContainer =
-      VirtualAllocatePhysicallyContiguous(DivRoundUp(packetSize, BLOCK_SIZE))
-          .virt;
-  void *phsyical = VirtualToPhysical((uint32_t)contiguousContainer);
+      VirtualAllocatePhysicallyContiguous(DivRoundUp(packetSize, BLOCK_SIZE));
+  size_t phys = VirtualToPhysical(contiguousContainer);
+  if (phys > (UINT32_MAX - 0x5000)) {
+    VirtualFree(contiguousContainer, DivRoundUp(packetSize, BLOCK_SIZE));
+    debugf("[pci::rtl8139] FATAL! Ran out of 32-bit addresses!\n");
+    return;
+  }
   memcpy(contiguousContainer, packet, packetSize);
 
-  outportl(iobase + TSAD_array[info->tx_curr], (uint32_t)phsyical);
+  outportl(iobase + TSAD_array[info->tx_curr], (uint32_t)(phys));
   outportl(iobase + TSD_array[info->tx_curr++], packetSize);
   if (info->tx_curr > 3)
     info->tx_curr = 0;
 
-  free(contiguousContainer); // the IRQ hits before this segement is reached
+  VirtualFree(
+      contiguousContainer,
+      DivRoundUp(packetSize,
+                 BLOCK_SIZE)); // the IRQ hits before this segement is reached
 }
 
 void receiveRTL8139(NIC *nic) {

@@ -1,18 +1,19 @@
 #include <bitmap.h>
 #include <elf.h>
 #include <fs_controller.h>
+#include <malloc.h>
 #include <paging.h>
 #include <pmm.h>
 #include <system.h>
 #include <task.h>
 #include <util.h>
 
-// ELF parser
+// ELF (for now only 64) parser
 // Copyright (C) 2024 Panagiotis
 
 #define ELF_DEBUG 0
 
-bool elf_check_file(Elf32_Ehdr *hdr) {
+bool elf_check_file(Elf64_Ehdr *hdr) {
   if (!hdr)
     return false;
   if (hdr->e_ident[EI_MAG0] != ELFMAG0) {
@@ -31,8 +32,8 @@ bool elf_check_file(Elf32_Ehdr *hdr) {
     debugf("[elf] Header EI_MAG3 incorrect.\n");
     return false;
   }
-  if (hdr->e_ident[EI_CLASS] != ELFCLASS32 ||
-      hdr->e_machine != ELF_x86_MACHINE) {
+  if (hdr->e_ident[EI_CLASS] != ELFCLASS64 ||
+      hdr->e_machine != ELF_x86_64_MACHINE) {
     debugf("[elf] Architecture is not supported.\n");
     return false;
   }
@@ -57,7 +58,7 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
   fsKernelClose(dir);
 
   // Cast ELF32 header
-  Elf32_Ehdr *elf_ehdr = (Elf32_Ehdr *)(out);
+  Elf64_Ehdr *elf_ehdr = (Elf64_Ehdr *)(out);
 
   if (!elf_check_file(elf_ehdr)) {
     debugf("[elf] File %s is not a valid cavOS ELF32 executable!\n", filepath);
@@ -66,8 +67,8 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
   }
 
   // Create a new page directory which is later used by the process
-  uint32_t *oldpagedir = GetPageDirectory();
-  uint32_t *pagedir = PageDirectoryAllocate();
+  uint64_t *oldpagedir = GetPageDirectory();
+  uint64_t *pagedir = PageDirectoryAllocate();
   ChangePageDirectory(pagedir);
 
 #if ELF_DEBUG
@@ -89,25 +90,24 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
 
   // Loop through the multiple ELF32 program header tables
   for (int i = 0; i < elf_ehdr->e_phnum; i++) {
-    Elf32_Phdr *elf_phdr = (Elf32_Phdr *)((uint32_t)out + elf_ehdr->e_phoff +
+    Elf64_Phdr *elf_phdr = (Elf64_Phdr *)((size_t)out + elf_ehdr->e_phoff +
                                           i * elf_ehdr->e_phentsize);
     if (elf_phdr->p_type != PT_LOAD)
       continue;
 
     // Map the (current) program page
-    uint32_t pagesRequired = DivRoundUp(elf_phdr->p_memsz, 0x1000);
+    uint64_t pagesRequired = DivRoundUp(elf_phdr->p_memsz, 0x1000);
     for (int j = 0; j < pagesRequired; j++) {
-      uint32_t vaddr = (elf_phdr->p_vaddr & ~0xFFF) + j * 0x1000;
-      uint32_t paddr = BitmapAllocatePageframe(&physical);
-      VirtualMap(vaddr, paddr,
-                 PAGE_FLAG_OWNER | PAGE_FLAG_USER | PAGE_FLAG_WRITE);
+      size_t vaddr = (elf_phdr->p_vaddr & ~0xFFF) + j * 0x1000;
+      size_t paddr = BitmapAllocatePageframe(&physical);
+      VirtualMap(vaddr, paddr, PF_SYSTEM | PF_USER | PF_RW);
     }
 
     // Copy the required info
     memcpy(elf_phdr->p_vaddr, out + elf_phdr->p_offset, elf_phdr->p_filesz);
 
-    uint32_t file_start = (elf_phdr->p_vaddr & ~0xFFF) + elf_phdr->p_filesz;
-    uint32_t file_end = (elf_phdr->p_vaddr & ~0xFFF) + pagesRequired * 0x1000;
+    uint64_t file_start = (elf_phdr->p_vaddr & ~0xFFF) + elf_phdr->p_filesz;
+    uint64_t file_end = (elf_phdr->p_vaddr & ~0xFFF) + pagesRequired * 0x1000;
     memset(file_start, 0, file_end - file_start);
 
 #if ELF_DEBUG
@@ -131,15 +131,15 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
   // Map the user stack (for variables & such)
   for (int i = 0; i < USER_STACK_PAGES; i++) {
     VirtualMap(USER_STACK_BOTTOM - USER_STACK_PAGES * 0x1000 + i * 0x1000,
-               BitmapAllocatePageframe(&physical),
-               PAGE_FLAG_OWNER | PAGE_FLAG_USER | PAGE_FLAG_WRITE);
+               BitmapAllocatePageframe(&physical), PF_SYSTEM | PF_USER | PF_RW);
   }
 
 #if ELF_DEBUG
   debugf("[elf] New pagedir: offset{%x}\n", pagedir);
 #endif
 
-  create_task(id, (uint32_t)elf_ehdr->e_entry, false, pagedir, argc, argv);
+  // todo: userland
+  create_task(id, (uint64_t)elf_ehdr->e_entry, true, pagedir, argc, argv);
 
   // Cleanup...
   free(out);

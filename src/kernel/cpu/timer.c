@@ -1,3 +1,5 @@
+#include <isr.h>
+#include <schedule.h>
 #include <timer.h>
 
 void initiateTimer(uint32_t reload_value) {
@@ -14,9 +16,9 @@ void initiateTimer(uint32_t reload_value) {
   debugf("[timer] Ready to fire: frequency{%dMHz}\n", timerFrequency);
 }
 
-void timerTick() {
+void timerTick(uint64_t rsp) {
   timerTicks++;
-  schedule();
+  schedule(rsp);
 }
 
 void sleep(uint32_t time) {

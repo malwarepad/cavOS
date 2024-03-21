@@ -1,0 +1,14 @@
+/* Accessible with Control + Shift + b (for the default task) */
+
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev",
+      "type": "shell",
+      "command": "make dev",
+      "problemMatcher": [],
+      "group": { "kind": "build", "isDefault": true }
+    }
+  ]
+}

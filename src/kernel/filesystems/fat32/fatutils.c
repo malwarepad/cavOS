@@ -1,6 +1,7 @@
 #include <disk.h>
 #include <fat32.h>
-#include <liballoc.h>
+#include <malloc.h>
+#include <string.h>
 #include <system.h>
 
 // Various utilities for the FAT32's filesystem

@@ -3,6 +3,7 @@
 #ifndef SCHEDULE_H
 #define SCHEDULE_H
 
-void schedule();
+uint64_t rsp_fix(uint64_t rsp);
+void     schedule(uint64_t rsp);
 
 #endif

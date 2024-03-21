@@ -1,5 +1,6 @@
-#include <ata.h>
 #include <fat32.h>
+#include <malloc.h>
+#include <string.h>
 #include <system.h>
 #include <util.h>
 
@@ -34,7 +35,7 @@ bool initiateFat32(MountPoint *mnt) {
 
   // this mistake will be classified as the most MalwarePad thing ever
   // fat = (FAT32 *)rawArr;
-  memcpy(fat, rawArr, SECTOR_SIZE); // first 512 bytes can be copied exactly
+  memcpy(fat, rawArr, sizeof(FAT32)); // first FAT32 bytes can be copied exactly
 
   if (!isFat32(partPtr)) {
     debugf("[fat32] NEVER initialize a drive without checking properly!\n");
@@ -119,13 +120,16 @@ bool findFile(FAT32 *fat, pFAT32_Directory fatdir, uint32_t initialCluster,
   }
 }
 
-uint32_t readFileContents(OpenFile *file, FAT32 *fat, char *out, uint32_t limit,
-                          pFAT32_Directory dir) {
+uint32_t readFileContents(OpenFile *file, FAT32 *fat, char *out,
+                          uint32_t limit) {
 #if FAT32_DBG_PROMPTS
   debugf("[fat32::read] Reading file contents: filesize{%d} cluster{%d}\n",
          dir->filesize,
          ClusterComb(dir->firstClusterHigh, dir->firstClusterLow));
 #endif
+  FAT32_Directory *dir = (FAT32_Directory *)file->dir;
+  // debugf("%lx %lx\n", ((FAT32_Directory *)file->dir)->attributes,
+  //        dir->attributes);
   if (dir->attributes != 0x20) {
     debugf(
         "[fat32::read] Seriously tried to read non-file entry (0x%02X attr)\n",
@@ -232,7 +236,8 @@ bool deleteFile(FAT32 *fat, char *filename) {
   uint8_t *rawArr = (uint8_t *)malloc(fat->sectors_per_cluster * SECTOR_SIZE);
   getDiskBytes(rawArr, fatdir->lba, fat->sectors_per_cluster);
   rawArr[32 * fatdir->currEntry] = FAT_DELETED;
-  write_sectors_ATA_PIO(fatdir->lba, fat->sectors_per_cluster, rawArr);
+  // todo: future
+  // write_sectors_ATA_PIO(fatdir->lba, fat->sectors_per_cluster, rawArr);
 
   // invalidate
   uint32_t currCluster =

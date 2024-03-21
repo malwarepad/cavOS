@@ -1,53 +1,55 @@
 #include "types.h"
 
-typedef uint16_t Elf32_Half;  // Unsigned half int
-typedef uint32_t Elf32_Off;   // Unsigned offset
-typedef uint32_t Elf32_Addr;  // Unsigned address
-typedef uint32_t Elf32_Word;  // Unsigned int
-typedef int32_t  Elf32_Sword; // Signed int
+typedef uint16_t Elf64_Half;   // Unsigned medium integer
+typedef uint64_t Elf64_Off;    // Unsigned file offset
+typedef uint64_t Elf64_Addr;   // Unsigned program address
+typedef uint32_t Elf64_Word;   // Unsigned integer
+typedef int32_t  Elf64_Sword;  // Signed integer
+typedef uint64_t Elf64_Xword;  // Unsigned long integer
+typedef int64_t  Elf64_Sxword; // Signed long integer
 
 #define ELF_NIDENT 16
 
 typedef struct {
-  uint8_t    e_ident[ELF_NIDENT];
-  Elf32_Half e_type;
-  Elf32_Half e_machine;
-  Elf32_Word e_version;
-  Elf32_Addr e_entry;
-  Elf32_Off  e_phoff;
-  Elf32_Off  e_shoff;
-  Elf32_Word e_flags;
-  Elf32_Half e_ehsize;
-  Elf32_Half e_phentsize;
-  Elf32_Half e_phnum;
-  Elf32_Half e_shentsize;
-  Elf32_Half e_shnum;
-  Elf32_Half e_shstrndx;
-} Elf32_Ehdr;
+  unsigned char e_ident[16]; /* ELF identification */
+  Elf64_Half    e_type;      /* Object file type */
+  Elf64_Half    e_machine;   /* Machine type */
+  Elf64_Word    e_version;   /* Object file version */
+  Elf64_Addr    e_entry;     /* Entry point address */
+  Elf64_Off     e_phoff;     /* Program header offset */
+  Elf64_Off     e_shoff;     /* Section header offset */
+  Elf64_Word    e_flags;     /* Processor-specific flags */
+  Elf64_Half    e_ehsize;    /* ELF header size */
+  Elf64_Half    e_phentsize; /* Size of program header entry */
+  Elf64_Half    e_phnum;     /* Number of program header entries */
+  Elf64_Half    e_shentsize; /* Size of section header entry */
+  Elf64_Half    e_shnum;     /* Number of section header entries */
+  Elf64_Half    e_shstrndx;  /* Section name string table index */
+} Elf64_Ehdr;
 
 typedef struct {
-  Elf32_Word p_type;
-  Elf32_Off  p_offset;
-  Elf32_Addr p_vaddr;
-  Elf32_Addr p_paddr;
-  Elf32_Word p_filesz;
-  Elf32_Word p_memsz;
-  Elf32_Word p_flags;
-  Elf32_Word p_align;
-} Elf32_Phdr;
+  Elf64_Word  p_type;   /* Type of segment */
+  Elf64_Word  p_flags;  /* Segment attributes */
+  Elf64_Off   p_offset; /* Offset in file */
+  Elf64_Addr  p_vaddr;  /* Virtual address in memory */
+  Elf64_Addr  p_paddr;  /* Reserved */
+  Elf64_Xword p_filesz; /* Size of segment in file */
+  Elf64_Xword p_memsz;  /* Size of segment in memory */
+  Elf64_Xword p_align;  /* Alignment of segment */
+} Elf64_Phdr;
 
 typedef struct {
-  Elf32_Word sh_name;
-  Elf32_Word sh_type;
-  Elf32_Word sh_flags;
-  Elf32_Addr sh_addr;
-  Elf32_Off  sh_offset;
-  Elf32_Word sh_size;
-  Elf32_Word sh_link;
-  Elf32_Word sh_info;
-  Elf32_Word sh_addralign;
-  Elf32_Word sh_entsize;
-} Elf32_Shdr;
+  Elf64_Word  sh_name;      /* Section name */
+  Elf64_Word  sh_type;      /* Section type */
+  Elf64_Xword sh_flags;     /* Section attributes */
+  Elf64_Addr  sh_addr;      /* Virtual address in memory */
+  Elf64_Off   sh_offset;    /* Offset in file */
+  Elf64_Xword sh_size;      /* Size of section */
+  Elf64_Word  sh_link;      /* Link to other section */
+  Elf64_Word  sh_info;      /* Miscellaneous information */
+  Elf64_Xword sh_addralign; /* Address alignment boundary */
+  Elf64_Xword sh_entsize;   /* Size of entries, if section has table */
+} Elf64_Shdr;
 
 #define PT_NULL 0
 #define PT_LOAD 1
@@ -77,9 +79,13 @@ enum Elf_Ident {
 #define ELFMAG2 'L'  // e_ident[EI_MAG2]
 #define ELFMAG3 'F'  // e_ident[EI_MAG3]
 
-#define ELFDATA2LSB (1)   // Little Endian
+#define ELFDATA2LSB (1) // Little Endian
+
 #define ELFCLASS32 (1)    // 32-bit Architecture
 #define ELF_x86_MACHINE 3 // 32-bit Architecture (later)
+
+#define ELFCLASS64 (2)          // 64-bit Architecture
+#define ELF_x86_64_MACHINE 0x3E // 64-bit Architecture (later)
 
 enum Elf_Type {
   ET_NONE = 0, // Unkown Type
@@ -90,7 +96,7 @@ enum Elf_Type {
 #ifndef ELF_H
 #define ELF_H
 
-bool     elf_check_file(Elf32_Ehdr *hdr);
+bool     elf_check_file(Elf64_Ehdr *hdr);
 int16_t  create_taskid();
 uint32_t elf_execute(char *filepath, uint32_t argc, char **argv);
 

@@ -1,8 +1,8 @@
-#include <ata.h>
 #include <disk.h>
 #include <fat32.h>
 #include <fs_controller.h>
 #include <linked_list.h>
+#include <malloc.h>
 #include <string.h>
 #include <system.h>
 #include <task.h>
@@ -38,15 +38,23 @@ MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
   mount->partition = partition;
   mount->connector = connector;
 
-  if (!openDisk(disk, partition, &mount->mbr)) {
-    fsUnmount(mount);
-    return 0;
-  }
-
   bool ret = false;
-  if (isFat32(&mount->mbr)) {
-    mount->filesystem = FS_FAT32;
-    ret = initiateFat32(mount);
+  switch (connector) {
+  case CONNECTOR_AHCI:
+    if (!openDisk(disk, partition, &mount->mbr)) {
+      fsUnmount(mount);
+      return 0;
+    }
+
+    if (isFat32(&mount->mbr)) {
+      mount->filesystem = FS_FAT32;
+      ret = initiateFat32(mount);
+    }
+    break;
+  case CONNECTOR_DUMMY:
+    mount->filesystem = FS_TEST;
+    ret = 1;
+    break;
   }
 
   if (!ret) {
@@ -57,6 +65,23 @@ MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
   if (!systemDiskInit && strlength(prefix) == 1 && prefix[0] == '/')
     systemDiskInit = true;
   return mount;
+}
+
+MountPoint *fsDetermineMountPoint(char *filename) {
+  MountPoint *largestAddr = 0;
+  uint32_t    largestLen = 0;
+
+  MountPoint *browse = firstMountPoint;
+  while (browse) {
+    if (strlength(browse->prefix) > largestLen &&
+        memcmp(filename, browse->prefix, strlength(browse->prefix)) == 0) {
+      largestAddr = browse;
+      largestLen = strlength(browse->prefix);
+    }
+    browse = browse->next;
+  }
+
+  return largestAddr;
 }
 
 OpenFile *fsKernelRegisterNode() {
@@ -106,6 +131,9 @@ bool fsOpenFsSpecific(char *filename, MountPoint *mnt, OpenFile *target) {
     FAT32_Directory *dir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));
     target->dir = dir;
     res = fatOpenFile(mnt->fsInfo, dir, strippedFilename);
+    break;
+  case FS_TEST:
+    res = 1;
     break;
   }
   return res;
@@ -182,27 +210,13 @@ int fsUserClose(int fd) {
     return -1;
 }
 
-MountPoint *fsDetermineMountPoint(char *filename) {
-  MountPoint *largestAddr = 0;
-  uint32_t    largestLen = 0;
-
-  MountPoint *browse = firstMountPoint;
-  while (browse) {
-    if (strlength(browse->prefix) > largestLen &&
-        memcmp(filename, browse->prefix, strlength(browse->prefix)) == 0) {
-      largestAddr = browse;
-      largestLen = strlength(browse->prefix);
-    }
-    browse = browse->next;
-  }
-
-  return largestAddr;
-}
-
 uint32_t fsGetFilesize(OpenFile *file) {
   switch (file->mountPoint->filesystem) {
   case FS_FAT32:
     return ((FAT32_Directory *)(file->dir))->filesize;
+    break;
+  case FS_TEST:
+    return 4096;
     break;
   }
 
@@ -213,18 +227,23 @@ uint32_t fsRead(OpenFile *file, char *out, uint32_t limit) {
   uint32_t ret = 0;
   switch (file->mountPoint->filesystem) {
   case FS_FAT32:
-    ret =
-        readFileContents(file, file->mountPoint->fsInfo, out, limit, file->dir);
+    ret = readFileContents(file, file->mountPoint->fsInfo, out, limit);
+    break;
+  case FS_TEST:
+    memset(out, 'p', limit);
     break;
   }
   return ret;
 }
 
-void fsReadFullFile(OpenFile *file, char *out) {
+void fsReadFullFile(OpenFile *file, uint8_t *out) {
   switch (file->mountPoint->filesystem) {
   case FS_FAT32:
     uint32_t read = readFileContents(file, file->mountPoint->fsInfo, out,
-                                     fsGetFilesize(file), file->dir);
+                                     fsGetFilesize(file));
+    break;
+  case FS_TEST:
+    fsRead(file, out, fsGetFilesize(file));
     break;
   }
 }

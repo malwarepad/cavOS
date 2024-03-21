@@ -8,8 +8,20 @@ if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
 	exit 1
 fi
 
+SCRIPT=$(realpath "$0")
+SCRIPTPATH=$(dirname "$SCRIPT")
+
+LIMINE_DIR="${SCRIPTPATH}/../src/bootloader/limine/"
+LIMINE_EXEC="${LIMINE_DIR}/limine"
+
+if [ ! -f "${LIMINE_EXEC}" ]; then
+	echo "Please compile the bootloader (limine) first!"
+	exit 1
+fi
+
 dd if=/dev/zero of="${3}" bs=512 count=131072
 parted "${3}" mklabel msdos mkpart primary ext4 2048s 100% set 1 boot on
+"$LIMINE_EXEC" bios-install "${3}"
 
 sudo losetup /dev/loop101 "${3}"
 sudo losetup /dev/loop102 "${3}" -o 1048576
@@ -18,13 +30,10 @@ sudo fatlabel /dev/loop102 CAVOS
 sudo mkdir -p "${2}"
 sudo mount /dev/loop102 "${2}"
 
-sudo mkdir -p "${2}/boot/grub"
-if command -v grub2-install &>/dev/null; then # fedora case
-	sudo grub2-install --target=i386-pc --root-directory="${2}" --no-floppy --modules="normal part_msdos ext2 multiboot" /dev/loop101
-	sudo cp -r ${1}/boot/grub/* "${2}/boot/grub2/"
-else
-	sudo grub-install --target=i386-pc --root-directory="${2}" --no-floppy --modules="normal part_msdos ext2 multiboot" /dev/loop101
-fi
+sudo mkdir -p "${2}/boot/limine/" "${2}/EFI/BOOT"
+sudo cp "$LIMINE_DIR/limine-bios.sys" "${2}/boot/limine/"
+sudo cp "$LIMINE_DIR/BOOTX64.EFI" "${2}/EFI/BOOT"
+sudo cp "$LIMINE_DIR/BOOTIA32.EFI" "${2}/EFI/BOOT"
 
 sudo cp -r ${1}/* "${2}/"
 

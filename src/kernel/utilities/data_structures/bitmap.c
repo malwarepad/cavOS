@@ -1,4 +1,5 @@
 #include <bitmap.h>
+#include <util.h>
 
 // Bitmap-based memory region manager
 // 10000000 -> first block is allocated, other are free :")
@@ -6,33 +7,38 @@
 
 /* Conversion utilities */
 
-void *ToPtr(DS_Bitmap *bitmap, uint32_t block) {
+void *ToPtr(DS_Bitmap *bitmap, size_t block) {
   uint8_t *u8Ptr = (uint8_t *)(bitmap->mem_start + (block * BLOCK_SIZE));
   return (void *)(u8Ptr);
 }
 
-uint32_t ToBlock(DS_Bitmap *bitmap, void *ptr) {
+size_t ToBlock(DS_Bitmap *bitmap, void *ptr) {
   uint8_t *u8Ptr = (uint8_t *)ptr;
-  return (uint32_t)(u8Ptr - bitmap->mem_start) / BLOCK_SIZE;
+  return (size_t)(u8Ptr - bitmap->mem_start) / BLOCK_SIZE;
 }
 
-uint32_t ToBlockRoundUp(DS_Bitmap *bitmap, void *ptr) {
+size_t ToBlockRoundUp(DS_Bitmap *bitmap, void *ptr) {
   uint8_t *u8Ptr = (uint8_t *)ptr;
-  return (uint32_t)DivRoundUp((uint32_t)(u8Ptr - bitmap->mem_start),
-                              BLOCK_SIZE);
+  return (size_t)DivRoundUp((size_t)(u8Ptr - bitmap->mem_start), BLOCK_SIZE);
 }
 
 /* Bitmap data structure essentials */
 
-int BitmapGet(DS_Bitmap *bitmap, uint32_t block) {
-  uint32_t addr = block / BLOCKS_PER_BYTE;
-  uint32_t offset = block % BLOCKS_PER_BYTE;
+size_t BitmapCalculateSize(size_t totalSize) {
+  size_t BitmapSizeInBlocks = DivRoundUp(totalSize, BLOCK_SIZE);
+  size_t BitmapSizeInBytes = DivRoundUp(BitmapSizeInBlocks, 8);
+  return BitmapSizeInBytes;
+}
+
+int BitmapGet(DS_Bitmap *bitmap, size_t block) {
+  size_t addr = block / BLOCKS_PER_BYTE;
+  size_t offset = block % BLOCKS_PER_BYTE;
   return (bitmap->Bitmap[addr] & (1 << offset)) != 0;
 }
 
-void BitmapSet(DS_Bitmap *bitmap, uint32_t block, bool value) {
-  uint32_t addr = block / BLOCKS_PER_BYTE;
-  uint32_t offset = block % BLOCKS_PER_BYTE;
+void BitmapSet(DS_Bitmap *bitmap, size_t block, bool value) {
+  size_t addr = block / BLOCKS_PER_BYTE;
+  size_t offset = block % BLOCKS_PER_BYTE;
   if (value)
     bitmap->Bitmap[addr] |= (1 << offset);
   else
@@ -61,16 +67,16 @@ void BitmapDumpBlocks(DS_Bitmap *bitmap) {
 }
 
 /* Marking large chunks of memory */
-void MarkBlocks(DS_Bitmap *bitmap, uint32_t start, uint32_t size, bool val) {
-  for (uint32_t i = start; i < start + size; i++) {
+void MarkBlocks(DS_Bitmap *bitmap, size_t start, size_t size, bool val) {
+  for (size_t i = start; i < start + size; i++) {
     BitmapSet(bitmap, i, val);
   }
 }
 
-void MarkRegion(DS_Bitmap *bitmap, void *basePtr, uint32_t sizeBytes,
+void MarkRegion(DS_Bitmap *bitmap, void *basePtr, size_t sizeBytes,
                 int isUsed) {
-  uint32_t base;
-  uint32_t size;
+  size_t base;
+  size_t size;
 
   if (isUsed) {
     base = ToBlock(bitmap, basePtr);
@@ -84,11 +90,11 @@ void MarkRegion(DS_Bitmap *bitmap, void *basePtr, uint32_t sizeBytes,
   MarkBlocks(bitmap, base, size, isUsed);
 }
 
-uint32_t FindFreeRegion(DS_Bitmap *bitmap, uint32_t blocks) {
-  uint32_t currentRegionStart = 0;
-  uint32_t currentRegionSize = 0;
+size_t FindFreeRegion(DS_Bitmap *bitmap, size_t blocks) {
+  size_t currentRegionStart = 0;
+  size_t currentRegionSize = 0;
 
-  for (uint32_t i = 0; i < bitmap->BitmapSizeInBlocks; i++) {
+  for (size_t i = 0; i < bitmap->BitmapSizeInBlocks; i++) {
     if (BitmapGet(bitmap, i)) {
       currentRegionSize = 0;
       currentRegionStart = i + 1;
@@ -103,11 +109,11 @@ uint32_t FindFreeRegion(DS_Bitmap *bitmap, uint32_t blocks) {
   return INVALID_BLOCK;
 }
 
-void *BitmapAllocate(DS_Bitmap *bitmap, uint32_t blocks) {
+void *BitmapAllocate(DS_Bitmap *bitmap, size_t blocks) {
   if (blocks == 0)
     return;
 
-  uint32_t pickedRegion = FindFreeRegion(bitmap, blocks);
+  size_t pickedRegion = FindFreeRegion(bitmap, blocks);
   // if (pickedRegion == INVALID_BLOCK) {
   //   printf("no!");
   //   panic();
@@ -117,14 +123,14 @@ void *BitmapAllocate(DS_Bitmap *bitmap, uint32_t blocks) {
   return ToPtr(bitmap, pickedRegion);
 }
 
-void BitmapFree(DS_Bitmap *bitmap, void *base, uint32_t blocks) {
+void BitmapFree(DS_Bitmap *bitmap, void *base, size_t blocks) {
   MarkRegion(bitmap, base, BLOCK_SIZE * blocks, 0);
 }
 
 /* Pageframes (1 block) */
 
-uint32_t BitmapAllocatePageframe(DS_Bitmap *bitmap) {
-  uint32_t pickedRegion = FindFreeRegion(bitmap, 1);
+size_t BitmapAllocatePageframe(DS_Bitmap *bitmap) {
+  size_t pickedRegion = FindFreeRegion(bitmap, 1);
   // if (pickedRegion == INVALID_BLOCK) {
   //   printf("no!");
   //   panic();
@@ -137,6 +143,6 @@ uint32_t BitmapAllocatePageframe(DS_Bitmap *bitmap) {
   return (bitmap->mem_start + (pickedRegion * BLOCK_SIZE));
 }
 
-void BitmapFreePageframe(DS_Bitmap *bitmap, uint32_t addr) {
+void BitmapFreePageframe(DS_Bitmap *bitmap, size_t addr) {
   MarkRegion(bitmap, addr, BLOCK_SIZE * 1, 0);
 }

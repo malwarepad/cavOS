@@ -7,7 +7,6 @@ Compiling an operating system is not an easy task... The build environment I req
 ## Requirements
 - \[*cross compiler*]: The kernel is written in C.
 - nasm: The kernel includes some small assembly files ~~unfortunately~~.
-- grub-install: The kernel depends on multiboot2 and thus requires the GRUB bootloader
 - parted: For creating the boot disk.
 - mkdosfs: For creating the FAT32 filesystem inside that disk.
 - fatlabel: For labeling that disk as CAVOS.
@@ -17,9 +16,9 @@ Most required packages for compiling on specific distros (listed [below](#depend
 ## Dependencies: GNU/Linux
 Compiling cavOS will work on all Linux distributions, but I've only **done testing** with the options that are **bold**, so pick wisely...
 
-- **Ubuntu:** `sudo apt install -y grub-pc nasm dosfstools parted bison flex libgmp3-dev libmpc-dev libmpfr-dev texinfo libisl-dev parted dosfstools build-essential`
-- **Fedora:** `sudo dnf install -y nasm grub2-pc gcc xorriso parted dosfstools make bison flex gmp-devel libmpc-devel mpfr-devel texinfo`
-- **Arch:** `sudo pacman -S --noconfirm nasm grub xorriso gcc parted dosfstools base-devel gmp libmpc mpfr`
+- **Ubuntu:** `sudo apt install -y nasm dosfstools parted bison flex libgmp3-dev libmpc-dev libmpfr-dev texinfo libisl-dev parted dosfstools build-essential`
+- **Fedora:** `sudo dnf install -y nasm gcc xorriso parted dosfstools make bison flex gmp-devel libmpc-devel mpfr-devel texinfo`
+- **Arch:** `sudo pacman -S --noconfirm nasm xorriso gcc parted dosfstools base-devel gmp libmpc mpfr`
 
 If everything else fails, you got [distrobox](https://github.com/89luca89/distrobox).
 
@@ -29,7 +28,7 @@ Windows is objectively a shitshow when doing anything even slightly UNIX-related
 ## Dependencies: macOS
 I have not done any testing inside macOS. When anyone does so, please edit this file accordingly.
 
-I can imagine that the cross compiler would work fine, but installing GRUB by creating loopback devices wouldn't work. **The recommendation of Docker or even virtual machines persists to this OS too.**
+I can imagine that the cross compiler would work fine, but installing Limine by creating loopback devices wouldn't work. **The recommendation of Docker or even virtual machines persists to this OS too.**
 
 ## Get the cross-compiler
 If you got your dependencies sorted out, then this step is relatively simple! Just run `make tools`.
@@ -40,8 +39,8 @@ This is an operating system, meaning that it has to be burnt into some sort of m
 > **Warning!** In case you want to try cavOS on real hardware, while nobody is liable for any damage it might cause, many features might not be available due to a lack of drivers!
 
 For building there are two options (although the second is mostly geared towards developers/tinkerers):
-- **Build disk.img, a fully featured pack of cavOS that includes GRUB, the kernel and any software: `make disk`.**
-- Build only the kernel.bin file, cavOS' multiboot2 compliant kernel: `make kernel`.
+- **Build disk.img, a fully featured pack of cavOS that includes Limine, the kernel and any software: `make disk`.**
+- Build only the kernel.bin file, cavOS kernel: `make kernel`.
 
 ## Testing
 - **QEMU:** `make qemu` will launch QEMU with the recommended options on the `disk.img` disk image.

@@ -3,8 +3,8 @@
 #ifndef GDT_H
 #define GDT_H
 
-typedef struct {
-  uint16_t limit_low;
+typedef struct GDTEntry {
+  uint16_t limit;
   uint16_t base_low;
   uint8_t  base_mid;
   uint8_t  access;
@@ -12,44 +12,56 @@ typedef struct {
   uint8_t  base_high;
 } __attribute__((packed)) GDTEntry;
 
-typedef struct {
+typedef struct GDTPointer {
   uint16_t limit;
   uint32_t base;
 } __attribute__((packed)) GDTPointer;
 
-typedef struct {
-  uint16_t previous_task, __previous_task_unused;
-  uint32_t esp0;
-  uint16_t ss0, __ss0_unused;
-  uint32_t esp1;
-  uint16_t ss1, __ss1_unused;
-  uint32_t esp2;
-  uint16_t ss2, __ss2_unused;
-  uint32_t cr3;
-  uint32_t eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi;
-  uint16_t es, __es_unused;
-  uint16_t cs, __cs_unused;
-  uint16_t ss, __ss_unused;
-  uint16_t ds, __ds_unused;
-  uint16_t fs, __fs_unused;
-  uint16_t gs, __gs_unused;
-  uint16_t ldt_selector, __ldt_sel_unused;
-  uint16_t debug_flag, io_map;
-} __attribute__((packed)) TSS;
+typedef struct TSSEntry {
+  uint16_t length;
+  uint16_t base_low;
+  uint8_t  base_mid;
+  uint8_t  flags1;
+  uint8_t  flags2;
+  uint8_t  base_high;
+  uint32_t base_upper32;
+  uint32_t reserved;
+} __attribute__((packed)) TSSEntry;
 
-#define NUM_GDT_ENTRIES 6
-#define GDT_KERNEL_CODE 0x08
-#define GDT_KERNEL_DATA 0x10
-#define GDT_USER_CODE 0x18
-#define GDT_USER_DATA 0x20
-#define GDT_TSS 0x28
+typedef struct TSSPtr {
+  uint32_t unused0;
+  uint64_t rsp0;
+  uint64_t rsp1;
+  uint64_t rsp2;
+  uint64_t unused1;
+  uint64_t ist1;
+  uint64_t ist2;
+  uint64_t ist3;
+  uint64_t ist4;
+  uint64_t ist5;
+  uint64_t ist6;
+  uint64_t ist7;
+  uint64_t unused2;
+  uint32_t iopb;
+} __attribute__((packed)) TSSPtr;
 
-void setup_gdt();
-void set_gdt_entry(uint32_t num, uint32_t base, uint32_t limit, uint8_t access,
-                   uint8_t flags);
+typedef struct GDTEntries {
+  GDTEntry descriptors[11];
+  TSSEntry tss;
+} __attribute__((packed)) GDTEntries;
 
-void asm_flush_gdt(uint32_t addr);
-void asm_flush_tss();
-void update_tss_esp0(uint32_t esp0);
+typedef struct GDTPtr {
+  uint16_t limit;
+  uint64_t base;
+} __attribute__((packed)) GDTPtr;
+
+#define NUM_GDT_ENTRIES 7
+#define GDT_KERNEL_CODE 40
+#define GDT_KERNEL_DATA 48
+#define GDT_USER_CODE 72
+#define GDT_USER_DATA 80
+#define GDT_TSS 80
+
+void initiateGDT();
 
 #endif

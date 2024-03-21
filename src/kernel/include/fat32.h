@@ -97,8 +97,8 @@ bool     isFat32(mbr_partition *mbr);
 bool     initiateFat32(MountPoint *mnt);
 void     finaliseFat32(MountPoint *mnt);
 bool     fatOpenFile(FAT32 *fat, pFAT32_Directory dir, char *filename);
-uint32_t readFileContents(OpenFile *file, FAT32 *fat, char *out, uint32_t limit,
-                          pFAT32_Directory dir);
+uint32_t readFileContents(OpenFile *file, FAT32 *fat, char *out,
+                          uint32_t limit);
 bool     deleteFile(FAT32 *fat, char *filename);
 bool     fat32Seek(OpenFile *fd, uint32_t pos);
 

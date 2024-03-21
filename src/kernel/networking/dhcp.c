@@ -1,7 +1,7 @@
 #include <arp.h>
 #include <checksum.h>
 #include <dhcp.h>
-#include <liballoc.h>
+#include <malloc.h>
 #include <system.h>
 #include <udp.h>
 #include <util.h>

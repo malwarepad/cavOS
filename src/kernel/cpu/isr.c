@@ -1,3 +1,4 @@
+#include <idt.h>
 #include <isr.h>
 #include <kb.h>
 #include <linked_list.h>
@@ -7,6 +8,7 @@
 #include <syscalls.h>
 #include <system.h>
 #include <task.h>
+#include <timer.h>
 
 // ISR Entry configurator
 // Copyright (C) 2024 Panagiotis
@@ -73,21 +75,21 @@ struct irqHandler {
 };
 irqHandler *firstIrqHandler = 0;
 
-void isr_install() {
+void initiateISR() {
   // IRQs 0 - 15 -> 32 - 48
   remap_pic();
 
   // ISR exceptions 0 - 31
   for (int i = 0; i < 48; i++) {
-    set_idt_gate(i, asm_isr_redirect_table[i], 0x8E);
+    set_idt_gate(i, (uint64_t)asm_isr_redirect_table[i], 0x8E);
   }
 
   // Syscalls having DPL 3
-  set_idt_gate(0x80, isr128, 0xEE);
+  set_idt_gate(0x80, (uint64_t)isr128, 0xEE);
 
   // Finalize
   set_idt();
-  asm("sti");
+  asm volatile("sti");
 }
 
 void registerIRQhandler(uint8_t id, void *handler) {
@@ -106,15 +108,17 @@ void handleTaskFault(AsmPassedInterrupt *regs) {
   kill_task(currentTask->id);
 }
 
-void handle_interrupt(AsmPassedInterrupt regs) {
-  if (regs.interrupt >= 32 && regs.interrupt <= 47) { // IRQ
-    if (regs.interrupt >= 40) {
+// pass stack ptr
+void handle_interrupt(uint64_t rsp) {
+  AsmPassedInterrupt *cpu = (AsmPassedInterrupt *)rsp;
+  if (cpu->interrupt >= 32 && cpu->interrupt <= 47) { // IRQ
+    if (cpu->interrupt >= 40) {
       outportb(0xA0, 0x20);
     }
     outportb(0x20, 0x20);
-    switch (regs.interrupt) {
+    switch (cpu->interrupt) {
     case 32 + 0: // irq0
-      timerTick();
+      timerTick(cpu);
       break;
 
     case 32 + 1: // irq1
@@ -124,36 +128,36 @@ void handle_interrupt(AsmPassedInterrupt regs) {
     default: // execute other handlers
       irqHandler *browse = firstIrqHandler;
       while (browse) {
-        if (browse->id == (regs.interrupt - 32)) {
+        if (browse->id == (cpu->interrupt - 32)) {
           FunctionPtr handler = browse->handler;
-          handler(&regs);
+          handler(&cpu);
         }
         browse = browse->next;
       }
       break;
     }
-  } else if (regs.interrupt >= 0 && regs.interrupt <= 31) { // ISR
+  } else if (cpu->interrupt >= 0 && cpu->interrupt <= 31) { // ISR
     if (systemCallOnProgress)
       debugf("[isr] Happened from system call!\n");
 
-    if (!systemCallOnProgress && currentTask->id != KERNEL_TASK &&
-        !currentTask->kernel_task) {
-      handleTaskFault(&regs);
+    if (!systemCallOnProgress && tasksInitiated &&
+        currentTask->id != KERNEL_TASK && !currentTask->kernel_task) {
+      handleTaskFault(&cpu);
       return;
     }
 
-    if (regs.interrupt == 14) {
-      unsigned int err_pos;
-      asm volatile("mov %%cr2, %0" : "=r"(err_pos));
-      debugf("[isr] Page fault occured at: %x\n", err_pos);
+    if (cpu->interrupt == 14) {
+      uint64_t err_pos;
+      asm volatile("movq %%cr2, %0" : "=r"(err_pos));
+      debugf("[isr] Page fault occured at: %lx\n", err_pos);
     }
-    debugf(format, exceptions[regs.interrupt]);
+    debugf(format, exceptions[cpu->interrupt]);
     // if (framebuffer == KERNEL_GFX)
-    //   printf(format, exceptions[regs.interrupt]);
+    //   printf(format, exceptions[cpu->interrupt]);
     panic();
-  } else if (regs.interrupt == 0x80) {
+  } else if (cpu->interrupt == 0x80) {
     systemCallOnProgress = true;
-    syscallHandler(&regs);
+    syscallHandler(cpu);
     systemCallOnProgress = false;
   }
 }

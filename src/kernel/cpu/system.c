@@ -1,4 +1,3 @@
-#include <backupconsole.h>
 #include <console.h>
 #include <system.h>
 
@@ -35,10 +34,24 @@ void outportl(uint16_t portid, uint32_t value) {
   __asm__ __volatile__("outl %%eax, %%dx" : : "d"(portid), "a"(value));
 }
 
+uint64_t rdmsr(uint32_t msrid) {
+  uint32_t low;
+  uint32_t high;
+  __asm__ __volatile__("rdmsr" : "=a"(low), "=d"(high) : "c"(msrid));
+  return (uint64_t)low << 0 | (uint64_t)high << 32;
+}
+
+uint64_t wrmsr(uint32_t msrid, uint64_t value) {
+  uint32_t low = value >> 0 & 0xFFFFFFFF;
+  uint32_t high = value >> 32 & 0xFFFFFFFF;
+  __asm__ __volatile__("wrmsr" : : "a"(low), "d"(high), "c"(msrid) : "memory");
+  return value;
+}
+
 void panic() {
   debugf("[kernel] Kernel panic triggered!\n");
-  asm("cli");
-  asm("hlt");
+  asm volatile("cli");
+  asm volatile("hlt");
 }
 
 bool checkInterrupts() {
@@ -51,24 +64,15 @@ bool interruptStatus = true;
 
 void lockInterrupts() {
   interruptStatus = checkInterrupts();
-  asm("cli");
+  asm volatile("cli");
 }
 
 void releaseInterrupts() {
   if (interruptStatus)
-    asm("sti");
+    asm volatile("sti");
   else
     interruptStatus = !interruptStatus;
 }
-
-void printfch(int character) {
-  if (systemDiskInit == 1)
-    drawCharacter(character);
-  else
-    preFSconsole(character);
-}
-
-void putchar_(char c) { printfch(c); }
 
 // Endianness
 uint16_t switch_endian_16(uint16_t val) { return (val << 8) | (val >> 8); }

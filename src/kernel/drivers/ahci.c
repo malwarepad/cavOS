@@ -1,6 +1,7 @@
 #include <ahci.h>
 #include <isr.h>
 #include <linked_list.h>
+#include <malloc.h>
 #include <paging.h>
 #include <pmm.h>
 #include <timer.h>
@@ -15,6 +16,47 @@ bool isAHCIcontroller(PCIdevice *device) {
   return (device->vendor_id == 0x15ad && device->device_id == 0x07e0) ||
          (device->vendor_id == 0x8086 && device->device_id == 0x2829) ||
          (device->vendor_id == 0x8086 && device->device_id == 0x2922);
+}
+
+// Start command engine
+void start_cmd(HBA_PORT *port) {
+  // Wait until CR (bit15) is cleared
+  while (port->cmd & HBA_PxCMD_CR)
+    ;
+
+  // Set FRE (bit4) and ST (bit0)
+  port->cmd |= HBA_PxCMD_FRE;
+  port->cmd |= HBA_PxCMD_ST;
+}
+
+// Stop command engine
+void stop_cmd(HBA_PORT *port) {
+  // Clear ST (bit0)
+  port->cmd &= ~HBA_PxCMD_ST;
+
+  // Clear FRE (bit4)
+  port->cmd &= ~HBA_PxCMD_FRE;
+
+  // Wait until FR (bit14), CR (bit15) are cleared
+  while (1) {
+    if (port->cmd & HBA_PxCMD_FR)
+      continue;
+    if (port->cmd & HBA_PxCMD_CR)
+      continue;
+    break;
+  }
+}
+
+int find_cmdslot(HBA_PORT *port) {
+  // If not set in SACT and CI, the slot is free
+  uint32_t slots = (port->sact | port->ci);
+  for (int i = 0; i < 1; i++) { // todo: we got more than one lol
+    if ((slots & 1) == 0)
+      return i;
+    slots >>= 1;
+  }
+  printf("Cannot find free command list entry\n");
+  return -1;
 }
 
 bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
@@ -38,9 +80,11 @@ bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
          sizeof(HBA_CMD_TBL) + (cmdheader->prdtl - 1) * sizeof(HBA_PRDT_ENTRY));
 
   // 8K bytes (16 sectors) per PRDT
-  int i = 0;
+  int    i = 0;
+  size_t targPhys = VirtualToPhysical(buf);
   for (i = 0; i < cmdheader->prdtl - 1; i++) {
-    cmdtbl->prdt_entry[i].dba = (size_t)VirtualToPhysical(buf);
+    cmdtbl->prdt_entry[i].dba = (uint32_t)(targPhys & 0xFFFFFFFF);
+    cmdtbl->prdt_entry[i].dbau = (uint32_t)(targPhys >> 32);
     cmdtbl->prdt_entry[i].dbc =
         8 * 1024 - 1; // 8K bytes (this value should always be set to 1 less
                       // than the actual value)
@@ -49,7 +93,8 @@ bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
     count -= 16;     // 16 sectors
   }
   // Last entry
-  cmdtbl->prdt_entry[i].dba = (size_t)VirtualToPhysical(buf);
+  cmdtbl->prdt_entry[i].dba = (uint32_t)(targPhys & 0xFFFFFFFF);
+  cmdtbl->prdt_entry[i].dbau = (uint32_t)(targPhys >> 32);
   cmdtbl->prdt_entry[i].dbc = (count << 9) - 1; // 512 bytes per sector
   cmdtbl->prdt_entry[i].i = 1;
 
@@ -121,15 +166,17 @@ void port_rebase(ahci *ahciPtr, HBA_PORT *port, int portno) {
   uint32_t clbPages = DivRoundUp(sizeof(HBA_CMD_HEADER) * 32, BLOCK_SIZE);
   void    *clbVirt = VirtualAllocate(clbPages); //!
   ahciPtr->clbVirt[portno] = clbVirt;
-  port->clb = VirtualToPhysical(clbVirt);
-  port->clbu = 0;
+  size_t clbPhys = VirtualToPhysical(clbVirt);
+  port->clb = (uint32_t)(clbPhys & 0xFFFFFFFF);
+  port->clbu = (uint32_t)(clbPhys >> 32);
   memset(clbVirt, 0, clbPages * BLOCK_SIZE); // could've just done 1024
 
   // FIS offset: 32K+256*portno
   // FIS entry size = 256 bytes per port
   // use a bit of the wasted (256-aligned) space for this
-  port->fb = VirtualToPhysical(clbVirt) + 2048;
-  port->fbu = 0;
+  size_t fbPhys = clbPhys + 2048;
+  port->fb = (uint32_t)(fbPhys & 0xFFFFFFFF);
+  port->fbu = (uint32_t)(fbPhys >> 32);
   // memset((void *)(port->fb), 0, 256); already 0'd
 
   // Command table offset: 40K + 8K*portno
@@ -137,14 +184,15 @@ void port_rebase(ahci *ahciPtr, HBA_PORT *port, int portno) {
   HBA_CMD_HEADER *cmdheader = (HBA_CMD_HEADER *)clbVirt;
   void           *ctbaVirt = VirtualAllocate(2); // 2 pages = 8192 bytes //!
   ahciPtr->ctbaVirt[portno] = ctbaVirt;
-  uint32_t ctbaPhys = (size_t)VirtualToPhysical(ctbaVirt);
+  size_t ctbaPhys = (size_t)VirtualToPhysical(ctbaVirt);
   memset(ctbaVirt, 0, 8192);
   for (int i = 0; i < 32; i++) {
     cmdheader[i].prdtl = 8; // 8 prdt entries per command table
                             // 256 bytes per command table, 64+16+48+16*8
     // Command table offset: 40K + 8K*portno + cmdheader_index*256
-    cmdheader[i].ctba = ctbaPhys + i * 256;
-    cmdheader[i].ctbau = 0;
+    size_t ctbaPhysCurr = ctbaPhys + i * 256;
+    cmdheader[i].ctba = (uint32_t)(ctbaPhysCurr & 0xFFFFFFFF);
+    cmdheader[i].ctbau = (uint32_t)(ctbaPhysCurr >> 32);
     // memset((void *)cmdheader[i].ctba, 0, 256); already 0'd
   }
 
@@ -162,47 +210,6 @@ void port_rebase(ahci *ahciPtr, HBA_PORT *port, int portno) {
   start_cmd(port); // Start command engine
 
   ahciPtr->sata |= (1 << portno);
-}
-
-// Start command engine
-void start_cmd(HBA_PORT *port) {
-  // Wait until CR (bit15) is cleared
-  while (port->cmd & HBA_PxCMD_CR)
-    ;
-
-  // Set FRE (bit4) and ST (bit0)
-  port->cmd |= HBA_PxCMD_FRE;
-  port->cmd |= HBA_PxCMD_ST;
-}
-
-// Stop command engine
-void stop_cmd(HBA_PORT *port) {
-  // Clear ST (bit0)
-  port->cmd &= ~HBA_PxCMD_ST;
-
-  // Clear FRE (bit4)
-  port->cmd &= ~HBA_PxCMD_FRE;
-
-  // Wait until FR (bit14), CR (bit15) are cleared
-  while (1) {
-    if (port->cmd & HBA_PxCMD_FR)
-      continue;
-    if (port->cmd & HBA_PxCMD_CR)
-      continue;
-    break;
-  }
-}
-
-int find_cmdslot(HBA_PORT *port) {
-  // If not set in SACT and CI, the slot is free
-  uint32_t slots = (port->sact | port->ci);
-  for (int i = 0; i < 1; i++) { // todo: we got more than one lol
-    if ((slots & 1) == 0)
-      return i;
-    slots >>= 1;
-  }
-  printf("Cannot find free command list entry\n");
-  return -1;
 }
 
 // Check device type
@@ -289,7 +296,7 @@ bool initiateAHCI(PCIdevice *device) {
   ahciPtr->mem = mem;
 
   for (int i = 0; i < pages; i++) {
-    VirtualMap((size_t)mem + i * PAGE_SIZE, base + i * PAGE_SIZE, 0);
+    VirtualMap((size_t)mem + i * PAGE_SIZE, base + i * PAGE_SIZE, PF_RW);
   }
 
   // do a full HBA reset (as per 10.4.3)

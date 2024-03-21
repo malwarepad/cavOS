@@ -83,7 +83,7 @@ struct NIC {
   NIC_TYPE type;
   uint16_t mtu;
   uint8_t  mintu;
-  uint32_t infoLocation;
+  void    *infoLocation;
   uint8_t  MAC[6];
   uint8_t  ip[4];
   uint8_t  serverIp[4];

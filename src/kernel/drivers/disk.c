@@ -1,6 +1,6 @@
 #include <ahci.h>
-#include <ata.h>
 #include <disk.h>
+#include <malloc.h>
 #include <util.h>
 
 // Multiple disk handler
@@ -31,14 +31,14 @@ bool validateMbr(uint8_t *mbrSector) {
 void getDiskBytes(uint8_t *target_address, uint32_t LBA, uint8_t sector_count) {
   // todo: yeah, this is NOT ideal
 
-  if (!firstAhci || !firstAhci->sata)
-    read_sectors_ATA_PIO(target_address, LBA, sector_count);
-  else {
-    int pos = 0;
-    while (!(firstAhci->sata & (1 << pos)))
-      pos++;
-
-    ahciRead(firstAhci, 0, &firstAhci->mem->ports[0], LBA, 0, sector_count,
-             target_address);
+  if (!firstAhci || !firstAhci->sata) {
+    memset(target_address, 0, sector_count * SECTOR_SIZE);
+    return;
   }
+  int pos = 0;
+  while (!(firstAhci->sata & (1 << pos)))
+    pos++;
+
+  ahciRead(firstAhci, pos, &firstAhci->mem->ports[pos], LBA, 0, sector_count,
+           target_address);
 }

@@ -4,8 +4,8 @@
 #ifndef FS_CONTROLLER_H
 #define FS_CONTROLLER_H
 
-typedef enum FS { FS_FAT32 } FS;
-typedef enum CONNECTOR { CONNECTOR_ATAPIO } CONNECTOR;
+typedef enum FS { FS_FAT32, FS_TEST } FS;
+typedef enum CONNECTOR { CONNECTOR_AHCI, CONNECTOR_DUMMY } CONNECTOR;
 
 typedef struct MountPoint MountPoint;
 struct MountPoint {
@@ -29,8 +29,8 @@ struct OpenFile {
 
   int id;
 
-  uint32_t pointer;
-  uint32_t tmp1;
+  size_t pointer;
+  size_t tmp1;
 
   MountPoint *mountPoint;
   void       *dir;
@@ -53,7 +53,7 @@ int fsUserClose(int fd);
 int fsUserSeek(uint32_t fd, int offset, int whence);
 
 uint32_t fsRead(OpenFile *file, char *out, uint32_t limit);
-void     fsReadFullFile(OpenFile *file, char *out);
+void     fsReadFullFile(OpenFile *file, uint8_t *out);
 uint32_t fsGetFilesize(OpenFile *file);
 
 #endif

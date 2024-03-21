@@ -1,6 +1,6 @@
 #include <disk.h>
 #include <fat32.h>
-#include <liballoc.h>
+#include <malloc.h>
 #include <system.h>
 
 // NOTE: This file stands for FAT32's "(F)ile (A)llocation (T)able" and is NOT
@@ -38,6 +38,7 @@ void setFatEntry(FAT32 *fat, uint32_t cluster, uint32_t value) {
   uint32_t *rawArr32 = (uint32_t *)rawArr;
   rawArr32[entryOffset / 4] = value;
 
-  write_sectors_ATA_PIO(lba, 1, rawArr32);
+  // todo: future
+  // write_sectors_ATA_PIO(lba, 1, rawArr32);
   free(rawArr);
 }

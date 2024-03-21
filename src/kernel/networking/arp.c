@@ -1,6 +1,6 @@
 #include <arp.h>
 #include <checksum.h>
-#include <liballoc.h>
+#include <malloc.h>
 #include <ne2k.h>
 #include <system.h>
 #include <timer.h>

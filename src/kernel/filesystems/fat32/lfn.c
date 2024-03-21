@@ -1,6 +1,6 @@
 #include <disk.h>
 #include <fat32.h>
-#include <liballoc.h>
+#include <malloc.h>
 #include <system.h>
 
 // FAT32's "(L)ong (F)ile(N)ame" entry parsing

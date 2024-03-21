@@ -3,44 +3,70 @@
 #ifndef PAGING_H
 #define PAGING_H
 
+// Page [*] flags
+#define PF_PRESENT (1 << 0) // Page is present in the table
+#define PF_RW (1 << 1)      // Read-write
+#define PF_USER (1 << 2)    // User-mode (CPL==3) access allowed
+#define PF_PWT (1 << 3)     // Page write-thru
+#define PF_PCD (1 << 4)     // Cache disable
+#define PF_ACCESS (1 << 5)  // Indicates whether page was accessed
+#define PF_DIRTY (1 << 6)   // Indicates whether 4K page was written
+#define PF_PS (1 << 7)      // Page size (valid for PD and PDPT only)
+#define PF_GLOBAL (1 << 8)  // Indicates the page is globally cached
+#define PF_SYSTEM (1 << 9)  // Page used by the kernel
+
+// Virtual address' bitmasks and shifts
+#define PGSHIFT_PML4E 39
+#define PGSHIFT_PDPTE 30
+#define PGSHIFT_PDE 21
+#define PGSHIFT_PTE 12
+#define PGMASK_ENTRY 0x1ff
+#define PGMASK_OFFSET 0x3ff
+
+// Workaround repeated characters
+#define AMD64_MM_STRIPSX(a) ((uintptr_t)(a) & 0xFFFFFFFFFFFF)
+#define AMD64_MM_ADDRSX(a)                                                     \
+  (((uintptr_t)(a) & (1ULL << 47)) ? (0xFFFFFF0000000000 | ((uintptr_t)(a)))   \
+                                   : ((uintptr_t)(a)))
+
+// Virtual address' macros
+#define PML4E(a) (((a) >> PGSHIFT_PML4E) & PGMASK_ENTRY)
+#define PDPTE(a) (((a) >> PGSHIFT_PDPTE) & PGMASK_ENTRY)
+#define PDE(a) (((a) >> PGSHIFT_PDE) & PGMASK_ENTRY)
+#define PTE(a) (((a) >> PGSHIFT_PTE) & PGMASK_ENTRY)
+
+#define PTE_ADDR_MASK 0x000ffffffffff000
+#define PTE_GET_ADDR(VALUE) ((VALUE) & PTE_ADDR_MASK)
+#define PTE_GET_FLAGS(VALUE) ((VALUE) & ~PTE_ADDR_MASK)
+
+#define PAGE_MASK(x) ((1 << (x)) - 1)
+
+// Sizes & lengths
 #define USER_STACK_PAGES (0x10)
 #define PAGE_SIZE 0x1000
+#define PAGE_SIZE_LARGE 0x200000
+#define PAGE_SIZE_HUGE 0x40000000
 
-#define USER_HEAP_START 0x20000000
-#define USER_STACK_BOTTOM 0xB0000000
-#define USER_SHARED_MEMORY 0xB0000000
-#define KERNEL_START 0xC0000000
-#define KERNEL_GFX 0xC8000000
-#define KERNEL_MALLOC 0xD0000000
-#define KERNEL_SHARED_MEMORY 0xF0000000
-
-#define PAGE_FLAG_PRESENT (1 << 0)
-#define PAGE_FLAG_WRITE (1 << 1)
-#define PAGE_FLAG_USER (1 << 2)
-#define PAGE_FLAG_4MB (1 << 7)
-#define PAGE_FLAG_OWNER (1 << 9) // we are in charge of the physical page
+// Processes' heap & stack locations
+#define USER_HEAP_START 0x600000000000
+#define USER_STACK_BOTTOM 0x800000000000
 
 #define P_PHYS_ADDR(x) ((x) & ~0xFFF)
 
-// these are virtual addresses
-#define REC_PAGEDIR ((uint32_t *)0xFFFFF000)
-#define REC_PAGETABLE(i) ((uint32_t *)(0xFFC00000 + ((i) << 12)))
-
-extern uint32_t initial_page_dir[1024];
-extern int      mem_num_vpages;
+extern uint64_t *globalPagedir;
 
 void initiatePaging();
 
-void     VirtualMap(uint32_t virt_addr, uint32_t phys_addr, uint32_t flags);
-uint32_t VirtualUnmap(uint32_t virt_addr);
+void VirtualMap(uint64_t virt_addr, uint64_t phys_addr, uint64_t flags);
+// uint32_t VirtualUnmap(uint32_t virt_addr);
+void *VirtualToPhysical(size_t virt_addr);
 
-void *VirtualToPhysical(uint32_t virt_addr);
+uint64_t *GetPageDirectory();
+void      ChangePageDirectory(uint64_t *pd);
 
-uint32_t *GetPageDirectory();
-void      ChangePageDirectory(uint32_t *pd);
-void      SyncPageDirectory();
+uint64_t *PageDirectoryAllocate();
+void      PageDirectoryFree(uint64_t *page_dir);
 
-uint32_t *PageDirectoryAllocate();
-void      PageDirectoryFree(uint32_t *page_dir);
+void invalidate(uint64_t vaddr);
 
 #endif

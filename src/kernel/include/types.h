@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #ifndef TYPES_H
@@ -9,6 +10,8 @@
 
 #define PRINTF_ALIAS_STANDARD_FUNCTION_NAMES_SOFT 1
 #define PRINTF_ALIAS_STANDARD_FUNCTION_NAMES 1
+#include "limine.h"
+#include "pmm.h"
 #include "printf.h"
 #include "serial.h"
 

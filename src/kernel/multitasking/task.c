@@ -1,7 +1,8 @@
 #include <gdt.h>
 #include <isr.h>
-#include <liballoc.h>
+#include <malloc.h>
 #include <paging.h>
+#include <pmm.h>
 #include <schedule.h>
 #include <string.h>
 #include <system.h>
@@ -11,54 +12,11 @@
 // Task manager allowing for task management
 // Copyright (C) 2024 Panagiotis
 
-void create_task(uint32_t id, uint32_t eip, bool kernel_task, uint32_t *pagedir,
+// todo: move stack creation to this file, or have some way of controlling it
+// for strictly kernel-only tasks, where ELF execution is not used!
+void create_task(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
                  uint32_t argc, char **argv) {
   lockInterrupts();
-
-  // when a task gets context switched to for the first time,
-  // switch_context is going to start popping values from the stack into
-  // registers, so we need to set up a predictable stack frame for that
-
-  uint32_t kernel_stack = (uint32_t)malloc(0x1000 - 16) + 0x1000 - 16;
-  uint8_t *kesp = (uint8_t *)kernel_stack;
-
-  kesp -= sizeof(AsmPassedInterrupt);
-  AsmPassedInterrupt *trap = (AsmPassedInterrupt *)kesp;
-  memset((uint8_t *)trap, 0, sizeof(AsmPassedInterrupt));
-
-  uint32_t code_selector =
-      kernel_task ? GDT_KERNEL_CODE : (GDT_USER_CODE | RPL_USER);
-  uint32_t data_selector =
-      kernel_task ? GDT_KERNEL_DATA : (GDT_USER_DATA | RPL_USER);
-
-  trap->cs = code_selector;
-  trap->ds = data_selector;
-  trap->es = data_selector;
-  trap->fs = data_selector;
-  trap->gs = data_selector;
-  // for (int i = 0; i < USER_STACK_PAGES; i++) {
-  //   VirtualMap(USER_STACK_BOTTOM - USER_STACK_PAGES * 0x1000 + i * 0x1000,
-  //              BitmapAllocatePageframe(),
-  //              PAGE_FLAG_OWNER | PAGE_FLAG_USER | PAGE_FLAG_WRITE);
-  // }
-
-  trap->usermode_ss = data_selector;
-  trap->usermode_esp = USER_STACK_BOTTOM;
-
-  trap->eflags = 0x200; // enable interrupts
-  trap->eip = eip;
-
-  kesp -= sizeof(TaskReturnContext);
-  TaskReturnContext *context = (TaskReturnContext *)kesp;
-  context->edi = 0;
-  context->esi = 0;
-  context->ebx = 0;
-  context->ebp = 0;
-
-  // this location gets read when returning from switch_context on a newly
-  // created task, instead of going back through a bunch of functions we just
-  // jump directly to isr_exit and exit the interrupt
-  context->return_eip = (uint32_t)asm_isr_exit;
 
   Task *browse = firstTask;
   while (browse) {
@@ -74,8 +32,42 @@ void create_task(uint32_t id, uint32_t eip, bool kernel_task, uint32_t *pagedir,
   memset(target, 0, sizeof(Task));
   browse->next = target;
 
-  target->kesp_bottom = kernel_stack;
-  target->kesp = (uint32_t)kesp;
+  uint64_t code_selector =
+      kernel_task ? GDT_KERNEL_CODE : (GDT_USER_CODE | DPL_USER);
+  uint64_t data_selector =
+      kernel_task ? GDT_KERNEL_DATA : (GDT_USER_DATA | DPL_USER);
+
+  // target->registers.cs = code_selector;
+  target->registers.ds = data_selector;
+  // target->registers.es = data_selector;
+  // target->registers.fs = data_selector;
+  // target->registers.gs = data_selector;
+
+  // for (int i = 0; i < USER_STACK_PAGES; i++) {
+  //   VirtualMap(USER_STACK_BOTTOM - USER_STACK_PAGES * 0x1000 + i * 0x1000,
+  //              BitmapAllocatePageframe(),
+  //              PF_SYSTEM | PF_USER | PF_RW);
+  // }
+
+  target->registers.cs = code_selector;
+  target->registers.usermode_ss = data_selector;
+  target->registers.usermode_rsp = USER_STACK_BOTTOM; // USER_STACK_BOTTOM
+
+  target->registers.rflags = 0x200; // enable interrupts
+  target->registers.rip = rip;
+
+  // kesp -= sizeof(TaskReturnContext);
+  // TaskReturnContext *context = (TaskReturnContext *)kesp;
+  // context->edi = 0;
+  // context->esi = 0;
+  // context->ebx = 0;
+  // context->ebp = 0;
+
+  // this location gets read when returning from switch_context on a newly
+  // created task, instead of going back through a bunch of functions we just
+  // jump directly to isr_exit and exit the interrupt
+  // context->return_eip = (uint64_t)asm_isr_exit;
+
   target->id = id;
   target->kernel_task = kernel_task;
   target->state = TASK_STATE_READY;
@@ -84,7 +76,8 @@ void create_task(uint32_t id, uint32_t eip, bool kernel_task, uint32_t *pagedir,
   target->heap_start = USER_HEAP_START;
   target->heap_end = USER_HEAP_START;
 
-  if (!kernel_task) {
+  // todo (when userspace tasks are ready)
+  /*if (!kernel_task) {
     // yeah, we will need to construct a stackframe...
     void *oldPagedir = GetPageDirectory();
     ChangePageDirectory(target->pagedir);
@@ -100,7 +93,7 @@ void create_task(uint32_t id, uint32_t eip, bool kernel_task, uint32_t *pagedir,
     for (int i = 0; i < totalSpacePages; i++)
       VirtualMap(USER_STACK_BOTTOM + i * PAGE_SIZE,
                  BitmapAllocatePageframe(&physical),
-                 PAGE_FLAG_WRITE | PAGE_FLAG_USER | PAGE_FLAG_OWNER);
+                 PF_RW | PF_USER | PF_SYSTEM);
 
     uint32_t *argcPtr = USER_STACK_BOTTOM;
     uint32_t *argPtr = USER_STACK_BOTTOM + 4; // skip argc
@@ -116,7 +109,7 @@ void create_task(uint32_t id, uint32_t eip, bool kernel_task, uint32_t *pagedir,
     uint32_t curr = 0;
     for (int i = 0; i < argc; i++) {
       uint32_t len = strlength(argv[i]);
-      uint8_t *ptr = (uint32_t)argcPtr + 4 + (argc * 4) + 10 + curr;
+      uint8_t *ptr = (size_t)argcPtr + 4 + (argc * 4) + 10 + curr;
 
       memcpy(ptr, argv[i], len);
       ptr[len] = '\0'; // null terminator
@@ -126,7 +119,7 @@ void create_task(uint32_t id, uint32_t eip, bool kernel_task, uint32_t *pagedir,
     }
 
     ChangePageDirectory(oldPagedir);
-  }
+  }*/
 
   releaseInterrupts();
 }
@@ -149,8 +142,7 @@ void adjust_user_heap(Task *task, uint32_t new_heap_end) {
       uint32_t phys = BitmapAllocatePageframe(&physical);
       uint32_t virt = old_page_top * PAGE_SIZE + i * PAGE_SIZE;
 
-      VirtualMap(virt, phys,
-                 PAGE_FLAG_WRITE | PAGE_FLAG_USER | PAGE_FLAG_OWNER);
+      VirtualMap(virt, phys, PF_RW | PF_USER | PF_SYSTEM);
 
       memset((void *)virt, 0, PAGE_SIZE);
     }
@@ -177,9 +169,6 @@ void kill_task(uint32_t id) {
     return;
 
   browse->next = task->next;
-
-  uint32_t *kernel_stack = (uint32_t *)((task->kesp_bottom) + (0x1000 - 16));
-  free(kernel_stack);
 
   // free user heap
   uint32_t *defaultPagedir = GetPageDirectory();
@@ -216,7 +205,8 @@ void kill_task(uint32_t id) {
     currentTask = dummyTask;
   free(task);
 
-  schedule(); // go to the next task (will re-enable interrupts)
+  // task->state = TASK_STATE_DEAD;
+  releaseInterrupts();
 }
 
 uint8_t *getTaskState(uint32_t id) {
@@ -246,7 +236,8 @@ int16_t create_taskid() {
   Task    *browse = firstTask;
   uint16_t max = 0;
   while (browse) {
-    max = browse->id;
+    if (browse->id > max)
+      max = browse->id;
     browse = browse->next;
   }
 

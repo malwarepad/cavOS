@@ -1,7 +1,7 @@
 all: disk
 
 # https://stackoverflow.com/questions/3931741/why-does-make-think-the-target-is-up-to-date
-.PHONY: disk tools clean qemu qemu_dbg vmware dev kernel newlib renewlib cleannewlib
+.PHONY: disk tools clean qemu qemu_dbg vmware dev kernel newlib renewlib cleannewlib limine
 
 renewlib: cleannewlib newlib
 
@@ -13,10 +13,19 @@ newlib:
 	chmod +x src/libs/newlib/build.sh
 	./src/libs/newlib/build.sh --noreplace
 
+relimine: cleanlimine limine
+	
+cleanlimine:
+	rm -rf src/bootloader/limine
+
+limine:
+	@$(MAKE) -C src/bootloader all
+
 # Primary (disk creation)
-disk: newlib
-	@$(MAKE) -C src/libs/system
-	@$(MAKE) -C src/software/test
+disk: limine
+# @$(MAKE) -C src/libs/system
+# @$(MAKE) -C src/software/test
+	@$(MAKE) -C src/software/badtest
 	@$(MAKE) -C src/kernel disk
 
 # Raw kernel.bin

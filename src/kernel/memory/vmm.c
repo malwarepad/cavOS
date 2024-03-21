@@ -1,3 +1,4 @@
+#include <bootloader.h>
 #include <paging.h>
 #include <pmm.h>
 #include <system.h>
@@ -10,93 +11,57 @@
 
 #define VMM_DEBUG 0
 
+// HHDM might be mapped as a full-GB entry, so we have to be careful!
+#define VMM_POS_ENSURE 0x40000000
+
 void initiateVMM() {
+  size_t targetPosition =
+      DivRoundUp(bootloader.hhdmOffset - bootloader.mmTotal - VMM_POS_ENSURE,
+                 PAGE_SIZE) *
+      PAGE_SIZE;
+
   virtual.ready = false;
-  virtual.mem_start = 0xC0000000;
-  virtual.BitmapSizeInBlocks = DivRoundUp(KERNEL_SPACE, BLOCK_SIZE);
+  virtual.mem_start = targetPosition;
+  virtual.BitmapSizeInBlocks = DivRoundUp(bootloader.mmTotal, BLOCK_SIZE);
   virtual.BitmapSizeInBytes = DivRoundUp(virtual.BitmapSizeInBlocks, 8);
-  uint32_t bitmaploc = 0xC6000000;
-  // sysalloc_base += virtual.BitmapSizeInBytes;
 
-  for (int i = 0; i < DivRoundUp(virtual.BitmapSizeInBytes, BLOCK_SIZE); i++) {
-    uint32_t fr = BitmapAllocatePageframe(&physical);
-    VirtualMap(bitmaploc + i * PAGE_SIZE, fr,
-               0); // 101000 + i * PAGE_SIZE
-    debugf("[vmm] Memory mapping %d/%d: virt{%x} phys{%x}\n", i,
-           DivRoundUp(virtual.BitmapSizeInBytes, BLOCK_SIZE),
-           bitmaploc + i * PAGE_SIZE, fr);
-  }
-
-  virtual.Bitmap = (uint8_t *)bitmaploc;
-
+  uint64_t pagesRequired = DivRoundUp(virtual.BitmapSizeInBytes, BLOCK_SIZE);
+  virtual.Bitmap = (uint8_t *)VirtualAllocate(pagesRequired);
   memset(virtual.Bitmap, 0, virtual.BitmapSizeInBytes);
 
-  MarkRegion(&virtual, virtual.Bitmap, virtual.BitmapSizeInBytes, 1);
-  MarkRegion(&virtual, 0xcfff8000, 0xD0000000 - 0xcfff8000, 1);
-  MarkRegion(&virtual, 0xC0000000, 0x1000000, 1);
-  MarkRegion(&virtual, 0xFFFFF000, 0xFFFFFFFF - 0xFFFFF000, 1);
-  MarkRegion(&virtual, 0xFFC00000, 0xFFFFFFFF - 0xFFC00000, 1);
+  // should NEVER get put inside (since it's on the HHDM region)
+  // MarkRegion(&virtual, virtual.Bitmap, virtual.BitmapSizeInBytes, 1);
+
   virtual.ready = true;
 }
 
 void *VirtualAllocate(int pages) {
-  void *output = BitmapAllocate(&virtual, pages);
-  if (!output) {
-    debugf("[vmm::alloc] Virtual kernel memory ran out!\n");
-    panic();
-  }
-
-  for (int i = 0; i < pages; i++) {
-    uint32_t pageframe = BitmapAllocatePageframe(&physical);
-    if (!pageframe) {
-      debugf("[vmm::alloc] Physical kernel memory ran out!\n");
-      panic();
-    }
-    VirtualMap(output + i * PAGE_SIZE, pageframe, 0);
-  }
-
-  return output;
-}
-
-PhysicallyContiguous VirtualAllocatePhysicallyContiguous(int pages) {
-  PhysicallyContiguous out;
-  void                *virt = BitmapAllocate(&virtual, pages);
-  void                *phys = BitmapAllocate(&physical, pages);
-
-  if (!virt) {
-    debugf("[vmm::allocPC] Virtual kernel memory ran out!\n");
-    panic();
-  }
-
+  size_t phys = BitmapAllocate(&physical, pages);
   if (!phys) {
-    debugf("[vmm::allocPC] Physical kernel memory ran out!\n");
+    debugf("[vmm::alloc] Physical kernel memory ran out!\n");
     panic();
   }
 
-  for (int i = 0; i < pages; i++) {
-    VirtualMap(virt + i * PAGE_SIZE, phys + i * PAGE_SIZE, 0);
-  }
-
+  uint64_t output = phys + bootloader.hhdmOffset;
 #if VMM_DEBUG
-  debugf("[vmm::allocPC] Found region: virt{%x} phys{%x}\n", virt, phys);
+  debugf("[vmm::alloc] Found region: out{%lx} phys{%lx}\n", output, phys);
 #endif
-
-  out.virt = virt;
-  out.phys = phys;
-  return out;
+  return (void *)(output);
 }
 
-int VirtualFree(void *ptr, int pages) {
-  for (int i = 0; i < pages; i++) {
-    uint32_t virtaddr = ptr + (i * PAGE_SIZE);
-    uint32_t physaddr = (uint32_t)VirtualToPhysical(virtaddr);
-#if VMM_DEBUG
-    debugf("[vmm::free] virt{%x} phys{%x}\n", virtaddr, physaddr);
-#endif
-    MarkRegion(&physical, physaddr, 1, 0);
-    VirtualUnmap(virtaddr);
+// it's all contiguous already!
+void *VirtualAllocatePhysicallyContiguous(int pages) {
+  return VirtualAllocate(pages);
+}
+
+bool VirtualFree(void *ptr, int pages) {
+  size_t phys = VirtualToPhysical(ptr);
+  if (!phys) {
+    debugf("[vmm::free] Could not find physical address! virt{%lx}\n", ptr);
+    panic();
   }
-  MarkRegion(&virtual, ptr, pages * PAGE_SIZE, 0);
-  // releaseInterrupts();
-  return 0;
+
+  MarkRegion(&physical, phys, pages * BLOCK_SIZE, 0);
+
+  return 1;
 }

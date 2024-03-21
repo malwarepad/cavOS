@@ -45,43 +45,57 @@ uint32_t kbCurr = 0;
 uint32_t kbMax = 0;
 uint32_t kbTaskId = 0;
 
+uint8_t kbRead() {
+  while (!(inportb(0x64) & 1))
+    ;
+
+  return inportb(0x60);
+}
+
+void kbWrite(uint16_t port, uint8_t value) {
+  while (inportb(0x64) & 2)
+    ;
+
+  outportb(port, value);
+}
+
 char handleKbEvent() {
-  if (inportb(0x64) & 0x1) {
-    uint8_t scanCode = inportb(0x60);
+  // if (inportb(0x64) & 0x1) {
+  uint8_t scanCode = kbRead();
 
-    // Shift checks
-    if (shifted == 1 && scanCode & 0x80) {
-      if ((scanCode & 0x7F) == 42) // & 0x7F clears the release
-      {
-        shifted = 0;
-        return 0;
-      }
-    }
-
-    if (scanCode < sizeof(characterTable) && !(scanCode & 0x80)) {
-      char character = (shifted || capsLocked) ? shiftedCharacterTable[scanCode]
-                                               : characterTable[scanCode];
-
-      if (character != 0) { // Normal char
-        return character;
-      }
-
-      switch (scanCode) {
-      case SCANCODE_ENTER:
-        return CHARACTER_ENTER;
-        break;
-      case SCANCODE_BACK:
-        return CHARACTER_BACK;
-        break;
-      case SCANCODE_SHIFT:
-        shifted = 1;
-        break;
-      case SCANCODE_CAPS:
-        capsLocked = !capsLocked;
-        break;
-      }
+  // Shift checks
+  if (shifted == 1 && scanCode & 0x80) {
+    if ((scanCode & 0x7F) == 42) // & 0x7F clears the release
+    {
+      shifted = 0;
+      return 0;
     }
   }
+
+  if (scanCode < sizeof(characterTable) && !(scanCode & 0x80)) {
+    char character = (shifted || capsLocked) ? shiftedCharacterTable[scanCode]
+                                             : characterTable[scanCode];
+
+    if (character != 0) { // Normal char
+      return character;
+    }
+
+    switch (scanCode) {
+    case SCANCODE_ENTER:
+      return CHARACTER_ENTER;
+      break;
+    case SCANCODE_BACK:
+      return CHARACTER_BACK;
+      break;
+    case SCANCODE_SHIFT:
+      shifted = 1;
+      break;
+    case SCANCODE_CAPS:
+      capsLocked = !capsLocked;
+      break;
+    }
+  }
+  // }
 
   return 0;
 }
@@ -124,7 +138,11 @@ void kbReset() {
   kbTaskId = 0;
 }
 
-void initiateKb() { kbReset(); }
+void initiateKb() {
+  kbReset();
+  kbWrite(0x64, 0xae);
+  inportb(0x60);
+}
 
 void kbFinaliseStream() {
   Task *task = getTask(kbTaskId);
@@ -137,7 +155,7 @@ void kbFinaliseStream() {
 
 void kbIrq() {
   char out = handleKbEvent();
-  if (!kbBuff || !out)
+  if (!kbBuff || !out || !tasksInitiated)
     return;
 
   void *pagedirOld = GetPageDirectory();

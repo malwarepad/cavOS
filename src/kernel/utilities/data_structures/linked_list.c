@@ -1,4 +1,5 @@
 #include <linked_list.h>
+#include <malloc.h>
 #include <util.h>
 
 // Linked Lists (singly, non-circular); basically just allocated structs

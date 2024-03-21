@@ -1,52 +1,86 @@
 ; ISR assembly calls
 ; Copyright (C) 2024 Panagiotis
 
-bits    32
+bits    64
 
 isr_common:
-    ; push registers to match struct AsmPassedInterrupt (little endian)
-    pushad
-    push ds
-    push es
-    push fs
-    push gs
-
-    ; load kernel data segment
-    push ebx
-    mov bx, 0x10
+    mov bx, 0x30
     mov ds, bx
     mov es, bx
     mov fs, bx
     mov gs, bx
-    pop ebx
 
+    push rax
+    push rbx
+    push rcx
+    push rdx
+    push rsi
+    push rdi
+    push rbp
+    push r8
+    push r9
+    push r10
+    push r11
+    push r12
+    push r13
+    push r14
+    push r15
+
+    mov rbp, ds
+    push rbp
+		
+		cld
+
+    ; we need to "fix" (=ensure it's high enough) the RSP so the interrupt handler can do whatever it wants
+    mov rdi, rsp ; 1st arg = RSP
+    extern rsp_fix
+    call rsp_fix
+    mov rsp, rax ; RSP = return value
+
+		mov rdi, rsp
     extern handle_interrupt
     call handle_interrupt
 
 global asm_isr_exit
-asm_isr_exit:           ; used for newly created tasks in order to skip having to build the entire return stack
-    pop gs
-    pop fs
-    pop es
-    pop ds
-    popad
-    add esp, 8      ; pop error code and interrupt number
-    iret            ; pops (CS, EIP, EFLAGS) and also (SS, ESP) if privilege change occurs
+asm_isr_exit:
+    pop rbp
+    mov ds, ebp
+    mov es, ebp
+
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop r11
+    pop r10
+    pop r9
+    pop r8
+    pop rbp
+    pop rdi
+    pop rsi
+    pop rdx
+    pop rcx
+    pop rbx
+    pop rax
+
+    add rsp, 16      ; pop error code and interrupt number
+    iretq            ; pops (CS, EIP, EFLAGS) and also (SS, ESP) if privilege change occurs
 
 ; generate isr stubs that jump to isr_common, in order to get a consistent stack frame
 
 %macro ISR_ERROR_CODE 1
 global isr%1
 isr%1:
-    push dword %1   ; interrupt number
+		; error code is already pushed
+    push %1   ; interrupt number
     jmp isr_common
 %endmacro
 
 %macro ISR_NO_ERROR_CODE 1
 global isr%1
 isr%1:
-    push dword 0    ; dummy error code to align with TrapFrame
-    push dword %1   ; interrupt number
+    push 0    ; dummy error code to align with TrapFrame
+    push %1   ; interrupt number
     jmp isr_common
 %endmacro
 
@@ -106,10 +140,11 @@ ISR_NO_ERROR_CODE 47
 ISR_NO_ERROR_CODE 128
 global isr128
 
+section .data
 global asm_isr_redirect_table
 asm_isr_redirect_table:
 %assign i 0
 %rep 48
-    dd isr%+i
+  dq isr%+i
 %assign i i+1
 %endrep

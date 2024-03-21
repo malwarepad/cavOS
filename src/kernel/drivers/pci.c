@@ -1,4 +1,5 @@
 #include <ahci.h>
+#include <malloc.h>
 #include <nic_controller.h>
 #include <pci.h>
 #include <system.h>

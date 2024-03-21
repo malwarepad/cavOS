@@ -1,272 +1,305 @@
 #include <bitmap.h>
-#include <liballoc.h>
+#include <bootloader.h>
+#include <limine.h>
+#include <malloc.h>
 #include <paging.h>
 #include <pmm.h>
+#include <system.h>
+#include <task.h>
 #include <types.h>
 #include <util.h>
+#include <vmm.h>
 
 // System-wide page table & directory management
 // Copyright (C) 2024 Panagiotis
 
-static void enable_paging();
-static void invalidate(int vaddr);
+// A small note to myself: When mapping or doing other operations, there is a
+// chance that the respective page layer (pml4, pdp, pd, pt, etc) is using
+// full-size entries (by setting the appropriate flag)! Although I dislike using
+// those, I should be keeping this in mind, in case I ever do otherwise. Limine
+// HHDM regions shouldn't cause any issues, since I purposefully avoid mapping
+// or modifying memory mappings close to said regions...
 
-int mem_num_vpages;
+#define PAGING_DEBUG 0
 
-#define NUM_PAGE_DIRS 256
-static uint32_t page_dirs[NUM_PAGE_DIRS][1024] __attribute__((aligned(4096)));
-static uint8_t  page_dir_used[NUM_PAGE_DIRS];
-
-// only needed for max 32 4096-blocks
-uint32_t tmppageframeStart = 0;
-void     registerTmpPageFrame(uint32_t target) { tmppageframeStart = target; }
-uint32_t TempPageFrame() {
-  uint32_t fin = tmppageframeStart;
-  tmppageframeStart += PAGE_SIZE;
-  return fin;
-}
+#define HHDMoffset (bootloader.hhdmOffset)
+uint64_t *globalPagedir = 0;
 
 void initiatePaging() {
-  // unmap the first 4 mb
-  initial_page_dir[0] = 0;
-  invalidate(0);
+  globalPagedir =
+      (size_t *)(BitmapAllocatePageframe(&physical) + bootloader.hhdmOffset);
 
-  // recursive table mapping
-  initial_page_dir[1023] = ((uint32_t)initial_page_dir - 0xC0000000) |
-                           PAGE_FLAG_PRESENT | PAGE_FLAG_WRITE;
-  invalidate(0xFFFFF000);
+  // debugf("phys{%lx} virt{%lx}\n", bootloader.kernelPhysBase,
+  //        bootloader.kernelVirtBase);
+  // debugf("hhdm{%lx}\n", bootloader.hhdmOffset);
 
-  memset(page_dirs, 0, 0x1000 * NUM_PAGE_DIRS);
-  memset(page_dir_used, 0, NUM_PAGE_DIRS);
-}
+  // So, I'll make a memory layout, EXACTLY like my link.ld... (send help)
+  /*uint64_t textLen = (uint64_t)(&kernel_text_end) -
+                     (uint64_t)(&kernel_text_start) + BLOCK_SIZE;
+  VirtualMapRegionByLength(bootloader.kernelVirtBase, bootloader.kernelPhysBase,
+                           textLen, 0);
 
-void ChangePageDirectory(uint32_t *pd) {
-  if (pd > 0xC0000000)
-    ;
-  pd = (uint32_t *)(((uint32_t)pd) - 0xC0000000); // calc the physical address
-  asm volatile("mov %0, %%eax \n"
-               "mov %%eax, %%cr3 \n" ::"m"(pd));
-}
+  uint64_t rodataLen = (uint64_t)(&kernel_rodata_end) -
+                       (uint64_t)(&kernel_rodata_start) + BLOCK_SIZE;
+  VirtualMapRegionByLength(bootloader.kernelVirtBase + textLen,
+                           bootloader.kernelPhysBase + textLen, rodataLen, 0);
+  debugf("aparently!\n");
 
-uint32_t *GetPageDirectory() {
-  uint32_t pd;
-  asm volatile("mov %%cr3, %0" : "=r"(pd));
-  pd += 0xC0000000; // calc the virtual address
-  return (uint32_t *)pd;
-}
+  uint64_t dataLen =
+      ROUND_4KB((uint64_t)(&kernel_data_end) - (uint64_t)(&kernel_data_start));
+  VirtualMapRegionByLength(bootloader.kernelVirtBase + textLen + rodataLen,
+                           bootloader.kernelPhysBase + textLen + rodataLen,
+                           dataLen, PF_RW);*/
 
-void enable_paging() {
-  asm volatile("mov %cr4, %ebx \n"
-               "or $0x10, %ebx \n"
-               "mov %ebx, %cr4 \n"
+  /*VirtualMapRegionByLength(bootloader.kernelVirtBase,
+  bootloader.kernelPhysBase, (uint64_t)(&kernel_end) -
+  (uint64_t)(&kernel_start), PF_RW);
 
-               "mov %cr0, %ebx \n"
-               "or $0x80000000, %ebx \n"
-               "mov %ebx, %cr0 \n");
-}
-
-void invalidate(int vaddr) { asm volatile("invlpg %0" ::"m"(vaddr)); }
-
-// addresses need to be 4096 aligned
-void VirtualMap(uint32_t virt_addr, uint32_t phys_addr, uint32_t flags) {
-  uint32_t *prev_page_dir = 0;
-  if (virt_addr >= 0xC0000000) {
-    // optimization: just copy from current pagedir to all others, including
-    // init_page_dir
-    //              we might just wanna have init_page_dir be page_dirs[0]
-    //              instead then we would have to build it in boot.asm in
-    //              assembly
-
-    // write to initial_page_dir, so that we can sync that across all others
-
-    prev_page_dir = GetPageDirectory();
-
-    if (prev_page_dir != initial_page_dir)
-      ChangePageDirectory(initial_page_dir);
+  size_t bytesNeeded =
+      bootloader.mmTotal > 0x100000000 ? bootloader.mmTotal : 0x100000000;
+  size_t pagesNeeded = DivRoundUp(bytesNeeded, 0x200000);
+  debugf("pages: %d\n", pagesNeeded);
+  for (int i = 0; i < pagesNeeded; i++) {
+    VirtualMap2MB(bootloader.hhdmOffset + i * 0x200000, i * 0x200000, PF_RW);
   }
 
-  // extract indices from the vaddr
-  uint32_t pd_index = virt_addr >> 22;
-  uint32_t pt_index = virt_addr >> 12 & 0x3FF;
-
-  uint32_t *page_dir = REC_PAGEDIR;
-
-  // page tables can only be directly accessed/modified using the recursive
-  // strat? > yes since their physical page is not mapped into memory
-  uint32_t *pt = REC_PAGETABLE(pd_index);
-
-  if (!(page_dir[pd_index] & PAGE_FLAG_PRESENT)) {
-    // allocate a page table
-    uint32_t pt_paddr =
-        physical.ready ? BitmapAllocatePageframe(&physical) : TempPageFrame();
-
-    page_dir[pd_index] = pt_paddr | PAGE_FLAG_PRESENT | PAGE_FLAG_WRITE |
-                         PAGE_FLAG_OWNER | flags;
-    invalidate(virt_addr);
-
-    // we can now access it directly using the recursive strategy
-    for (uint32_t i = 0; i < 1024; i++) {
-      pt[i] = 0;
-    }
+  struct limine_memmap_entry *fbmm = 0;
+  for (int i = 0; i < bootloader.mmEntryCnt; i++) {
+    struct limine_memmap_entry *entry = bootloader.mmEntries[i];
+    if (entry->type == LIMINE_MEMMAP_FRAMEBUFFER)
+      fbmm = entry;
   }
 
-  pt[pt_index] = phys_addr | PAGE_FLAG_PRESENT | flags;
-  mem_num_vpages++;
-  invalidate(virt_addr);
+  if (fbmm) {
+    size_t framebufferPages = DivRoundUp(fbmm->length, PAGE_SIZE_LARGE);
+    for (int i = 0; i < framebufferPages; i++)
+      VirtualMap2MB(framebuffer + i * PAGE_SIZE_LARGE,
+                    fbmm->base + i * PAGE_SIZE_LARGE, PF_RW);
+  }
+  VirtualSeek(DivRoundUp(bootloader.hhdmOffset, 0x40000000) * 0x40000000 +
+              6 * 0x40000000);*/
 
-  if (prev_page_dir != 0) {
-    // ... then sync that across all others
-    SyncPageDirectory();
-    // we changed to init page dir, now we need to change back
-    if (prev_page_dir != initial_page_dir)
-      ChangePageDirectory(prev_page_dir);
+  // sleep(85);
+  // ChangePageDirectory(globalPagedir);
+
+  // I will keep on using limine's for the time being
+  uint64_t targ;
+  asm volatile("movq %%cr3,%0" : "=r"(targ));
+  globalPagedir = targ + bootloader.hhdmOffset;
+  // VirtualSeek(bootloader.hhdmOffset);
+}
+
+void VirtualMapRegionByLength(uint64_t virt_addr, uint64_t phys_addr,
+                              uint64_t length, uint64_t flags) {
+#if ELF_DEBUG
+  debugf("[paging::map::region] virt{%lx} phys{%lx} len{%lx}\n", virt_addr,
+         phys_addr, length);
+#endif
+  uint32_t pagesAmnt = DivRoundUp(length, PAGE_SIZE);
+  for (int i = 0; i < pagesAmnt; i++) {
+    uint64_t xvirt = virt_addr + i * PAGE_SIZE;
+    uint64_t xphys = phys_addr + i * PAGE_SIZE;
+    VirtualMap(xvirt, xphys, flags);
   }
 }
 
-void *VirtualToPhysical(uint32_t virt_addr) {
-  uint32_t pd_index = virt_addr >> 22;
-  uint32_t pt_index = virt_addr >> 12 & 0x3FF;
+void ChangePageDirectory(uint64_t *pd) {
+  uint64_t targ = VirtualToPhysical(pd);
+  if (!targ) {
+    debugf("[paging] Could not change to pd{%lx}!\n", pd);
+    panic();
+  }
+  asm volatile("movq %0, %%cr3" ::"r"(targ));
 
-  uint32_t *pd = REC_PAGEDIR;
-  uint32_t *pt = REC_PAGETABLE(pd_index);
-
-  return (void *)((pt[pt_index] & ~0xFFF) + ((uint32_t)virt_addr & 0xFFF));
+  globalPagedir = pd;
 }
 
-// returns page table entry (physical address and flags)
-uint32_t VirtualUnmap(uint32_t virt_addr) {
-  uint32_t *prev_page_dir = 0;
-  if (virt_addr >= 0xC0000000) {
-    // optimization: just copy from current pagedir to all others, including
-    // init_page_dir
-    //              we might just wanna have init_page_dir be page_dirs[0]
-    //              instead then we would have to build it in boot.asm in
-    //              assembly
+uint64_t *GetPageDirectory() { return (uint64_t *)globalPagedir; }
 
-    // write to initial_page_dir, so that we can sync that across all others
+void invalidate(uint64_t vaddr) { asm volatile("invlpg %0" ::"m"(vaddr)); }
 
-    prev_page_dir = GetPageDirectory();
+size_t VirtAllocPhys() {
+  size_t phys = BitmapAllocatePageframe(&physical);
 
-    if (prev_page_dir != initial_page_dir)
-      ChangePageDirectory(initial_page_dir);
+  void *virt = phys + HHDMoffset;
+  memset(virt, 0, PAGE_SIZE);
+
+  return phys;
+}
+
+void VirtualMap(uint64_t virt_addr, uint64_t phys_addr, uint64_t flags) {
+  if (virt_addr % PAGE_SIZE) {
+    debugf("[paging] Tried to map non-aligned address! virt{%lx} phys{%lx}\n",
+           virt_addr, phys_addr);
+    panic();
   }
+  virt_addr = AMD64_MM_STRIPSX(virt_addr);
 
-  uint32_t pd_index = virt_addr >> 22;
-  uint32_t pt_index = virt_addr >> 12 & 0x3FF;
+  uint32_t pml4_index = PML4E(virt_addr);
+  uint32_t pdp_index = PDPTE(virt_addr);
+  uint32_t pd_index = PDE(virt_addr);
+  uint32_t pt_index = PTE(virt_addr);
 
-  uint32_t *page_dir = REC_PAGEDIR;
-  uint32_t *pt = REC_PAGETABLE(pd_index);
-
-  uint32_t pte = pt[pt_index];
-  pt[pt_index] = 0;
-  mem_num_vpages--;
-
-  bool remove = true;
-  // optimization: keep track of the number of pages present in each page table
-  for (uint32_t i = 0; i < 1024; i++) {
-    if (pt[i] & PAGE_FLAG_PRESENT) {
-      remove = false;
-      break;
-    }
+  if (!(globalPagedir[pml4_index] & PF_PRESENT)) {
+    size_t target = VirtAllocPhys();
+    globalPagedir[pml4_index] = target | PF_PRESENT | PF_RW;
   }
+  size_t *pdp = PTE_GET_ADDR(globalPagedir[pml4_index]) + HHDMoffset;
 
-  if (remove) {
-    // table is empty, destroy its physical frame if we own it.
-    uint32_t pde = page_dir[pd_index];
-    if (pde & PAGE_FLAG_OWNER) {
-      uint32_t pt_paddr = P_PHYS_ADDR(pde);
-      BitmapFreePageframe(&physical, pt_paddr);
-      page_dir[pd_index] = 0;
-    }
+  if (!(pdp[pdp_index] & PF_PRESENT)) {
+    size_t target = VirtAllocPhys();
+    pdp[pdp_index] = target | PF_PRESENT | PF_RW;
   }
+  size_t *pd = PTE_GET_ADDR(pdp[pdp_index]) + HHDMoffset;
+
+  if (!(pd[pd_index] & PF_PRESENT)) {
+    size_t target = VirtAllocPhys();
+    pd[pd_index] = target | PF_PRESENT | PF_RW;
+  }
+  size_t *pt = PTE_GET_ADDR(pd[pd_index]) + HHDMoffset;
+
+  if (pt[pt_index] & PF_PRESENT)
+    debugf("[paging] Overwrite (without unmapping) WARN!\n");
+  pt[pt_index] = (P_PHYS_ADDR(phys_addr)) | PF_PRESENT | flags; // | PF_RW
 
   invalidate(virt_addr);
-
-  // free it here for now
-  if (pte & PAGE_FLAG_OWNER) {
-    BitmapFreePageframe(&physical, P_PHYS_ADDR(pte));
-  }
-
-  if (prev_page_dir != 0) {
-    // ... then sync that across all others
-    SyncPageDirectory();
-    // we changed to init page dir, now we need to change back
-    if (prev_page_dir != initial_page_dir)
-      ChangePageDirectory(prev_page_dir);
-  }
-
-  return pte;
+#if ELF_DEBUG
+  debugf("[paging] Mapped virt{%lx} to phys{%lx}\n", virt_addr, phys_addr);
+#endif
 }
 
-uint32_t *PageDirectoryAllocate() {
-  for (int i = 0; i < NUM_PAGE_DIRS; i++) {
-    if (!page_dir_used[i]) {
-      page_dir_used[i] = true;
-
-      uint32_t *page_dir = page_dirs[i];
-      memset(page_dir, 0, 0x1000);
-
-      // first 768 entries are user page tables
-      for (int i = 0; i < 768; i++) {
-        page_dir[i] = 0;
-      }
-
-      // next 256 are kernel (except last)
-      for (int i = 768; i < 1023; i++) {
-        page_dir[i] = initial_page_dir[i] & ~PAGE_FLAG_OWNER;
-      }
-
-      // recursive mapping
-      page_dir[1023] = (((uint32_t)page_dir) - 0xC0000000) | PAGE_FLAG_PRESENT |
-                       PAGE_FLAG_WRITE;
-      return page_dir;
-    }
+void VirtualMap2MB(uint64_t virt_addr, uint64_t phys_addr, uint64_t flags) {
+  if (virt_addr % PAGE_SIZE) {
+    debugf("[paging] Tried to map non-aligned address! virt{%lx} phys{%lx}\n",
+           virt_addr, phys_addr);
+    panic();
   }
+  virt_addr = AMD64_MM_STRIPSX(virt_addr);
+
+  uint32_t pml4_index = PML4E(virt_addr);
+  uint32_t pdp_index = PDPTE(virt_addr);
+  uint32_t pd_index = PDE(virt_addr);
+  uint32_t pt_index = PTE(virt_addr);
+
+  if (!(globalPagedir[pml4_index] & PF_PRESENT)) {
+    size_t target = VirtAllocPhys();
+    globalPagedir[pml4_index] = target | PF_PRESENT | PF_RW;
+  }
+  size_t *pdp = PTE_GET_ADDR(globalPagedir[pml4_index]) + HHDMoffset;
+
+  if (!(pdp[pdp_index] & PF_PRESENT)) {
+    size_t target = VirtAllocPhys();
+    pdp[pdp_index] = target | PF_PRESENT | PF_RW;
+  }
+  size_t *pd = PTE_GET_ADDR(pdp[pdp_index]) + HHDMoffset;
+
+  if (pd[pd_index] & PF_PRESENT)
+    debugf("[paging] Overwrite (without unmapping) WARN!\n");
+  pd[pd_index] = (P_PHYS_ADDR(phys_addr)) | PF_PS | PF_PRESENT |
+                 PTE_GET_FLAGS(flags); // | PF_RW
+
+  invalidate(virt_addr);
+}
+
+void *VirtualToPhysical(size_t virt_addr) {
+  if (!globalPagedir)
+    return 0;
+
+  if (virt_addr >= HHDMoffset && virt_addr <= (HHDMoffset + bootloader.mmTotal))
+    return (void *)(virt_addr - HHDMoffset);
+
+  virt_addr = AMD64_MM_STRIPSX(virt_addr);
+
+  uint32_t pml4_index = PML4E(virt_addr);
+  uint32_t pdp_index = PDPTE(virt_addr);
+  uint32_t pd_index = PDE(virt_addr);
+  uint32_t pt_index = PTE(virt_addr);
+
+  if (!(globalPagedir[pml4_index] & PF_PRESENT))
+    return 0;
+  /*else if (globalPagedir[pml4_index] & PF_PRESENT &&
+           globalPagedir[pml4_index] & PF_PS)
+    return (void *)(PTE_GET_ADDR(globalPagedir[pml4_index] +
+                                 (virt_addr & PAGE_MASK(12 + 9 + 9 + 9))));*/
+  size_t *pdp = PTE_GET_ADDR(globalPagedir[pml4_index]) + HHDMoffset;
+
+  if (!(pdp[pdp_index] & PF_PRESENT))
+    return 0;
+  /*else if (pdp[pdp_index] & PF_PRESENT && pdp[pdp_index] & PF_PS)
+    return (void *)(PTE_GET_ADDR(pdp[pdp_index] +
+                                 (virt_addr & PAGE_MASK(12 + 9 + 9))));*/
+  size_t *pd = PTE_GET_ADDR(pdp[pdp_index]) + HHDMoffset;
+
+  if (!(pd[pd_index] & PF_PRESENT))
+    return 0;
+  /*else if (pd[pd_index] & PF_PRESENT && pd[pd_index] & PF_PS)
+    return (
+        void *)(PTE_GET_ADDR(pd[pd_index] + (virt_addr & PAGE_MASK(12 + 9))));*/
+  size_t *pt = PTE_GET_ADDR(pd[pd_index]) + HHDMoffset;
+
+  if (pt[pt_index] & PF_PRESENT)
+    return (void *)(PTE_GET_ADDR(pt[pt_index] + (virt_addr & PAGE_MASK(12))));
 
   return 0;
 }
 
-void PageDirectoryFree(uint32_t *page_dir) {
+uint32_t VirtualUnmap(uint32_t virt_addr) {
+  // not really used anywhere atm, sooooo idc
+  return 0;
+}
+
+uint64_t *PageDirectoryAllocate() {
+  if (!tasksInitiated) {
+    debugf("[paging] FATAL! Tried to allocate pd without tasks initiated!\n");
+    panic();
+  }
+  uint64_t *out = VirtualAllocate(1);
+
+  memset(out, 0, PAGE_SIZE);
+
+  uint64_t *model = getTask(KERNEL_TASK)->pagedir;
+  for (int i = 0; i < 512; i++)
+    out[i] = model[i];
+
+  return out;
+}
+
+// todo: clear orphans after a whole page level is emptied!
+// destroys any userland stuff on the page directory
+void PageDirectoryFree(uint64_t *page_dir) {
   uint32_t *prev_pagedir = GetPageDirectory();
   ChangePageDirectory(page_dir);
 
-  uint32_t pagedir_index = ((uint32_t)page_dir) - ((uint32_t)page_dirs);
-  pagedir_index /= 0x1000;
-
-  uint32_t *pd = REC_PAGEDIR;
-  for (int i = 0; i < 768; i++) {
-    int pde = pd[i];
-    if (pde == 0)
+  for (int pml4_index = 0; pml4_index < 512; pml4_index++) {
+    if (!(globalPagedir[pml4_index] & PF_PRESENT) ||
+        globalPagedir[pml4_index] & PF_PS)
       continue;
+    size_t *pdp = PTE_GET_ADDR(globalPagedir[pml4_index]) + HHDMoffset;
 
-    uint32_t *ptable = REC_PAGETABLE(i);
-    for (int j = 0; j < 1024; j++) {
-      uint32_t pte = ptable[j];
+    for (int pdp_index = 0; pdp_index < 512; pdp_index++) {
+      if (!(pdp[pdp_index] & PF_PRESENT) || pdp[pdp_index] & PF_PS)
+        continue;
+      size_t *pd = PTE_GET_ADDR(pdp[pdp_index]) + HHDMoffset;
 
-      if (pte & PAGE_FLAG_OWNER) {
-        BitmapFreePageframe(&physical, P_PHYS_ADDR(pte));
+      for (int pd_index = 0; pd_index < 512; pd_index++) {
+        if (!(pd[pd_index] & PF_PRESENT) || pd[pd_index] & PF_PS)
+          continue;
+        size_t *pt = PTE_GET_ADDR(pd[pd_index]) + HHDMoffset;
+
+        for (int pt_index = 0; pt_index < 512; pt_index++) {
+          if (!(pt[pt_index] & PF_PRESENT) || pt[pt_index] & PF_PS)
+            continue;
+
+          // we only free mappings related to userland (ones from ELF)
+          if (!(pt[pt_index] & PF_USER))
+            continue;
+
+          uint64_t phys = PTE_GET_ADDR(pt[pt_index]);
+          BitmapFreePageframe(&physical, phys);
+        }
       }
     }
-    memset(ptable, 0, 0x1000);
-
-    if (pde & PAGE_FLAG_OWNER) {
-      BitmapFreePageframe(&physical, P_PHYS_ADDR(pde));
-    }
-    pd[i] = 0;
   }
 
-  page_dir_used[pagedir_index] = 0;
   ChangePageDirectory(prev_pagedir);
-}
-
-void SyncPageDirectory() {
-  for (int i = 0; i < NUM_PAGE_DIRS; i++) {
-    if (page_dir_used[i]) {
-      uint32_t *page_dir = page_dirs[i];
-
-      for (int i = 768; i < 1023; i++) {
-        page_dir[i] = initial_page_dir[i] & ~PAGE_FLAG_OWNER;
-      }
-    }
-  }
 }

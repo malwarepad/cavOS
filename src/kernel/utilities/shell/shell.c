@@ -1,21 +1,22 @@
 #include <arp.h>
+#include <bootloader.h>
 #include <checksum.h>
+#include <console.h>
+#include <elf.h>
+#include <fb.h>
 #include <icmp.h>
-#include <liballoc.h>
+#include <malloc.h>
 #include <paging.h>
 #include <pci.h>
+#include <pmm.h>
 #include <rtc.h>
 #include <shell.h>
 #include <system.h>
 #include <task.h>
 #include <timer.h>
 #include <util.h>
-#include <vga.h>
-#define _STDINT_H
-#include <elf.h>
-#include <ssfn.h>
 
-// Shell driver
+// Temporary kernelspace shell
 // Copyright (C) 2024 Panagiotis
 
 void task1() {
@@ -76,9 +77,9 @@ void launch_shell(int n) {
       readStr(heightStr);
       int height = atoi(heightStr);
 
-      drawRect((framebufferWidth / 2) - (width / 2), ssfn_dst.y + 16, width,
+      drawRect((framebufferWidth / 2) - (width / 2), getConsoleY() + 16, width,
                height, 255, 255, 255);
-      ssfn_dst.y += height + 16;
+      setConsoleY(getConsoleY() + height + 16);
       printf("\n");
     } else if (strEql(ch, "drawimg")) {
       printf("\nInput cavimg file's path: ");
@@ -110,7 +111,7 @@ void launch_shell(int n) {
 
         drawPixel(x, y, r, g, b);
       }
-      ssfn_dst.y += height + 16;
+      setConsoleY(getConsoleY() + height + 16);
 
       free(out);
       free(buff);
@@ -301,7 +302,8 @@ void set_background_color() {
 
 void fetch() {
   printf("\nname: cavOS");
-  printf("\nmemory: %dMB", DivRoundUp(mbi_memorySizeKb, 1024));
+  printf("\nmemory: %dMB",
+         DivRoundUp(DivRoundUp(bootloader.mmTotal, 1024), 1024));
   printf("\nuptime: %ds", DivRoundUp((uint32_t)timerTicks, 1000));
   printf("\n");
 }
@@ -347,23 +349,25 @@ void readDisk() {
   printf("====    Copyright MalwarePad 2024    ====\n");
   printf("=========================================\n");
 
-  printf("\n1MB grub sector: LBA=0 Offset=0, FAT32 sector: LBA=2048 "
+  printf("\n1MB Limine sector: LBA=0 Offset=0, FAT32 sector: LBA=2048 "
          "Offset=1048576");
   printf("\nInsert LBA (LBA = Offset / Sector Size): ");
 
   char *choice = (char *)malloc(200);
   readStr(choice);
   int lba = atoi(choice);
-  printf("\nReading disk 0 with LBA=%d\n\r\n", lba);
+  printf("\n\n");
+
+  // saving memory like scrooge mcduck out here
+  memset(choice, 0, 200);
+  sprintf(choice, "reading disk{0} LBA{%d}:", lba);
 
   uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
   getDiskBytes(rawArr, lba, 1);
 
-  for (int i = 0; i < SECTOR_SIZE; i++) {
-    printf("%x ", rawArr[i]);
-  }
+  hexDump(choice, rawArr, SECTOR_SIZE, 16);
 
-  printf("\r\n");
+  printf("\n");
   free(rawArr);
   free(choice);
 }

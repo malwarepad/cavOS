@@ -2,6 +2,7 @@
 #include <dhcp.h>
 #include <ipv4.h>
 #include <linked_list.h>
+#include <malloc.h>
 #include <ne2k.h>
 #include <nic_controller.h>
 #include <rtl8139.h>

@@ -12,6 +12,7 @@
 #define CHARACTER_BACK '\b'
 
 uint32_t readStr(char *buffstr);
+void     initiateKb();
 void     kbIrq();
 bool     kbTaskRead(uint32_t taskId, char *buff, uint32_t limit,
                     bool changeTaskState);

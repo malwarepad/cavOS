@@ -1,9 +1,22 @@
-COMPILER = ~/opt/cross/bin/i686-cavos-gcc
-LINKER = ~/opt/cross/bin/i686-cavos-ld
+COMPILER = ~/opt/cross/bin/x86_64-cavos-gcc
+LINKER = ~/opt/cross/bin/x86_64-cavos-ld
 ASSEMBLER = nasm
-CFLAGS = -m32 -c -ffreestanding -w -fcommon -Iinclude/ -g
-ASFLAGS = -f elf32
-LDFLAGS = -m elf_i386 -T boot/link.ld
+# -w(no warnings) -g(dev)
+CFLAGS = -m64 -c -ffreestanding -Wall -fcommon -Iinclude/ -fPIE -mno-80387 \
+    -mno-mmx \
+    -mno-sse \
+    -mno-sse2 \
+    -mno-red-zone -fno-stack-protector \
+    -fno-stack-check \
+    -fno-lto
+ASFLAGS = -f elf64
+LDFLAGS = -m elf_x86_64 \
+    -nostdlib \
+    -static \
+    -pie \
+    --no-dynamic-linker \
+    -z text \
+    -z max-page-size=0x1000 -T link.ld
 
 TARGET = ../../target
 MOUNTPOINT = /cavosmnt
@@ -13,7 +26,7 @@ TARGET_IMG = ../../disk.img
 TARGET_VMWARE = ../../disk.vmdk
 TARGET_ISO = ../../cavOS.iso
 
-OBJS = $(TARGET)/obj/kasm.o $(TARGET)/obj/kc.o $(TARGET)/obj/idt.o $(TARGET)/obj/ata.o $(TARGET)/obj/printf.o $(TARGET)/obj/isr.o $(TARGET)/obj/kb.o $(TARGET)/obj/string.o $(TARGET)/obj/system.o $(TARGET)/obj/util.o $(TARGET)/obj/shell.o $(TARGET)/obj/disk.o $(TARGET)/obj/fat32.o $(TARGET)/obj/rtc.o $(TARGET)/obj/testing.o $(TARGET)/obj/pmm.o $(TARGET)/obj/gdtasm.o $(TARGET)/obj/gdt.o $(TARGET)/obj/timer.o $(TARGET)/obj/schedule.o $(TARGET)/obj/pci.o $(TARGET)/obj/israsm.o $(TARGET)/obj/taskasm.o $(TARGET)/obj/task.o $(TARGET)/obj/liballoc.o $(TARGET)/obj/vga.o $(TARGET)/obj/console.o $(TARGET)/obj/backupconsole.o $(TARGET)/obj/serial.o $(TARGET)/obj/elf.o $(TARGET)/obj/paging.o $(TARGET)/obj/vmm.o $(TARGET)/obj/syscalls.o $(TARGET)/obj/fat32_utils.o $(TARGET)/obj/fat32_fat.o $(TARGET)/obj/fat32_lfn.o $(TARGET)/obj/ne2k.o $(TARGET)/obj/nic_controller.o $(TARGET)/obj/arp.o $(TARGET)/obj/rtl8139.o $(TARGET)/obj/bitmap.o $(TARGET)/obj/ipv4.o $(TARGET)/obj/udp.o $(TARGET)/obj/checksum.o $(TARGET)/obj/icmp.o $(TARGET)/obj/dhcp.o $(TARGET)/obj/tcp.o $(TARGET)/obj/fs_controller.o $(TARGET)/obj/ahci.o $(TARGET)/obj/rtl8169.o $(TARGET)/obj/linked_list.o
+OBJS = $(TARGET)/obj/kc.o $(TARGET)/obj/idt.o $(TARGET)/obj/printf.o $(TARGET)/obj/isr.o $(TARGET)/obj/kb.o $(TARGET)/obj/string.o $(TARGET)/obj/system.o $(TARGET)/obj/util.o $(TARGET)/obj/shell.o $(TARGET)/obj/disk.o $(TARGET)/obj/fat32.o $(TARGET)/obj/rtc.o $(TARGET)/obj/testing.o $(TARGET)/obj/pmm.o $(TARGET)/obj/gdt.o $(TARGET)/obj/timer.o $(TARGET)/obj/schedule.o $(TARGET)/obj/pci.o $(TARGET)/obj/israsm.o $(TARGET)/obj/task.o $(TARGET)/obj/vga.o $(TARGET)/obj/console.o $(TARGET)/obj/serial.o $(TARGET)/obj/elf.o $(TARGET)/obj/paging.o $(TARGET)/obj/vmm.o $(TARGET)/obj/syscalls.o $(TARGET)/obj/fat32_utils.o $(TARGET)/obj/fat32_fat.o $(TARGET)/obj/fat32_lfn.o $(TARGET)/obj/ne2k.o $(TARGET)/obj/nic_controller.o $(TARGET)/obj/arp.o $(TARGET)/obj/rtl8139.o $(TARGET)/obj/bitmap.o $(TARGET)/obj/ipv4.o $(TARGET)/obj/udp.o $(TARGET)/obj/checksum.o $(TARGET)/obj/icmp.o $(TARGET)/obj/dhcp.o $(TARGET)/obj/tcp.o $(TARGET)/obj/fs_controller.o $(TARGET)/obj/ahci.o $(TARGET)/obj/rtl8169.o $(TARGET)/obj/linked_list.o $(TARGET)/obj/bootloaderParser.o $(TARGET)/obj/md5.o $(TARGET)/obj/psf.o $(TARGET)/obj/fb.o $(TARGET)/obj/malloc.o $(TARGET)/obj/malloc_glue.o 
 OUTPUT = $(TARGET)/boot/kernel.bin
 
 all:$(OBJS)
@@ -21,21 +34,9 @@ all:$(OBJS)
 	mkdir $(TARGET)/boot/ -p
 	$(LINKER) $(LDFLAGS) -o $(OUTPUT) $(OBJS)
 
-$(TARGET)/obj/kasm.o:boot/kernel.asm
-	mkdir $(TARGET)/obj/ -p
-	$(ASSEMBLER) $(ASFLAGS) -o $(TARGET)/obj/kasm.o boot/kernel.asm
-
-$(TARGET)/obj/gdtasm.o:cpu/gdt.asm
-	mkdir $(TARGET)/obj/ -p
-	$(ASSEMBLER) $(ASFLAGS) -o $(TARGET)/obj/gdtasm.o cpu/gdt.asm
-
 $(TARGET)/obj/israsm.o:cpu/isr.asm
 	mkdir $(TARGET)/obj/ -p
 	$(ASSEMBLER) $(ASFLAGS) -o $(TARGET)/obj/israsm.o cpu/isr.asm
-
-$(TARGET)/obj/taskasm.o:multitasking/task.asm
-	mkdir $(TARGET)/obj/ -p
-	$(ASSEMBLER) $(ASFLAGS) -o $(TARGET)/obj/taskasm.o multitasking/task.asm
 	
 $(TARGET)/obj/syscalls.o:cpu/syscalls.c
 	$(COMPILER) $(CFLAGS) cpu/syscalls.c -o $(TARGET)/obj/syscalls.o 
@@ -51,6 +52,9 @@ $(TARGET)/obj/task.o:multitasking/task.c
 	
 $(TARGET)/obj/elf.o:utilities/elf.c
 	$(COMPILER) $(CFLAGS) utilities/elf.c -o $(TARGET)/obj/elf.o 
+	
+$(TARGET)/obj/psf.o:utilities/psf.c
+	$(COMPILER) $(CFLAGS) utilities/psf.c -o $(TARGET)/obj/psf.o 
 	
 $(TARGET)/obj/ne2k.o:drivers/nics/ne2k.c
 	$(COMPILER) $(CFLAGS) drivers/nics/ne2k.c -o $(TARGET)/obj/ne2k.o 
@@ -73,11 +77,14 @@ $(TARGET)/obj/schedule.o:multitasking/schedule.c
 $(TARGET)/obj/console.o:graphical/console.c
 	$(COMPILER) $(CFLAGS) graphical/console.c -o $(TARGET)/obj/console.o 
 	
-$(TARGET)/obj/backupconsole.o:graphical/backupconsole.c
-	$(COMPILER) $(CFLAGS) graphical/backupconsole.c -o $(TARGET)/obj/backupconsole.o 
+$(TARGET)/obj/fb.o:graphical/fb.c
+	$(COMPILER) $(CFLAGS) graphical/fb.c -o $(TARGET)/obj/fb.o 
 	
-$(TARGET)/obj/liballoc.o:memory/liballoc.c
-	$(COMPILER) $(CFLAGS) memory/liballoc.c -o $(TARGET)/obj/liballoc.o 
+$(TARGET)/obj/malloc.o:memory/malloc.c
+	$(COMPILER) $(CFLAGS) memory/malloc.c -o $(TARGET)/obj/malloc.o -DHAVE_MMAP=0 -DLACKS_TIME_H=1 -DLACKS_SYS_PARAM_H=1 -LACKS_STRING_H=0 -Dmalloc_getpagesize=4096 -DNO_MALLOC_STATS=1
+	
+$(TARGET)/obj/malloc_glue.o:memory/malloc_glue.c
+	$(COMPILER) $(CFLAGS) memory/malloc_glue.c -o $(TARGET)/obj/malloc_glue.o 
 	
 $(TARGET)/obj/timer.o:cpu/timer.c
 	$(COMPILER) $(CFLAGS) cpu/timer.c -o $(TARGET)/obj/timer.o 
@@ -112,6 +119,9 @@ $(TARGET)/obj/dhcp.o:networking/dhcp.c
 $(TARGET)/obj/kc.o:entry/kernel.c
 	$(COMPILER) $(CFLAGS) entry/kernel.c -o $(TARGET)/obj/kc.o 
 		
+$(TARGET)/obj/bootloaderParser.o:entry/bootloader.c
+	$(COMPILER) $(CFLAGS) entry/bootloader.c -o $(TARGET)/obj/bootloaderParser.o
+		
 $(TARGET)/obj/idt.o:cpu/idt.c
 	$(COMPILER) $(CFLAGS) cpu/idt.c -o $(TARGET)/obj/idt.o 
 
@@ -129,9 +139,6 @@ $(TARGET)/obj/vga.o:drivers/vga.c
 
 $(TARGET)/obj/printf.o:drivers/printf.c
 	$(COMPILER) $(CFLAGS) drivers/printf.c -o $(TARGET)/obj/printf.o -DPRINTF_INCLUDE_CONFIG_H=1
-
-$(TARGET)/obj/ata.o:drivers/ata.c
-	$(COMPILER) $(CFLAGS) drivers/ata.c -o $(TARGET)/obj/ata.o
 
 $(TARGET)/obj/ahci.o:drivers/ahci.c
 	$(COMPILER) $(CFLAGS) drivers/ahci.c -o $(TARGET)/obj/ahci.o
@@ -172,14 +179,14 @@ $(TARGET)/obj/system.o:cpu/system.c
 $(TARGET)/obj/util.o:utilities/util.c
 	$(COMPILER) $(CFLAGS) utilities/util.c -o $(TARGET)/obj/util.o
 
+$(TARGET)/obj/md5.o:utilities/md5.c
+	$(COMPILER) $(CFLAGS) utilities/md5.c -o $(TARGET)/obj/md5.o
+
 $(TARGET)/obj/shell.o:utilities/shell/shell.c
 	$(COMPILER) $(CFLAGS) utilities/shell/shell.c -o $(TARGET)/obj/shell.o
 
 $(TARGET)/obj/testing.o:entry/testing.c
 	$(COMPILER) $(CFLAGS) entry/testing.c -o $(TARGET)/obj/testing.o
-
-iso:all 
-	grub-mkrescue -o $(TARGET_ISO) $(TARGET)/
 
 disk:all
 	chmod +x $(TOOLS)/make_disk.sh
@@ -198,12 +205,12 @@ clean:
 	rm -f $(TARGET_IMG) $(TARGET_VMWARE) $(TARGET_ISO)
 
 qemu:
-	qemu-system-i386 -d guest_errors -serial stdio -drive file=$(TARGET_IMG),format=raw -m 1g -netdev user,id=mynet0 -net nic,model=rtl8139,netdev=mynet0
+	qemu-system-x86_64 -d guest_errors -serial stdio -drive file=$(TARGET_IMG),format=raw,id=disk,if=none -device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 -m 1g -netdev user,id=mynet0 -net nic,model=rtl8139,netdev=mynet0
 
 qemu_dbg:
-	qemu-system-i386 -d guest_errors -no-shutdown -no-reboot -serial stdio -drive file=$(TARGET_IMG),format=raw -m 1g -netdev user,id=mynet0,hostfwd=udp::5555-:69,hostfwd=tcp::5555-:69 -net nic,model=rtl8139,netdev=mynet0 -object filter-dump,id=id,netdev=mynet0,file=../../netdmp.pcapng
+	qemu-system-x86_64 -d guest_errors -no-shutdown -no-reboot -serial stdio -drive file=$(TARGET_IMG),format=raw,id=disk,if=none -device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 -m 8g -netdev user,id=mynet0,hostfwd=udp::5555-:69,hostfwd=tcp::5555-:69 -net nic,model=rtl8139,netdev=mynet0 -object filter-dump,id=id,netdev=mynet0,file=../../netdmp.pcapng -s
 
 qemu_iso:
-	qemu-system-i386 -d guest_errors -serial stdio -drive file=$(TARGET_ISO),format=raw -m 1g -netdev user,id=mynet0 -net nic,model=rtl8139,netdev=mynet0
+	qemu-system-x86_64 -d guest_errors -serial stdio -drive file=$(TARGET_ISO),format=raw -m 1g -netdev user,id=mynet0 -net nic,model=rtl8139,netdev=mynet0
 
 dev:clean disk qemu_dbg
