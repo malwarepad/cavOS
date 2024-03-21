@@ -11,7 +11,7 @@ Having a good time is my drive for this project + I learn a lot of cool low leve
 The cavOS kernel is a monolithic x86_64 one written in relatively simple C with a few bits of Intel assembly here and there. It uses the Limine bootloader and leverages the FAT32 filesystem for booting. I try to keep the code structure clean and fairly easy to understand, while avoiding too much abstraction.
 
 ## Userspace status
-Userspace is sort of broken right now. Kernel tasks (and kernel task scheduling) work fine, however userspace (ring3) is broken, crt0.o is non-existent, there is no stable systemcall interface and no libc... See [The x86_64 \"rewrite\"](#the-x86_64-rewrite) for more details.
+Userspace is sort of broken right now. Kernel & user tasks (and scheduling) work fine, however crt0.o is non-existent, there is no stable systemcall interface and no libc... See [The x86_64 \"rewrite\"](#the-x86_64-rewrite) for more details.
 
 ## Goals
 

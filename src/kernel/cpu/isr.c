@@ -5,6 +5,7 @@
 #include <nic_controller.h>
 #include <paging.h>
 #include <rtl8139.h>
+#include <schedule.h>
 #include <syscalls.h>
 #include <system.h>
 #include <task.h>
@@ -106,6 +107,7 @@ void handleTaskFault(AsmPassedInterrupt *regs) {
   debugf("[isr::task] Killing task{%d} because of %s!\n", currentTask->id,
          exceptions[regs->interrupt]);
   kill_task(currentTask->id);
+  schedule((uint64_t)regs);
 }
 
 // pass stack ptr
@@ -142,7 +144,7 @@ void handle_interrupt(uint64_t rsp) {
 
     if (!systemCallOnProgress && tasksInitiated &&
         currentTask->id != KERNEL_TASK && !currentTask->kernel_task) {
-      handleTaskFault(&cpu);
+      handleTaskFault(cpu);
       return;
     }
 

@@ -142,19 +142,19 @@ void VirtualMap(uint64_t virt_addr, uint64_t phys_addr, uint64_t flags) {
 
   if (!(globalPagedir[pml4_index] & PF_PRESENT)) {
     size_t target = VirtAllocPhys();
-    globalPagedir[pml4_index] = target | PF_PRESENT | PF_RW;
+    globalPagedir[pml4_index] = target | PF_PRESENT | PF_RW | flags;
   }
   size_t *pdp = PTE_GET_ADDR(globalPagedir[pml4_index]) + HHDMoffset;
 
   if (!(pdp[pdp_index] & PF_PRESENT)) {
     size_t target = VirtAllocPhys();
-    pdp[pdp_index] = target | PF_PRESENT | PF_RW;
+    pdp[pdp_index] = target | PF_PRESENT | PF_RW | flags;
   }
   size_t *pd = PTE_GET_ADDR(pdp[pdp_index]) + HHDMoffset;
 
   if (!(pd[pd_index] & PF_PRESENT)) {
     size_t target = VirtAllocPhys();
-    pd[pd_index] = target | PF_PRESENT | PF_RW;
+    pd[pd_index] = target | PF_PRESENT | PF_RW | flags;
   }
   size_t *pt = PTE_GET_ADDR(pd[pd_index]) + HHDMoffset;
 
