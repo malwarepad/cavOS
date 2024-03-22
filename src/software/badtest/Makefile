@@ -6,7 +6,7 @@ TARGET = ../../../target/software/
 all: clean compile install
 
 compile:
-	$(COMPILER) badtest.c -o $(OUTPUT) $(CFLAGS)
+	$(COMPILER) badtest.c start.S -o $(OUTPUT) $(CFLAGS)
 
 install:
 	mkdir -p $(TARGET)

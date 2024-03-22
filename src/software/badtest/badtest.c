@@ -93,9 +93,13 @@ void itoa(uint64_t n, char s[]) {
   reverse(s);
 }
 
-void _start(int arglol) {
-  arglol = arglol;
+void printNum(uint64_t num) {
+  char frd[50] = {0};
+  itoa((uint64_t)(num), frd);
+  my_write(1, frd, strlength(frd));
+}
 
+int main(int argc, char **argv) {
   char *msg =
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam hendrerit "
       "nulla eget imperdiet varius. Cras at accumsan orci, non sodales eros. "
@@ -141,19 +145,27 @@ void _start(int arglol) {
       "rhoncus ac enim id, molestie imperdiet sem. Ut id tortor in ligula "
       "viverra dignissim. Donec purus risus, blandit sed est nec, ullamcorper "
       "vestibulum ipsum. Etiam pharetra feugiat facilisis. \n";
-  // char frd[50] = {0};
-  // itoa((uint64_t)(&arglol), frd);
-  // my_write(1, frd, strlength(frd));
 
   // for (int i = 0; i < strlength(msg); i++)
   //   serial_send(COM1, msg[i]);
 
-  my_write(1, msg, strlength(msg));
+  // my_write(1, msg, strlength(msg));
+
+  char *nl = "\n";
+  for (int i = 0; i < argc; i++) {
+    my_write(1, argv[i], strlength(argv[i]));
+    my_write(1, nl, 1);
+  }
+
+  // printNum(argv);
 
   // asm volatile("cli");
 
   // while (1) {
   // }
+}
 
+void _start_c(uint64_t rsp) {
+  main(*(int *)(rsp), rsp + 8);
   my_exit(0);
 }

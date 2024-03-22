@@ -14,8 +14,8 @@
 
 // todo: move stack creation to this file, or have some way of controlling it
 // for strictly kernel-only tasks, where ELF execution is not used!
-void create_task(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
-                 uint32_t argc, char **argv) {
+Task *create_task(uint32_t id, uint64_t rip, bool kernel_task,
+                  uint64_t *pagedir, uint32_t argc, char **argv) {
   lockInterrupts();
 
   Task *browse = firstTask;
@@ -77,54 +77,63 @@ void create_task(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
   target->heap_end = USER_HEAP_START;
 
   // todo (when userspace tasks are ready)
-  /*if (!kernel_task) {
+  if (!kernel_task && argc) {
     // yeah, we will need to construct a stackframe...
     void *oldPagedir = GetPageDirectory();
     ChangePageDirectory(target->pagedir);
 
+    // Store argument contents
     uint32_t argSpace = 0;
     for (int i = 0; i < argc; i++)
       argSpace += strlength(argv[i]) + 1; // null terminator
-    uint32_t totalSpacePages =
-        DivRoundUp(4 + (argc * 4) + 10 + argSpace, PAGE_SIZE);
-    uint32_t totalSpace = totalSpacePages * PAGE_SIZE;
-    // argc +  argv ptrs + environ(todo) + argvs
-
-    for (int i = 0; i < totalSpacePages; i++)
-      VirtualMap(USER_STACK_BOTTOM + i * PAGE_SIZE,
-                 BitmapAllocatePageframe(&physical),
-                 PF_RW | PF_USER | PF_SYSTEM);
-
-    uint32_t *argcPtr = USER_STACK_BOTTOM;
-    uint32_t *argPtr = USER_STACK_BOTTOM + 4; // skip argc
-    // memset(argPtr, 0, argSpace);
-
-    *argcPtr = argc;
-
-    // environ (for the time being)
-    uint32_t *environPtr = USER_STACK_BOTTOM + 4 + (argc * 4);
-    memset(environPtr, 0, 10);
-    environPtr[0] = &environPtr[5];
-
-    uint32_t curr = 0;
+    uint8_t *argStart = target->heap_end;
+    adjust_user_heap(target, target->heap_end + argSpace);
+    size_t ellapsed = 0;
     for (int i = 0; i < argc; i++) {
-      uint32_t len = strlength(argv[i]);
-      uint8_t *ptr = (size_t)argcPtr + 4 + (argc * 4) + 10 + curr;
-
-      memcpy(ptr, argv[i], len);
-      ptr[len] = '\0'; // null terminator
-
-      argPtr[i] = ptr;
-      curr += len + 1;
+      uint32_t len = strlength(argv[i]) + 1; // null terminator
+      memcpy((size_t)argStart + ellapsed, argv[i], len);
+      ellapsed += len;
     }
 
+    // todo: Proper environ
+    uint64_t *environStart = target->heap_end;
+    adjust_user_heap(target, target->heap_end + sizeof(uint64_t) * 10);
+    memset(environStart, 0, sizeof(uint64_t) * 10);
+    environStart[0] = &environStart[5];
+
+    // Reserve stack space for environ
+    target->registers.usermode_rsp -= sizeof(uint64_t);
+    uint64_t *finalEnviron = target->registers.usermode_rsp;
+
+    // Store argument pointers (directly in stack)
+    size_t finalEllapsed = 0;
+    // ellapsed already has the full size lol
+    for (int i = argc - 1; i >= 0; i--) {
+      target->registers.usermode_rsp -= sizeof(uint64_t);
+      uint64_t *finalArgv = target->registers.usermode_rsp;
+
+      uint32_t len = strlength(argv[i]) + 1; // null terminator
+      finalEllapsed += len;
+      *finalArgv = (size_t)argStart + (ellapsed - finalEllapsed);
+    }
+
+    // Reserve stack space for argc
+    target->registers.usermode_rsp -= sizeof(uint64_t);
+    uint64_t *finalArgc = target->registers.usermode_rsp;
+
+    // Put everything left in the stack, as expected
+    *finalArgc = argc;
+    *finalEnviron = finalEnviron;
+
     ChangePageDirectory(oldPagedir);
-  }*/
+  }
 
   releaseInterrupts();
+
+  return target;
 }
 
-void adjust_user_heap(Task *task, uint32_t new_heap_end) {
+void adjust_user_heap(Task *task, size_t new_heap_end) {
   if (new_heap_end <= task->heap_start) {
     debugf("[task] Tried to adjust heap behind current values: id{%d}\n",
            task->id);
@@ -132,15 +141,17 @@ void adjust_user_heap(Task *task, uint32_t new_heap_end) {
     return;
   }
 
-  int old_page_top = DivRoundUp(task->heap_end, PAGE_SIZE);
-  int new_page_top = DivRoundUp(new_heap_end, PAGE_SIZE);
+  size_t old_page_top = DivRoundUp(task->heap_end, PAGE_SIZE);
+  size_t new_page_top = DivRoundUp(new_heap_end, PAGE_SIZE);
 
   if (new_page_top > old_page_top) {
-    int num = new_page_top - old_page_top;
+    size_t num = new_page_top - old_page_top;
 
-    for (int i = 0; i < num; i++) {
-      uint32_t phys = BitmapAllocatePageframe(&physical);
-      uint32_t virt = old_page_top * PAGE_SIZE + i * PAGE_SIZE;
+    for (size_t i = 0; i < num; i++) {
+      size_t phys = BitmapAllocatePageframe(&physical);
+      size_t virt = old_page_top * PAGE_SIZE + i * PAGE_SIZE;
+      if (VirtualToPhysical(virt))
+        continue;
 
       VirtualMap(virt, phys, PF_RW | PF_USER | PF_SYSTEM);
 
@@ -171,7 +182,7 @@ void kill_task(uint32_t id) {
   browse->next = task->next;
 
   // free user heap
-  uint32_t *defaultPagedir = GetPageDirectory();
+  /*uint32_t *defaultPagedir = GetPageDirectory();
   ChangePageDirectory(task->pagedir);
   int heap_start = DivRoundUp(task->heap_start, PAGE_SIZE);
   int heap_end = DivRoundUp(task->heap_end, PAGE_SIZE);
@@ -185,7 +196,9 @@ void kill_task(uint32_t id) {
       BitmapFreePageframe(&physical, phys);
     }
   }
-  ChangePageDirectory(defaultPagedir);
+  ChangePageDirectory(defaultPagedir);*/
+  // ^ not needed because of PageDirectoryFree() doing it automatically
+
   PageDirectoryFree(task->pagedir);
 
   // close any left open files

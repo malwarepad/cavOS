@@ -10,6 +10,8 @@
 #include <task.h>
 #include <util.h>
 
+#define DEBUG_SYSCALLS 0
+
 uint32_t syscallCnt = 0;
 #define MAX_SYSCALLS 420
 uint64_t syscalls[MAX_SYSCALLS] = {0};
@@ -87,13 +89,17 @@ static uint32_t syscallRead(int file, char *str, uint32_t count) {
     return 0;
   }
   uint32_t read = fsRead(browse, str, count);
+#if DEBUG_SYSCALLS
   debugf("\nread = %d\n", read);
+#endif
   return read;
 }
 
 #define SYSCALL_WRITE 1
 static int syscallWrite(int file, char *str, uint32_t count) {
+#if DEBUG_SYSCALLS
   debugf("[syscalls::write] file{%d} str{%x} count{%d}\n", file, str, count);
+#endif
   if (file == 0 || file == 1) {
     // console fb
     for (int i = 0; i < count; i++) {
@@ -116,8 +122,10 @@ static int syscallClose(int file) { return fsUserClose(file); }
 
 #define SYSCALL_LSEEK 8
 static int syscallLseek(uint32_t file, int offset, int whence) {
+#if DEBUG_SYSCALLS
   debugf("[syscalls::seek] file{%d} offset{%d} whence{%d}\n", file, offset,
          whence);
+#endif
   if (file == 0 || file == 1)
     return -1;
   return fsUserSeek(file, offset, whence);
@@ -154,8 +162,10 @@ static int syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
   for (int i = 0; i < ioVcnt; i++) {
     iovec *curr = (size_t)iov + i * sizeof(iovec);
 
-    // debugf("[syscalls::writev] fd{%d} iov_base{%x} iov_len{%x} iovcnt{%d}\n",
-    //        fd, curr->iov_base, curr->iov_len, ioVcnt);
+#if DEBUG_SYSCALLS
+    debugf("[syscalls::writev] fd{%d} iov_base{%x} iov_len{%x} iovcnt{%d}\n",
+           fd, curr->iov_base, curr->iov_len, ioVcnt);
+#endif
     int singleCnt = syscallWrite(fd, curr->iov_base, curr->iov_len);
     if (singleCnt == -1)
       return cnt;
@@ -177,20 +187,14 @@ static void syscallFork() {
 
 #define SYSCALL_EXIT_TASK 60
 static void syscallExitTask(int return_code) {
+#if DEBUG_SYSCALLS
   debugf("[scheduler] Exiting task{%d} with return code{%d}!\n",
          currentTask->id, return_code);
+#endif
   kill_task(currentTask->id);
 
   schedule(currGlobalRegs); // go to the next task (will re-enable interrupts)
 }
-
-#define SYSCALL_GETARGC 400
-static int syscallGetArgc() { return 6; }
-
-static *sampleArgv[] = {"./main.c", "one", "two", "three", "four", "five"};
-
-#define SYSCALL_GETARGV 401
-static char *syscallGetArgv(int curr) { return sampleArgv[curr]; }
 
 #define SYSCALL_GET_HEAP_START 402
 static uint32_t syscallGetHeapStart() { return currentTask->heap_start; }
@@ -214,8 +218,6 @@ void initiateSyscalls() {
   registerSyscall(SYSCALL_TEST, syscallTest);
   registerSyscall(SYSCALL_EXIT_TASK, syscallExitTask);
   registerSyscall(SYSCALL_GETPID, syscallGetPid);
-  registerSyscall(SYSCALL_GETARGC, syscallGetArgc);
-  registerSyscall(SYSCALL_GETARGV, syscallGetArgv);
   registerSyscall(SYSCALL_GET_HEAP_START, syscallGetHeapStart);
   registerSyscall(SYSCALL_GET_HEAP_END, syscallGetHeapEnd);
   registerSyscall(SYSCALL_ADJUST_HEAP_END, syscallAdjustHeapEnd);

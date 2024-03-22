@@ -218,11 +218,12 @@ void launch_shell(int n) {
     } else if (strEql(ch, "exec")) {
       printf("\nFile path to executable: ");
       char *filepath = (char *)malloc(200);
+      memset(filepath, 0, 200);
       readStr(filepath);
       printf("\n");
 
-      uint32_t *argv = malloc(4);
-      argv[0] = (uint32_t)filepath;
+      size_t *argv = malloc(sizeof(size_t) * 5);
+      argv[0] = (size_t)filepath;
       uint32_t id = elf_execute(filepath, 1, argv);
       if (!id) {
         printf("Failure executing %s!\n", filepath);
@@ -233,6 +234,17 @@ void launch_shell(int n) {
       }
 
       free(filepath);
+      free(argv);
+    } else if (strEql(ch, "tasks")) {
+      printf("\n");
+      Task *browse = firstTask;
+      while (browse) {
+        printf("%d: [%c] heap{0x%016lx-0x%016lX}\n", browse->id,
+               browse->kernel_task ? '-' : 'u', browse->heap_start,
+               browse->heap_end);
+
+        browse = browse->next;
+      }
     } else if (strEql(ch, "proctest")) {
       printf("\n");
       create_task(1, (uint32_t)task1, true, PageDirectoryAllocate(), 0, 0);
