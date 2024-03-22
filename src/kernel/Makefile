@@ -5,13 +5,15 @@ ASSEMBLER = nasm
 CFLAGS = -m64 -c -ffreestanding -Wall -fcommon -Iinclude/ -fPIE -mno-80387 \
     -mno-mmx \
     -mno-sse \
+		-nostartfiles \
+		-nostdlib \
     -mno-sse2 \
     -mno-red-zone -fno-stack-protector \
     -fno-stack-check \
     -fno-lto
 ASFLAGS = -f elf64
 LDFLAGS = -m elf_x86_64 \
-    -nostdlib \
+		-nostdlib \
     -static \
     -pie \
     --no-dynamic-linker \

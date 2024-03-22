@@ -22,6 +22,7 @@ void *sbrk(size_t increment) {
 }
 
 int  __errnoF = 0;
+int  __errno_location = 0;
 void __errno() { return &__errnoF; }
 
 void abort() {
