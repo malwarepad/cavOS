@@ -20,7 +20,7 @@ extern void weirdTests();
 
 char *argv[] = {"/software/a.cav", "--no-color", "-p"};
 void  testingInit() {
-  elf_execute("/software/a.cav", 3, argv);
+  // elf_execute("/software/a.cav", 3, argv);
   // elf_execute("/software/testing.cav", 3, argv);
 }
 
