@@ -6,6 +6,14 @@
 #define MSRID_FSBASE 0xC0000100
 #define MSRID_GSBASE 0xC0000101
 
+#define MSRID_EFER 0xC0000080
+#define MSRID_STAR 0xC0000081
+#define MSRID_LSTAR 0xC0000082
+#define MSRID_FMASK 0xC0000084
+
+#define RFLAGS_IF (1 << 9)
+#define RFLAGS_DF (1 << 10)
+
 typedef struct {
   uint64_t ds; // & es
 

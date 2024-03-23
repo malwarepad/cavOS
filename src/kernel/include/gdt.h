@@ -58,8 +58,8 @@ typedef struct GDTPtr {
 #define NUM_GDT_ENTRIES 7
 #define GDT_KERNEL_CODE 40
 #define GDT_KERNEL_DATA 48
-#define GDT_USER_CODE 72
-#define GDT_USER_DATA 80
+#define GDT_USER_CODE 80
+#define GDT_USER_DATA 72
 #define GDT_TSS 80
 
 void initiateGDT();

@@ -72,20 +72,20 @@ void initiateGDT() {
   gdt.descriptors[8] = (GDTEntry){0}; // (64)
 
   // User code 64. (72)
-  gdt.descriptors[9].limit = 0;
-  gdt.descriptors[9].base_low = 0;
-  gdt.descriptors[9].base_mid = 0;
-  gdt.descriptors[9].access = 0b11111010;
-  gdt.descriptors[9].granularity = 0b00100000;
-  gdt.descriptors[9].base_high = 0;
-
-  // User data 64. (80)
   gdt.descriptors[10].limit = 0;
   gdt.descriptors[10].base_low = 0;
   gdt.descriptors[10].base_mid = 0;
-  gdt.descriptors[10].access = 0b11110010;
-  gdt.descriptors[10].granularity = 0;
+  gdt.descriptors[10].access = 0b11111010;
+  gdt.descriptors[10].granularity = 0b00100000;
   gdt.descriptors[10].base_high = 0;
+
+  // User data 64. (80)
+  gdt.descriptors[9].limit = 0;
+  gdt.descriptors[9].base_low = 0;
+  gdt.descriptors[9].base_mid = 0;
+  gdt.descriptors[9].access = 0b11110010;
+  gdt.descriptors[9].granularity = 0;
+  gdt.descriptors[9].base_high = 0;
 
   // TSS. (88)
   gdt.tss.length = 104;

@@ -12,6 +12,43 @@
 
 #define DEBUG_SYSCALLS 0
 
+void cpuid(uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx) {
+  asm volatile("cpuid \n"
+               : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx)
+               : "a"(*eax)
+               : "memory");
+}
+
+bool checkSyscallInst() {
+  uint32_t eax = 0x80000001, ebx = 0, ecx = 0, edx = 0;
+  cpuid(&eax, &ebx, &ecx, &edx);
+  return (edx >> 11) & 1;
+}
+
+extern void syscall_entry();
+void        initiateSyscallInst() {
+  if (!checkSyscallInst()) {
+    debugf("[syscalls] FATAL! No support for the syscall instruction found!\n");
+    panic();
+  }
+
+  uint64_t star_reg = rdmsr(MSRID_STAR);
+  star_reg &= 0x00000000ffffffff;
+
+  star_reg |= ((uint64_t)GDT_USER_CODE - 16) << 48;
+  star_reg |= ((uint64_t)GDT_KERNEL_CODE) << 32;
+  wrmsr(MSRID_STAR, star_reg);
+
+  // entry defined in isr.asm
+  wrmsr(MSRID_LSTAR, (uint64_t)syscall_entry);
+
+  uint64_t efer_reg = rdmsr(MSRID_EFER);
+  efer_reg |= 1 << 0;
+  wrmsr(MSRID_EFER, efer_reg);
+
+  wrmsr(MSRID_FMASK, RFLAGS_IF | RFLAGS_DF);
+}
+
 uint32_t syscallCnt = 0;
 #define MAX_SYSCALLS 420
 uint64_t syscalls[MAX_SYSCALLS] = {0};
@@ -33,8 +70,7 @@ void     registerSyscall(uint32_t id, void *handler) {
 
 typedef uint64_t (*SyscallHandler)(uint64_t a1, uint64_t a2, uint64_t a3,
                                    uint64_t a4, uint64_t a5, uint64_t a6);
-AsmPassedInterrupt *currGlobalRegs = 0;
-void                syscallHandler(AsmPassedInterrupt *regs) {
+void syscallHandler(AsmPassedInterrupt *regs) {
   uint64_t id = regs->rax;
   void    *handler = syscalls[id];
 
@@ -44,13 +80,10 @@ void                syscallHandler(AsmPassedInterrupt *regs) {
     return;
   }
 
-  currGlobalRegs = regs;
-
   int ret = ((SyscallHandler)(handler))(regs->rdi, regs->rsi, regs->rdx,
                                         regs->r10, regs->r8, regs->r9);
 
   regs->rax = ret;
-  currGlobalRegs = regs;
 }
 
 bool running = false;
@@ -193,7 +226,7 @@ static void syscallExitTask(int return_code) {
 #endif
   kill_task(currentTask->id);
 
-  schedule(currGlobalRegs); // go to the next task (will re-enable interrupts)
+  // should not return
 }
 
 #define SYSCALL_GET_HEAP_START 402

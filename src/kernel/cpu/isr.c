@@ -104,6 +104,11 @@ void registerIRQhandler(uint8_t id, void *handler) {
 }
 
 void handleTaskFault(AsmPassedInterrupt *regs) {
+  if (regs->interrupt == 14) {
+    uint64_t err_pos;
+    asm volatile("movq %%cr2, %0" : "=r"(err_pos));
+    debugf("[isr] Page fault occured at: %lx\n", err_pos);
+  }
   debugf("[isr::task] Killing task{%d} because of %s!\n", currentTask->id,
          exceptions[regs->interrupt]);
   kill_task(currentTask->id);

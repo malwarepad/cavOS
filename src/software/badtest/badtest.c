@@ -39,7 +39,7 @@ void serial_send(int device, char out) {
 #define __NR_write 1
 size_t my_write(int fd, const void *buf, size_t size) {
   size_t ret;
-  asm volatile("int $0x80"
+  asm volatile("syscall"
                : "=a"(ret)
                //                 EDI      RSI       RDX
                : "0"(__NR_write), "D"(fd), "S"(buf), "d"(size)
@@ -48,7 +48,7 @@ size_t my_write(int fd, const void *buf, size_t size) {
 }
 #define __NR_exit 60
 void my_exit(int code) {
-  asm volatile("int $0x80" ::"a"(__NR_exit), "D"(code) : "memory");
+  asm volatile("syscall" ::"a"(__NR_exit), "D"(code) : "memory");
 }
 
 uint32_t strlength(char *ch) {
@@ -149,7 +149,8 @@ int main(int argc, char **argv) {
   // for (int i = 0; i < strlength(msg); i++)
   //   serial_send(COM1, msg[i]);
 
-  // my_write(1, msg, strlength(msg));
+  // int out = my_write(1, msg, strlength(msg));
+  // printNum(out);
 
   char *nl = "\n";
   for (int i = 0; i < argc; i++) {

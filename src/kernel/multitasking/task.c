@@ -199,7 +199,11 @@ void kill_task(uint32_t id) {
   ChangePageDirectory(defaultPagedir);*/
   // ^ not needed because of PageDirectoryFree() doing it automatically
 
-  PageDirectoryFree(task->pagedir);
+  uint64_t currPagedir = GetPageDirectory();
+  if (currPagedir == task->pagedir)
+    ChangePageDirectory(getTask(KERNEL_TASK)->pagedir);
+
+  // PageDirectoryFree(task->pagedir); // left for sched
 
   // close any left open files
   OpenFile *file = task->firstFile;
@@ -213,13 +217,24 @@ void kill_task(uint32_t id) {
   currentTask = old;
 
   // funny workaround to save state somewhere
-  memset(dummyTask, 0, sizeof(Task));
-  if (currentTask == task)
-    currentTask = dummyTask;
-  free(task);
+  // memset(dummyTask, 0, sizeof(Task));
+  // if (currentTask == task)
+  //   currentTask = dummyTask;
+
+  // free(task); // left for sched
 
   // task->state = TASK_STATE_DEAD;
-  releaseInterrupts();
+  // releaseInterrupts();
+
+  asm volatile("sti");
+  // wait until we're outta here
+  while (1) {
+  }
+}
+
+void killed_task_cleanup(Task *task) {
+  PageDirectoryFree(task->pagedir);
+  free(task);
 }
 
 uint8_t *getTaskState(uint32_t id) {

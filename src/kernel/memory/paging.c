@@ -267,14 +267,13 @@ uint64_t *PageDirectoryAllocate() {
 // todo: clear orphans after a whole page level is emptied!
 // destroys any userland stuff on the page directory
 void PageDirectoryFree(uint64_t *page_dir) {
-  uint32_t *prev_pagedir = GetPageDirectory();
-  ChangePageDirectory(page_dir);
+  // uint32_t *prev_pagedir = GetPageDirectory();
+  // ChangePageDirectory(page_dir);
 
   for (int pml4_index = 0; pml4_index < 512; pml4_index++) {
-    if (!(globalPagedir[pml4_index] & PF_PRESENT) ||
-        globalPagedir[pml4_index] & PF_PS)
+    if (!(page_dir[pml4_index] & PF_PRESENT) || page_dir[pml4_index] & PF_PS)
       continue;
-    size_t *pdp = PTE_GET_ADDR(globalPagedir[pml4_index]) + HHDMoffset;
+    size_t *pdp = PTE_GET_ADDR(page_dir[pml4_index]) + HHDMoffset;
 
     for (int pdp_index = 0; pdp_index < 512; pdp_index++) {
       if (!(pdp[pdp_index] & PF_PRESENT) || pdp[pdp_index] & PF_PS)
@@ -301,5 +300,5 @@ void PageDirectoryFree(uint64_t *page_dir) {
     }
   }
 
-  ChangePageDirectory(prev_pagedir);
+  // ChangePageDirectory(prev_pagedir);
 }

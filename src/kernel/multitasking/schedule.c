@@ -1,6 +1,7 @@
 #include <bootloader.h>
 #include <gdt.h>
 #include <isr.h>
+#include <malloc.h>
 #include <paging.h>
 #include <schedule.h>
 #include <system.h>
@@ -17,18 +18,29 @@ extern TSSPtr *tssPtr;
 
 // We need to "fix" (=ensure it's high enough) the RSP so the interrupt handler
 // can do whatever it wants
-uint8_t *genericStack = 0;
-uint64_t rsp_fix(uint64_t rsp) {
-  AsmPassedInterrupt *cpu = (AsmPassedInterrupt *)rsp;
-
-  if (!genericStack) {
-    genericStack = VirtualAllocate(10);
-    memset(genericStack, 0, 10 * BLOCK_SIZE);
-    genericStack -= sizeof(AsmPassedInterrupt);
+uint64_t generateNewHeap(uint64_t rsp, size_t size, void **saved) {
+  if (!*saved) {
+    *saved = VirtualAllocate(10);
+    memset(*saved, 0, 10 * BLOCK_SIZE);
+    *saved -= size;
   }
 
-  memcpy(genericStack, cpu, sizeof(AsmPassedInterrupt));
-  return genericStack;
+  memcpy(*saved, rsp, size);
+  return *saved;
+}
+
+// for interrupts
+uint8_t *genericStack = 0;
+uint64_t rsp_fix(uint64_t rsp) {
+  return generateNewHeap(rsp, sizeof(AsmPassedInterrupt), &genericStack);
+}
+
+// for syscalls (w/syscall instruction)
+uint8_t *genericStackSyscall = 0;
+uint64_t rsp_fix_syscall(uint64_t rsp) {
+  return generateNewHeap(rsp,
+                         // +8 since we also have the initial RSP
+                         sizeof(AsmPassedInterrupt) + 8, &genericStackSyscall);
 }
 
 void schedule(uint64_t rsp) {
@@ -77,4 +89,8 @@ void schedule(uint64_t rsp) {
 
   // Apply pagetable
   ChangePageDirectory(next->pagedir);
+
+  // Cleanup any old tasks left dead
+  if (old->state == TASK_STATE_DEAD)
+    killed_task_cleanup(old);
 }

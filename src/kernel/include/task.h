@@ -59,6 +59,7 @@ Task    *create_task(uint32_t id, uint64_t rip, bool kernel_task,
                      uint64_t *pagedir, uint32_t argc, char **argv);
 void     adjust_user_heap(Task *task, size_t new_heap_end);
 void     kill_task(uint32_t id);
+void     killed_task_cleanup(Task *task);
 uint8_t *getTaskState(uint32_t id);
 Task    *getTask(uint32_t id);
 
