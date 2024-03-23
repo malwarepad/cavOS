@@ -152,6 +152,10 @@ int main(int argc, char **argv) {
   // int out = my_write(1, msg, strlength(msg));
   // printNum(out);
 
+  float hehe = 0.755;
+  hehe += 1;
+  hehe /= 2;
+
   char *nl = "\n";
   for (int i = 0; i < argc; i++) {
     my_write(1, argv[i], strlength(argv[i]));

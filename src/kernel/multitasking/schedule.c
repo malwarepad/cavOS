@@ -93,4 +93,8 @@ void schedule(uint64_t rsp) {
   // Cleanup any old tasks left dead
   if (old->state == TASK_STATE_DEAD)
     killed_task_cleanup(old);
+
+  // Save & load appropriate FPU state
+  asm volatile(" fxsave %0 " ::"m"(old->fpuenv));
+  asm volatile(" fxrstor %0 " ::"m"(next->fpuenv));
 }

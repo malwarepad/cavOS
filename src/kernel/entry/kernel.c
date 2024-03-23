@@ -69,6 +69,8 @@ int _start(void) {
 
   initiateSyscallInst();
   initiateSyscalls();
+
+  initiateSSE();
   initiateTasks();
 
   testingInit();

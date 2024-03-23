@@ -12,13 +12,6 @@
 
 #define DEBUG_SYSCALLS 0
 
-void cpuid(uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx) {
-  asm volatile("cpuid \n"
-               : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx)
-               : "a"(*eax)
-               : "memory");
-}
-
 bool checkSyscallInst() {
   uint32_t eax = 0x80000001, ebx = 0, ecx = 0, edx = 0;
   cpuid(&eax, &ebx, &ecx, &edx);

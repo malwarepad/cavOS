@@ -3,6 +3,8 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
+void cpuid(uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx);
+
 // Ports
 uint8_t inportb(uint16_t _port);
 void    outportb(uint16_t _port, uint8_t _data);
@@ -16,6 +18,9 @@ void     outportl(uint16_t portid, uint32_t value);
 // Model Specific Registers (MSRs)
 uint64_t rdmsr(uint32_t msrid);
 uint64_t wrmsr(uint32_t msrid, uint64_t value);
+
+// Streaming SIMD Extensions
+void initiateSSE();
 
 // Generic
 void panic();

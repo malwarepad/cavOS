@@ -45,6 +45,8 @@ struct Task {
   uint32_t  tmpRecV;
   OpenFile *firstFile;
 
+  __attribute__((aligned(16))) uint8_t fpuenv[512];
+
   Task *next;
 } __attribute__((packed));
 

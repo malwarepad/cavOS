@@ -4,6 +4,13 @@
 // Source code for handling ports via assembly references
 // Copyright (C) 2024 Panagiotis
 
+void cpuid(uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx) {
+  asm volatile("cpuid \n"
+               : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx)
+               : "a"(*eax)
+               : "memory");
+}
+
 uint8_t inportb(uint16_t _port) {
   uint8_t rv;
   __asm__ __volatile__("inb %1, %0" : "=a"(rv) : "dN"(_port));
@@ -46,6 +53,33 @@ uint64_t wrmsr(uint32_t msrid, uint64_t value) {
   uint32_t high = value >> 32 & 0xFFFFFFFF;
   __asm__ __volatile__("wrmsr" : : "a"(low), "d"(high), "c"(msrid) : "memory");
   return value;
+}
+
+bool checkSSE() {
+  uint32_t eax = 0x1, ebx = 0, ecx = 0, edx = 0;
+  cpuid(&eax, &ebx, &ecx, &edx);
+  return (edx >> 25) & 1;
+}
+
+bool checkFXSR() {
+  uint32_t eax = 0x1, ebx = 0, ecx = 0, edx = 0;
+  cpuid(&eax, &ebx, &ecx, &edx);
+  return (edx >> 24) & 1;
+}
+
+extern void asm_enable_SSE();
+void        initiateSSE() {
+  if (!checkSSE()) {
+    debugf("[sse] FATAL! No support for Streaming Simd Extensions found!\n");
+    panic();
+  }
+
+  if (!checkFXSR()) {
+    debugf("[sse] FATAL! No support for FXSR found!\n");
+    panic();
+  }
+
+  asm_enable_SSE();
 }
 
 void panic() {
