@@ -169,7 +169,7 @@ static int syscallMmap(uint32_t addr, uint32_t length, uint32_t prot,
 }
 
 #define SYSCALL_BRK 12
-static int syscallBrk(uint32_t brk) {
+static uint64_t syscallBrk(uint64_t brk) {
   if (!brk)
     return currentTask->heap_end;
 
