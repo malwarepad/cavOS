@@ -73,9 +73,9 @@ void schedule(uint64_t rsp) {
   // Change TSS rsp0 (software multitasking)
   tssPtr->rsp0 = genericStack + sizeof(AsmPassedInterrupt);
 
-  // Save MSRIDs
-  old->fsbase = rdmsr(MSRID_FSBASE);
-  old->gsbase = rdmsr(MSRID_GSBASE);
+  // Save MSRIDs (HIGHLY unsure)
+  // old->fsbase = rdmsr(MSRID_FSBASE);
+  // old->gsbase = rdmsr(MSRID_GSBASE);
 
   // Apply new MSRIDs
   wrmsr(MSRID_FSBASE, next->fsbase);

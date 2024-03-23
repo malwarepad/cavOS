@@ -230,8 +230,8 @@ static int syscallPrctl(int code, size_t addr) {
 
   switch (code) {
   case 0x1002:
-    // currentTask->fsbase = addr;
-    // wrmsr(MSRID_FSBASE, currentTask->fsbase);
+    currentTask->fsbase = addr;
+    wrmsr(MSRID_FSBASE, currentTask->fsbase);
 
     return 0;
     break;
