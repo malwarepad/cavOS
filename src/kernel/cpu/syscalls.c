@@ -10,7 +10,7 @@
 #include <task.h>
 #include <util.h>
 
-#define DEBUG_SYSCALLS 0
+#define DEBUG_SYSCALLS 1
 
 bool checkSyscallInst() {
   uint32_t eax = 0x80000001, ebx = 0, ecx = 0, edx = 0;
@@ -222,6 +222,25 @@ static void syscallExitTask(int return_code) {
   // should not return
 }
 
+#define SYSCALL_PRCTL 158
+static int syscallPrctl(int code, size_t addr) {
+#if DEBUG_SYSCALLS
+  debugf("[syscalls] Prctl: code{%d} addr{%lx}!\n", code, addr);
+#endif
+
+  switch (code) {
+  case 0x1002:
+    // currentTask->fsbase = addr;
+    // wrmsr(MSRID_FSBASE, currentTask->fsbase);
+
+    return 0;
+    break;
+  default:
+    return -1;
+    break;
+  }
+}
+
 #define SYSCALL_GET_HEAP_START 402
 static uint32_t syscallGetHeapStart() { return currentTask->heap_start; }
 
@@ -255,6 +274,7 @@ void initiateSyscalls() {
   registerSyscall(SYSCALL_BRK, syscallBrk);
   registerSyscall(SYSCALL_MMAP, syscallMmap);
   registerSyscall(SYSCALL_WRITEV, syscallWriteV);
+  registerSyscall(SYSCALL_PRCTL, syscallPrctl);
 
   debugf("[syscalls] System calls are ready to fire: %d/%d\n", syscallCnt,
          MAX_SYSCALLS);

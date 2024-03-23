@@ -14,10 +14,10 @@
 
 // todo: move stack creation to this file, or have some way of controlling it
 // for strictly kernel-only tasks, where ELF execution is not used!
+
+// todo: also do something with the interrupt lock/unlocking
 Task *create_task(uint32_t id, uint64_t rip, bool kernel_task,
                   uint64_t *pagedir, uint32_t argc, char **argv) {
-  lockInterrupts();
-
   Task *browse = firstTask;
   while (browse) {
     if (!browse->next)
@@ -75,60 +75,6 @@ Task *create_task(uint32_t id, uint64_t rip, bool kernel_task,
 
   target->heap_start = USER_HEAP_START;
   target->heap_end = USER_HEAP_START;
-
-  // todo (when userspace tasks are ready)
-  if (!kernel_task && argc) {
-    // yeah, we will need to construct a stackframe...
-    void *oldPagedir = GetPageDirectory();
-    ChangePageDirectory(target->pagedir);
-
-    // Store argument contents
-    uint32_t argSpace = 0;
-    for (int i = 0; i < argc; i++)
-      argSpace += strlength(argv[i]) + 1; // null terminator
-    uint8_t *argStart = target->heap_end;
-    adjust_user_heap(target, target->heap_end + argSpace);
-    size_t ellapsed = 0;
-    for (int i = 0; i < argc; i++) {
-      uint32_t len = strlength(argv[i]) + 1; // null terminator
-      memcpy((size_t)argStart + ellapsed, argv[i], len);
-      ellapsed += len;
-    }
-
-    // todo: Proper environ
-    uint64_t *environStart = target->heap_end;
-    adjust_user_heap(target, target->heap_end + sizeof(uint64_t) * 10);
-    memset(environStart, 0, sizeof(uint64_t) * 10);
-    environStart[0] = &environStart[5];
-
-    // Reserve stack space for environ
-    target->registers.usermode_rsp -= sizeof(uint64_t);
-    uint64_t *finalEnviron = target->registers.usermode_rsp;
-
-    // Store argument pointers (directly in stack)
-    size_t finalEllapsed = 0;
-    // ellapsed already has the full size lol
-    for (int i = argc - 1; i >= 0; i--) {
-      target->registers.usermode_rsp -= sizeof(uint64_t);
-      uint64_t *finalArgv = target->registers.usermode_rsp;
-
-      uint32_t len = strlength(argv[i]) + 1; // null terminator
-      finalEllapsed += len;
-      *finalArgv = (size_t)argStart + (ellapsed - finalEllapsed);
-    }
-
-    // Reserve stack space for argc
-    target->registers.usermode_rsp -= sizeof(uint64_t);
-    uint64_t *finalArgc = target->registers.usermode_rsp;
-
-    // Put everything left in the stack, as expected
-    *finalArgc = argc;
-    *finalEnviron = finalEnviron;
-
-    ChangePageDirectory(oldPagedir);
-  }
-
-  releaseInterrupts();
 
   return target;
 }

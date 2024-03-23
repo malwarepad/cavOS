@@ -138,7 +138,88 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
   debugf("[elf] New pagedir: offset{%x}\n", pagedir);
 #endif
 
-  create_task(id, (uint64_t)elf_ehdr->e_entry, false, pagedir, argc, argv);
+  Task *target =
+      create_task(id, (uint64_t)elf_ehdr->e_entry, false, pagedir, argc, argv);
+
+  // yeah, we will need to construct a stackframe...
+  void *oldPagedir = GetPageDirectory();
+  ChangePageDirectory(target->pagedir);
+
+#define PUSH_TO_STACK(a, b, c)                                                 \
+  a -= sizeof(b);                                                              \
+  *((b *)(a)) = c
+
+  int *randomByteStart = target->heap_end;
+  adjust_user_heap(target, target->heap_end + 16);
+  for (int i = 0; i < 4; i++)
+    randomByteStart[i] = rand();
+
+  // aux: AT_NULL
+  PUSH_TO_STACK(target->registers.usermode_rsp, size_t, (size_t)0);
+  PUSH_TO_STACK(target->registers.usermode_rsp, size_t, (size_t)0);
+  // aux: AT_RANDOM
+  PUSH_TO_STACK(target->registers.usermode_rsp, size_t,
+                (size_t)randomByteStart);
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 25);
+  // aux: AT_PAGESZ
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 4096);
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 6);
+  // aux: AT_PHNUM
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, elf_ehdr->e_phnum);
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 5);
+  // aux: AT_PHENT
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t,
+                elf_ehdr->e_shentsize);
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 4);
+  // aux: AT_PHDR
+  PUSH_TO_STACK(target->registers.usermode_rsp, size_t,
+                (size_t)out + elf_ehdr->e_phoff);
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 3);
+
+  // Store argument contents
+  uint32_t argSpace = 0;
+  for (int i = 0; i < argc; i++)
+    argSpace += strlength(argv[i]) + 1; // null terminator
+  uint8_t *argStart = target->heap_end;
+  adjust_user_heap(target, target->heap_end + argSpace);
+  size_t ellapsed = 0;
+  for (int i = 0; i < argc; i++) {
+    uint32_t len = strlength(argv[i]) + 1; // null terminator
+    memcpy((size_t)argStart + ellapsed, argv[i], len);
+    ellapsed += len;
+  }
+
+  // todo: Proper environ
+  uint64_t *environStart = target->heap_end;
+  adjust_user_heap(target, target->heap_end + sizeof(uint64_t) * 10);
+  memset(environStart, 0, sizeof(uint64_t) * 10);
+  environStart[0] = &environStart[5];
+
+  // Reserve stack space for environ
+  target->registers.usermode_rsp -= sizeof(uint64_t);
+  uint64_t *finalEnviron = target->registers.usermode_rsp;
+
+  // Store argument pointers (directly in stack)
+  size_t finalEllapsed = 0;
+  // ellapsed already has the full size lol
+  for (int i = argc - 1; i >= 0; i--) {
+    target->registers.usermode_rsp -= sizeof(uint64_t);
+    uint64_t *finalArgv = target->registers.usermode_rsp;
+
+    uint32_t len = strlength(argv[i]) + 1; // null terminator
+    finalEllapsed += len;
+    *finalArgv = (size_t)argStart + (ellapsed - finalEllapsed);
+  }
+
+  // Reserve stack space for argc
+  target->registers.usermode_rsp -= sizeof(uint64_t);
+  uint64_t *finalArgc = target->registers.usermode_rsp;
+
+  // Put everything left in the stack, as expected
+  *finalArgc = argc;
+  *finalEnviron = finalEnviron;
+
+  ChangePageDirectory(oldPagedir);
 
   // Cleanup...
   free(out);
