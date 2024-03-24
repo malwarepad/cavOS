@@ -53,7 +53,8 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
 #if ELF_DEBUG
   debugf("[elf] Executing %s: filesize{%d}\n", filepath, dir->filesize);
 #endif
-  uint8_t *out = (uint8_t *)malloc(fsGetFilesize(dir));
+  size_t   filesize = fsGetFilesize(dir);
+  uint8_t *out = (uint8_t *)malloc(filesize);
   fsReadFullFile(dir, out);
   fsKernelClose(dir);
 
@@ -172,8 +173,11 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
                 elf_ehdr->e_shentsize);
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 4);
   // aux: AT_PHDR
+  void *phstuffStart = target->heap_end;
+  adjust_user_heap(target, target->heap_end + filesize);
+  memcpy(phstuffStart, out, filesize);
   PUSH_TO_STACK(target->registers.usermode_rsp, size_t,
-                (size_t)out + elf_ehdr->e_phoff);
+                (size_t)phstuffStart + elf_ehdr->e_phoff);
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 3);
 
   // Store argument contents
@@ -190,14 +194,7 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
   }
 
   // todo: Proper environ
-  uint64_t *environStart = target->heap_end;
-  adjust_user_heap(target, target->heap_end + sizeof(uint64_t) * 10);
-  memset(environStart, 0, sizeof(uint64_t) * 10);
-  environStart[0] = &environStart[5];
-
-  // Reserve stack space for environ
-  target->registers.usermode_rsp -= sizeof(uint64_t);
-  uint64_t *finalEnviron = target->registers.usermode_rsp;
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 0);
 
   // Store argument pointers (directly in stack)
   size_t finalEllapsed = 0;
@@ -211,13 +208,8 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
     *finalArgv = (size_t)argStart + (ellapsed - finalEllapsed);
   }
 
-  // Reserve stack space for argc
-  target->registers.usermode_rsp -= sizeof(uint64_t);
-  uint64_t *finalArgc = target->registers.usermode_rsp;
-
-  // Put everything left in the stack, as expected
-  *finalArgc = argc;
-  *finalEnviron = finalEnviron;
+  // argc
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, argc);
 
   ChangePageDirectory(oldPagedir);
 
