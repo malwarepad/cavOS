@@ -65,7 +65,8 @@ typedef uint64_t (*SyscallHandler)(uint64_t a1, uint64_t a2, uint64_t a3,
                                    uint64_t a4, uint64_t a5, uint64_t a6);
 void syscallHandler(AsmPassedInterrupt *regs) {
   uint64_t id = regs->rax;
-  void    *handler = syscalls[id];
+  debugf("SYSCALL %d\n", id);
+  void *handler = syscalls[id];
 
   if (!handler) {
     regs->rax = -1;
@@ -73,8 +74,8 @@ void syscallHandler(AsmPassedInterrupt *regs) {
     return;
   }
 
-  int ret = ((SyscallHandler)(handler))(regs->rdi, regs->rsi, regs->rdx,
-                                        regs->r10, regs->r8, regs->r9);
+  long int ret = ((SyscallHandler)(handler))(regs->rdi, regs->rsi, regs->rdx,
+                                             regs->r10, regs->r8, regs->r9);
 
   regs->rax = ret;
 }
@@ -126,7 +127,7 @@ static int syscallWrite(int file, char *str, uint32_t count) {
 #if DEBUG_SYSCALLS
   debugf("[syscalls::write] file{%d} str{%x} count{%d}\n", file, str, count);
 #endif
-  if (file == 0 || file == 1) {
+  if (file == 0 || file == 1 || file == 2) {
     // console fb
     for (int i = 0; i < count; i++) {
       serial_send(COM1, str[i]);
@@ -158,14 +159,19 @@ static int syscallLseek(uint32_t file, int offset, int whence) {
 }
 
 #define SYSCALL_MMAP 9
-static int syscallMmap(uint32_t addr, uint32_t length, uint32_t prot,
-                       uint32_t flags, uint32_t fd, uint32_t pgoffset) {
-  debugf("[syscalls::mmap] UNIMPLEMENTED! addr{%x} len{%x} prot{%x} flags{%x} "
-         "fd{%x} "
-         "pgoffset{%x}\n",
-         addr, length, prot, flags, fd, pgoffset);
+static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
+                            int fd, size_t pgoffset) {
+  debugf(
+      "[syscalls::mmap] UNIMPLEMENTED! addr{%lx} len{%lx} prot{%d} flags{%x} "
+      "fd{%d} "
+      "pgoffset{%x}\n",
+      addr, length, prot, flags, fd, pgoffset);
 
-  return -1;
+  size_t curr = currentTask->heap_end;
+  debugf("%lx\n", curr);
+  adjust_user_heap(currentTask, currentTask->heap_end + length);
+
+  return curr;
 }
 
 #define SYSCALL_BRK 12
@@ -241,6 +247,15 @@ static int syscallPrctl(int code, size_t addr) {
   }
 }
 
+#define SYSCALL_GET_TID 186
+static int syscallGetTid() { return currentTask->id; }
+
+#define SYSCALL_SET_TID_ADDR 218
+static int syscallSetTidAddr(int *tidptr) {
+  debugf("[syscalls] tid: %lx\n", tidptr);
+  return -1;
+}
+
 #define SYSCALL_GET_HEAP_START 402
 static uint32_t syscallGetHeapStart() { return currentTask->heap_start; }
 
@@ -275,6 +290,8 @@ void initiateSyscalls() {
   registerSyscall(SYSCALL_MMAP, syscallMmap);
   registerSyscall(SYSCALL_WRITEV, syscallWriteV);
   registerSyscall(SYSCALL_PRCTL, syscallPrctl);
+  registerSyscall(SYSCALL_SET_TID_ADDR, syscallSetTidAddr);
+  registerSyscall(SYSCALL_GET_TID, syscallGetTid);
 
   debugf("[syscalls] System calls are ready to fire: %d/%d\n", syscallCnt,
          MAX_SYSCALLS);

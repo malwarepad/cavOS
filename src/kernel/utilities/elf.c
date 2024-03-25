@@ -196,6 +196,9 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
   // todo: Proper environ
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 0);
 
+  // end of argv
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 0);
+
   // Store argument pointers (directly in stack)
   size_t finalEllapsed = 0;
   // ellapsed already has the full size lol
@@ -210,6 +213,10 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
 
   // argc
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, argc);
+
+  /*for (uint64_t i = target->registers.usermode_rsp; i < USER_STACK_BOTTOM;
+       i += sizeof(uint64_t))
+    debugf("[%lx] %lx\n", i, *((uint64_t *)i));*/
 
   ChangePageDirectory(oldPagedir);
 
