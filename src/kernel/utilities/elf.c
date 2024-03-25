@@ -89,10 +89,13 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
     panic();
   }
 
+  size_t tls = 0;
   // Loop through the multiple ELF32 program header tables
   for (int i = 0; i < elf_ehdr->e_phnum; i++) {
     Elf64_Phdr *elf_phdr = (Elf64_Phdr *)((size_t)out + elf_ehdr->e_phoff +
                                           i * elf_ehdr->e_phentsize);
+    if (elf_phdr->p_type == 7)
+      tls = elf_phdr->p_vaddr;
     if (elf_phdr->p_type != PT_LOAD)
       continue;
 
@@ -141,6 +144,9 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
 
   Task *target =
       create_task(id, (uint64_t)elf_ehdr->e_entry, false, pagedir, argc, argv);
+
+  if (tls)
+    target->fsbase = tls;
 
   // yeah, we will need to construct a stackframe...
   void *oldPagedir = GetPageDirectory();
