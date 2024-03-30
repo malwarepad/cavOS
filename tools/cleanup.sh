@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -x # show cmds
 
 # $1 -> mounted volume

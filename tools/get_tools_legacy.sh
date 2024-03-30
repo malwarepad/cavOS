@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -x # show cmds
 set -e # fail globally
 export PREFIX="$HOME/opt/cross"

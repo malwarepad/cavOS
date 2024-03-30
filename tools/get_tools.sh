@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -x # show cmds
 set -e # fail globally
 
@@ -8,7 +8,7 @@ SCRIPTPATH=$(dirname "$SCRIPT")
 cd "${SCRIPTPATH}"
 
 export PREFIX="$HOME/opt/cross"
-export TARGET=i686-cavos
+export TARGET=x86_64-cavos
 export SYSROOT="$SCRIPTPATH/../target"
 export PATH="$PREFIX/bin:$PATH"
 
@@ -53,6 +53,8 @@ patch -p1 <"${SCRIPTPATH}/../patches/gcc.diff"
 cd libstdc++-v3/
 autoconf
 cd ../
+
+./contrib/download_prerequisites
 
 mkdir -p build
 cd build
