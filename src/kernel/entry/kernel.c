@@ -2,7 +2,6 @@
 #include <console.h>
 #include <disk.h>
 #include <elf.h>
-#include <fat32.h>
 #include <fb.h>
 #include <gdt.h>
 #include <idt.h>

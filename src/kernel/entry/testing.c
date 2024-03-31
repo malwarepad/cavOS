@@ -1,6 +1,7 @@
 #include <arp.h>
 #include <elf.h>
 #include <icmp.h>
+#include <malloc.h>
 #include <md5.h>
 #include <ne2k.h>
 #include <pci.h>
@@ -20,6 +21,7 @@ extern void weirdTests();
 
 char *argv[] = {"/software/a.cav", "--no-color", "-p"};
 void  testingInit() {
+  // weirdTests();
   // elf_execute("/software/a.cav", 3, argv);
   // elf_execute("/software/testing.cav", 3, argv);
 }

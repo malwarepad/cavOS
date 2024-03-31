@@ -1,5 +1,4 @@
 #include <disk.h>
-#include <fat32.h>
 #include <fs_controller.h>
 #include <linked_list.h>
 #include <malloc.h>
@@ -8,12 +7,15 @@
 #include <task.h>
 #include <util.h>
 
+#include "./fatfs/ff.h"
+
 bool fsUnmount(MountPoint *mnt) {
   LinkedListUnregister(&firstMountPoint, mnt);
 
   switch (mnt->filesystem) {
   case FS_FAT32:
-    finaliseFat32(mnt);
+    // todo!!
+    f_unmount("/");
     break;
   }
 
@@ -21,6 +23,17 @@ bool fsUnmount(MountPoint *mnt) {
   free(mnt);
 
   return true;
+}
+
+bool isFat(mbr_partition *mbr) {
+  uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
+  getDiskBytes(rawArr, mbr->lba_first_sector, 1);
+
+  bool ret = (rawArr[66] == 0x28 || rawArr[66] == 0x29);
+
+  free(rawArr);
+
+  return ret;
 }
 
 // prefix MUST end with '/': /mnt/handle/
@@ -46,9 +59,12 @@ MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
       return 0;
     }
 
-    if (isFat32(&mount->mbr)) {
+    if (isFat(&mount->mbr)) {
       mount->filesystem = FS_FAT32;
-      ret = initiateFat32(mount);
+      mount->fsInfo = malloc(sizeof(FATFS));
+      memset(mount->fsInfo, 0, sizeof(FATFS));
+      ret = f_mount(mount->fsInfo, "/", 1) ==
+            FR_OK; // todo: (maybe) multiple drives
     }
     break;
   case CONNECTOR_DUMMY:
@@ -114,6 +130,7 @@ bool fsCloseFsSpecific(OpenFile *file) {
   bool res = false;
   switch (file->mountPoint->filesystem) {
   case FS_FAT32:
+    f_close(file->dir);
     free(file->dir);
     res = true;
     break;
@@ -128,9 +145,9 @@ bool fsOpenFsSpecific(char *filename, MountPoint *mnt, OpenFile *target) {
                                     1); // -1 for putting start slash
   switch (mnt->filesystem) {
   case FS_FAT32:
-    FAT32_Directory *dir = (FAT32_Directory *)malloc(sizeof(FAT32_Directory));
-    target->dir = dir;
-    res = fatOpenFile(mnt->fsInfo, dir, strippedFilename);
+    target->dir = malloc(sizeof(FIL));
+    memset(target->dir, 0, sizeof(FIL));
+    res = f_open(target->dir, filename, FA_READ) == FR_OK;
     break;
   case FS_TEST:
     res = 1;
@@ -213,7 +230,7 @@ int fsUserClose(int fd) {
 uint32_t fsGetFilesize(OpenFile *file) {
   switch (file->mountPoint->filesystem) {
   case FS_FAT32:
-    return ((FAT32_Directory *)(file->dir))->filesize;
+    return f_size((FIL *)file->dir);
     break;
   case FS_TEST:
     return 4096;
@@ -227,7 +244,10 @@ uint32_t fsRead(OpenFile *file, char *out, uint32_t limit) {
   uint32_t ret = 0;
   switch (file->mountPoint->filesystem) {
   case FS_FAT32:
-    ret = readFileContents(file, file->mountPoint->fsInfo, out, limit);
+    unsigned int read = 0;
+    bool         output = f_read(file->dir, out, limit, &read) == FR_OK;
+    if (output)
+      ret = read;
     break;
   case FS_TEST:
     memset(out, 'p', limit);
@@ -239,8 +259,7 @@ uint32_t fsRead(OpenFile *file, char *out, uint32_t limit) {
 void fsReadFullFile(OpenFile *file, uint8_t *out) {
   switch (file->mountPoint->filesystem) {
   case FS_FAT32:
-    uint32_t read = readFileContents(file, file->mountPoint->fsInfo, out,
-                                     fsGetFilesize(file));
+    fsRead(file, out, fsGetFilesize(file));
     break;
   case FS_TEST:
     fsRead(file, out, fsGetFilesize(file));
@@ -264,7 +283,10 @@ int fsUserSeek(uint32_t fd, int offset, int whence) {
   bool ret = false;
   switch (file->mountPoint->filesystem) {
   case FS_FAT32:
-    ret = fat32Seek(file, target);
+    // "hack" because fatfs does not use our pointer
+    if (whence == SEEK_CURR)
+      target += f_tell((FIL *)file->dir);
+    ret = f_lseek(file->dir, target);
     break;
   }
   if (!ret)

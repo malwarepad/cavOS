@@ -1,5 +1,4 @@
 #include <console.h>
-#include <fat32.h>
 #include <gdt.h>
 #include <isr.h>
 #include <kb.h>

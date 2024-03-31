@@ -27,9 +27,6 @@ Important to mention these goals may never be satisfied, take a very long time t
   - [x] AHCI
   - [x] PCI read/write
   - [ ] Mouse
-- Filesystems
-  - [ ] Code polishing
-  - [ ] Fat32: Write operations
 - Networking stack
   - [ ] Improve reliability & security
   - [ ] Sockets
