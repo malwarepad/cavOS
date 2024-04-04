@@ -1,9 +1,11 @@
 #include <ahci.h>
+#include <bootloader.h>
 #include <isr.h>
 #include <linked_list.h>
 #include <malloc.h>
 #include <paging.h>
 #include <pmm.h>
+#include <string.h>
 #include <timer.h>
 #include <util.h>
 #include <vmm.h>
@@ -12,10 +14,13 @@
 // Tried to keep the code as simple as I could, good for educational purposes
 // Copyright (C) 2024 Panagiotis
 
-bool isAHCIcontroller(PCIdevice *device) {
-  return (device->vendor_id == 0x15ad && device->device_id == 0x07e0) ||
-         (device->vendor_id == 0x8086 && device->device_id == 0x2829) ||
-         (device->vendor_id == 0x8086 && device->device_id == 0x2922);
+AHCI_DEVICE *isAHCIcontroller(PCIdevice *device) {
+  for (int i = 0; i < (sizeof(ahci_ids) / sizeof(ahci_ids[0])); i++) {
+    if (COMBINE_WORD(device->device_id, device->vendor_id) == ahci_ids[i].id)
+      return &ahci_ids[i];
+  }
+
+  return 0;
 }
 
 // Start command engine
@@ -261,24 +266,34 @@ void probe_port(ahci *ahciPtr, HBA_MEM *abar) {
 }
 
 void ahciInterruptHandler(AsmPassedInterrupt *regs) {
-  ahci *ahciPtr = firstAhci;
-  // printf("[pci::ahci] Interrupt hit!\n");
-  ahciPtr->mem->is = ahciPtr->mem->is;
-  ahciPtr->mem->ports[0].is = ahciPtr->mem->ports[0].is;
+  PCI *browse = firstPCI;
+  while (browse) {
+    if (browse->driver == PCI_DRIVER_AHCI) {
+      ahci *ahciPtr = browse->extra;
+      // printf("[pci::ahci] Interrupt hit!\n");
+      ahciPtr->mem->is = ahciPtr->mem->is;
+      ahciPtr->mem->ports[0].is = ahciPtr->mem->ports[0].is;
+    }
+
+    browse = browse->next;
+  }
 }
 
 bool initiateAHCI(PCIdevice *device) {
-  if (!isAHCIcontroller(device))
+  AHCI_DEVICE *ahciDevice = isAHCIcontroller(device);
+  if (!ahciDevice)
     return false;
 
-  debugf("[pci::ahci] Detected controller!\n");
+  debugf("[pci::ahci] Detected controller! name{%s} quirks{%x}\n",
+         ahciDevice->name, ahciDevice->quirks);
 
   PCIgeneralDevice *details =
       (PCIgeneralDevice *)malloc(sizeof(PCIgeneralDevice));
   GetGeneralDevice(device, details);
+  uint32_t base = details->bar[5] & 0xFFFFFFF0;
 
   // Enable PCI Bus Mastering, memory access and interrupts (if not already)
-  uint32_t command_status = combineWord(device->status, device->command);
+  uint32_t command_status = COMBINE_WORD(device->status, device->command);
   if (!(command_status & (1 << 2)))
     command_status |= (1 << 2);
   if (!(command_status & (1 << 1)))
@@ -288,16 +303,19 @@ bool initiateAHCI(PCIdevice *device) {
   ConfigWriteDword(device->bus, device->slot, device->function, PCI_COMMAND,
                    command_status);
 
-  uint32_t base = details->bar[5] & 0xFFFFFFF0;
-  ahci    *ahciPtr = LinkedListAllocate(&firstAhci, sizeof(ahci));
+  PCI *pci = lookupPCIdevice(device);
+  setupPCIdeviceDriver(pci, PCI_DRIVER_AHCI, PCI_DRIVER_CATEGORY_STORAGE);
 
-  uint32_t pages = DivRoundUp(sizeof(HBA_MEM), PAGE_SIZE);
-  HBA_MEM *mem = (HBA_MEM *)BitmapAllocate(&virtual, pages); //!
+  ahci *ahciPtr = (ahci *)malloc(sizeof(ahci));
+  pci->extra = ahciPtr;
+
+  HBA_MEM *mem = bootloader.hhdmOffset + base; //!
+
+  ahciPtr->bsdInfo = ahciDevice;
   ahciPtr->mem = mem;
-
-  for (int i = 0; i < pages; i++) {
-    VirtualMap((size_t)mem + i * PAGE_SIZE, base + i * PAGE_SIZE, PF_RW);
-  }
+  uint32_t size = strlength(ahciDevice->name) + 1; // null terminated
+  pci->name = (char *)malloc(size);
+  memcpy(pci->name, ahciDevice->name, size);
 
   // do a full HBA reset (as per 10.4.3)
   mem->ghc |= (1 << 0);
@@ -329,7 +347,8 @@ bool initiateAHCI(PCIdevice *device) {
   probe_port(ahciPtr, mem);
 
   // enable interrupts
-  registerIRQhandler(details->interruptLine, &ahciInterruptHandler);
+  pci->irqHandler =
+      registerIRQhandler(details->interruptLine, &ahciInterruptHandler);
   if (!(mem->ghc & (1 << 1)))
     mem->ghc |= 1 << 1;
 

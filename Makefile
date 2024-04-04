@@ -3,6 +3,7 @@ all: disk
 # https://stackoverflow.com/questions/3931741/why-does-make-think-the-target-is-up-to-date
 .PHONY: disk tools clean qemu qemu_dbg vmware dev kernel newlib renewlib cleannewlib limine
 
+# Newlib
 renewlib: cleannewlib newlib
 
 cleannewlib:
@@ -13,6 +14,17 @@ newlib:
 	chmod +x src/libs/newlib/build.sh
 	./src/libs/newlib/build.sh --noreplace
 
+# PCI IDs
+repci_id: cleanpci_id target/usr/share/hwdata/pci.ids
+
+cleanpci_id:
+	rm -f target/usr/share/hwdata/pci.ids || true
+
+target/usr/share/hwdata/pci.ids:
+	mkdir -p target/usr/share/hwdata
+	wget --directory-prefix=target/usr/share/hwdata https://pci-ids.ucw.cz/v2.2/pci.ids
+
+# Limine
 relimine: cleanlimine limine
 	
 cleanlimine:
@@ -22,7 +34,7 @@ limine:
 	@$(MAKE) -C src/bootloader all
 
 # Primary (disk creation)
-disk: limine
+disk: limine target/usr/share/hwdata/pci.ids
 # @$(MAKE) -C src/libs/system
 # @$(MAKE) -C src/software/test
 	@$(MAKE) -C src/software/badtest

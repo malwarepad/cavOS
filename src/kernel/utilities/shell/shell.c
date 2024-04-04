@@ -167,8 +167,14 @@ void launch_shell(int n) {
       printf("==       Networking configuration      ==\n");
       printf("==      Copyright MalwarePad 2024      ==\n");
       printf("=========================================\n\n");
-      NIC *nic = firstNIC;
-      while (nic != 0) {
+      PCI *pci = firstPCI;
+      while (pci) {
+        if (pci->category != PCI_DRIVER_CATEGORY_NIC) {
+          pci = pci->next;
+          continue;
+        }
+        NIC *nic = pci->extra;
+
         if (nic == selectedNIC)
           printf("[%d]: ", nic->type);
         else
@@ -181,9 +187,9 @@ void launch_shell(int n) {
                nic->subnetMask[3], nic->serverIp[0], nic->serverIp[1],
                nic->serverIp[2], nic->serverIp[3], nic->dnsIp[0], nic->dnsIp[1],
                nic->dnsIp[2], nic->dnsIp[3]);
-        nic = nic->next;
+        pci = pci->next;
       }
-    } else if (strEql(ch, "lspci")) {
+    } else if (strEql(ch, "lspci_")) {
       printf("\n");
       for (uint16_t bus = 0; bus < PCI_MAX_BUSES; bus++) {
         for (uint8_t slot = 0; slot < PCI_MAX_DEVICES; slot++) {
@@ -242,6 +248,15 @@ void launch_shell(int n) {
         printf("%d: [%c] heap{0x%016lx-0x%016lX}\n", browse->id,
                browse->kernel_task ? '-' : 'u', browse->heap_start,
                browse->heap_end);
+
+        browse = browse->next;
+      }
+    } else if (strEql(ch, "lspci")) {
+      printf("\n");
+      PCI *browse = firstPCI;
+      while (browse) {
+        printf("[%d:%d:%d] %s\n", browse->bus, browse->slot, browse->function,
+               browse->name);
 
         browse = browse->next;
       }

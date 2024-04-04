@@ -6,12 +6,11 @@ target/usr/lib
 disk.img
 disk.vmdk
 
+pci.ids
+
 # Wireshark network dumps
 *.pcapng
 
 # Could obviously contain sensitive data
 .idea/
 Session.vim
-
-# Could leak plans
-notes/

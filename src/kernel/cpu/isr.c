@@ -65,15 +65,6 @@ void remap_pic() {
   outportb(0xA1, 0x00);
 }
 
-typedef void (*FunctionPtr)(AsmPassedInterrupt *regs);
-// FunctionPtr irqHandlers[16]; // IRQs 0 - 15
-typedef struct irqHandler irqHandler;
-struct irqHandler {
-  irqHandler *next;
-
-  uint8_t      id;
-  FunctionPtr *handler;
-};
 irqHandler *firstIrqHandler = 0;
 
 void initiateISR() {
@@ -93,14 +84,16 @@ void initiateISR() {
   asm volatile("sti");
 }
 
-void registerIRQhandler(uint8_t id, void *handler) {
+irqHandler *registerIRQhandler(uint8_t id, void *handler) {
   // printf("IRQ %d reserved!\n", id);
   irqHandler *target =
       (irqHandler *)LinkedListAllocate(&firstIrqHandler, sizeof(irqHandler));
 
   target->id = id;
   target->handler = handler;
-  target->next = 0; // null ptr
+  // target->next = 0; // null ptr
+
+  return target;
 }
 
 void handleTaskFault(AsmPassedInterrupt *regs) {

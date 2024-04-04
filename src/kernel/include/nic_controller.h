@@ -78,8 +78,6 @@ struct tcpConnection {
 };
 
 struct NIC {
-  NIC *next;
-
   NIC_TYPE type;
   uint16_t mtu;
   uint8_t  mintu;
@@ -112,14 +110,13 @@ struct NIC {
 #define macBroadcast ((uint8_t[]){255, 255, 255, 255, 255, 255})
 #define macZero ((uint8_t[]){0, 0, 0, 0, 0, 0})
 
-NIC *firstNIC;
 NIC *selectedNIC;
 
 void initiateNetworking();
 
 // returns UNINITIALIZED!! NIC struct
 void initiateNIC(PCIdevice *device);
-NIC *createNewNIC();
+NIC *createNewNIC(PCI *pci);
 
 /* Packets */
 typedef struct netPacketHeader {

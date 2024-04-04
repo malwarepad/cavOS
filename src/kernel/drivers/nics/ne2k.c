@@ -45,7 +45,7 @@ bool initiateNe2000(PCIdevice *device) {
   outportb(iobase + NE2K_REG_RSAR1, 0);              // start DMA high
   outportb(iobase + NE2K_REG_COMMAND, 0x0A);         // start the read
 
-  NIC *nic = createNewNIC();
+  NIC *nic = createNewNIC(0);
   nic->type = NE2000;
   nic->infoLocation = 0; // no extra info needed... yet.
 

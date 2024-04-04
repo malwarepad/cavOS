@@ -16,7 +16,6 @@
 void initiateNetworking() {
   // start off with no first NIC and no selected one
   // rest on device-specific initialization
-  firstNIC = 0;
   selectedNIC = 0;
   debugf("[networking] Ready to scan for NICs..\n");
 }
@@ -29,11 +28,13 @@ void initiateNIC(PCIdevice *device) {
 }
 
 // returns UNINITIALIZED!! NIC struct
-NIC *createNewNIC() {
-  NIC *nic = LinkedListAllocate(&firstNIC, sizeof(NIC));
+NIC *createNewNIC(PCI *pci) {
+  NIC *nic = malloc(sizeof(NIC));
 
   nic->dhcpTransactionID = rand();
   nic->mtu = 1500;
+
+  pci->extra = nic;
   selectedNIC = nic;
   return nic;
 }

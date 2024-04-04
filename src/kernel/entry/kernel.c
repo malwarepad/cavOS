@@ -66,6 +66,8 @@ int _start(void) {
   // just in case there's another font preference
   psfLoadFromFile(DEFAULT_FONT_PATH);
 
+  initiatePCI_ID();
+
   initiateSyscallInst();
   initiateSyscalls();
 

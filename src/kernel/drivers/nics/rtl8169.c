@@ -129,6 +129,9 @@ bool initiateRTL8169(PCIdevice *device) {
       (PCIgeneralDevice *)malloc(sizeof(PCIgeneralDevice));
   GetGeneralDevice(device, details);
 
+  PCI *pci = lookupPCIdevice(device);
+  setupPCIdeviceDriver(pci, PCI_DRIVER_RTL8169, PCI_DRIVER_CATEGORY_NIC);
+
   for (int i = 0; i < 5; i++) {
     uint16_t iobase = details->bar[i] & 0xFFFFFFFE;
 #if DEBUG_RTL8169
@@ -138,7 +141,7 @@ bool initiateRTL8169(PCIdevice *device) {
 
   uint16_t iobase = details->bar[0] & 0xFFFFFFFE;
 
-  NIC *nic = createNewNIC();
+  NIC *nic = createNewNIC(pci);
   nic->type = RTL8169;
   nic->mintu = 60;
   nic->infoLocation = 0; // no extra info needed... yet.
@@ -157,14 +160,14 @@ bool initiateRTL8169(PCIdevice *device) {
       sizeof(rtl8169_descriptor) * RTL8169_TX_DESCRIPTORS, BLOCK_SIZE));
   infoLocation->TxDescriptors = (rtl8169_descriptor *)txDesc;
 
-  uint32_t command_status = combineWord(device->status, device->command);
+  uint32_t command_status = COMBINE_WORD(device->status, device->command);
   if (!(command_status & (1 << 2))) {
     command_status |= (1 << 2);
     ConfigWriteDword(device->bus, device->slot, device->function, PCI_COMMAND,
                      command_status);
   }
 
-  registerIRQhandler(nic->irq, &interruptHandlerRTL8169);
+  pci->irqHandler = registerIRQhandler(nic->irq, &interruptHandlerRTL8169);
 
   outportb(iobase + 0x37, 0x10);
   while (inportb(iobase + 0x37) & 0x10) {

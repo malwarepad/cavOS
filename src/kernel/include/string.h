@@ -9,5 +9,6 @@ char    *strpbrk(const char *str, const char *delimiters);
 int      atoi(const char *str);
 uint32_t strlength(char *ch);
 bool     check_string(char *str);
+long     strtol(const char *s, char **endptr, int base);
 
 #endif

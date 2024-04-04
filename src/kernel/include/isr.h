@@ -43,8 +43,18 @@ typedef struct {
   uint64_t usermode_ss;
 } AsmPassedInterrupt;
 
-void initiateISR();
-void registerIRQhandler(uint8_t id, void *handler);
+typedef void (*FunctionPtr)(AsmPassedInterrupt *regs);
+// FunctionPtr irqHandlers[16]; // IRQs 0 - 15
+typedef struct irqHandler irqHandler;
+struct irqHandler {
+  irqHandler *next;
+
+  uint8_t      id;
+  FunctionPtr *handler;
+};
+
+void        initiateISR();
+irqHandler *registerIRQhandler(uint8_t id, void *handler);
 
 extern void  asm_isr_exit();
 extern void *asm_isr_redirect_table[];

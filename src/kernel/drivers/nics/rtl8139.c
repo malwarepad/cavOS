@@ -80,9 +80,12 @@ bool initiateRTL8139(PCIdevice *device) {
       (PCIgeneralDevice *)malloc(sizeof(PCIgeneralDevice));
   GetGeneralDevice(device, details);
 
+  PCI *pci = lookupPCIdevice(device);
+  setupPCIdeviceDriver(pci, PCI_DRIVER_RTL8139, PCI_DRIVER_CATEGORY_NIC);
+
   uint16_t iobase = details->bar[0] & ~0x3;
 
-  NIC *nic = createNewNIC();
+  NIC *nic = createNewNIC(pci);
   nic->type = RTL8139;
   nic->mintu = 60;
   nic->infoLocation = 0; // no extra info needed... yet.
@@ -96,7 +99,7 @@ bool initiateRTL8139(PCIdevice *device) {
   infoLocation->tx_curr = 0; // init this
 
   // Enable PCI Bus Mastering if it's not enabled already
-  uint32_t command_status = combineWord(device->status, device->command);
+  uint32_t command_status = COMBINE_WORD(device->status, device->command);
   if (!(command_status & (1 << 2))) {
     command_status |= (1 << 2);
     ConfigWriteDword(device->bus, device->slot, device->function, PCI_COMMAND,
@@ -154,7 +157,7 @@ bool initiateRTL8139(PCIdevice *device) {
   //        selectedNIC->MAC[3], selectedNIC->MAC[4], selectedNIC->MAC[5]);
 
   free(details);
-  registerIRQhandler(nic->irq, &interruptHandler);
+  pci->irqHandler = registerIRQhandler(nic->irq, &interruptHandler);
 
   // Solve QEMU's weird fiddleness by "kindly" reminding it to wake up our
   // device!

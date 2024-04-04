@@ -1,3 +1,4 @@
+#include "isr.h"
 #include "types.h"
 
 #ifndef PCI_H
@@ -11,6 +12,13 @@
 // Generic addresses
 #define PCI_CONFIG_ADDRESS 0xCF8
 #define PCI_CONFIG_DATA 0xCFC
+
+// PCI types
+typedef enum PCI_DEVICES {
+  PCI_DEVICE_GENERAL = 0x0,
+  PCI_DEVICE_BRIDGE = 0x1,
+  PCI_DEVICE_CARDBUS = 0x2,
+} PCI_DEVICES;
 
 // PCI config header
 #define PCI_VENDOR_ID 0x00
@@ -105,6 +113,39 @@ typedef struct PCIgeneralDevice {
   uint8_t maxLatency;
 } PCIgeneralDevice;
 
+typedef enum PCI_DRIVER {
+  PCI_DRIVER_NULL = 0,
+  PCI_DRIVER_AHCI,
+  PCI_DRIVER_RTL8139,
+  PCI_DRIVER_RTL8169,
+} PCI_DRIVER;
+
+typedef enum PCI_DRIVER_CATEGORY {
+  PCI_DRIVER_CATEGORY_NULL = 0,
+  PCI_DRIVER_CATEGORY_STORAGE,
+  PCI_DRIVER_CATEGORY_NIC,
+} PCI_DRIVER_CATEGORY;
+
+typedef struct PCI PCI;
+struct PCI {
+  PCI *next;
+
+  uint8_t  bus, slot, function;
+  uint16_t vendor_id, device_id;
+
+  char               *name;
+  PCI_DRIVER          driver;
+  PCI_DRIVER_CATEGORY category;
+
+  void       *extra;
+  irqHandler *irqHandler;
+};
+PCI *firstPCI;
+
+#define EXPORT_BYTE(target, first)                                             \
+  ((first) ? ((target) & ~0xFF00) : (((target) & ~0x00FF) >> 8))
+#define COMBINE_WORD(msb, lsb) (((uint32_t)(msb) << 16) | (lsb))
+
 void initiatePCI();
 int  FilterDevice(uint8_t bus, uint8_t slot, uint8_t function);
 void GetDevice(PCIdevice *device, uint8_t bus, uint8_t slot, uint8_t function);
@@ -112,7 +153,8 @@ void GetGeneralDevice(PCIdevice *device, PCIgeneralDevice *out);
 void ConfigWriteDword(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset,
                       uint32_t conf);
 
-uint32_t combineWord(uint16_t msb, uint16_t lsb);
-uint8_t  exportByte(uint32_t target, bool first);
+PCI *lookupPCIdevice(PCIdevice *device);
+void setupPCIdeviceDriver(PCI *pci, PCI_DRIVER driver,
+                          PCI_DRIVER_CATEGORY category);
 
 #endif

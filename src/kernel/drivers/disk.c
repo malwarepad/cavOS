@@ -29,16 +29,26 @@ bool validateMbr(uint8_t *mbrSector) {
 }
 
 void getDiskBytes(uint8_t *target_address, uint32_t LBA, uint8_t sector_count) {
-  // todo: yeah, this is NOT ideal
+  // todo: yeah, this STILL is NOT ideal
 
-  if (!firstAhci || !firstAhci->sata) {
+  PCI *browse = firstPCI;
+  while (browse) {
+    if (browse->driver == PCI_DRIVER_AHCI && ((ahci *)browse->extra)->sata)
+      break;
+
+    browse = browse->next;
+  }
+
+  if (!browse) {
     memset(target_address, 0, sector_count * SECTOR_SIZE);
     return;
   }
-  int pos = 0;
-  while (!(firstAhci->sata & (1 << pos)))
+
+  ahci *target = (ahci *)browse->extra;
+  int   pos = 0;
+  while (!(target->sata & (1 << pos)))
     pos++;
 
-  ahciRead(firstAhci, pos, &firstAhci->mem->ports[pos], LBA, 0, sector_count,
+  ahciRead(target, pos, &target->mem->ports[pos], LBA, 0, sector_count,
            target_address);
 }
