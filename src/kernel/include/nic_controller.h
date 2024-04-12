@@ -77,7 +77,6 @@ typedef struct socketPacketHeader socketPacketHeader;
 struct socketPacketHeader {
   socketPacketHeader *next;
   uint32_t            size;
-  uint8_t             read;
 } __attribute__((packed));
 
 typedef struct Socket Socket;

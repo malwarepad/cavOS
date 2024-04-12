@@ -72,7 +72,7 @@ void netSocketPass(NIC *nic, SOCKET_PROT protocol, void *body, uint32_t size) {
     return;
   }
 
-  if (browse->server_port != server_port)
+  if (browse->server_port && browse->server_port != server_port)
     debugf("[socket] WARNING! Incoming packet server port{%d} does NOT match "
            "captured one{%d}!",
            browse->server_port, server_port);
@@ -86,14 +86,6 @@ void netSocketPass(NIC *nic, SOCKET_PROT protocol, void *body, uint32_t size) {
            browse->server_ip[0], browse->server_ip[1], browse->server_ip[2],
            browse->server_ip[3]);
 
-  socketPacketHeader *cleanup = browse->firstPacket;
-  while (cleanup) {
-    socketPacketHeader *next = cleanup->next;
-    if (cleanup->read)
-      LinkedListRemove(&browse->firstPacket, cleanup);
-    cleanup = next;
-  }
-
   socketPacketHeader *targetHeader = LinkedListAllocate(
       &browse->firstPacket, sizeof(socketPacketHeader) + size);
   targetHeader->size = size;
@@ -102,11 +94,20 @@ void netSocketPass(NIC *nic, SOCKET_PROT protocol, void *body, uint32_t size) {
 
 socketPacketHeader *netSocketRecv(Socket *socket) {
   socketPacketHeader *target = socket->firstPacket;
-  return target;
+  if (!target)
+    return 0;
+
+  size_t              totalSize = sizeof(socketPacketHeader) + target->size;
+  socketPacketHeader *final = (socketPacketHeader *)malloc(totalSize);
+  memcpy(final, target, totalSize);
+
+  // First unregisters, so the interrupt handler should have no problem browsing
+  // through the list...
+  LinkedListRemove(&socket->firstPacket, target);
+  return final;
 }
 
 void netSocketRecvCleanup(socketPacketHeader *packet) {
   // just in case
-  packet->read = true; // LinkedListUnregister(&socket->firstPacket, packet);
-  // free(packet);
+  free(packet);
 }
