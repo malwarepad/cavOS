@@ -544,6 +544,8 @@ typedef struct tagHBA_CMD_TBL {
   prdt_entry[1]; // Physical region descriptor table entries, 0 ~ 65535
 } HBA_CMD_TBL;
 
+#define AHCI_CALC_PRDT(sectors) ((uint16_t)((sectors - 1) >> 4) + 1)
+
 typedef enum {
   FIS_TYPE_REG_H2D = 0x27,   // Register FIS - host to device
   FIS_TYPE_REG_D2H = 0x34,   // Register FIS - device to host
@@ -567,6 +569,6 @@ struct ahci {
 
 bool initiateAHCI(PCIdevice *device);
 bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
-              uint32_t starth, uint32_t count, uint16_t *buf);
+              uint32_t starth, uint32_t count, uint16_t *buff);
 
 #endif

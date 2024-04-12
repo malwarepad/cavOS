@@ -10,6 +10,9 @@
 #define inrand(minimum_number, max_number)                                     \
   (rand() % (max_number + 1 - minimum_number) + minimum_number)
 
+#define SPLIT_64_HIGHER(value) ((value) >> 32)
+#define SPLIT_64_LOWER(value) ((value) & 0xFFFFFFFF)
+
 void *memcpy(void *restrict dstptr, const void *restrict srcptr, size_t size);
 void *memmove(void *dstptr, const void *srcptr, size_t size);
 void  memset(void *_dst, int val, size_t len);

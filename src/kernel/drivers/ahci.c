@@ -23,8 +23,9 @@ AHCI_DEVICE *isAHCIcontroller(PCIdevice *device) {
   return 0;
 }
 
-// Start command engine
-void start_cmd(HBA_PORT *port) {
+/* Port command engine: */
+
+void ahciCmdStart(HBA_PORT *port) {
   // Wait until CR (bit15) is cleared
   while (port->cmd & HBA_PxCMD_CR)
     ;
@@ -34,8 +35,7 @@ void start_cmd(HBA_PORT *port) {
   port->cmd |= HBA_PxCMD_ST;
 }
 
-// Stop command engine
-void stop_cmd(HBA_PORT *port) {
+void ahciCmdStop(HBA_PORT *port) {
   // Clear ST (bit0)
   port->cmd &= ~HBA_PxCMD_ST;
 
@@ -52,7 +52,9 @@ void stop_cmd(HBA_PORT *port) {
   }
 }
 
-int find_cmdslot(HBA_PORT *port) {
+/* Command port operations: */
+
+int ahciCmdFind(HBA_PORT *port) {
   // If not set in SACT and CI, the slot is free
   uint32_t slots = (port->sact | port->ci);
   for (int i = 0; i < 1; i++) { // todo: we got more than one lol
@@ -64,76 +66,7 @@ int find_cmdslot(HBA_PORT *port) {
   return -1;
 }
 
-bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
-              uint32_t starth, uint32_t count, uint16_t *buf) {
-  port->is = (uint32_t)-1; // Clear pending interrupt bits
-  int spin = 0;            // Spin lock timeout counter
-  int slot = find_cmdslot(port);
-  // printf("slot: %d\n", slot);
-  if (slot == -1)
-    return false;
-
-  HBA_CMD_HEADER *cmdheader = (HBA_CMD_HEADER *)ahciPtr->clbVirt[portId];
-  cmdheader = (size_t)cmdheader + slot * sizeof(HBA_CMD_HEADER);
-  cmdheader->cfl = sizeof(FIS_REG_H2D) / sizeof(uint32_t); // Command FIS size
-  cmdheader->w = 0;                                        // Read from device
-  cmdheader->prdtl = (uint16_t)((count - 1) >> 4) + 1;     // PRDT entries count
-  // printf("prdt:%d\n", (uint16_t)((count - 1) >> 4) + 1);
-
-  HBA_CMD_TBL *cmdtbl = (HBA_CMD_TBL *)ahciPtr->ctbaVirt[portId];
-  memset(cmdtbl, 0,
-         sizeof(HBA_CMD_TBL) + (cmdheader->prdtl - 1) * sizeof(HBA_PRDT_ENTRY));
-
-  // 8K bytes (16 sectors) per PRDT
-  int    i = 0;
-  size_t targPhys = VirtualToPhysical(buf);
-  for (i = 0; i < cmdheader->prdtl - 1; i++) {
-    cmdtbl->prdt_entry[i].dba = (uint32_t)(targPhys & 0xFFFFFFFF);
-    cmdtbl->prdt_entry[i].dbau = (uint32_t)(targPhys >> 32);
-    cmdtbl->prdt_entry[i].dbc =
-        8 * 1024 - 1; // 8K bytes (this value should always be set to 1 less
-                      // than the actual value)
-    cmdtbl->prdt_entry[i].i = 1;
-    buf += 4 * 1024; // 4K words
-    count -= 16;     // 16 sectors
-  }
-  // Last entry
-  cmdtbl->prdt_entry[i].dba = (uint32_t)(targPhys & 0xFFFFFFFF);
-  cmdtbl->prdt_entry[i].dbau = (uint32_t)(targPhys >> 32);
-  cmdtbl->prdt_entry[i].dbc = (count << 9) - 1; // 512 bytes per sector
-  cmdtbl->prdt_entry[i].i = 1;
-
-  // Setup command
-  // printf("cfis: %x\n", cmdtbl->cfis);
-  FIS_REG_H2D *cmdfis = (FIS_REG_H2D *)(&cmdtbl->cfis);
-
-  cmdfis->fis_type = FIS_TYPE_REG_H2D;
-  cmdfis->c = 1; // Command
-  cmdfis->command = ATA_CMD_READ_DMA_EX;
-
-  cmdfis->lba0 = (uint8_t)startl;
-  cmdfis->lba1 = (uint8_t)(startl >> 8);
-  cmdfis->lba2 = (uint8_t)(startl >> 16);
-  cmdfis->device = 1 << 6; // LBA mode
-
-  cmdfis->lba3 = (uint8_t)(startl >> 24);
-  cmdfis->lba4 = (uint8_t)starth;
-  cmdfis->lba5 = (uint8_t)(starth >> 8);
-
-  cmdfis->countl = count & 0xFF;
-  cmdfis->counth = (count >> 8) & 0xFF;
-
-  // The below loop waits until the port is no longer busy before issuing a new
-  // command
-  while ((port->tfd & (ATA_DEV_BUSY | ATA_DEV_DRQ)) && spin < 1000000) {
-    spin++;
-  }
-  if (spin == 1000000) {
-    printf("[pci::ahci] Port is hung ATA_DEV_BUSY{%d} ATA_DEV_DRQ{%d}\n",
-           port->tfd & ATA_DEV_BUSY, port->tfd & ATA_DEV_DRQ);
-    return false;
-  }
-
+bool ahciCmdIssue(HBA_PORT *port, int slot) {
   port->ci = 1 << slot; // Issue command
 
   // Wait for completion
@@ -158,67 +91,52 @@ bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
   return true;
 }
 
-void port_rebase(ahci *ahciPtr, HBA_PORT *port, int portno) {
-  stop_cmd(port); // Stop command engine
+/* Set up AHCI parts for reading/writing: */
 
-  // enable (all) interrupts
-  port->ie = 1;
+HBA_CMD_HEADER *ahciSetUpCmdHeader(ahci *ahciPtr, uint32_t portId,
+                                   uint32_t cmdslot, uint32_t prdt) {
+  HBA_CMD_HEADER *cmdheader = (HBA_CMD_HEADER *)ahciPtr->clbVirt[portId];
+  cmdheader = (size_t)cmdheader + cmdslot * sizeof(HBA_CMD_HEADER);
+  cmdheader->cfl = sizeof(FIS_REG_H2D) / sizeof(uint32_t); // Command FIS size
+  cmdheader->w = 0;                                        // Read from device
+  cmdheader->prdtl = prdt;                                 // PRDT entries count
 
-  // Command list offset: 1K*portno
-  // Command list entry size = 32
-  // Command list entry maxim count = 32
-  // Command list maxim size = 32*32 = 1K per port
-  uint32_t clbPages = DivRoundUp(sizeof(HBA_CMD_HEADER) * 32, BLOCK_SIZE);
-  void    *clbVirt = VirtualAllocate(clbPages); //!
-  ahciPtr->clbVirt[portno] = clbVirt;
-  size_t clbPhys = VirtualToPhysical(clbVirt);
-  port->clb = (uint32_t)(clbPhys & 0xFFFFFFFF);
-  port->clbu = (uint32_t)(clbPhys >> 32);
-  memset(clbVirt, 0, clbPages * BLOCK_SIZE); // could've just done 1024
-
-  // FIS offset: 32K+256*portno
-  // FIS entry size = 256 bytes per port
-  // use a bit of the wasted (256-aligned) space for this
-  size_t fbPhys = clbPhys + 2048;
-  port->fb = (uint32_t)(fbPhys & 0xFFFFFFFF);
-  port->fbu = (uint32_t)(fbPhys >> 32);
-  // memset((void *)(port->fb), 0, 256); already 0'd
-
-  // Command table offset: 40K + 8K*portno
-  // Command table size = 256*32 = 8K per port
-  HBA_CMD_HEADER *cmdheader = (HBA_CMD_HEADER *)clbVirt;
-  void           *ctbaVirt = VirtualAllocate(2); // 2 pages = 8192 bytes //!
-  ahciPtr->ctbaVirt[portno] = ctbaVirt;
-  size_t ctbaPhys = (size_t)VirtualToPhysical(ctbaVirt);
-  memset(ctbaVirt, 0, 8192);
-  for (int i = 0; i < 32; i++) {
-    cmdheader[i].prdtl = 8; // 8 prdt entries per command table
-                            // 256 bytes per command table, 64+16+48+16*8
-    // Command table offset: 40K + 8K*portno + cmdheader_index*256
-    size_t ctbaPhysCurr = ctbaPhys + i * 256;
-    cmdheader[i].ctba = (uint32_t)(ctbaPhysCurr & 0xFFFFFFFF);
-    cmdheader[i].ctbau = (uint32_t)(ctbaPhysCurr >> 32);
-    // memset((void *)cmdheader[i].ctba, 0, 256); already 0'd
-  }
-
-  if (port->serr & (1 << 10))
-    port->serr |= (1 << 10);
-
-  // COMRESET / CLO*
-  port->cmd |= (1 << 3);
-  uint64_t targ = timerTicks + 150;
-  while (port->cmd & (1 << 3) && timerTicks < targ)
-    ;
-
-  // OpenBSD hack (made pavilion work)
-  port->serr = port->serr;
-  start_cmd(port); // Start command engine
-
-  ahciPtr->sata |= (1 << portno);
+  return cmdheader;
 }
 
-// Check device type
-int check_type(HBA_PORT *port) {
+HBA_CMD_TBL *ahciSetUpCmdTable(ahci *ahciPtr, HBA_CMD_HEADER *cmdheader,
+                               uint32_t portId) {
+  HBA_CMD_TBL *cmdtbl = (HBA_CMD_TBL *)ahciPtr->ctbaVirt[portId];
+  memset(cmdtbl, 0,
+         sizeof(HBA_CMD_TBL) + (cmdheader->prdtl - 1) * sizeof(HBA_PRDT_ENTRY));
+  return cmdtbl;
+}
+
+void ahciSetUpPRDT(HBA_CMD_HEADER *cmdheader, HBA_CMD_TBL *cmdtbl,
+                   uint8_t *buff, uint32_t *count) {
+  // 8K bytes (16 sectors) per PRDT
+  int    i = 0;
+  size_t targPhys = VirtualToPhysical(buff);
+  for (i = 0; i < cmdheader->prdtl - 1; i++) {
+    cmdtbl->prdt_entry[i].dba = SPLIT_64_LOWER(targPhys);
+    cmdtbl->prdt_entry[i].dbau = SPLIT_64_HIGHER(targPhys);
+    cmdtbl->prdt_entry[i].dbc =
+        8 * 1024 - 1; // 8K bytes (this value should always be set to 1 less
+                      // than the actual value)
+    cmdtbl->prdt_entry[i].i = 1;
+    buff += 4 * 1024; // 4K words
+    *count -= 16;     // 16 sectors
+  }
+  // Last entry
+  cmdtbl->prdt_entry[i].dba = SPLIT_64_LOWER(targPhys);
+  cmdtbl->prdt_entry[i].dbau = SPLIT_64_HIGHER(targPhys);
+  cmdtbl->prdt_entry[i].dbc = (*count << 9) - 1; // 512 bytes per sector
+  cmdtbl->prdt_entry[i].i = 1;
+}
+
+/* Port initialization (used only on startup): */
+
+int ahciPortType(HBA_PORT *port) {
   uint32_t ssts = port->ssts;
 
   uint8_t ipm = (ssts >> 8) & 0x0F;
@@ -241,15 +159,14 @@ int check_type(HBA_PORT *port) {
   }
 }
 
-void probe_port(ahci *ahciPtr, HBA_MEM *abar) {
+void ahciPortProbe(ahci *ahciPtr, HBA_MEM *abar) {
   uint32_t pi = abar->pi;
-  int      i = 0;
-  while (i < 32) {
+  for (int i = 0; i < 32; i++) {
     if (pi & 1) {
-      int dt = check_type(&abar->ports[i]);
+      int dt = ahciPortType(&abar->ports[i]);
       if (dt == AHCI_DEV_SATA) {
         debugf("[pci::ahci] SATA drive found at port %d\n", i);
-        port_rebase(ahciPtr, &abar->ports[i], i);
+        ahciPortRebase(ahciPtr, &abar->ports[i], i);
       } else if (dt == AHCI_DEV_SATAPI) {
         debugf("[pci::ahci] (unsupported) SATAPI drive found at port %d\n", i);
       } else if (dt == AHCI_DEV_SEMB) {
@@ -261,8 +178,118 @@ void probe_port(ahci *ahciPtr, HBA_MEM *abar) {
     }
 
     pi >>= 1;
-    i++;
   }
+}
+
+void ahciPortRebase(ahci *ahciPtr, HBA_PORT *port, int portno) {
+  ahciCmdStop(port); // Stop command engine
+
+  // enable (all) interrupts
+  port->ie = 1;
+
+  // Command list offset: 1K*portno
+  // Command list entry size = 32
+  // Command list entry maxim count = 32
+  // Command list maxim size = 32*32 = 1K per port
+  uint32_t clbPages = DivRoundUp(sizeof(HBA_CMD_HEADER) * 32, BLOCK_SIZE);
+  void    *clbVirt = VirtualAllocate(clbPages); //!
+  ahciPtr->clbVirt[portno] = clbVirt;
+  size_t clbPhys = VirtualToPhysical(clbVirt);
+  port->clb = SPLIT_64_LOWER(clbPhys);
+  port->clbu = SPLIT_64_HIGHER(clbPhys);
+  memset(clbVirt, 0, clbPages * BLOCK_SIZE); // could've just done 1024
+
+  // FIS offset: 32K+256*portno
+  // FIS entry size = 256 bytes per port
+  // use a bit of the wasted (256-aligned) space for this
+  size_t fbPhys = clbPhys + 2048;
+  port->fb = SPLIT_64_LOWER(fbPhys);
+  port->fbu = SPLIT_64_HIGHER(fbPhys);
+  // memset((void *)(port->fb), 0, 256); already 0'd
+
+  // Command table offset: 40K + 8K*portno
+  // Command table size = 256*32 = 8K per port
+  HBA_CMD_HEADER *cmdheader = (HBA_CMD_HEADER *)clbVirt;
+  void           *ctbaVirt = VirtualAllocate(2); // 2 pages = 8192 bytes //!
+  ahciPtr->ctbaVirt[portno] = ctbaVirt;
+  size_t ctbaPhys = (size_t)VirtualToPhysical(ctbaVirt);
+  memset(ctbaVirt, 0, 8192);
+  for (int i = 0; i < 32; i++) {
+    cmdheader[i].prdtl = 8; // 8 prdt entries per command table
+                            // 256 bytes per command table, 64+16+48+16*8
+    // Command table offset: 40K + 8K*portno + cmdheader_index*256
+    size_t ctbaPhysCurr = ctbaPhys + i * 256;
+    cmdheader[i].ctba = SPLIT_64_LOWER(ctbaPhysCurr);
+    cmdheader[i].ctbau = SPLIT_64_HIGHER(ctbaPhysCurr);
+    // memset((void *)cmdheader[i].ctba, 0, 256); already 0'd
+  }
+
+  if (port->serr & (1 << 10))
+    port->serr |= (1 << 10);
+
+  // COMRESET / CLO*
+  port->cmd |= (1 << 3);
+  uint64_t targ = timerTicks + 150;
+  while (port->cmd & (1 << 3) && timerTicks < targ)
+    ;
+
+  // OpenBSD hack (made pavilion work)
+  port->serr = port->serr;
+  ahciCmdStart(port); // Start command engine
+
+  ahciPtr->sata |= (1 << portno);
+}
+
+// Await for port to stop being "busy" and send results
+bool ahciPortReady(HBA_PORT *port) {
+  int spin = 0;
+  while ((port->tfd & (ATA_DEV_BUSY | ATA_DEV_DRQ)) && spin < 1000000)
+    spin++;
+
+  if (spin == 1000000) {
+    printf("[pci::ahci] Port is hung ATA_DEV_BUSY{%d} ATA_DEV_DRQ{%d}\n",
+           port->tfd & ATA_DEV_BUSY, port->tfd & ATA_DEV_DRQ);
+    return false;
+  }
+
+  return true;
+}
+
+bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
+              uint32_t starth, uint32_t count, uint16_t *buff) {
+  port->is = (uint32_t)-1; // Clear pending interrupt bits
+  int slot = ahciCmdFind(port);
+  if (slot == -1)
+    return false;
+
+  HBA_CMD_HEADER *cmdheader =
+      ahciSetUpCmdHeader(ahciPtr, portId, slot, AHCI_CALC_PRDT(count));
+  HBA_CMD_TBL *cmdtbl = ahciSetUpCmdTable(ahciPtr, cmdheader, portId);
+
+  ahciSetUpPRDT(cmdheader, cmdtbl, buff, &count);
+
+  FIS_REG_H2D *cmdfis = (FIS_REG_H2D *)(&cmdtbl->cfis);
+
+  cmdfis->fis_type = FIS_TYPE_REG_H2D;
+  cmdfis->c = 1; // Command
+  cmdfis->command = ATA_CMD_READ_DMA_EX;
+
+  cmdfis->lba0 = (uint8_t)startl;
+  cmdfis->lba1 = (uint8_t)(startl >> 8);
+  cmdfis->lba2 = (uint8_t)(startl >> 16);
+  cmdfis->device = 1 << 6; // LBA mode
+
+  cmdfis->lba3 = (uint8_t)(startl >> 24);
+  cmdfis->lba4 = (uint8_t)starth;
+  cmdfis->lba5 = (uint8_t)(starth >> 8);
+
+  cmdfis->countl = count & 0xFF;
+  cmdfis->counth = (count >> 8) & 0xFF;
+
+  if (!ahciPortReady(port))
+    return false;
+
+  return ahciCmdIssue(port, slot);
 }
 
 void ahciInterruptHandler(AsmPassedInterrupt *regs) {
@@ -344,7 +371,7 @@ bool initiateAHCI(PCIdevice *device) {
   if (!(mem->ghc & (1 << 31)))
     mem->ghc |= (1 << 31);
 
-  probe_port(ahciPtr, mem);
+  ahciPortProbe(ahciPtr, mem);
 
   // enable interrupts
   pci->irqHandler =
