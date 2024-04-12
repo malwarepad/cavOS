@@ -57,6 +57,8 @@ typedef enum DHCP_OPTIONS {
 #define DHCP_SEND 0x01
 #define DHCP_RECEIVE 0x02
 
+#define DHCP_TIMEOUT 2000
+
 typedef enum DHCP_TYPES {
   DHCP_DISCOVERY = 0x01,
   DHCP_OFFER = 0x02,

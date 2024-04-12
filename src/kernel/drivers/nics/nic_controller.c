@@ -41,6 +41,11 @@ NIC *createNewNIC(PCI *pci) {
 
 void sendPacket(NIC *nic, uint8_t *destination_mac, void *data, uint32_t size,
                 uint16_t protocol) {
+  if ((size + sizeof(netPacketHeader)) > nic->mtu) {
+    debugf("[nics] FATAL! Packet size{%d} is larger than said NIC's MTU{%d}\n",
+           sizeof(netPacketHeader) + size, nic->mtu);
+    return;
+  }
   netPacketHeader *packet = malloc(sizeof(netPacketHeader) + size);
   void            *packetData = (void *)packet + sizeof(netPacketHeader);
 

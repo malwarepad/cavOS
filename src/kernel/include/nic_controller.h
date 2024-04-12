@@ -40,17 +40,6 @@ typedef struct arpTableEntry {
   uint8_t mac[6];
 } arpTableEntry;
 
-// why are there udp stuff here???!
-typedef void (*NetHandlerFunction)(NIC *nic, void *body, uint32_t size,
-                                   void *extras);
-typedef struct udpHandler udpHandler;
-struct udpHandler {
-  udpHandler *next;
-
-  uint16_t           port; // dest
-  NetHandlerFunction handler;
-};
-
 // why are there tcp stuff here???!
 typedef struct tcpPacketHeader tcpPacketHeader;
 struct tcpPacketHeader {
@@ -77,6 +66,33 @@ struct tcpConnection {
   tcpPacketHeader *firstPendingPacket;
 };
 
+// why is there socket stuff here???!
+typedef enum SOCKET_PROT {
+  SOCKET_PROT_NULL = 0,
+  SOCKET_PROT_TCP,
+  SOCKET_PROT_UDP
+} SOCKET_PROT;
+
+typedef struct socketPacketHeader socketPacketHeader;
+struct socketPacketHeader {
+  socketPacketHeader *next;
+  uint32_t            size;
+  uint8_t             read;
+} __attribute__((packed));
+
+typedef struct Socket Socket;
+struct Socket {
+  Socket *next;
+
+  SOCKET_PROT protocol;
+
+  uint8_t  server_ip[4];
+  uint16_t client_port; // dest
+  uint16_t server_port;
+
+  socketPacketHeader *firstPacket;
+} __attribute__((packed));
+
 struct NIC {
   NIC_TYPE type;
   uint16_t mtu;
@@ -96,16 +112,16 @@ struct NIC {
   arpTableEntry arpTable[ARP_TABLE_LEN];
   uint32_t      arpTableCurr;
 
-  // UDP
-  udpHandler *firstUdpHandler;
-
   // TCP
   tcpConnection *firstTcpConnection;
 
   // DHCP
-  bool     dhcpUdpRegistered;
+  Socket  *dhcpUdpRegistered;
   uint32_t dhcpTransactionID;
-};
+
+  // Sockets
+  Socket *firstSocket;
+} __attribute__((packed));
 #define defaultIP ((uint8_t[]){0, 0, 0, 0})
 #define macBroadcast ((uint8_t[]){255, 255, 255, 255, 255, 255})
 #define macZero ((uint8_t[]){0, 0, 0, 0, 0, 0})

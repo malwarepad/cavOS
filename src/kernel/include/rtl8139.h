@@ -26,6 +26,7 @@ typedef struct rtl8139_interface {
   uint16_t iobase;
   uint8_t  tx_curr;
   void    *rx_buff_virtual; // physical can be computed if needed
+  uint8_t  tok;             // bitmap for OK transfers
 } rtl8139_interface;
 
 bool initiateRTL8139(PCIdevice *device);

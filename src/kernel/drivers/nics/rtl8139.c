@@ -17,6 +17,10 @@
 // some sort of memory-reservation interface to reserve lower addresses for
 // usage - if (more like when) such a threshold is passed.
 
+// NOTE! QEMU's RTL8139 implementation **for KVM accelerated guests** is is
+// beyond horrible (so much so that even virt-manager hides that NIC away). For
+// that reason the Intel e1000 should be a better option!
+
 // Four TXAD register, you must use a different one to send packet each time(for
 // example, use the first one, second... fourth and back to the first)
 uint8_t TSAD_array[4] = {0x20, 0x24, 0x28, 0x2C};
@@ -47,6 +51,11 @@ void interruptHandler(AsmPassedInterrupt *regs) {
 #if RTL8139_DEBUG
       debugf("[pci::rtl8139] IRQ notification: Packet sent\n");
 #endif
+      for (int i = 0; i < 4; i++) {
+        uint32_t in = inportl(iobase + TSD_array[i]);
+        if (in & (1 << 15)) // transmit TOK xd
+          info->tok |= (1 << i);
+      }
     }
     if (status & RTL8139_STATUS_ROK) {
 #if RTL8139_DEBUG
@@ -93,6 +102,7 @@ bool initiateRTL8139(PCIdevice *device) {
 
   rtl8139_interface *infoLocation =
       (rtl8139_interface *)malloc(sizeof(rtl8139_interface));
+  memset(infoLocation, 0, sizeof(rtl8139_interface));
   nic->infoLocation = infoLocation;
 
   infoLocation->iobase = iobase;
@@ -182,15 +192,21 @@ void sendRTL8139(NIC *nic, void *packet, uint32_t packetSize) {
   }
   memcpy(contiguousContainer, packet, packetSize);
 
+  uint8_t tx_active = info->tx_curr;
+
   outportl(iobase + TSAD_array[info->tx_curr], (uint32_t)(phys));
   outportl(iobase + TSD_array[info->tx_curr++], packetSize);
   if (info->tx_curr > 3)
     info->tx_curr = 0;
 
-  VirtualFree(
-      contiguousContainer,
-      DivRoundUp(packetSize,
-                 BLOCK_SIZE)); // the IRQ hits before this segement is reached
+  while (!(info->tok & (1 << tx_active)))
+    ;
+
+  outportl(iobase + TSD_array[tx_active], 0x2000);
+
+  info->tok &= ~(1 << tx_active);
+
+  VirtualFree(contiguousContainer, DivRoundUp(packetSize, BLOCK_SIZE));
 }
 
 void receiveRTL8139(NIC *nic) {

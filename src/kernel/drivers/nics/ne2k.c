@@ -1,3 +1,4 @@
+#include <malloc.h>
 #include <ne2k.h>
 #include <system.h>
 

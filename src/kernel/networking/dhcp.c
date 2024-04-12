@@ -2,7 +2,9 @@
 #include <checksum.h>
 #include <dhcp.h>
 #include <malloc.h>
+#include <socket.h>
 #include <system.h>
+#include <timer.h>
 #include <udp.h>
 #include <util.h>
 
@@ -65,17 +67,18 @@ void netDHCPapproveOptions(NIC *nic) {
   free(body);
 }
 
-void netDHCPreceive(NIC *nic, void *body, uint32_t size) {
+// returns true only on ack
+bool netDHCPreceive(NIC *nic, void *body, uint32_t size) {
   udpHeader  *udp = (size_t)body + sizeof(netPacketHeader) + sizeof(IPv4header);
   dhcpHeader *dhcp = (size_t)udp + sizeof(udpHeader);
   uint8_t    *dhcpOptions = (size_t)dhcp + sizeof(dhcpHeader);
 
   if (switch_endian_32(dhcp->xid) != nic->dhcpTransactionID)
-    return;
+    return false;
 
   if (dhcp->opcode != DHCP_RECEIVE) {
     debugf("[networking::dhcp] Not-a-server! opcode{0x%02X}\n", dhcp->opcode);
-    return;
+    return false;
   }
 
   // the comment on dhcp.h explains this rather odd way of fetching options
@@ -142,12 +145,14 @@ void netDHCPreceive(NIC *nic, void *body, uint32_t size) {
     break;
   case DHCP_ACK:
     // done...
-    netUdpRemove(nic, 68);
+    return true;
     break;
   default:
     debugf("[networking::dhcp] Odd DHCP message type! %d\n", dhcpMessageType);
     break;
   }
+
+  return false;
 }
 
 void netDHCPinit(NIC *nic) {
@@ -190,11 +195,23 @@ void netDHCPinit(NIC *nic) {
   body[sizeof(dhcpHeader) + (extras++)] = 0xff;
 
   if (!nic->dhcpUdpRegistered) {
-    netUdpRegister(nic, 68, netDHCPreceive);
-    nic->dhcpUdpRegistered = true;
+    nic->dhcpUdpRegistered = netSocketConnect(nic, SOCKET_PROT_UDP, 0, 68, 67);
   }
   netUdpSend(nic, dhcpBroadcastMAC, dhcpBroadcastIp, body,
              sizeof(dhcpHeader) + extras, 68, 67);
-
   free(body);
+
+  uint64_t caputre = timerTicks;
+  bool     dhcpRet = false;
+
+  // when i trust kernel tasks enough, could just create one of those...
+  // !*(uint32_t *)(&nic->ip[0])
+  while (!dhcpRet && timerTicks < (caputre + DHCP_TIMEOUT)) {
+    socketPacketHeader *head = netSocketRecv(nic->dhcpUdpRegistered);
+    if (head) {
+      dhcpRet = netDHCPreceive(nic, (size_t)head + sizeof(socketPacketHeader),
+                               head->size);
+      netSocketRecvCleanup(head);
+    }
+  }
 }

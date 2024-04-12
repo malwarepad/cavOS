@@ -28,7 +28,7 @@ TARGET_IMG = ../../disk.img
 TARGET_VMWARE = ../../disk.vmdk
 TARGET_ISO = ../../cavOS.iso
 
-OBJS = $(TARGET)/obj/kc.o $(TARGET)/obj/idt.o $(TARGET)/obj/printf.o $(TARGET)/obj/isr.o $(TARGET)/obj/kb.o $(TARGET)/obj/string.o $(TARGET)/obj/system.o $(TARGET)/obj/util.o $(TARGET)/obj/shell.o $(TARGET)/obj/disk.o $(TARGET)/obj/rtc.o $(TARGET)/obj/testing.o $(TARGET)/obj/pmm.o $(TARGET)/obj/gdt.o $(TARGET)/obj/timer.o $(TARGET)/obj/schedule.o $(TARGET)/obj/pci.o $(TARGET)/obj/pci_id.o $(TARGET)/obj/israsm.o $(TARGET)/obj/task.o $(TARGET)/obj/vga.o $(TARGET)/obj/console.o $(TARGET)/obj/serial.o $(TARGET)/obj/elf.o $(TARGET)/obj/paging.o $(TARGET)/obj/vmm.o $(TARGET)/obj/syscalls.o $(TARGET)/obj/ne2k.o $(TARGET)/obj/nic_controller.o $(TARGET)/obj/arp.o $(TARGET)/obj/rtl8139.o $(TARGET)/obj/bitmap.o $(TARGET)/obj/ipv4.o $(TARGET)/obj/udp.o $(TARGET)/obj/checksum.o $(TARGET)/obj/icmp.o $(TARGET)/obj/dhcp.o $(TARGET)/obj/tcp.o $(TARGET)/obj/fs_controller.o $(TARGET)/obj/ahci.o $(TARGET)/obj/rtl8169.o $(TARGET)/obj/linked_list.o $(TARGET)/obj/bootloaderParser.o $(TARGET)/obj/md5.o $(TARGET)/obj/psf.o $(TARGET)/obj/fb.o $(TARGET)/obj/malloc.o $(TARGET)/obj/malloc_glue.o $(TARGET)/obj/sseasm.o $(TARGET)/obj/diskio.o $(TARGET)/obj/ff.o $(TARGET)/obj/ffsystem.o $(TARGET)/obj/ffunicode.o
+OBJS = $(TARGET)/obj/kc.o $(TARGET)/obj/idt.o $(TARGET)/obj/printf.o $(TARGET)/obj/isr.o $(TARGET)/obj/kb.o $(TARGET)/obj/string.o $(TARGET)/obj/system.o $(TARGET)/obj/util.o $(TARGET)/obj/shell.o $(TARGET)/obj/disk.o $(TARGET)/obj/rtc.o $(TARGET)/obj/testing.o $(TARGET)/obj/pmm.o $(TARGET)/obj/gdt.o $(TARGET)/obj/timer.o $(TARGET)/obj/schedule.o $(TARGET)/obj/pci.o $(TARGET)/obj/pci_id.o $(TARGET)/obj/israsm.o $(TARGET)/obj/task.o $(TARGET)/obj/vga.o $(TARGET)/obj/console.o $(TARGET)/obj/serial.o $(TARGET)/obj/elf.o $(TARGET)/obj/paging.o $(TARGET)/obj/vmm.o $(TARGET)/obj/syscalls.o $(TARGET)/obj/ne2k.o $(TARGET)/obj/nic_controller.o $(TARGET)/obj/arp.o $(TARGET)/obj/rtl8139.o $(TARGET)/obj/bitmap.o $(TARGET)/obj/ipv4.o $(TARGET)/obj/udp.o $(TARGET)/obj/checksum.o $(TARGET)/obj/icmp.o $(TARGET)/obj/dhcp.o $(TARGET)/obj/tcp.o $(TARGET)/obj/socket.o $(TARGET)/obj/fs_controller.o $(TARGET)/obj/ahci.o $(TARGET)/obj/rtl8169.o $(TARGET)/obj/linked_list.o $(TARGET)/obj/bootloaderParser.o $(TARGET)/obj/md5.o $(TARGET)/obj/psf.o $(TARGET)/obj/fb.o $(TARGET)/obj/malloc.o $(TARGET)/obj/malloc_glue.o $(TARGET)/obj/sseasm.o $(TARGET)/obj/diskio.o $(TARGET)/obj/ff.o $(TARGET)/obj/ffsystem.o $(TARGET)/obj/ffunicode.o
 OUTPUT = $(TARGET)/boot/kernel.bin
 
 $(TARGET)/obj:
@@ -118,6 +118,9 @@ $(TARGET)/obj/udp.o:networking/udp.c
 
 $(TARGET)/obj/tcp.o:networking/tcp.c
 	$(COMPILER) $(CFLAGS) networking/tcp.c -o $(TARGET)/obj/tcp.o 
+
+$(TARGET)/obj/socket.o:networking/socket.c
+	$(COMPILER) $(CFLAGS) networking/socket.c -o $(TARGET)/obj/socket.o 
 
 $(TARGET)/obj/checksum.o:networking/checksum.c
 	$(COMPILER) $(CFLAGS) networking/checksum.c -o $(TARGET)/obj/checksum.o 
@@ -217,7 +220,7 @@ clean:
 	rm -f $(TARGET_IMG) $(TARGET_VMWARE) $(TARGET_ISO)
 
 qemu:
-	qemu-system-x86_64 -d guest_errors -serial stdio -drive file=$(TARGET_IMG),format=raw,id=disk,if=none -device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 -m 1g -netdev user,id=mynet0 -net nic,model=rtl8139,netdev=mynet0 -enable-kvm
+	qemu-system-x86_64 -d guest_errors -serial stdio -drive file=$(TARGET_IMG),format=raw,id=disk,if=none -device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 -m 1g -netdev user,id=mynet0 -net nic,model=rtl8139,netdev=mynet0
 
 qemu_dbg:
 	qemu-system-x86_64 -d guest_errors -no-shutdown -no-reboot -serial stdio -drive file=$(TARGET_IMG),format=raw,id=disk,if=none -device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 -m 8g -netdev user,id=mynet0,hostfwd=udp::5555-:69,hostfwd=tcp::5555-:69 -net nic,model=rtl8139,netdev=mynet0 -object filter-dump,id=id,netdev=mynet0,file=../../netdmp.pcapng -s

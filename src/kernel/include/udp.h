@@ -18,8 +18,4 @@ void netUdpSend(NIC *nic, uint8_t *destination_mac, uint8_t *destination_ip,
                 uint16_t destination_port);
 void netUdpReceive(NIC *nic, void *body, uint32_t size);
 
-// udp handlers
-udpHandler *netUdpRegister(NIC *nic, uint16_t port, void *targetHandler);
-bool        netUdpRemove(NIC *nic, uint16_t port);
-
 #endif
