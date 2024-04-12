@@ -27,17 +27,15 @@ bool isRTL8169(PCIdevice *device) {
 
 void interruptHandlerRTL8169(AsmPassedInterrupt *regs) {
 #if DEBUG_RTL8169
-  printf("[pci::rtl8169] Interrupt!\n");
+  // printf("[pci::rtl8169] Interrupt!\n");
 #endif
   rtl8169_interface *info = (rtl8169_interface *)selectedNIC->infoLocation;
   uint16_t           iobase = info->iobase;
 
   uint16_t status = inportw(iobase + 0x3E);
 
-  bool dhcpInit = false;
   if (status & RTL8169_LINK_CHANGE) {
     status |= RTL8169_LINK_CHANGE;
-    dhcpInit = true;
 #if DEBUG_RTL8169
     printf("[pci::rtl8169] Link change detected!\n");
 #endif
@@ -80,9 +78,6 @@ void interruptHandlerRTL8169(AsmPassedInterrupt *regs) {
     printf("[pci::rtl8169] Unresolved interrupt: %x \n", status);
 #endif
   }
-
-  if (dhcpInit)
-    netDHCPinit(selectedNIC);
 }
 
 void sendRTL8169(NIC *nic, void *packet, uint32_t packetSize) {
