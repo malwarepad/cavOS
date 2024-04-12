@@ -28,7 +28,8 @@ bool validateMbr(uint8_t *mbrSector) {
   return mbrSector[510] == 0x55 && mbrSector[511] == 0xaa;
 }
 
-void getDiskBytes(uint8_t *target_address, uint32_t LBA, uint8_t sector_count) {
+void diskBytes(uint8_t *target_address, uint32_t LBA, uint8_t sector_count,
+               bool write) {
   // todo: yeah, this STILL is NOT ideal
 
   PCI *browse = firstPCI;
@@ -49,6 +50,18 @@ void getDiskBytes(uint8_t *target_address, uint32_t LBA, uint8_t sector_count) {
   while (!(target->sata & (1 << pos)))
     pos++;
 
-  ahciRead(target, pos, &target->mem->ports[pos], LBA, 0, sector_count,
-           target_address);
+  if (write)
+    ahciWrite(target, pos, &target->mem->ports[pos], LBA, 0, sector_count,
+              target_address);
+  else
+    ahciRead(target, pos, &target->mem->ports[pos], LBA, 0, sector_count,
+             target_address);
+}
+
+void getDiskBytes(uint8_t *target_address, uint32_t LBA, uint8_t sector_count) {
+  diskBytes(target_address, LBA, sector_count, false);
+}
+
+void setDiskBytes(uint8_t *target_address, uint32_t LBA, uint8_t sector_count) {
+  diskBytes(target_address, LBA, sector_count, true);
 }

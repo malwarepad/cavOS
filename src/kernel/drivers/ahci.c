@@ -94,12 +94,13 @@ bool ahciCmdIssue(HBA_PORT *port, int slot) {
 /* Set up AHCI parts for reading/writing: */
 
 HBA_CMD_HEADER *ahciSetUpCmdHeader(ahci *ahciPtr, uint32_t portId,
-                                   uint32_t cmdslot, uint32_t prdt) {
+                                   uint32_t cmdslot, uint32_t prdt,
+                                   bool write) {
   HBA_CMD_HEADER *cmdheader = (HBA_CMD_HEADER *)ahciPtr->clbVirt[portId];
   cmdheader = (size_t)cmdheader + cmdslot * sizeof(HBA_CMD_HEADER);
   cmdheader->cfl = sizeof(FIS_REG_H2D) / sizeof(uint32_t); // Command FIS size
-  cmdheader->w = 0;                                        // Read from device
-  cmdheader->prdtl = prdt;                                 // PRDT entries count
+  cmdheader->w = (uint8_t)write; // 0 = read, 1 = write
+  cmdheader->prdtl = prdt;       // PRDT entries count
 
   return cmdheader;
 }
@@ -263,7 +264,7 @@ bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
     return false;
 
   HBA_CMD_HEADER *cmdheader =
-      ahciSetUpCmdHeader(ahciPtr, portId, slot, AHCI_CALC_PRDT(count));
+      ahciSetUpCmdHeader(ahciPtr, portId, slot, AHCI_CALC_PRDT(count), false);
   HBA_CMD_TBL *cmdtbl = ahciSetUpCmdTable(ahciPtr, cmdheader, portId);
 
   ahciSetUpPRDT(cmdheader, cmdtbl, buff, &count);
@@ -273,6 +274,43 @@ bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
   cmdfis->fis_type = FIS_TYPE_REG_H2D;
   cmdfis->c = 1; // Command
   cmdfis->command = ATA_CMD_READ_DMA_EX;
+
+  cmdfis->lba0 = (uint8_t)startl;
+  cmdfis->lba1 = (uint8_t)(startl >> 8);
+  cmdfis->lba2 = (uint8_t)(startl >> 16);
+  cmdfis->device = 1 << 6; // LBA mode
+
+  cmdfis->lba3 = (uint8_t)(startl >> 24);
+  cmdfis->lba4 = (uint8_t)starth;
+  cmdfis->lba5 = (uint8_t)(starth >> 8);
+
+  cmdfis->countl = count & 0xFF;
+  cmdfis->counth = (count >> 8) & 0xFF;
+
+  if (!ahciPortReady(port))
+    return false;
+
+  return ahciCmdIssue(port, slot);
+}
+
+bool ahciWrite(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
+               uint32_t starth, uint32_t count, uint16_t *buff) {
+  port->is = (uint32_t)-1; // Clear pending interrupt bits
+  int slot = ahciCmdFind(port);
+  if (slot == -1)
+    return false;
+
+  HBA_CMD_HEADER *cmdheader =
+      ahciSetUpCmdHeader(ahciPtr, portId, slot, AHCI_CALC_PRDT(count), true);
+  HBA_CMD_TBL *cmdtbl = ahciSetUpCmdTable(ahciPtr, cmdheader, portId);
+
+  ahciSetUpPRDT(cmdheader, cmdtbl, buff, &count);
+
+  FIS_REG_H2D *cmdfis = (FIS_REG_H2D *)(&cmdtbl->cfis);
+
+  cmdfis->fis_type = FIS_TYPE_REG_H2D;
+  cmdfis->c = 1; // Command
+  cmdfis->command = ATA_CMD_WRITE_DMA_EX;
 
   cmdfis->lba0 = (uint8_t)startl;
   cmdfis->lba1 = (uint8_t)(startl >> 8);

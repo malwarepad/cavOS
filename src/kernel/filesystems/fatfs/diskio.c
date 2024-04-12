@@ -77,11 +77,8 @@ DRESULT disk_write(BYTE pdrv, /* Physical drive nmuber to identify the drive */
                    LBA_t       sector, /* Start sector in LBA */
                    UINT        count   /* Number of sectors to write */
 ) {
-  DRESULT res;
-  debugf("[fatfs] UNIMPLEMENTED! Tried to write: buff{%lx} sector{%lx} "
-         "count{%d}\n",
-         buff, sector, count);
-  res = RES_OK;
+  DRESULT res = RES_OK;
+  setDiskBytes(buff, sector, count);
 
   return res;
 }
@@ -96,11 +93,22 @@ DRESULT disk_ioctl(BYTE  pdrv, /* Physical drive nmuber (0..) */
                    BYTE  cmd,  /* Control code */
                    void *buff  /* Buffer to send/receive control data */
 ) {
-  DRESULT res;
+  DRESULT res = RES_OK;
 
-  res = RES_OK;
+  switch (cmd) {
+  case CTRL_SYNC:
+    // writes are synced, nothing to do lol
+    break;
 
-  return RES_PARERR;
+  default:
+    debugf("[fatfs] UNIMPLEMENTED! Tried to ioctl: pdrv{%x} cmd{%x} "
+           "buff{%lx}\n",
+           pdrv, cmd, buff);
+    res = RES_PARERR;
+    break;
+  }
+
+  return res;
 }
 
 #include <malloc.h>

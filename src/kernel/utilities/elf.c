@@ -44,7 +44,7 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
   lockInterrupts();
 
   // Open & read executable file
-  OpenFile *dir = fsKernelOpen(filepath);
+  OpenFile *dir = fsKernelOpen(filepath, FS_MODE_READ);
   if (!dir) {
     debugf("[elf] Could not open %s\n", filepath);
     releaseInterrupts();

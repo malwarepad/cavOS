@@ -111,6 +111,9 @@ void setConsoleY(uint32_t y) {
 }
 
 void drawCharacter(int charnum) {
+  if (!charnum)
+    return;
+
   if (width > (framebufferWidth - CHAR_WIDTH)) {
     width = 0;
     height += CHAR_HEIGHT;

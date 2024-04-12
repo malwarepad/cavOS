@@ -7,6 +7,11 @@
 typedef enum FS { FS_FAT32, FS_TEST } FS;
 typedef enum CONNECTOR { CONNECTOR_AHCI, CONNECTOR_DUMMY } CONNECTOR;
 
+#define FS_MODE_READ (1 << 0)
+#define FS_MODE_WRITE (1 << 1)
+#define FS_MODE_CREATE (1 << 2)
+#define FS_MODE_APPEND (1 << 3)
+
 typedef struct MountPoint MountPoint;
 struct MountPoint {
   MountPoint *next;
@@ -27,7 +32,8 @@ typedef struct OpenFile OpenFile;
 struct OpenFile {
   OpenFile *next;
 
-  int id;
+  int      id;
+  uint16_t mode;
 
   size_t pointer;
   size_t tmp1;
@@ -45,7 +51,7 @@ MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
 bool        fsUnmount(MountPoint *mnt);
 MountPoint *fsDetermineMountPoint(char *filename);
 
-OpenFile *fsKernelOpen(char *filename);
+OpenFile *fsKernelOpen(char *filename, uint16_t mode);
 bool      fsKernelClose(OpenFile *file);
 
 int fsUserOpen(char *filename, int flags, uint16_t mode);
@@ -53,6 +59,7 @@ int fsUserClose(int fd);
 int fsUserSeek(uint32_t fd, int offset, int whence);
 
 uint32_t fsRead(OpenFile *file, char *out, uint32_t limit);
+uint32_t fsWrite(OpenFile *file, char *in, uint32_t limit);
 void     fsReadFullFile(OpenFile *file, uint8_t *out);
 uint32_t fsGetFilesize(OpenFile *file);
 

@@ -32,7 +32,7 @@ bool psfLoad(void *buffer) {
 bool psfLoadDefaults() { return psfLoad(&u_vga16_psf[0]); }
 
 bool psfLoadFromFile(char *path) {
-  OpenFile *dir = fsKernelOpen(path);
+  OpenFile *dir = fsKernelOpen(path, FS_MODE_READ);
   if (!dir)
     return false;
 

@@ -386,7 +386,11 @@ static const struct {
 
 #define ATA_DEV_BUSY 0x80
 #define ATA_DEV_DRQ 0x08
+
+#define ATA_CMD_READ_DMA 0xC8
 #define ATA_CMD_READ_DMA_EX 0x25
+#define ATA_CMD_WRITE_DMA 0xCA
+#define ATA_CMD_WRITE_DMA_EX 0x35
 
 #define HBA_PxCMD_ST 0x0001
 #define HBA_PxCMD_FRE 0x0010
@@ -570,5 +574,7 @@ struct ahci {
 bool initiateAHCI(PCIdevice *device);
 bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
               uint32_t starth, uint32_t count, uint16_t *buff);
+bool ahciWrite(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
+               uint32_t starth, uint32_t count, uint16_t *buff);
 
 #endif

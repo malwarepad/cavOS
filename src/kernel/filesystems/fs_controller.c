@@ -147,7 +147,16 @@ bool fsOpenFsSpecific(char *filename, MountPoint *mnt, OpenFile *target) {
   case FS_FAT32:
     target->dir = malloc(sizeof(FIL));
     memset(target->dir, 0, sizeof(FIL));
-    res = f_open(target->dir, filename, FA_READ) == FR_OK;
+    uint8_t flags = 0;
+    if (target->mode & FS_MODE_READ)
+      flags |= FA_READ;
+    if (target->mode & FS_MODE_WRITE)
+      flags |= FA_WRITE;
+    if (target->mode & FS_MODE_CREATE)
+      flags |= FA_CREATE_NEW;
+    if (target->mode & FS_MODE_APPEND)
+      flags |= FA_OPEN_APPEND;
+    res = f_open(target->dir, filename, flags) == FR_OK;
     break;
   case FS_TEST:
     res = 1;
@@ -158,9 +167,10 @@ bool fsOpenFsSpecific(char *filename, MountPoint *mnt, OpenFile *target) {
 
 // todo: sanitize filenames
 int       openId = 2;
-OpenFile *fsOpenGeneric(char *filename, Task *task) {
+OpenFile *fsOpenGeneric(char *filename, Task *task, uint16_t mode) {
   OpenFile *target = task ? fsUserRegisterNode(task) : fsKernelRegisterNode();
   target->id = openId++;
+  target->mode = mode;
 
   target->pointer = 0;
   target->tmp1 = 0;
@@ -189,11 +199,13 @@ OpenFile *fsOpenGeneric(char *filename, Task *task) {
   return target;
 }
 
-OpenFile *fsKernelOpen(char *filename) { return fsOpenGeneric(filename, 0); }
+OpenFile *fsKernelOpen(char *filename, uint16_t mode) {
+  return fsOpenGeneric(filename, 0, mode);
+}
 
 int fsUserOpen(char *filename, int flags, uint16_t mode) {
   // todo: modes & flags
-  OpenFile *file = fsOpenGeneric(filename, currentTask);
+  OpenFile *file = fsOpenGeneric(filename, currentTask, mode);
   if (!file)
     return -1;
 
@@ -251,6 +263,23 @@ uint32_t fsRead(OpenFile *file, char *out, uint32_t limit) {
     break;
   case FS_TEST:
     memset(out, 'p', limit);
+    break;
+  }
+  return ret;
+}
+
+uint32_t fsWrite(OpenFile *file, char *in, uint32_t limit) {
+  uint32_t ret = 0;
+  switch (file->mountPoint->filesystem) {
+  case FS_FAT32:
+    unsigned int write = 0;
+    bool         output = f_write(file->dir, in, limit, &write) == FR_OK;
+    if (output)
+      ret = write;
+    break;
+  case FS_TEST:
+    for (int i = 0; i < limit; i++)
+      debugf("%c", in[i]);
     break;
   }
   return ret;
