@@ -243,7 +243,7 @@ void netIPv4Receive(NIC *nic, void *body, uint32_t size) {
     break;
 
   case TCP_PROTOCOL:
-    netTcpReceiveInternal(nic, finalBody, finalSize);
+    netTcpReceive(nic, finalBody, finalSize);
     break;
 
   default:

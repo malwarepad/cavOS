@@ -28,18 +28,23 @@ typedef struct tcpHeader {
   uint16_t urgent_ptr;
 } __attribute__((packed)) tcpHeader;
 
-tcpConnection *netTcpConnect(NIC *nic, uint8_t *destination_ip,
-                             uint16_t source_port, uint16_t destination_port);
-void           netTcpReceiveInternal(NIC *nic, void *body, uint32_t size);
-bool netTcpSend(NIC *nic, tcpConnection *connection, uint8_t flags, void *data,
+typedef struct tcpConnection {
+  bool open;
+  bool closing;
+
+  uint32_t client_seq_number;
+  uint32_t client_ack_number;
+} tcpConnection;
+
+tcpConnection *netTcpConnect(NIC *nic, Socket *socket);
+void           netTcpAwaitOpen(Socket *socket);
+
+bool netTcpClose(NIC *nic, Socket *socket);
+bool netTcpCleanup(NIC *nic, Socket *socket);
+
+bool netTcpSend(NIC *nic, Socket *socket, uint8_t flags, void *data,
                 uint32_t size);
 
-void netTcpAwaitOpen(tcpConnection *connection);
-
-void netTcpDiscardPacket(tcpConnection *connection, tcpPacketHeader *header);
-bool netTcpClose(NIC *nic, tcpConnection *connection);
-
-bool             netTcpCleanup(NIC *nic, tcpConnection *connection);
-netPacketHeader *netTcpReceive(tcpConnection *connection);
+void netTcpReceive(NIC *nic, void *body, uint32_t size);
 
 #endif

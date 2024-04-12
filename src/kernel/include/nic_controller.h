@@ -40,32 +40,6 @@ typedef struct arpTableEntry {
   uint8_t mac[6];
 } arpTableEntry;
 
-// why are there tcp stuff here???!
-typedef struct tcpPacketHeader tcpPacketHeader;
-struct tcpPacketHeader {
-  tcpPacketHeader *next;
-
-  uint32_t size;
-};
-typedef struct tcpConnection tcpConnection;
-struct tcpConnection {
-  tcpConnection *next;
-
-  bool     open;
-  bool     closing;
-  uint16_t client_port; // dest
-  uint16_t server_port;
-
-  uint8_t server_ip[4];
-  // NetHandlerFunction handler; not a good idea, it bypasses other interrutps
-  // from going through!
-
-  uint32_t client_seq_number;
-  uint32_t client_ack_number;
-
-  tcpPacketHeader *firstPendingPacket;
-};
-
 // why is there socket stuff here???!
 typedef enum SOCKET_PROT {
   SOCKET_PROT_NULL = 0,
@@ -84,8 +58,10 @@ struct Socket {
   Socket *next;
 
   SOCKET_PROT protocol;
+  void       *protocolSpecific;
 
   uint8_t  server_ip[4];
+  uint8_t  server_mac[6];
   uint16_t client_port; // dest
   uint16_t server_port;
 
@@ -110,9 +86,6 @@ struct NIC {
   // ARP
   arpTableEntry arpTable[ARP_TABLE_LEN];
   uint32_t      arpTableCurr;
-
-  // TCP
-  tcpConnection *firstTcpConnection;
 
   // DHCP
   Socket  *dhcpUdpRegistered;

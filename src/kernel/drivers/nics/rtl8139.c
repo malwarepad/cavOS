@@ -196,8 +196,11 @@ void sendRTL8139(NIC *nic, void *packet, uint32_t packetSize) {
   if (info->tx_curr > 3)
     info->tx_curr = 0;
 
-  while (!(info->tok & (1 << tx_active)))
-    ;
+  while (!(inportl(iobase + TSD_array[tx_active]) & (1 << 15)))
+    ; // transmit TOK xd
+
+  // while (!(info->tok & (1 << tx_active)))
+  //   ;
 
   outportl(iobase + TSD_array[tx_active], 0x2000);
 

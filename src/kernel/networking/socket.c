@@ -1,12 +1,13 @@
+#include <arp.h>
 #include <ipv4.h>
 #include <linked_list.h>
 #include <malloc.h>
 #include <socket.h>
 #include <system.h>
+#include <tcp.h>
 #include <udp.h>
 
 // Something like Linux sockets...
-// todo: move TCP stuff here too
 // Copyright (C) 2024 Panagiotis
 
 Socket *netSocketConnect(NIC *nic, SOCKET_PROT protocol,
@@ -19,8 +20,10 @@ Socket *netSocketConnect(NIC *nic, SOCKET_PROT protocol,
   target->client_port = source_port;
   target->server_port = destination_port;
 
-  if (destination_ip)
+  if (destination_ip) {
     memcpy(target->server_ip, destination_ip, 4);
+    netArpGetIPv4(nic, destination_ip, target->server_mac);
+  }
   target->protocol = protocol;
 
   switch (protocol) {
@@ -30,6 +33,10 @@ Socket *netSocketConnect(NIC *nic, SOCKET_PROT protocol,
     break;
   case SOCKET_PROT_UDP:
     // UDP doesn't require any preperation
+    break;
+  case SOCKET_PROT_TCP:
+    tcpConnection *tcp = netTcpConnect(nic, target);
+    target->protocolSpecific = tcp;
     break;
   default:
     break;
@@ -49,6 +56,12 @@ void netSocketPass(NIC *nic, SOCKET_PROT protocol, void *body, uint32_t size) {
     client_port = switch_endian_16(udp->destination_port);
     server_port = switch_endian_16(udp->source_port);
     break;
+  case SOCKET_PROT_TCP:
+    tcpHeader *tcp =
+        (size_t)body + sizeof(netPacketHeader) + sizeof(IPv4header);
+    client_port = switch_endian_16(tcp->destination_port);
+    server_port = switch_endian_16(tcp->source_port);
+    break;
   default:
     break;
   }
@@ -61,7 +74,7 @@ void netSocketPass(NIC *nic, SOCKET_PROT protocol, void *body, uint32_t size) {
 
   Socket *browse = nic->firstSocket;
   while (browse) {
-    if (browse->client_port == client_port)
+    if (browse->protocol == protocol && browse->client_port == client_port)
       break;
 
     browse = browse->next;
@@ -78,13 +91,15 @@ void netSocketPass(NIC *nic, SOCKET_PROT protocol, void *body, uint32_t size) {
            browse->server_port, server_port);
 
   if (*(uint32_t *)(&browse->server_ip[0]) &&
-      memcmp(ipv4->source_address, browse->server_ip, 4) != 0)
+      memcmp(ipv4->source_address, browse->server_ip, 4) != 0) {
     debugf("[socket] Incoming packet (server) IP{%d.%d.%d.%d} does not match "
            "captured (server) IP{%d.%d.%d.%d}",
            ipv4->source_address[0], ipv4->source_address[1],
            ipv4->source_address[2], ipv4->source_address[3],
            browse->server_ip[0], browse->server_ip[1], browse->server_ip[2],
            browse->server_ip[3]);
+    return;
+  }
 
   socketPacketHeader *targetHeader = LinkedListAllocate(
       &browse->firstPacket, sizeof(socketPacketHeader) + size);
