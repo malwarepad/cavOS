@@ -7,10 +7,14 @@
 typedef enum FS { FS_FAT32, FS_TEST } FS;
 typedef enum CONNECTOR { CONNECTOR_AHCI, CONNECTOR_DUMMY } CONNECTOR;
 
-#define FS_MODE_READ (1 << 0)
-#define FS_MODE_WRITE (1 << 1)
-#define FS_MODE_CREATE (1 << 2)
-#define FS_MODE_APPEND (1 << 3)
+// Accordingly to fatfs
+#define FS_MODE_READ 0x01
+#define FS_MODE_WRITE 0x02
+#define FS_MODE_OPEN_EXISTING 0x00
+#define FS_MODE_CREATE_NEW 0x04
+#define FS_MODE_CREATE_ALWAYS 0x08
+#define FS_MODE_OPEN_ALWAYS 0x10
+#define FS_MODE_OPEN_APPEND 0x30
 
 typedef struct MountPoint MountPoint;
 struct MountPoint {

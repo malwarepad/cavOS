@@ -147,16 +147,7 @@ bool fsOpenFsSpecific(char *filename, MountPoint *mnt, OpenFile *target) {
   case FS_FAT32:
     target->dir = malloc(sizeof(FIL));
     memset(target->dir, 0, sizeof(FIL));
-    uint8_t flags = 0;
-    if (target->mode & FS_MODE_READ)
-      flags |= FA_READ;
-    if (target->mode & FS_MODE_WRITE)
-      flags |= FA_WRITE;
-    if (target->mode & FS_MODE_CREATE)
-      flags |= FA_CREATE_NEW;
-    if (target->mode & FS_MODE_APPEND)
-      flags |= FA_OPEN_APPEND;
-    res = f_open(target->dir, filename, flags) == FR_OK;
+    res = f_open(target->dir, filename, target->mode) == FR_OK;
     break;
   case FS_TEST:
     res = 1;
