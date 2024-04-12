@@ -26,9 +26,6 @@
 uint8_t TSAD_array[4] = {0x20, 0x24, 0x28, 0x2C};
 uint8_t TSD_array[4] = {0x10, 0x14, 0x18, 0x1C};
 
-// Track current packet (when receiving)
-uint32_t currentPacket = 0;
-
 bool isRTL8139(PCIdevice *device) {
   return (device->vendor_id == 0x10ec && device->device_id == 0x8139);
 }
@@ -214,9 +211,10 @@ void receiveRTL8139(NIC *nic) {
   uint16_t           iobase = info->iobase;
 
   while ((inportb(iobase + 0x37) & 0x01) == 0) {
-    uint16_t *buffer = (uint16_t *)(info->rx_buff_virtual + currentPacket);
-    uint16_t  packetStatus = *(buffer);
-    uint16_t  packetLength = *(buffer + 1);
+    uint16_t *buffer =
+        (uint16_t *)(info->rx_buff_virtual + info->currentPacket);
+    uint16_t packetStatus = *(buffer);
+    uint16_t packetLength = *(buffer + 1);
     if (!packetStatus || packetStatus == 0xe1e3) {
       debugf("[pci::rtl8139] FATAL! Bad packet status{%x}!\n", packetStatus);
       return;
@@ -236,10 +234,10 @@ void receiveRTL8139(NIC *nic) {
     // for (int i = 0; i < packetLength; i++)
     //   debugf("%02X ", ((uint8_t *)packet)[i]);
 
-    currentPacket = (currentPacket + packetLength + 4 + 3) & (~3);
-    if (currentPacket >= 8192)
-      currentPacket -= 8192;
+    info->currentPacket = (info->currentPacket + packetLength + 4 + 3) & (~3);
+    if (info->currentPacket >= 8192)
+      info->currentPacket -= 8192;
 
-    outportw(iobase + 0x38, currentPacket - 0x10);
+    outportw(iobase + 0x38, info->currentPacket - 0x10);
   }
 }
