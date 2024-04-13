@@ -156,7 +156,21 @@ bool fsOpenFsSpecific(char *filename, MountPoint *mnt, OpenFile *target) {
   return res;
 }
 
-// todo: sanitize filenames
+void fsSanitize(char *filename) {
+  int i, j;
+  for (i = 0, j = 0; filename[i] != '\0'; i++) {
+    // double slashes
+    if (filename[i] == '/' && filename[i + 1] == '/')
+      continue;
+    // slashes at the end
+    if (filename[i] == '/' && filename[i + 1] == '\0')
+      continue;
+    filename[j] = filename[i];
+    j++;
+  }
+  filename[j] = '\0'; // null terminator
+}
+
 int       openId = 2;
 OpenFile *fsOpenGeneric(char *filename, Task *task, uint16_t mode) {
   OpenFile *target = task ? fsUserRegisterNode(task) : fsKernelRegisterNode();
@@ -166,16 +180,23 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, uint16_t mode) {
   target->pointer = 0;
   target->tmp1 = 0;
 
-  MountPoint *mnt = fsDetermineMountPoint(filename);
+  size_t filenameSize = strlength(filename) + 1;
+  char  *safeFilename = (char *)malloc(filenameSize);
+  memcpy(safeFilename, filename, filenameSize);
+  fsSanitize(safeFilename);
+
+  MountPoint *mnt = fsDetermineMountPoint(safeFilename);
   if (!mnt) {
     // no mountpoint for this
     fsKernelUnregisterNode(target);
     free(target);
+    free(safeFilename);
     return 0;
   }
   target->mountPoint = mnt;
 
-  bool res = fsOpenFsSpecific(filename, mnt, target);
+  bool res = fsOpenFsSpecific(safeFilename, mnt, target);
+  free(safeFilename);
 
   if (!res) {
     // failed to open
