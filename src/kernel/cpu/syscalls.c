@@ -9,7 +9,7 @@
 #include <task.h>
 #include <util.h>
 
-#define DEBUG_SYSCALLS 1
+#define DEBUG_SYSCALLS 0
 
 bool checkSyscallInst() {
   uint32_t eax = 0x80000001, ebx = 0, ecx = 0, edx = 0;
@@ -64,7 +64,9 @@ typedef uint64_t (*SyscallHandler)(uint64_t a1, uint64_t a2, uint64_t a3,
                                    uint64_t a4, uint64_t a5, uint64_t a6);
 void syscallHandler(AsmPassedInterrupt *regs) {
   uint64_t id = regs->rax;
-  debugf("SYSCALL %d\n", id);
+#if DEBUG_SYSCALLS
+  debugf("[syscalls] id{%d}\n", id);
+#endif
   void *handler = syscalls[id];
 
   if (!handler) {
@@ -168,7 +170,7 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
 
   size_t curr = currentTask->heap_end;
   debugf("%lx\n", curr);
-  adjust_user_heap(currentTask, currentTask->heap_end + length);
+  taskAdjustHeap(currentTask, currentTask->heap_end + length);
 
   return curr;
 }
@@ -181,7 +183,7 @@ static uint64_t syscallBrk(uint64_t brk) {
   if (brk < currentTask->heap_end)
     return -1;
 
-  adjust_user_heap(currentTask, brk);
+  taskAdjustHeap(currentTask, brk);
 
   return currentTask->heap_end;
 }
@@ -222,7 +224,7 @@ static void syscallExitTask(int return_code) {
   debugf("[scheduler] Exiting task{%d} with return code{%d}!\n",
          currentTask->id, return_code);
 #endif
-  kill_task(currentTask->id);
+  taskKill(currentTask->id);
 
   // should not return
 }
@@ -263,7 +265,7 @@ static uint32_t syscallGetHeapEnd() { return currentTask->heap_end; }
 
 #define SYSCALL_ADJUST_HEAP_END 404
 static void syscallAdjustHeapEnd(uint32_t heap_end) {
-  adjust_user_heap(currentTask, heap_end);
+  taskAdjustHeap(currentTask, heap_end);
 }
 
 #define SYSCALL_TEST 405

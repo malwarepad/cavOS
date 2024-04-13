@@ -88,7 +88,7 @@ void schedule(uint64_t rsp) {
   memcpy(cpu, &next->registers, sizeof(AsmPassedInterrupt));
 
   // Apply pagetable
-  ChangePageDirectory(next->pagedir);
+  ChangePageDirectoryUnsafe(next->pagedir);
 
   // Save & load appropriate FPU state
   asm volatile(" fxsave %0 " ::"m"(old->fpuenv));
@@ -96,5 +96,5 @@ void schedule(uint64_t rsp) {
 
   // Cleanup any old tasks left dead
   if (old->state == TASK_STATE_DEAD)
-    killed_task_cleanup(old);
+    taskKillCleanup(old);
 }

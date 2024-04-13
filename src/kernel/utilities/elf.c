@@ -41,13 +41,10 @@ bool elf_check_file(Elf64_Ehdr *hdr) {
 }
 
 uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
-  lockInterrupts();
-
   // Open & read executable file
   OpenFile *dir = fsKernelOpen(filepath, FS_MODE_READ);
   if (!dir) {
     debugf("[elf] Could not open %s\n", filepath);
-    releaseInterrupts();
     return 0;
   }
 #if ELF_DEBUG
@@ -63,7 +60,6 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
 
   if (!elf_check_file(elf_ehdr)) {
     debugf("[elf] File %s is not a valid cavOS ELF32 executable!\n", filepath);
-    releaseInterrupts();
     return 0;
   }
 
@@ -79,7 +75,7 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
          elf_ehdr->e_phnum, elf_ehdr->e_phentsize);
 #endif
 
-  int32_t id = create_taskid();
+  int32_t id = taskGenerateId();
   if (id == -1) {
     debugf(
         "[elf] Cannot fetch task id... You probably reached the task limit!");
@@ -143,7 +139,7 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
 #endif
 
   Task *target =
-      create_task(id, (uint64_t)elf_ehdr->e_entry, false, pagedir, argc, argv);
+      taskCreate(id, (uint64_t)elf_ehdr->e_entry, false, pagedir, argc, argv);
 
   if (tls)
     target->fsbase = tls;
@@ -157,7 +153,7 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
   *((b *)(a)) = c
 
   int *randomByteStart = target->heap_end;
-  adjust_user_heap(target, target->heap_end + 16);
+  taskAdjustHeap(target, target->heap_end + 16);
   for (int i = 0; i < 4; i++)
     randomByteStart[i] = rand();
 
@@ -180,7 +176,7 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 4);
   // aux: AT_PHDR
   void *phstuffStart = target->heap_end;
-  adjust_user_heap(target, target->heap_end + filesize);
+  taskAdjustHeap(target, target->heap_end + filesize);
   memcpy(phstuffStart, out, filesize);
   PUSH_TO_STACK(target->registers.usermode_rsp, size_t,
                 (size_t)phstuffStart + elf_ehdr->e_phoff);
@@ -191,7 +187,7 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
   for (int i = 0; i < argc; i++)
     argSpace += strlength(argv[i]) + 1; // null terminator
   uint8_t *argStart = target->heap_end;
-  adjust_user_heap(target, target->heap_end + argSpace);
+  taskAdjustHeap(target, target->heap_end + argSpace);
   size_t ellapsed = 0;
   for (int i = 0; i < argc; i++) {
     uint32_t len = strlength(argv[i]) + 1; // null terminator
@@ -230,7 +226,7 @@ uint32_t elf_execute(char *filepath, uint32_t argc, char **argv) {
   free(out);
   ChangePageDirectory(oldpagedir);
 
-  releaseInterrupts();
+  taskCreateFinish(target);
 
   return id;
 }

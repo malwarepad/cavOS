@@ -23,6 +23,7 @@ typedef enum TASK_STATE {
   TASK_STATE_READY = 1,
   TASK_STATE_IDLE = 2,
   TASK_STATE_WAITING_INPUT = 3,
+  TASK_STATE_CREATED = 4, // just made by taskCreate()
 } TASK_STATE;
 
 typedef struct Task Task;
@@ -50,19 +51,19 @@ struct Task {
   Task *next;
 } __attribute__((packed));
 
-Task *dummyTask;
 Task *firstTask;
 Task *currentTask;
 
 bool tasksInitiated;
 
-void     initiateTasks();
-Task    *create_task(uint32_t id, uint64_t rip, bool kernel_task,
-                     uint64_t *pagedir, uint32_t argc, char **argv);
-void     adjust_user_heap(Task *task, size_t new_heap_end);
-void     kill_task(uint32_t id);
-void     killed_task_cleanup(Task *task);
-uint8_t *getTaskState(uint32_t id);
-Task    *getTask(uint32_t id);
+void  initiateTasks();
+Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
+                 uint32_t argc, char **argv);
+void  taskCreateFinish(Task *task);
+void  taskAdjustHeap(Task *task, size_t new_heap_end);
+void  taskKill(uint32_t id);
+void  taskKillCleanup(Task *task);
+uint8_t *taskGetState(uint32_t id);
+Task    *taskGet(uint32_t id);
 
 #endif

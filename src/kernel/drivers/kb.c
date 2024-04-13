@@ -117,7 +117,7 @@ bool kbTaskRead(uint32_t taskId, char *buff, uint32_t limit,
                 bool changeTaskState) {
   while (kbIsOccupied())
     ;
-  Task *task = getTask(taskId);
+  Task *task = taskGet(taskId);
   if (!task)
     return false;
 
@@ -145,7 +145,7 @@ void initiateKb() {
 }
 
 void kbFinaliseStream() {
-  Task *task = getTask(kbTaskId);
+  Task *task = taskGet(kbTaskId);
   if (task) {
     task->tmpRecV = kbCurr;
     task->state = TASK_STATE_READY;
@@ -159,7 +159,7 @@ void kbIrq() {
     return;
 
   void *pagedirOld = GetPageDirectory();
-  Task *task = getTask(kbTaskId);
+  Task *task = taskGet(kbTaskId);
   if (task)
     ChangePageDirectory(task->pagedir);
 

@@ -103,7 +103,8 @@ void VirtualMapRegionByLength(uint64_t virt_addr, uint64_t phys_addr,
   }
 }
 
-void ChangePageDirectory(uint64_t *pd) {
+// Will NOT check for the current task and update it's pagedir (on the struct)!
+void ChangePageDirectoryUnsafe(uint64_t *pd) {
   uint64_t targ = VirtualToPhysical(pd);
   if (!targ) {
     debugf("[paging] Could not change to pd{%lx}!\n", pd);
@@ -112,6 +113,12 @@ void ChangePageDirectory(uint64_t *pd) {
   asm volatile("movq %0, %%cr3" ::"r"(targ));
 
   globalPagedir = pd;
+}
+
+void ChangePageDirectory(uint64_t *pd) {
+  ChangePageDirectoryUnsafe(pd);
+  if (tasksInitiated)
+    currentTask->pagedir = pd;
 }
 
 uint64_t *GetPageDirectory() { return (uint64_t *)globalPagedir; }
@@ -257,7 +264,7 @@ uint64_t *PageDirectoryAllocate() {
 
   memset(out, 0, PAGE_SIZE);
 
-  uint64_t *model = getTask(KERNEL_TASK)->pagedir;
+  uint64_t *model = taskGet(KERNEL_TASK)->pagedir;
   for (int i = 0; i < 512; i++)
     out[i] = model[i];
 

@@ -26,8 +26,6 @@ void initiateSSE();
 void panic();
 
 bool checkInterrupts();
-void lockInterrupts();
-void releaseInterrupts();
 
 // Has root (system) drive been initialized?
 bool systemDiskInit;

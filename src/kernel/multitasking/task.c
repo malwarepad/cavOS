@@ -16,8 +16,8 @@
 // for strictly kernel-only tasks, where ELF execution is not used!
 
 // todo: also do something with the interrupt lock/unlocking
-Task *create_task(uint32_t id, uint64_t rip, bool kernel_task,
-                  uint64_t *pagedir, uint32_t argc, char **argv) {
+Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
+                 uint32_t argc, char **argv) {
   Task *browse = firstTask;
   while (browse) {
     if (!browse->next)
@@ -70,7 +70,7 @@ Task *create_task(uint32_t id, uint64_t rip, bool kernel_task,
 
   target->id = id;
   target->kernel_task = kernel_task;
-  target->state = TASK_STATE_READY;
+  target->state = TASK_STATE_CREATED; // TASK_STATE_READY
   target->pagedir = pagedir;
 
   target->heap_start = USER_HEAP_START;
@@ -79,11 +79,13 @@ Task *create_task(uint32_t id, uint64_t rip, bool kernel_task,
   return target;
 }
 
-void adjust_user_heap(Task *task, size_t new_heap_end) {
+void taskCreateFinish(Task *task) { task->state = TASK_STATE_READY; }
+
+void taskAdjustHeap(Task *task, size_t new_heap_end) {
   if (new_heap_end <= task->heap_start) {
     debugf("[task] Tried to adjust heap behind current values: id{%d}\n",
            task->id);
-    kill_task(task->id);
+    taskKill(task->id);
     return;
   }
 
@@ -105,16 +107,14 @@ void adjust_user_heap(Task *task, size_t new_heap_end) {
     }
   } else if (new_page_top < old_page_top) {
     debugf("[task] New page is lower than old page: id{%d}\n", task->id);
-    kill_task(task->id);
+    taskKill(task->id);
     return;
   }
 
   task->heap_end = new_heap_end;
 }
 
-void kill_task(uint32_t id) {
-  lockInterrupts();
-
+void taskKill(uint32_t id) {
   Task *browse = firstTask;
   while (browse) {
     if (browse->next && (Task *)(browse->next)->id == id)
@@ -147,7 +147,7 @@ void kill_task(uint32_t id) {
 
   uint64_t currPagedir = GetPageDirectory();
   if (currPagedir == task->pagedir)
-    ChangePageDirectory(getTask(KERNEL_TASK)->pagedir);
+    ChangePageDirectory(taskGet(KERNEL_TASK)->pagedir);
 
   // PageDirectoryFree(task->pagedir); // left for sched
 
@@ -162,41 +162,24 @@ void kill_task(uint32_t id) {
   }
   currentTask = old;
 
-  // funny workaround to save state somewhere
-  // memset(dummyTask, 0, sizeof(Task));
-  // if (currentTask == task)
-  //   currentTask = dummyTask;
-
-  // free(task); // left for sched
-
-  // task->state = TASK_STATE_DEAD;
-  // releaseInterrupts();
-
-  asm volatile("sti");
-  // wait until we're outta here
-  while (1) {
+  if (currentTask == task) {
+    // we're most likely in a syscall context, so...
+    // taskKillCleanup(task); // left for sched
+    asm volatile("sti");
+    // wait until we're outta here
+    while (1) {
+    }
   }
+
+  taskKillCleanup(task);
 }
 
-void killed_task_cleanup(Task *task) {
+void taskKillCleanup(Task *task) {
   PageDirectoryFree(task->pagedir);
   free(task);
 }
 
-uint8_t *getTaskState(uint32_t id) {
-  Task *browse = firstTask;
-  while (browse) {
-    if (browse->id == id)
-      break;
-    browse = browse->next;
-  }
-  if (!browse)
-    return 0;
-
-  return browse->state;
-}
-
-Task *getTask(uint32_t id) {
+Task *taskGet(uint32_t id) {
   Task *browse = firstTask;
   while (browse) {
     if (browse->id == id)
@@ -206,7 +189,15 @@ Task *getTask(uint32_t id) {
   return browse;
 }
 
-int16_t create_taskid() {
+uint8_t *taskGetState(uint32_t id) {
+  Task *browse = taskGet(id);
+  if (!browse)
+    return 0;
+
+  return browse->state;
+}
+
+int16_t taskGenerateId() {
   Task    *browse = firstTask;
   uint16_t max = 0;
   while (browse) {
@@ -219,8 +210,6 @@ int16_t create_taskid() {
 }
 
 void initiateTasks() {
-  dummyTask = (Task *)malloc(sizeof(Task));
-  memset(dummyTask, 0, sizeof(Task));
   firstTask = (Task *)malloc(sizeof(Task));
   memset(firstTask, 0, sizeof(Task));
 

@@ -94,20 +94,6 @@ bool checkInterrupts() {
   return flags & (1 << 9);
 }
 
-bool interruptStatus = true;
-
-void lockInterrupts() {
-  interruptStatus = checkInterrupts();
-  asm volatile("cli");
-}
-
-void releaseInterrupts() {
-  if (interruptStatus)
-    asm volatile("sti");
-  else
-    interruptStatus = !interruptStatus;
-}
-
 // Endianness
 uint16_t switch_endian_16(uint16_t val) { return (val << 8) | (val >> 8); }
 

@@ -236,7 +236,7 @@ void launch_shell(int n) {
         continue;
       }
 
-      while (getTaskState(id)) {
+      while (taskGetState(id)) {
       }
 
       free(filepath);
@@ -262,9 +262,9 @@ void launch_shell(int n) {
       }
     } else if (strEql(ch, "proctest")) {
       printf("\n");
-      create_task(1, (uint32_t)task1, true, PageDirectoryAllocate(), 0, 0);
-      create_task(2, (uint32_t)task2, true, PageDirectoryAllocate(), 0, 0);
-      create_task(3, (uint32_t)task3, true, PageDirectoryAllocate(), 0, 0);
+      taskCreate(1, (uint32_t)task1, true, PageDirectoryAllocate(), 0, 0);
+      taskCreate(2, (uint32_t)task2, true, PageDirectoryAllocate(), 0, 0);
+      taskCreate(3, (uint32_t)task3, true, PageDirectoryAllocate(), 0, 0);
     } else if (strEql(ch, "cwm")) {
       printf("\n%s\n",
              "After taking some time off the project, I realized I was "

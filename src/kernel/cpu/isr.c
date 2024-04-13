@@ -104,7 +104,7 @@ void handleTaskFault(AsmPassedInterrupt *regs) {
   }
   debugf("[isr::task] Killing task{%d} because of %s!\n", currentTask->id,
          exceptions[regs->interrupt]);
-  kill_task(currentTask->id);
+  taskKill(currentTask->id);
   schedule((uint64_t)regs);
 }
 
