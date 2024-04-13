@@ -4679,6 +4679,7 @@ void* dlmalloc(size_t bytes) {
 
   postaction:
     POSTACTION(gm);
+    memset(mem, 0, bytes);
     return mem;
   }
 

@@ -179,6 +179,7 @@ bool initiateRTL8169(PCIdevice *device) {
   for (uint32_t i = 0; i < RTL8169_RX_DESCRIPTORS; i++) {
     uint32_t rx_buffer_len = 1536;
     size_t   packet_buffer_address = (size_t)malloc(rx_buffer_len);
+    memset(packet_buffer_address, 0, rx_buffer_len);
     infoLocation->packetBuffers[i] = packet_buffer_address;
     if (i == (RTL8169_RX_DESCRIPTORS - 1)) {
       infoLocation->RxDescriptors[i].command =

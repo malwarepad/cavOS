@@ -30,6 +30,7 @@ void initiateNIC(PCIdevice *device) {
 // returns UNINITIALIZED!! NIC struct
 NIC *createNewNIC(PCI *pci) {
   NIC *nic = malloc(sizeof(NIC));
+  memset(nic, 0, sizeof(NIC));
 
   nic->dhcpTransactionID = rand();
   nic->mtu = 1500;

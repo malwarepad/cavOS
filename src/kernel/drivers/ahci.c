@@ -372,6 +372,7 @@ bool initiateAHCI(PCIdevice *device) {
   setupPCIdeviceDriver(pci, PCI_DRIVER_AHCI, PCI_DRIVER_CATEGORY_STORAGE);
 
   ahci *ahciPtr = (ahci *)malloc(sizeof(ahci));
+  memset(ahciPtr, 0, sizeof(ahci));
   pci->extra = ahciPtr;
 
   HBA_MEM *mem = bootloader.hhdmOffset + base; //!
@@ -416,16 +417,6 @@ bool initiateAHCI(PCIdevice *device) {
       registerIRQhandler(details->interruptLine, &ahciInterruptHandler);
   if (!(mem->ghc & (1 << 1)))
     mem->ghc |= 1 << 1;
-
-  // printf("[pci::ahci] somehow... is{%d} version{%d} sss{%d}\n", mem->is,
-  //        mem->vs, mem->cap & (1 << 27));
-
-  // uint8_t *buff = (uint8_t *)malloc(512);
-  // ahciRead(&mem->ports[0], 0, 0, 1, buff);
-  // for (int i = 0; i < 512; i++) {
-  //   printf("%02X ", buff[i]);
-  // }
-  // printf("\n");
 
   return true;
 }
