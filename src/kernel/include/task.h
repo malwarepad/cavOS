@@ -8,7 +8,7 @@
 // "Descriptor Privilege Level"
 #define DPL_USER 3
 
-#define KERNEL_TASK 0
+#define KERNEL_TASK_ID 0
 
 typedef struct {
   uint64_t edi;
@@ -59,11 +59,13 @@ bool tasksInitiated;
 void  initiateTasks();
 Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
                  uint32_t argc, char **argv);
+Task *taskCreateKernel(uint64_t rip, uint64_t rdi);
 void  taskCreateFinish(Task *task);
 void  taskAdjustHeap(Task *task, size_t new_heap_end);
 void  taskKill(uint32_t id);
 void  taskKillCleanup(Task *task);
 uint8_t *taskGetState(uint32_t id);
 Task    *taskGet(uint32_t id);
+int16_t  taskGenerateId();
 
 #endif

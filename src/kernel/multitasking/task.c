@@ -12,10 +12,6 @@
 // Task manager allowing for task management
 // Copyright (C) 2024 Panagiotis
 
-// todo: move stack creation to this file, or have some way of controlling it
-// for strictly kernel-only tasks, where ELF execution is not used!
-
-// todo: also do something with the interrupt lock/unlocking
 Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
                  uint32_t argc, char **argv) {
   Task *browse = firstTask;
@@ -37,36 +33,13 @@ Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
   uint64_t data_selector =
       kernel_task ? GDT_KERNEL_DATA : (GDT_USER_DATA | DPL_USER);
 
-  // target->registers.cs = code_selector;
   target->registers.ds = data_selector;
-  // target->registers.es = data_selector;
-  // target->registers.fs = data_selector;
-  // target->registers.gs = data_selector;
-
-  // for (int i = 0; i < USER_STACK_PAGES; i++) {
-  //   VirtualMap(USER_STACK_BOTTOM - USER_STACK_PAGES * 0x1000 + i * 0x1000,
-  //              BitmapAllocatePageframe(),
-  //              PF_SYSTEM | PF_USER | PF_RW);
-  // }
-
   target->registers.cs = code_selector;
   target->registers.usermode_ss = data_selector;
-  target->registers.usermode_rsp = USER_STACK_BOTTOM; // USER_STACK_BOTTOM
+  target->registers.usermode_rsp = USER_STACK_BOTTOM;
 
   target->registers.rflags = 0x200; // enable interrupts
   target->registers.rip = rip;
-
-  // kesp -= sizeof(TaskReturnContext);
-  // TaskReturnContext *context = (TaskReturnContext *)kesp;
-  // context->edi = 0;
-  // context->esi = 0;
-  // context->ebx = 0;
-  // context->ebp = 0;
-
-  // this location gets read when returning from switch_context on a newly
-  // created task, instead of going back through a bunch of functions we just
-  // jump directly to isr_exit and exit the interrupt
-  // context->return_eip = (uint64_t)asm_isr_exit;
 
   target->id = id;
   target->kernel_task = kernel_task;
@@ -76,6 +49,14 @@ Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
   target->heap_start = USER_HEAP_START;
   target->heap_end = USER_HEAP_START;
 
+  return target;
+}
+
+Task *taskCreateKernel(uint64_t rip, uint64_t rdi) {
+  Task *target =
+      taskCreate(taskGenerateId(), rip, true, PageDirectoryAllocate(), 0, 0);
+  stackGenerateKernel(target, rdi);
+  taskCreateFinish(target);
   return target;
 }
 
@@ -147,7 +128,7 @@ void taskKill(uint32_t id) {
 
   uint64_t currPagedir = GetPageDirectory();
   if (currPagedir == task->pagedir)
-    ChangePageDirectory(taskGet(KERNEL_TASK)->pagedir);
+    ChangePageDirectory(taskGet(KERNEL_TASK_ID)->pagedir);
 
   // PageDirectoryFree(task->pagedir); // left for sched
 
@@ -214,7 +195,7 @@ void initiateTasks() {
   memset(firstTask, 0, sizeof(Task));
 
   currentTask = firstTask;
-  currentTask->id = KERNEL_TASK;
+  currentTask->id = KERNEL_TASK_ID;
   currentTask->state = TASK_STATE_READY;
   currentTask->pagedir = GetPageDirectory();
   currentTask->kernel_task = true;

@@ -230,7 +230,7 @@ void launch_shell(int n) {
 
       size_t *argv = malloc(sizeof(size_t) * 5);
       argv[0] = (size_t)filepath;
-      uint32_t id = elf_execute(filepath, 1, argv);
+      uint32_t id = elfExecute(filepath, 1, argv);
       if (!id) {
         printf("Failure executing %s!\n", filepath);
         continue;

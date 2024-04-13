@@ -102,7 +102,8 @@ void handleTaskFault(AsmPassedInterrupt *regs) {
     asm volatile("movq %%cr2, %0" : "=r"(err_pos));
     debugf("[isr] Page fault occured at: %lx\n", err_pos);
   }
-  debugf("[isr::task] Killing task{%d} because of %s!\n", currentTask->id,
+  debugf("[isr::task] [%c] Killing task{%d} because of %s!\n",
+         currentTask->kernel_task ? '-' : 'u', currentTask->id,
          exceptions[regs->interrupt]);
   taskKill(currentTask->id);
   schedule((uint64_t)regs);
@@ -141,7 +142,7 @@ void handle_interrupt(uint64_t rsp) {
       debugf("[isr] Happened from system call!\n");
 
     if (!systemCallOnProgress && tasksInitiated &&
-        currentTask->id != KERNEL_TASK && !currentTask->kernel_task) {
+        currentTask->id != KERNEL_TASK_ID) { // && !currentTask->kernel_task
       handleTaskFault(cpu);
       return;
     }

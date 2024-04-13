@@ -116,9 +116,9 @@ void ChangePageDirectoryUnsafe(uint64_t *pd) {
 }
 
 void ChangePageDirectory(uint64_t *pd) {
-  ChangePageDirectoryUnsafe(pd);
   if (tasksInitiated)
     currentTask->pagedir = pd;
+  ChangePageDirectoryUnsafe(pd);
 }
 
 uint64_t *GetPageDirectory() { return (uint64_t *)globalPagedir; }
@@ -264,7 +264,7 @@ uint64_t *PageDirectoryAllocate() {
 
   memset(out, 0, PAGE_SIZE);
 
-  uint64_t *model = taskGet(KERNEL_TASK)->pagedir;
+  uint64_t *model = taskGet(KERNEL_TASK_ID)->pagedir;
   for (int i = 0; i < 512; i++)
     out[i] = model[i];
 

@@ -96,8 +96,6 @@ enum Elf_Type {
 #ifndef ELF_H
 #define ELF_H
 
-bool     elf_check_file(Elf64_Ehdr *hdr);
-int16_t  taskGenerateId();
-uint32_t elf_execute(char *filepath, uint32_t argc, char **argv);
+uint32_t elfExecute(char *filepath, uint32_t argc, char **argv);
 
 #endif
