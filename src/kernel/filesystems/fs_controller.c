@@ -297,6 +297,36 @@ uint32_t fsWrite(OpenFile *file, char *in, uint32_t limit) {
   return ret;
 }
 
+bool fsWriteChar(OpenFile *file, char in) {
+  bool ret = false;
+  switch (file->mountPoint->filesystem) {
+  case FS_FAT32:
+    unsigned int write = 0;
+    bool         output = f_write(file->dir, &in, 1, &write) == FR_OK;
+    if (output)
+      ret = write;
+    break;
+  case FS_TEST:
+    debugf("%c", in);
+    break;
+  }
+  return ret == 1;
+}
+
+bool fsWriteSync(OpenFile *file) {
+  bool ret = false;
+  switch (file->mountPoint->filesystem) {
+  case FS_FAT32:
+    if (f_sync(file->dir) == FR_OK)
+      ret = true;
+    break;
+  case FS_TEST:
+    ret = true;
+    break;
+  }
+  return ret;
+}
+
 void fsReadFullFile(OpenFile *file, uint8_t *out) {
   switch (file->mountPoint->filesystem) {
   case FS_FAT32:

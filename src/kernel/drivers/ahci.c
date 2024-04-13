@@ -57,7 +57,7 @@ void ahciCmdStop(HBA_PORT *port) {
 int ahciCmdFind(HBA_PORT *port) {
   // If not set in SACT and CI, the slot is free
   uint32_t slots = (port->sact | port->ci);
-  for (int i = 0; i < 1; i++) { // todo: we got more than one lol
+  for (int i = 0; i < 32; i++) {
     if ((slots & 1) == 0)
       return i;
     slots >>= 1;
