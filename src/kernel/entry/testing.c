@@ -34,7 +34,7 @@ void weirdTests() {
 
   uint32_t targA, targB, targC, targD;
   for (int i = 0; i < 0; i++) {
-    OpenFile *dir = fsKernelOpen("/files/lorem.txt");
+    OpenFile *dir = fsKernelOpen("/files/lorem.txt", FS_MODE_READ);
     if (!dir) {
       printf("File cannot be found!\n");
       continue;
