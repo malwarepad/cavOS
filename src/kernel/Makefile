@@ -93,7 +93,7 @@ $(TARGET)/obj/fb.o:graphical/fb.c
 	$(COMPILER) $(CFLAGS) graphical/fb.c -o $(TARGET)/obj/fb.o 
 	
 $(TARGET)/obj/malloc.o:memory/malloc.c
-	$(COMPILER) $(CFLAGS) memory/malloc.c -o $(TARGET)/obj/malloc.o -DHAVE_MMAP=0 -DLACKS_TIME_H=1 -DLACKS_SYS_PARAM_H=1 -LACKS_STRING_H=0 -Dmalloc_getpagesize=4096 -DNO_MALLOC_STATS=1
+	$(COMPILER) $(CFLAGS) memory/malloc.c -o $(TARGET)/obj/malloc.o -DHAVE_MMAP=0 -DLACKS_TIME_H=1 -DLACKS_SYS_PARAM_H=1 -LACKS_STRING_H=0 -Dmalloc_getpagesize=4096 -DNO_MALLOC_STATS=1 -DMORECORE_CONTIGUOUS=0
 	
 $(TARGET)/obj/malloc_glue.o:memory/malloc_glue.c
 	$(COMPILER) $(CFLAGS) memory/malloc_glue.c -o $(TARGET)/obj/malloc_glue.o 

@@ -9,7 +9,8 @@ void *sbrk(size_t increment) {
   debugf("[dlmalloc::sbrk] size{%lx}\n", increment);
 #endif
   if (!increment)
-    return 0;
+    increment = 0x1000;
+  // return 0;
 
   uint64_t blocks = DivRoundUp(increment, BLOCK_SIZE);
   void    *virt = VirtualAllocate(blocks);
