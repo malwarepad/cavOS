@@ -53,9 +53,10 @@ Saturday March 2nd of 2024. Through many workarounds, "bad" decisions and an ove
 As of the current commit, a lot of leftovers from x86 are present. While I migrate/rewrite everything left, this repository might contain a few unneeded stuff. Just know that those are not "unusable", they used to be part of the featureset and worked fine.
 
 ## Compiling
-
 Everything about this can be found over at [install.md](docs/install.md). Go there for more info about building the OS correctly, cleaning unused binaries and other stuff. 
 
-## License
+## Credits
+- [G-9](https://nr9.online/): ASCII art on fetch!
 
+## License
 This project is licensed under GPL v3 (GNU General Public License v3.0). For more information go to the LICENSE file.
