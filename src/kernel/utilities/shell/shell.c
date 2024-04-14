@@ -262,9 +262,9 @@ void launch_shell(int n) {
       }
     } else if (strEql(ch, "proctest")) {
       printf("\n");
-      taskCreate(1, (uint32_t)task1, true, PageDirectoryAllocate(), 0, 0);
-      taskCreate(2, (uint32_t)task2, true, PageDirectoryAllocate(), 0, 0);
-      taskCreate(3, (uint32_t)task3, true, PageDirectoryAllocate(), 0, 0);
+      taskCreateKernel((size_t)task1, 0);
+      taskCreateKernel((size_t)task2, 0);
+      taskCreateKernel((size_t)task3, 0);
     } else if (strEql(ch, "cwm")) {
       printf("\n%s\n",
              "After taking some time off the project, I realized I was "
