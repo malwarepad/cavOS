@@ -328,11 +328,13 @@ void set_background_color() {
 }
 
 void fetch() {
-  printf("\nname: cavOS");
-  printf("\nmemory: %dMB",
+  printf("\n      ^         name: cavOS");
+  printf("\n     / \\        memory: %ldMB",
          DivRoundUp(DivRoundUp(bootloader.mmTotal, 1024), 1024));
-  printf("\nuptime: %ds", DivRoundUp((uint32_t)timerTicks, 1000));
-  printf("\n");
+  printf("\n    /   \\       uptime: %lds", DivRoundUp(timerTicks, 1000));
+  printf("\n   /  ^  \\  _");
+  printf("\n   \\ \\ / / / \\");
+  printf("\n           \\_/  \n");
 }
 
 void help() {
