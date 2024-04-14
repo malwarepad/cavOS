@@ -215,6 +215,9 @@ void *VirtualToPhysical(size_t virt_addr) {
   if (virt_addr >= HHDMoffset && virt_addr <= (HHDMoffset + bootloader.mmTotal))
     return (void *)(virt_addr - HHDMoffset);
 
+  size_t virt_addr_init = virt_addr;
+  virt_addr &= ~0xFFF;
+
   virt_addr = AMD64_MM_STRIPSX(virt_addr);
 
   uint32_t pml4_index = PML4E(virt_addr);
@@ -245,7 +248,8 @@ void *VirtualToPhysical(size_t virt_addr) {
   size_t *pt = PTE_GET_ADDR(pd[pd_index]) + HHDMoffset;
 
   if (pt[pt_index] & PF_PRESENT)
-    return (void *)(PTE_GET_ADDR(pt[pt_index] + (virt_addr & PAGE_MASK(12))));
+    return (void *)(PTE_GET_ADDR(pt[pt_index]) +
+                    ((size_t)virt_addr_init & 0xFFF));
 
   return 0;
 }

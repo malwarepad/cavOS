@@ -77,10 +77,11 @@ void taskAdjustHeap(Task *task, size_t new_heap_end) {
     size_t num = new_page_top - old_page_top;
 
     for (size_t i = 0; i < num; i++) {
-      size_t phys = BitmapAllocatePageframe(&physical);
       size_t virt = old_page_top * PAGE_SIZE + i * PAGE_SIZE;
       if (VirtualToPhysical(virt))
         continue;
+
+      size_t phys = BitmapAllocatePageframe(&physical);
 
       VirtualMap(virt, phys, PF_RW | PF_USER | PF_SYSTEM);
 
