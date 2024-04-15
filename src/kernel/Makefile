@@ -7,6 +7,11 @@ CFLAGS = -m64 -c -ffreestanding -Wall -fcommon -Iinclude/ -fPIE -mno-80387 \
     -mno-sse \
 		-nostartfiles \
 		-nostdlib \
+		-nostdinc \
+		-I /usr/include \
+		-I /usr/local/include \
+		-I /usr/target/include \
+		-I /usr/lib/gcc/x86_64-pc-linux-gnu/*/include \
     -mno-sse2 \
     -mno-red-zone -fno-stack-protector \
     -fno-stack-check \
