@@ -114,10 +114,8 @@ void *BitmapAllocate(DS_Bitmap *bitmap, size_t blocks) {
     return;
 
   size_t pickedRegion = FindFreeRegion(bitmap, blocks);
-  // if (pickedRegion == INVALID_BLOCK) {
-  //   printf("no!");
-  //   panic();
-  // }
+  if (pickedRegion == INVALID_BLOCK)
+    return 0;
 
   MarkBlocks(bitmap, pickedRegion, blocks, 1);
   return ToPtr(bitmap, pickedRegion);

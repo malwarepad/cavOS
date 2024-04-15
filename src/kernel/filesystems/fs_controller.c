@@ -344,7 +344,9 @@ void fsReadFullFile(OpenFile *file, uint8_t *out) {
 #define SEEK_END 2  // end + offset
 int fsUserSeek(uint32_t fd, int offset, int whence) {
   OpenFile *file = fsUserNodeFetch(currentTask, fd);
-  int       target = offset;
+  if (!file)
+    return -1;
+  int target = offset;
   if (whence == SEEK_SET)
     target += 0;
   else if (whence == SEEK_CURR)

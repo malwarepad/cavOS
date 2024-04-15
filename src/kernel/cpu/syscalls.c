@@ -280,6 +280,12 @@ static int syscallSetTidAddr(int *tidptr) {
   return -1;
 }
 
+#define SYSCALL_OPENAT 257
+static int syscallOpenAt(int fd, char *filename, int flags, uint16_t mode) {
+  // todo: yeah, fix this
+  return fsUserOpen(filename, flags, mode);
+}
+
 #define SYSCALL_GET_HEAP_START 402
 static uint32_t syscallGetHeapStart() { return currentTask->heap_start; }
 
@@ -295,7 +301,7 @@ static void syscallAdjustHeapEnd(uint32_t heap_end) {
 static void syscallTest(char *msg) {
   debugf("[syscalls] Got test syscall from process{%d}: %s\n", currentTask->id,
          msg);
-  printf("Got test syscall from process %d: %s\n", currentTask->id, msg);
+  // printf("Got test syscall from process %d: %s\n", currentTask->id, msg);
 }
 
 void initiateSyscalls() {
@@ -308,6 +314,7 @@ void initiateSyscalls() {
   registerSyscall(SYSCALL_WRITE, syscallWrite);
   registerSyscall(SYSCALL_READ, syscallRead);
   registerSyscall(SYSCALL_OPEN, syscallOpen);
+  registerSyscall(SYSCALL_OPENAT, syscallOpenAt);
   registerSyscall(SYSCALL_CLOSE, syscallClose);
   registerSyscall(SYSCALL_LSEEK, syscallLseek);
   registerSyscall(SYSCALL_BRK, syscallBrk);
