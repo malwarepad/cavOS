@@ -1,4 +1,5 @@
 #include <console.h>
+#include <fb.h>
 #include <gdt.h>
 #include <isr.h>
 #include <kb.h>
@@ -97,8 +98,9 @@ static uint32_t syscallRead(int file, char *str, uint32_t count) {
     // start reading
     // todo: respect limit
     kbTaskRead(currentTask->id, str, count, true);
-    // TODO! (below)
-    // schedule(); // leave this task/execution (awaiting return)
+    asm("sti"); // leave this task/execution (awaiting return)
+    while (currentTask->state == TASK_STATE_WAITING_INPUT) {
+    }
 
     // finalise
     uint32_t fr = currentTask->tmpRecV;
@@ -199,6 +201,32 @@ static uint64_t syscallBrk(uint64_t brk) {
   taskAdjustHeap(currentTask, brk);
 
   return currentTask->heap_end;
+}
+
+typedef struct winsize {
+  unsigned short ws_row;
+  unsigned short ws_col;
+  unsigned short ws_xpixel;
+  unsigned short ws_ypixel;
+} winsize;
+
+#define SYSCALL_IOCTL 16
+static int syscallIoctl(int fd, unsigned long request, void *arg) {
+#if DEBUG_SYSCALLS
+  debugf("[syscalls::ioctl] fd{%d} req{%lx} arg{%lx}\n", fd, request, arg);
+#endif
+  if ((fd == 0 || fd == 1) && request == 0x5413) {
+    winsize *win = (winsize *)arg;
+    win->ws_row = framebufferHeight / TTY_CHARACTER_HEIGHT;
+    win->ws_col = framebufferWidth / TTY_CHARACTER_WIDTH;
+
+    win->ws_xpixel = framebufferWidth;
+    win->ws_ypixel = framebufferHeight;
+    return 0;
+  }
+  debugf("[syscalls::ioctl] UNIMPLEMENTED! fd{%d} req{%lx} arg{%lx}\n", fd,
+         request, arg);
+  return -1;
 }
 
 #define SYSCALL_WRITEV 20
@@ -324,6 +352,7 @@ void initiateSyscalls() {
   registerSyscall(SYSCALL_SET_TID_ADDR, syscallSetTidAddr);
   registerSyscall(SYSCALL_GET_TID, syscallGetTid);
   registerSyscall(SYSCALL_GETCWD, syscallGetcwd);
+  registerSyscall(SYSCALL_IOCTL, syscallIoctl);
 
   debugf("[syscalls] System calls are ready to fire: %d/%d\n", syscallCnt,
          MAX_SYSCALLS);

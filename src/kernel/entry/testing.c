@@ -20,13 +20,15 @@
 
 extern void weirdTests();
 
-char *argv[] = {"/software/a.cav", "--no-color", "-p"};
-void  testingInit() {
+// char *argv[] = {"/bad.cav", "--no-color", "-p"};
+void testingInit() {
   // netSocketConnect(selectedNIC, SOCKET_PROT_UDP, (uint8_t[]){10, 0, 2, 15},
   //                   5643, 69);
   // weirdTests();
   // elfExecute("/software/a.cav", 3, argv);
-  // elf_execute("/software/testing.cav", 3, argv);
+  // int id = elfExecute("/bad.cav", 3, argv);
+  // while (taskGetState(id))
+  //   ;
 }
 
 void weirdTests() {
