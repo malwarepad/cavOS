@@ -86,7 +86,7 @@ void launch_shell(int n) {
       char *buff = (char *)malloc(1024);
       readStr(buff);
       printf("\n");
-      OpenFile *dir = fsKernelOpen(buff, FS_MODE_READ);
+      OpenFile *dir = fsKernelOpen(buff, FS_MODE_READ, 0);
       if (!dir) {
         printf("File cannot be found!\n");
         continue;
@@ -120,7 +120,7 @@ void launch_shell(int n) {
       char *buff = (char *)malloc(1024);
       readStr(buff);
       printf("\n");
-      OpenFile *dir = fsKernelOpen(buff, FS_MODE_READ);
+      OpenFile *dir = fsKernelOpen(buff, FS_MODE_READ, 0);
       if (!dir) {
         printf("File cannot be found!\n");
         continue;

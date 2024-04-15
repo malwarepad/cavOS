@@ -147,7 +147,7 @@ bool fsOpenFsSpecific(char *filename, MountPoint *mnt, OpenFile *target) {
   case FS_FAT32:
     target->dir = malloc(sizeof(FIL));
     memset(target->dir, 0, sizeof(FIL));
-    res = f_open(target->dir, filename, target->mode) == FR_OK;
+    res = f_open(target->dir, filename, target->flags) == FR_OK;
     break;
   case FS_TEST:
     res = 1;
@@ -172,10 +172,11 @@ void fsSanitize(char *filename) {
 }
 
 int       openId = 2;
-OpenFile *fsOpenGeneric(char *filename, Task *task, uint16_t mode) {
+OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, uint32_t mode) {
   OpenFile *target = task ? fsUserRegisterNode(task) : fsKernelRegisterNode();
   target->id = openId++;
   target->mode = mode;
+  target->flags = flags;
 
   target->pointer = 0;
   target->tmp1 = 0;
@@ -211,13 +212,13 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, uint16_t mode) {
   return target;
 }
 
-OpenFile *fsKernelOpen(char *filename, uint16_t mode) {
-  return fsOpenGeneric(filename, 0, mode);
+OpenFile *fsKernelOpen(char *filename, int flags, uint32_t mode) {
+  return fsOpenGeneric(filename, 0, flags, mode);
 }
 
-int fsUserOpen(char *filename, int flags, uint16_t mode) {
+int fsUserOpen(char *filename, int flags, uint32_t mode) {
   // todo: modes & flags
-  OpenFile *file = fsOpenGeneric(filename, currentTask, mode);
+  OpenFile *file = fsOpenGeneric(filename, currentTask, flags, mode);
   if (!file)
     return -1;
 

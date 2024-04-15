@@ -9,7 +9,7 @@
 // Copyright (C) 2024 Panagiotis
 
 PCI_ID_SESSION *PCI_IDstart() {
-  OpenFile *file = fsKernelOpen(DEFAULT_PCI_ID_PATH, FS_MODE_READ);
+  OpenFile *file = fsKernelOpen(DEFAULT_PCI_ID_PATH, FS_MODE_READ, 0);
   if (!file) {
     debugf("[pci_id] No id file found at %s!\n", DEFAULT_PCI_ID_PATH);
     return 0;

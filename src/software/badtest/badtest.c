@@ -36,21 +36,6 @@ void serial_send(int device, char out) {
   outportb(device, out);
 }
 
-#define __NR_write 1
-size_t my_write(int fd, const void *buf, size_t size) {
-  size_t ret;
-  asm volatile("syscall"
-               : "=a"(ret)
-               //                 EDI      RSI       RDX
-               : "0"(__NR_write), "D"(fd), "S"(buf), "d"(size)
-               : "memory");
-  return ret;
-}
-#define __NR_exit 60
-void my_exit(int code) {
-  asm volatile("syscall" ::"a"(__NR_exit), "D"(code) : "memory");
-}
-
 uint32_t strlength(char *ch) {
   uint32_t i = 0; // Changed counter to 0
   while (ch[i++])
@@ -93,10 +78,82 @@ void itoa(uint64_t n, char s[]) {
   reverse(s);
 }
 
+#define __SYSCALL_LL_E(x) (x)
+#define __SYSCALL_LL_O(x) (x)
+
+static __inline long __syscall0(long n) {
+  unsigned long ret;
+  __asm__ __volatile__("syscall" : "=a"(ret) : "a"(n) : "rcx", "r11", "memory");
+  return ret;
+}
+
+static __inline long __syscall1(long n, long a1) {
+  unsigned long ret;
+  __asm__ __volatile__("syscall"
+                       : "=a"(ret)
+                       : "a"(n), "D"(a1)
+                       : "rcx", "r11", "memory");
+  return ret;
+}
+
+static __inline long __syscall2(long n, long a1, long a2) {
+  unsigned long ret;
+  __asm__ __volatile__("syscall"
+                       : "=a"(ret)
+                       : "a"(n), "D"(a1), "S"(a2)
+                       : "rcx", "r11", "memory");
+  return ret;
+}
+
+static __inline long __syscall3(long n, long a1, long a2, long a3) {
+  unsigned long ret;
+  __asm__ __volatile__("syscall"
+                       : "=a"(ret)
+                       : "a"(n), "D"(a1), "S"(a2), "d"(a3)
+                       : "rcx", "r11", "memory");
+  return ret;
+}
+
+static __inline long __syscall4(long n, long a1, long a2, long a3, long a4) {
+  unsigned long ret;
+  register long r10 __asm__("r10") = a4;
+  __asm__ __volatile__("syscall"
+                       : "=a"(ret)
+                       : "a"(n), "D"(a1), "S"(a2), "d"(a3), "r"(r10)
+                       : "rcx", "r11", "memory");
+  return ret;
+}
+
+static __inline long __syscall5(long n, long a1, long a2, long a3, long a4,
+                                long a5) {
+  unsigned long ret;
+  register long r10 __asm__("r10") = a4;
+  register long r8 __asm__("r8") = a5;
+  __asm__ __volatile__("syscall"
+                       : "=a"(ret)
+                       : "a"(n), "D"(a1), "S"(a2), "d"(a3), "r"(r10), "r"(r8)
+                       : "rcx", "r11", "memory");
+  return ret;
+}
+
+static __inline long __syscall6(long n, long a1, long a2, long a3, long a4,
+                                long a5, long a6) {
+  unsigned long ret;
+  register long r10 __asm__("r10") = a4;
+  register long r8 __asm__("r8") = a5;
+  register long r9 __asm__("r9") = a6;
+  __asm__ __volatile__("syscall"
+                       : "=a"(ret)
+                       : "a"(n), "D"(a1), "S"(a2), "d"(a3), "r"(r10), "r"(r8),
+                         "r"(r9)
+                       : "rcx", "r11", "memory");
+  return ret;
+}
+
 void printNum(uint64_t num) {
   char frd[50] = {0};
   itoa((uint64_t)(num), frd);
-  my_write(1, frd, strlength(frd));
+  __syscall3(1, 1, frd, strlength(frd));
 }
 
 int main(int argc, char **argv) {
@@ -158,9 +215,18 @@ int main(int argc, char **argv) {
 
   char *nl = "\n";
   for (int i = 0; i < argc; i++) {
-    my_write(1, argv[i], strlength(argv[i]));
-    my_write(1, nl, 1);
+    __syscall3(1, 1, argv[i], strlength(argv[i]));
+    __syscall3(1, 1, nl, 1);
   }
+
+  // char buf[160] = {0};
+  // __syscall2(79, buf, 160);
+  // __syscall3(1, 1, buf, 160);
+
+  char str[] = "\nadded (via append) from userspace\n";
+  int  fd = __syscall3(2, "/files/ab.txt", 0x01 | 0x02 | 0x30, 0);
+  __syscall3(1, fd, str, sizeof(str) / sizeof(str[0]));
+  printNum(fd);
 
   // printNum(argv);
 
@@ -172,5 +238,5 @@ int main(int argc, char **argv) {
 
 void _start_c(uint64_t rsp) {
   main(*(int *)(rsp), rsp + 8);
-  my_exit(0);
+  __syscall1(60, 0);
 }

@@ -4,6 +4,7 @@
 #include <kb.h>
 #include <schedule.h>
 #include <serial.h>
+#include <string.h>
 #include <syscalls.h>
 #include <system.h>
 #include <task.h>
@@ -131,13 +132,25 @@ static int syscallWrite(int file, char *str, uint32_t count) {
   if (file == 0 || file == 1 || file == 2) {
     // console fb
     for (int i = 0; i < count; i++) {
+#if DEBUG_SYSCALLS
       serial_send(COM1, str[i]);
+#endif
       printfch(str[i]);
     }
     return count;
   }
 
-  return -1;
+  OpenFile *browse = currentTask->firstFile;
+  while (browse) {
+    if (browse->id == file)
+      break;
+    browse = browse->next;
+  }
+  if (!browse)
+    return -1;
+
+  uint32_t writtenBytes = fsWrite(browse, str, count);
+  return writtenBytes;
 }
 
 #define SYSCALL_OPEN 2
@@ -229,6 +242,16 @@ static void syscallExitTask(int return_code) {
   // should not return
 }
 
+#define SYSCALL_GETCWD 79
+static int syscallGetcwd(char *buff, size_t size) {
+  size_t realLength = strlength(currentTask->cwd) + 1;
+  if (size < realLength)
+    return -1;
+  memcpy(buff, currentTask->cwd, realLength);
+
+  return 0;
+}
+
 #define SYSCALL_PRCTL 158
 static int syscallPrctl(int code, size_t addr) {
 #if DEBUG_SYSCALLS
@@ -293,6 +316,7 @@ void initiateSyscalls() {
   registerSyscall(SYSCALL_PRCTL, syscallPrctl);
   registerSyscall(SYSCALL_SET_TID_ADDR, syscallSetTidAddr);
   registerSyscall(SYSCALL_GET_TID, syscallGetTid);
+  registerSyscall(SYSCALL_GETCWD, syscallGetcwd);
 
   debugf("[syscalls] System calls are ready to fire: %d/%d\n", syscallCnt,
          MAX_SYSCALLS);

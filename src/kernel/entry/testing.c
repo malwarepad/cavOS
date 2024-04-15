@@ -25,7 +25,7 @@ void  testingInit() {
   // netSocketConnect(selectedNIC, SOCKET_PROT_UDP, (uint8_t[]){10, 0, 2, 15},
   //                   5643, 69);
   // weirdTests();
-  // elf_execute("/software/a.cav", 3, argv);
+  // elfExecute("/software/a.cav", 3, argv);
   // elf_execute("/software/testing.cav", 3, argv);
 }
 
@@ -34,7 +34,7 @@ void weirdTests() {
 
   uint32_t targA, targB, targC, targD;
   for (int i = 0; i < 0; i++) {
-    OpenFile *dir = fsKernelOpen("/files/lorem.txt", FS_MODE_READ);
+    OpenFile *dir = fsKernelOpen("/files/lorem.txt", FS_MODE_READ, 0);
     if (!dir) {
       printf("File cannot be found!\n");
       continue;
