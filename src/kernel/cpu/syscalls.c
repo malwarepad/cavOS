@@ -79,6 +79,7 @@ void syscallHandler(AsmPassedInterrupt *regs) {
 
   long int ret = ((SyscallHandler)(handler))(regs->rdi, regs->rsi, regs->rdx,
                                              regs->r10, regs->r8, regs->r9);
+  // debugf("RET: %lx\n", ret);
 
   regs->rax = ret;
 }
@@ -326,9 +327,10 @@ static void syscallAdjustHeapEnd(uint32_t heap_end) {
 }
 
 #define SYSCALL_TEST 405
-static void syscallTest(char *msg) {
+static int syscallTest(char *msg) {
   debugf("[syscalls] Got test syscall from process{%d}: %s\n", currentTask->id,
          msg);
+  return strlength(msg);
   // printf("Got test syscall from process %d: %s\n", currentTask->id, msg);
 }
 

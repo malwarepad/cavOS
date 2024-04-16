@@ -48,10 +48,10 @@ uint32_t elfExecute(char *filepath, uint32_t argc, char **argv) {
     debugf("[elf] Could not open %s\n", filepath);
     return 0;
   }
+  size_t filesize = fsGetFilesize(dir);
 #if ELF_DEBUG
-  debugf("[elf] Executing %s: filesize{%d}\n", filepath, dir->filesize);
+  debugf("[elf] Executing %s: filesize{%d}\n", filepath, filesize);
 #endif
-  size_t   filesize = fsGetFilesize(dir);
   uint8_t *out = (uint8_t *)malloc(filesize);
   fsReadFullFile(dir, out);
   fsKernelClose(dir);
@@ -107,9 +107,10 @@ uint32_t elfExecute(char *filepath, uint32_t argc, char **argv) {
     // Copy the required info
     memcpy(elf_phdr->p_vaddr, out + elf_phdr->p_offset, elf_phdr->p_filesz);
 
-    uint64_t file_start = (elf_phdr->p_vaddr & ~0xFFF) + elf_phdr->p_filesz;
-    uint64_t file_end = (elf_phdr->p_vaddr & ~0xFFF) + pagesRequired * 0x1000;
-    memset(file_start, 0, file_end - file_start);
+    // wtf is this?
+    // uint64_t file_start = (elf_phdr->p_vaddr & ~0xFFF) + elf_phdr->p_filesz;
+    // uint64_t file_end = (elf_phdr->p_vaddr & ~0xFFF) + pagesRequired *
+    // 0x1000; memset(file_start, 0, file_end - file_start);
 
 #if ELF_DEBUG
     debugf("[elf] Program header: type{%d} offset{%x} vaddr{%x} size{%x} "
@@ -121,12 +122,12 @@ uint32_t elfExecute(char *filepath, uint32_t argc, char **argv) {
 
   // For the foreseeable future ;)
 #if ELF_DEBUG
-  for (int i = 0; i < elf_ehdr->e_shnum; i++) {
-    Elf32_Shdr *elf_shdr = (Elf32_Shdr *)((uint32_t)out + elf_ehdr->e_shoff +
-                                          i * elf_ehdr->e_shentsize);
-    debugf("[elf] Section header: type{%d} offset{%x}\n", elf_shdr->sh_type,
-           elf_shdr->sh_offset);
-  }
+  // for (int i = 0; i < elf_ehdr->e_shnum; i++) {
+  //   Elf64_Shdr *elf_shdr = (Elf64_Shdr *)((uint32_t)out + elf_ehdr->e_shoff +
+  //                                         i * elf_ehdr->e_shentsize);
+  //   debugf("[elf] Section header: type{%d} offset{%lx}\n", elf_shdr->sh_type,
+  //          elf_shdr->sh_offset);
+  // }
 #endif
 
 #if ELF_DEBUG
