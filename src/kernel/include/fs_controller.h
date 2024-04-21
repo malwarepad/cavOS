@@ -4,7 +4,7 @@
 #ifndef FS_CONTROLLER_H
 #define FS_CONTROLLER_H
 
-typedef enum FS { FS_FAT32, FS_TEST } FS;
+typedef enum FS { FS_FATFS, FS_TEST } FS;
 typedef enum CONNECTOR { CONNECTOR_AHCI, CONNECTOR_DUMMY } CONNECTOR;
 
 // Accordingly to fatfs
