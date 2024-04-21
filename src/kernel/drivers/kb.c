@@ -1,3 +1,4 @@
+#include <console.h>
 #include <kb.h>
 #include <paging.h>
 #include <task.h>

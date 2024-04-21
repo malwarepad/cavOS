@@ -1,5 +1,6 @@
 #include <isr.h>
 #include <schedule.h>
+#include <system.h>
 #include <timer.h>
 
 void initiateTimer(uint32_t reload_value) {

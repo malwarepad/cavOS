@@ -160,28 +160,6 @@ int ahciPortType(HBA_PORT *port) {
   }
 }
 
-void ahciPortProbe(ahci *ahciPtr, HBA_MEM *abar) {
-  uint32_t pi = abar->pi;
-  for (int i = 0; i < 32; i++) {
-    if (pi & 1) {
-      int dt = ahciPortType(&abar->ports[i]);
-      if (dt == AHCI_DEV_SATA) {
-        debugf("[pci::ahci] SATA drive found at port %d\n", i);
-        ahciPortRebase(ahciPtr, &abar->ports[i], i);
-      } else if (dt == AHCI_DEV_SATAPI) {
-        debugf("[pci::ahci] (unsupported) SATAPI drive found at port %d\n", i);
-      } else if (dt == AHCI_DEV_SEMB) {
-        debugf("[pci::ahci] (unsupported) SEMB drive found at port %d\n", i);
-      } else if (dt == AHCI_DEV_PM) {
-        debugf("[pci::ahci] (unsupported) PM drive found at port %d\n", i);
-      }
-      // otherwise, no drive is in this port
-    }
-
-    pi >>= 1;
-  }
-}
-
 void ahciPortRebase(ahci *ahciPtr, HBA_PORT *port, int portno) {
   ahciCmdStop(port); // Stop command engine
 
@@ -239,6 +217,28 @@ void ahciPortRebase(ahci *ahciPtr, HBA_PORT *port, int portno) {
   ahciCmdStart(port); // Start command engine
 
   ahciPtr->sata |= (1 << portno);
+}
+
+void ahciPortProbe(ahci *ahciPtr, HBA_MEM *abar) {
+  uint32_t pi = abar->pi;
+  for (int i = 0; i < 32; i++) {
+    if (pi & 1) {
+      int dt = ahciPortType(&abar->ports[i]);
+      if (dt == AHCI_DEV_SATA) {
+        debugf("[pci::ahci] SATA drive found at port %d\n", i);
+        ahciPortRebase(ahciPtr, &abar->ports[i], i);
+      } else if (dt == AHCI_DEV_SATAPI) {
+        debugf("[pci::ahci] (unsupported) SATAPI drive found at port %d\n", i);
+      } else if (dt == AHCI_DEV_SEMB) {
+        debugf("[pci::ahci] (unsupported) SEMB drive found at port %d\n", i);
+      } else if (dt == AHCI_DEV_PM) {
+        debugf("[pci::ahci] (unsupported) PM drive found at port %d\n", i);
+      }
+      // otherwise, no drive is in this port
+    }
+
+    pi >>= 1;
+  }
 }
 
 // Await for port to stop being "busy" and send results

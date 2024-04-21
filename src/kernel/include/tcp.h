@@ -47,4 +47,10 @@ bool netTcpSend(NIC *nic, Socket *socket, uint8_t flags, void *data,
 
 void netTcpReceive(NIC *nic, void *body, uint32_t size);
 
+void netTcpSendUnsafe(NIC *nic, Socket *socket, uint8_t flags, void *data,
+                      uint32_t size);
+void netTcpAck(NIC *nic, Socket *socket);
+void netTcpFinishHandshake(NIC *nic, Socket *socket, void *request,
+                           uint32_t size);
+
 #endif

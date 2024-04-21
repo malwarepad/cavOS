@@ -12,5 +12,6 @@ typedef struct iovec {
 void registerSyscall(uint32_t id, void *handler);
 void syscallHandler(AsmPassedInterrupt *regs);
 void initiateSyscalls();
+void initiateSyscallInst();
 
 #endif

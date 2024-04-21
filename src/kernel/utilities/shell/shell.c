@@ -5,12 +5,14 @@
 #include <elf.h>
 #include <fb.h>
 #include <icmp.h>
+#include <kb.h>
 #include <malloc.h>
 #include <paging.h>
 #include <pci.h>
 #include <pmm.h>
 #include <rtc.h>
 #include <shell.h>
+#include <string.h>
 #include <system.h>
 #include <task.h>
 #include <timer.h>
@@ -41,6 +43,84 @@ void task3() {
   }
   asm volatile("mov $1, %eax \n"
                "int $0x80");
+}
+
+void fetch() {
+  printf("\n      ^         name: cavOS");
+  printf("\n     / \\        memory: %ldMB",
+         DivRoundUp(DivRoundUp(bootloader.mmTotal, 1024), 1024));
+  printf("\n    /   \\       uptime: %lds", DivRoundUp(timerTicks, 1000));
+  printf("\n   /  ^  \\  _");
+  printf("\n   \\ \\ / / / \\");
+  printf("\n           \\_/  \n");
+}
+
+void help() {
+  printf("\n========================== GENERIC ==========================");
+  printf("\n= cmd            : Launch a new recursive Shell             =");
+  printf("\n= clear          : Clears the screen                        =");
+  printf("\n= echo           : Reprintf a given text                    =");
+  printf("\n= exit           : Quits the current shell                  =");
+  printf("\n= fetch          : Brings you some system information       =");
+  printf("\n= time           : Tells you the time and date from BIOS    =");
+  printf("\n= lspci          : Lists PCI device info                    =");
+  printf("\n= dump           : Dumps some of the bitmap allocator       =");
+  printf("\n= draw           : Tests framebuffer by drawing a rectangle =");
+  printf("\n= proctest       : Tests multitasking support               =");
+  printf("\n= exec           : Runs a cavOS binary of your choice       =");
+  printf("\n=============================================================\n");
+  printf("\n========================= FILESYSTEM ========================");
+  printf("\n= readfile       : Read a file's contents                   =");
+  printf("\n= readdisk       : Tests out the disk reading algorythm     =");
+  printf("\n=============================================================\n");
+  printf("\n========================= NETWORKING ========================");
+  printf("\n= net            : Get info about your NICs (+DHCP)         =");
+  printf("\n= arptable       : Output the ARP table                     =");
+  printf("\n= arping         : Ask a local IP for it's MAC address      =");
+  printf("\n= ping           : Send an ICMP request to an IP            =");
+  printf("\n=============================================================\n");
+}
+
+void readDisk() {
+  // if (!fat->works) {
+  //   printf("\nFAT32 was not initalized properly on boot!\n");
+  //   return;
+  // }
+
+  clearScreen();
+  printf("=========================================\n");
+  printf("====        cavOS readdisk 1.0       ====\n");
+  printf("====    Copyright MalwarePad 2024    ====\n");
+  printf("=========================================\n");
+
+  printf("\n1MB Limine sector: LBA=0 Offset=0, FAT32 sector: LBA=2048 "
+         "Offset=1048576");
+  printf("\nInsert LBA (LBA = Offset / Sector Size): ");
+
+  char *choice = (char *)malloc(200);
+  readStr(choice);
+  int lba = atoi(choice);
+  printf("\n\n");
+
+  // saving memory like scrooge mcduck out here
+  memset(choice, 0, 200);
+  sprintf(choice, "reading disk{0} LBA{%d}:", lba);
+
+  uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
+  getDiskBytes(rawArr, lba, 1);
+
+  hexDump(choice, rawArr, SECTOR_SIZE, 16);
+
+  printf("\n");
+  free(rawArr);
+  free(choice);
+}
+
+void echo(char *ch) {
+  printf("\nInsert argument 1: ");
+  char str[200];
+  readStr(str);
+  printf("\n%s\n", str);
 }
 
 void launch_shell(int n) {
@@ -219,8 +299,6 @@ void launch_shell(int n) {
       printf("\n%02d:%02d:%02d %02d/%02d/%04d\n", rtc->hour, rtc->minute,
              rtc->second, rtc->day, rtc->month, rtc->year);
       free(rtc);
-    } else if (strEql(ch, "color")) {
-      set_background_color();
     } else if (strEql(ch, "exec")) {
       printf("\nFile path to executable: ");
       char *filepath = (char *)malloc(200);
@@ -291,112 +369,4 @@ void launch_shell(int n) {
   } while (!strEql(ch, "exit"));
 
   free(ch);
-}
-
-void echo(char *ch) {
-  printf("\nInsert argument 1: ");
-  char str[200];
-  readStr(str);
-  printf("\n%s\n", str);
-}
-
-void set_background_color() {
-  // printf("\nColor codes : ");
-  // printf("\n0 : black");
-  // printf_colored("\n1 : blue", 1, 0); // tty.h
-  // printf_colored("\n2 : green", 2, 0);
-  // printf_colored("\n3 : cyan", 3, 0);
-  // printf_colored("\n4 : red", 4, 0);
-  // printf_colored("\n5 : purple", 5, 0);
-  // printf_colored("\n6 : orange", 6, 0);
-  // printf_colored("\n7 : grey", 7, 0);
-  // printf_colored("\n8 : dark grey", 8, 0);
-  // printf_colored("\n9 : blue light", 9, 0);
-  // printf_colored("\n10 : green light", 10, 0);
-  // printf_colored("\n11 : blue lighter", 11, 0);
-  // printf_colored("\n12 : red light", 12, 0);
-  // printf_colored("\n13 : rose", 13, 0);
-  // printf_colored("\n14 : yellow", 14, 0);
-  // printf_colored("\n15 : white", 15, 0);
-
-  // printf("\n\n Text color ? : ");
-  // int text_color = str_to_int(readStr());
-  // printf("\n\n Background color ? : ");
-  // int bg_color = str_to_int(readStr());
-  // set_screen_color(text_color, bg_color);
-  // clearScreen();
-}
-
-void fetch() {
-  printf("\n      ^         name: cavOS");
-  printf("\n     / \\        memory: %ldMB",
-         DivRoundUp(DivRoundUp(bootloader.mmTotal, 1024), 1024));
-  printf("\n    /   \\       uptime: %lds", DivRoundUp(timerTicks, 1000));
-  printf("\n   /  ^  \\  _");
-  printf("\n   \\ \\ / / / \\");
-  printf("\n           \\_/  \n");
-}
-
-void help() {
-  printf("\n========================== GENERIC ==========================");
-  printf("\n= cmd            : Launch a new recursive Shell             =");
-  printf("\n= clear          : Clears the screen                        =");
-  printf("\n= echo           : Reprintf a given text                    =");
-  printf("\n= exit           : Quits the current shell                  =");
-  printf("\n= color          : Changes the colors of the terminal       =");
-  printf("\n= fetch          : Brings you some system information       =");
-  printf("\n= time           : Tells you the time and date from BIOS    =");
-  printf("\n= lspci          : Lists PCI device info                    =");
-  printf("\n= dump           : Dumps some of the bitmap allocator       =");
-  printf("\n= draw           : Tests framebuffer by drawing a rectangle =");
-  printf("\n= proctest       : Tests multitasking support               =");
-  printf("\n= exec           : Runs a cavOS binary of your choice       =");
-  printf("\n=============================================================\n");
-  printf("\n========================= FILESYSTEM ========================");
-  printf("\n= readfile       : Read a file's contents                   =");
-  printf("\n= readdisk       : Tests out the disk reading algorythm     =");
-  printf("\n=============================================================\n");
-  printf("\n========================= NETWORKING ========================");
-  printf("\n= net            : Get info about your NICs (+DHCP)         =");
-  printf("\n= arptable       : Output the ARP table                     =");
-  printf("\n= arping         : Ask a local IP for it's MAC address      =");
-  printf("\n= ping           : Send an ICMP request to an IP            =");
-  printf("\n=============================================================\n");
-}
-
-int isdigit(char c) { return c >= '0' && c <= '9'; }
-
-void readDisk() {
-  // if (!fat->works) {
-  //   printf("\nFAT32 was not initalized properly on boot!\n");
-  //   return;
-  // }
-
-  clearScreen();
-  printf("=========================================\n");
-  printf("====        cavOS readdisk 1.0       ====\n");
-  printf("====    Copyright MalwarePad 2024    ====\n");
-  printf("=========================================\n");
-
-  printf("\n1MB Limine sector: LBA=0 Offset=0, FAT32 sector: LBA=2048 "
-         "Offset=1048576");
-  printf("\nInsert LBA (LBA = Offset / Sector Size): ");
-
-  char *choice = (char *)malloc(200);
-  readStr(choice);
-  int lba = atoi(choice);
-  printf("\n\n");
-
-  // saving memory like scrooge mcduck out here
-  memset(choice, 0, 200);
-  sprintf(choice, "reading disk{0} LBA{%d}:", lba);
-
-  uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
-  getDiskBytes(rawArr, lba, 1);
-
-  hexDump(choice, rawArr, SECTOR_SIZE, 16);
-
-  printf("\n");
-  free(rawArr);
-  free(choice);
 }

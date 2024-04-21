@@ -11,7 +11,7 @@
 #include <task.h>
 #include <util.h>
 
-#define DEBUG_SYSCALLS 0
+#define DEBUG_SYSCALLS 1
 
 bool checkSyscallInst() {
   uint32_t eax = 0x80000001, ebx = 0, ecx = 0, edx = 0;
@@ -178,17 +178,23 @@ static int syscallLseek(uint32_t file, int offset, int whence) {
 #define SYSCALL_MMAP 9
 static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
                             int fd, size_t pgoffset) {
+  if (!addr && fd == -1) {
+    size_t curr = currentTask->heap_end;
+#if DEBUG_SYSCALLS
+    debugf("[syscalls::mmap] No placement preference, no file descriptor: "
+           "addr{%lx} length{%lx}\n",
+           curr, length);
+#endif
+    taskAdjustHeap(currentTask, currentTask->heap_end + length);
+    return curr;
+  }
   debugf(
       "[syscalls::mmap] UNIMPLEMENTED! addr{%lx} len{%lx} prot{%d} flags{%x} "
       "fd{%d} "
       "pgoffset{%x}\n",
       addr, length, prot, flags, fd, pgoffset);
 
-  size_t curr = currentTask->heap_end;
-  debugf("%lx\n", curr);
-  taskAdjustHeap(currentTask, currentTask->heap_end + length);
-
-  return curr;
+  return -1;
 }
 
 #define SYSCALL_BRK 12

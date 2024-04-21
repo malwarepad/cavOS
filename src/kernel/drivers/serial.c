@@ -1,5 +1,6 @@
 #include <serial.h>
 #include <stdarg.h>
+#include <system.h>
 
 // Simple serial driver for debugging
 // Copyright (C) 2024 Panagiotis

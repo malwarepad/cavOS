@@ -6,6 +6,7 @@
 #include <psf.h>
 #include <string.h>
 #include <system.h>
+#include <util.h>
 
 // Kernel console implementation
 // Copyright (C) 2024 Panagiotis

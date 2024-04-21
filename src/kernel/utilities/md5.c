@@ -38,6 +38,7 @@
 #ifndef HAVE_OPENSSL
 
 #include <string.h>
+#include <util.h>
 
 #include "md5.h"
 

@@ -1,6 +1,7 @@
 #include <checksum.h>
 #include <kb.h>
 #include <malloc.h>
+#include <string.h>
 #include <system.h>
 #include <tcp.h>
 #include <udp.h>

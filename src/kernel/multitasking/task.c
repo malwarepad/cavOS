@@ -4,6 +4,7 @@
 #include <paging.h>
 #include <pmm.h>
 #include <schedule.h>
+#include <stack.h>
 #include <string.h>
 #include <system.h>
 #include <task.h>

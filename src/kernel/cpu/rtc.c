@@ -1,4 +1,5 @@
 #include <rtc.h>
+#include <system.h>
 
 // Real-Time Clock implementation
 // Copyright (C) 2024 Panagiotis

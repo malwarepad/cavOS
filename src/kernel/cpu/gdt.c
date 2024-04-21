@@ -10,6 +10,38 @@ static TSSPtr     tss;
 
 TSSPtr *tssPtr = &tss;
 
+void gdt_load_tss(struct tss *tss) {
+  size_t addr = (size_t)tss;
+
+  gdt.tss.base_low = (uint16_t)addr;
+  gdt.tss.base_mid = (uint8_t)(addr >> 16);
+  gdt.tss.flags1 = 0b10001001;
+  gdt.tss.flags2 = 0;
+  gdt.tss.base_high = (uint8_t)(addr >> 24);
+  gdt.tss.base_upper32 = (uint32_t)(addr >> 32);
+  gdt.tss.reserved = 0;
+
+  asm volatile("ltr %0" : : "rm"((uint16_t)0x58) : "memory");
+}
+
+void gdt_reload() {
+  asm volatile("lgdt %0\n\t"
+               "push $0x28\n\t"
+               "lea 1f(%%rip), %%rax\n\t"
+               "push %%rax\n\t"
+               "lretq\n\t"
+               "1:\n\t"
+               "mov $0x30, %%eax\n\t"
+               "mov %%eax, %%ds\n\t"
+               "mov %%eax, %%es\n\t"
+               "mov %%eax, %%fs\n\t"
+               "mov %%eax, %%gs\n\t"
+               "mov %%eax, %%ss\n\t"
+               :
+               : "m"(gdtr)
+               : "rax", "memory");
+}
+
 void initiateGDT() {
   // Null descriptor. (0)
   gdt.descriptors[0].limit = 0;
@@ -104,36 +136,4 @@ void initiateGDT() {
 
   memset(&tss, 0, sizeof(TSSPtr));
   gdt_load_tss(&tss);
-}
-
-void gdt_reload() {
-  asm volatile("lgdt %0\n\t"
-               "push $0x28\n\t"
-               "lea 1f(%%rip), %%rax\n\t"
-               "push %%rax\n\t"
-               "lretq\n\t"
-               "1:\n\t"
-               "mov $0x30, %%eax\n\t"
-               "mov %%eax, %%ds\n\t"
-               "mov %%eax, %%es\n\t"
-               "mov %%eax, %%fs\n\t"
-               "mov %%eax, %%gs\n\t"
-               "mov %%eax, %%ss\n\t"
-               :
-               : "m"(gdtr)
-               : "rax", "memory");
-}
-
-void gdt_load_tss(struct tss *tss) {
-  size_t addr = (size_t)tss;
-
-  gdt.tss.base_low = (uint16_t)addr;
-  gdt.tss.base_mid = (uint8_t)(addr >> 16);
-  gdt.tss.flags1 = 0b10001001;
-  gdt.tss.flags2 = 0;
-  gdt.tss.base_high = (uint8_t)(addr >> 24);
-  gdt.tss.base_upper32 = (uint32_t)(addr >> 32);
-  gdt.tss.reserved = 0;
-
-  asm volatile("ltr %0" : : "rm"((uint16_t)0x58) : "memory");
 }

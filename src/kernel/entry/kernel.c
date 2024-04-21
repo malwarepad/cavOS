@@ -13,6 +13,7 @@
 #include <nic_controller.h>
 #include <paging.h>
 #include <pci.h>
+#include <pci_id.h>
 #include <pmm.h>
 #include <psf.h>
 #include <rtc.h>
@@ -25,6 +26,7 @@
 #include <testing.h>
 #include <timer.h>
 #include <util.h>
+#include <vga.h>
 #include <vmm.h>
 
 // Kernel entry file

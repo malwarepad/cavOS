@@ -11,6 +11,8 @@ uint32_t strlength(char *ch) {
   return i - 1; // Changed counter to i instead of i--
 }
 
+int isdigit(char c) { return c >= '0' && c <= '9'; }
+
 int atoi(const char *str) {
   int value = 0;
   while (isdigit(*str)) {

@@ -2,6 +2,7 @@
 #include <paging.h>
 #include <stack.h>
 #include <string.h>
+#include <system.h>
 #include <util.h>
 
 // Stack creation for userland & kernelspace tasks
