@@ -79,7 +79,7 @@ void syscallHandler(AsmPassedInterrupt *regs) {
 
   long int ret = ((SyscallHandler)(handler))(regs->rdi, regs->rsi, regs->rdx,
                                              regs->r10, regs->r8, regs->r9);
-  // debugf("RET: %lx\n", ret);
+  // debugf("RET: %d\n", ret);
 
   regs->rax = ret;
 }
@@ -216,14 +216,18 @@ static int syscallIoctl(int fd, unsigned long request, void *arg) {
 #if DEBUG_SYSCALLS
   debugf("[syscalls::ioctl] fd{%d} req{%lx} arg{%lx}\n", fd, request, arg);
 #endif
-  if ((fd == 0 || fd == 1) && request == 0x5413) {
-    winsize *win = (winsize *)arg;
-    win->ws_row = framebufferHeight / TTY_CHARACTER_HEIGHT;
-    win->ws_col = framebufferWidth / TTY_CHARACTER_WIDTH;
+  if (request == 0x5413) {
+    if (fd == 0 || fd == 1) {
+      winsize *win = (winsize *)arg;
+      win->ws_row = framebufferHeight / TTY_CHARACTER_HEIGHT;
+      win->ws_col = framebufferWidth / TTY_CHARACTER_WIDTH;
 
-    win->ws_xpixel = framebufferWidth;
-    win->ws_ypixel = framebufferHeight;
-    return 0;
+      win->ws_xpixel = framebufferWidth;
+      win->ws_ypixel = framebufferHeight;
+      return 0;
+    }
+
+    return -1;
   }
   debugf("[syscalls::ioctl] UNIMPLEMENTED! fd{%d} req{%lx} arg{%lx}\n", fd,
          request, arg);

@@ -218,7 +218,7 @@ OpenFile *fsKernelOpen(char *filename, int flags, uint32_t mode) {
 
 int fsUserOpen(char *filename, int flags, uint32_t mode) {
   // todo: modes & flags
-  OpenFile *file = fsOpenGeneric(filename, currentTask, flags, mode);
+  OpenFile *file = fsOpenGeneric(filename, currentTask, FA_READ, 0);
   if (!file)
     return -1;
 
@@ -360,7 +360,8 @@ int fsUserSeek(uint32_t fd, int offset, int whence) {
     // "hack" because fatfs does not use our pointer
     if (whence == SEEK_CURR)
       target += f_tell((FIL *)file->dir);
-    ret = f_lseek(file->dir, target);
+    // debugf("moving to %d\n", target);
+    ret = f_lseek(file->dir, target) == FR_OK;
     break;
   }
   if (!ret)
