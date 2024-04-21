@@ -145,7 +145,7 @@ uint32_t elfExecute(char *filepath, uint32_t argc, char **argv) {
 
   // User stack generation: the stack itself, AUXs, etc...
   stackGenerateUser(target, argc, argv, out, filesize, elf_ehdr);
-  // free(out); // fix malloc
+  free(out);
 
   // Current working directory init
   target->cwd = (char *)malloc(2);

@@ -5,10 +5,12 @@
 #define DEBUG_DLMALLOC_GLUE 0
 
 void *last = 0;
-void *sbrk(size_t increment) {
+void *sbrk(long increment) {
 #if DEBUG_DLMALLOC_GLUE
   debugf("[dlmalloc::sbrk] size{%lx}\n", increment);
 #endif
+  if (increment < 0)
+    return 0; // supposed to release, whatever.
   if (!increment)
     return last;
   // return 0;
