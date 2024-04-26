@@ -34,7 +34,7 @@ enum ARPOperation {
 
 bool netArpGetIPv4(NIC *nic, const uint8_t *ipInput, uint8_t *mac);
 
-void netArpSend(NIC *nic, uint8_t *ip);
+void netArpSend(NIC *nic, const uint8_t *ip);
 void netArpHandle(NIC *nic, arpPacket *packet);
 
 void debugArpTable(NIC *nic);

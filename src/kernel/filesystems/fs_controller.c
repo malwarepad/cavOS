@@ -12,7 +12,7 @@
 bool fsUnmount(MountPoint *mnt) {
   debugf("[vfs] Tried to unmount!\n");
   panic();
-  LinkedListUnregister(&firstMountPoint, mnt);
+  LinkedListUnregister((void **)&firstMountPoint, mnt);
 
   // todo!
   // switch (mnt->filesystem) {
@@ -41,8 +41,8 @@ bool isFat(mbr_partition *mbr) {
 // prefix MUST end with '/': /mnt/handle/
 MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
                     uint8_t partition) {
-  MountPoint *mount =
-      (MountPoint *)LinkedListAllocate(&firstMountPoint, sizeof(MountPoint));
+  MountPoint *mount = (MountPoint *)LinkedListAllocate(
+      (void **)&firstMountPoint, sizeof(MountPoint));
 
   uint32_t strlen = strlength(prefix);
   mount->prefix = (char *)(malloc(strlen + 1));
@@ -107,19 +107,19 @@ MountPoint *fsDetermineMountPoint(char *filename) {
 }
 
 OpenFile *fsKernelRegisterNode() {
-  return LinkedListAllocate(&firstKernelFile, sizeof(OpenFile));
+  return LinkedListAllocate((void **)&firstKernelFile, sizeof(OpenFile));
 }
 
 bool fsKernelUnregisterNode(OpenFile *file) {
-  return LinkedListUnregister(&firstKernelFile, file);
+  return LinkedListUnregister((void **)&firstKernelFile, file);
 }
 
 OpenFile *fsUserRegisterNode(Task *task) {
-  return LinkedListAllocate(&task->firstFile, sizeof(OpenFile));
+  return LinkedListAllocate((void **)&task->firstFile, sizeof(OpenFile));
 }
 
 bool fsUserUnregisterNode(Task *task, OpenFile *file) {
-  return LinkedListUnregister(&task->firstFile, file);
+  return LinkedListUnregister((void **)&task->firstFile, file);
 }
 
 OpenFile *fsUserNodeFetch(Task *task, int fd) {
@@ -154,9 +154,9 @@ bool fsCloseFsSpecific(OpenFile *file) {
 }
 
 bool fsOpenFsSpecific(char *filename, MountPoint *mnt, OpenFile *target) {
-  bool  res = false;
-  char *strippedFilename = (char *)((size_t)filename + strlength(mnt->prefix) -
-                                    1); // -1 for putting start slash
+  bool res = false;
+  /*char *strippedFilename = (char *)((size_t)filename + strlength(mnt->prefix)
+     - 1); // -1 for putting start slash*/
   switch (mnt->filesystem) {
   case FS_FATFS:
     target->dir = malloc(sizeof(FIL));
@@ -289,15 +289,16 @@ uint32_t fsGetFilesize(OpenFile *file) {
   return 0;
 }
 
-uint32_t fsRead(OpenFile *file, char *out, uint32_t limit) {
+uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit) {
   uint32_t ret = 0;
   switch (file->mountPoint->filesystem) {
-  case FS_FATFS:
-    unsigned int read = 0;
-    bool         output = f_read(file->dir, out, limit, &read) == FR_OK;
+  case FS_FATFS: {
+    uint32_t read = 0;
+    bool     output = f_read(file->dir, out, limit, &read) == FR_OK;
     if (output)
       ret = read;
     break;
+  }
   case FS_TEST:
     memset(out, 'p', limit);
     ret = limit;
@@ -311,15 +312,16 @@ uint32_t fsRead(OpenFile *file, char *out, uint32_t limit) {
   return ret;
 }
 
-uint32_t fsWrite(OpenFile *file, char *in, uint32_t limit) {
+uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit) {
   uint32_t ret = 0;
   switch (file->mountPoint->filesystem) {
-  case FS_FATFS:
+  case FS_FATFS: {
     unsigned int write = 0;
     bool         output = f_write(file->dir, in, limit, &write) == FR_OK;
     if (output)
       ret = write;
     break;
+  }
   case FS_TEST:
     for (int i = 0; i < limit; i++)
       debugf("%c", in[i]);
@@ -336,12 +338,13 @@ uint32_t fsWrite(OpenFile *file, char *in, uint32_t limit) {
 bool fsWriteChar(OpenFile *file, char in) {
   bool ret = false;
   switch (file->mountPoint->filesystem) {
-  case FS_FATFS:
+  case FS_FATFS: {
     unsigned int write = 0;
     bool         output = f_write(file->dir, &in, 1, &write) == FR_OK;
     if (output)
       ret = write;
     break;
+  }
   case FS_TEST:
     debugf("%c", in);
     break;

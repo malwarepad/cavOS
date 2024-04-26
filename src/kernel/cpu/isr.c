@@ -86,8 +86,8 @@ void initiateISR() {
 
 irqHandler *registerIRQhandler(uint8_t id, void *handler) {
   // printf("IRQ %d reserved!\n", id);
-  irqHandler *target =
-      (irqHandler *)LinkedListAllocate(&firstIrqHandler, sizeof(irqHandler));
+  irqHandler *target = (irqHandler *)LinkedListAllocate(
+      (void **)(&firstIrqHandler), sizeof(irqHandler));
 
   target->id = id;
   target->handler = handler;
@@ -119,23 +119,24 @@ void handle_interrupt(uint64_t rsp) {
     outportb(0x20, 0x20);
     switch (cpu->interrupt) {
     case 32 + 0: // irq0
-      timerTick(cpu);
+      timerTick((uint64_t)cpu);
       break;
 
     case 32 + 1: // irq1
       kbIrq();
       break;
 
-    default: // execute other handlers
+    default: { // execute other handlers
       irqHandler *browse = firstIrqHandler;
       while (browse) {
         if (browse->id == (cpu->interrupt - 32)) {
           FunctionPtr handler = browse->handler;
-          handler(&cpu);
+          handler(cpu);
         }
         browse = browse->next;
       }
       break;
+    }
     }
   } else if (cpu->interrupt >= 0 && cpu->interrupt <= 31) { // ISR
     if (systemCallOnProgress)

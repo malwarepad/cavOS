@@ -30,22 +30,22 @@ void initiatePMM() {
     debugf("[pmm] Not enough memory: required{%lx}!\n",
            physical.BitmapSizeInBytes);
     panic();
-    return 1;
+    return;
   }
 
   size_t bitmapStartPhys = mm->base;
-  physical.Bitmap = (uint32_t *)(bitmapStartPhys + bootloader.hhdmOffset);
+  physical.Bitmap = (uint8_t *)(bitmapStartPhys + bootloader.hhdmOffset);
 
   memset(physical.Bitmap, 0xff, physical.BitmapSizeInBytes);
   for (int i = 0; i < bootloader.mmEntryCnt; i++) {
     struct limine_memmap_entry *entry = bootloader.mmEntries[i];
     if (entry->type == LIMINE_MEMMAP_USABLE)
-      MarkRegion(bitmap, entry->base, entry->length, 0);
+      MarkRegion(bitmap, (void *)entry->base, entry->length, 0);
   }
   for (int i = 0; i < bootloader.mmEntryCnt; i++) {
     struct limine_memmap_entry *entry = bootloader.mmEntries[i];
     if (entry->type != LIMINE_MEMMAP_USABLE)
-      MarkRegion(bitmap, entry->base, entry->length, 1);
+      MarkRegion(bitmap, (void *)entry->base, entry->length, 1);
   }
 
   MarkRegion(bitmap, (void *)bitmapStartPhys, physical.BitmapSizeInBytes, 1);

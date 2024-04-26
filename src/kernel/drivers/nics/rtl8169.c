@@ -51,8 +51,8 @@ void interruptHandlerRTL8169(AsmPassedInterrupt *regs) {
         continue;
 
       uint32_t buffSize = info->RxDescriptors[i].command & 0x3FFF;
-      uint32_t low = info->RxDescriptors[i].low_buf;
-      uint32_t high = info->RxDescriptors[i].high_buf;
+      // uint32_t low = info->RxDescriptors[i].low_buf;
+      // uint32_t high = info->RxDescriptors[i].high_buf;
 
       handlePacket(selectedNIC, info->packetBuffers[i], buffSize - 4);
 
@@ -93,7 +93,7 @@ void sendRTL8169(NIC *nic, void *packet, uint32_t packetSize) {
 
   uint32_t allocSize = DivRoundUp(packetSize, BLOCK_SIZE);
   void    *contiguousContainer = VirtualAllocatePhysicallyContiguous(allocSize);
-  size_t   phys = VirtualToPhysical(contiguousContainer);
+  size_t   phys = VirtualToPhysical((size_t)contiguousContainer);
   memcpy(contiguousContainer, packet, packetSize);
 
   desc->low_buf = (uint32_t)(phys & 0xFFFFFFFF);
@@ -127,12 +127,12 @@ bool initiateRTL8169(PCIdevice *device) {
   PCI *pci = lookupPCIdevice(device);
   setupPCIdeviceDriver(pci, PCI_DRIVER_RTL8169, PCI_DRIVER_CATEGORY_NIC);
 
+#if DEBUG_RTL8169
   for (int i = 0; i < 5; i++) {
     uint16_t iobase = details->bar[i] & 0xFFFFFFFE;
-#if DEBUG_RTL8169
     printf("[pci::rtl8169] [bar%d] iobase: %x\n", i, iobase);
-#endif
   }
+#endif
 
   uint16_t iobase = details->bar[0] & 0xFFFFFFFE;
 
@@ -178,7 +178,7 @@ bool initiateRTL8169(PCIdevice *device) {
 
   for (uint32_t i = 0; i < RTL8169_RX_DESCRIPTORS; i++) {
     uint32_t rx_buffer_len = 1536;
-    size_t   packet_buffer_address = (size_t)malloc(rx_buffer_len);
+    void    *packet_buffer_address = (void *)malloc(rx_buffer_len);
     memset(packet_buffer_address, 0, rx_buffer_len);
     infoLocation->packetBuffers[i] = packet_buffer_address;
     if (i == (RTL8169_RX_DESCRIPTORS - 1)) {
@@ -188,7 +188,7 @@ bool initiateRTL8169(PCIdevice *device) {
       infoLocation->RxDescriptors[i].command =
           (RTL8169_OWN | (rx_buffer_len & 0x3FFF));
     }
-    size_t phys = VirtualToPhysical(packet_buffer_address);
+    size_t phys = VirtualToPhysical((size_t)packet_buffer_address);
     infoLocation->RxDescriptors[i].low_buf = (uint32_t)(phys & 0xFFFFFFFF);
     infoLocation->RxDescriptors[i].high_buf = (uint32_t)(phys >> 32);
   }
@@ -210,13 +210,15 @@ bool initiateRTL8169(PCIdevice *device) {
 #if DEBUG_RTL8169
   printf("[pci::rtl8169] Registering TX & RX descriptors...\n");
 #endif
-  outportl(iobase + 0x20,
-           VirtualToPhysical(
-               txDesc)); /* Tell the NIC where the first Tx descriptor is */
+  outportl(
+      iobase + 0x20,
+      VirtualToPhysical(
+          (size_t)txDesc)); /* Tell the NIC where the first Tx descriptor is */
   outportl(iobase + 0x24, 0);
-  outportl(iobase + 0xE4,
-           VirtualToPhysical(
-               rxDesc)); /* Tell the NIC where the first Rx descriptor is */
+  outportl(
+      iobase + 0xE4,
+      VirtualToPhysical(
+          (size_t)rxDesc)); /* Tell the NIC where the first Rx descriptor is */
   outportl(iobase + 0xE8, 0);
   outportw(iobase + 0x3C, 0xC1FF); /* Set all masks open so we get much ints */
   outportb(iobase + 0x37, 0x0C);   /* Enable Rx/Tx in the Command register */

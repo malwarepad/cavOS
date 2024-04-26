@@ -105,7 +105,8 @@ uint32_t elfExecute(char *filepath, uint32_t argc, char **argv) {
     }
 
     // Copy the required info
-    memcpy(elf_phdr->p_vaddr, out + elf_phdr->p_offset, elf_phdr->p_filesz);
+    memcpy((void *)elf_phdr->p_vaddr, out + elf_phdr->p_offset,
+           elf_phdr->p_filesz);
 
     // wtf is this?
     // uint64_t file_start = (elf_phdr->p_vaddr & ~0xFFF) + elf_phdr->p_filesz;

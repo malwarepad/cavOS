@@ -14,7 +14,7 @@
 // Tried to keep the code as simple as I could, good for educational purposes
 // Copyright (C) 2024 Panagiotis
 
-AHCI_DEVICE *isAHCIcontroller(PCIdevice *device) {
+const AHCI_DEVICE *isAHCIcontroller(PCIdevice *device) {
   for (int i = 0; i < (sizeof(ahci_ids) / sizeof(ahci_ids[0])); i++) {
     if (COMBINE_WORD(device->device_id, device->vendor_id) == ahci_ids[i].id)
       return &ahci_ids[i];
@@ -97,7 +97,8 @@ HBA_CMD_HEADER *ahciSetUpCmdHeader(ahci *ahciPtr, uint32_t portId,
                                    uint32_t cmdslot, uint32_t prdt,
                                    bool write) {
   HBA_CMD_HEADER *cmdheader = (HBA_CMD_HEADER *)ahciPtr->clbVirt[portId];
-  cmdheader = (size_t)cmdheader + cmdslot * sizeof(HBA_CMD_HEADER);
+  cmdheader =
+      (HBA_CMD_HEADER *)((size_t)cmdheader + cmdslot * sizeof(HBA_CMD_HEADER));
   cmdheader->cfl = sizeof(FIS_REG_H2D) / sizeof(uint32_t); // Command FIS size
   cmdheader->w = (uint8_t)write; // 0 = read, 1 = write
   cmdheader->prdtl = prdt;       // PRDT entries count
@@ -117,7 +118,7 @@ void ahciSetUpPRDT(HBA_CMD_HEADER *cmdheader, HBA_CMD_TBL *cmdtbl,
                    uint8_t *buff, uint32_t *count) {
   // 8K bytes (16 sectors) per PRDT
   int    i = 0;
-  size_t targPhys = VirtualToPhysical(buff);
+  size_t targPhys = VirtualToPhysical((size_t)buff);
   for (i = 0; i < cmdheader->prdtl - 1; i++) {
     cmdtbl->prdt_entry[i].dba = SPLIT_64_LOWER(targPhys);
     cmdtbl->prdt_entry[i].dbau = SPLIT_64_HIGHER(targPhys);
@@ -173,7 +174,7 @@ void ahciPortRebase(ahci *ahciPtr, HBA_PORT *port, int portno) {
   uint32_t clbPages = DivRoundUp(sizeof(HBA_CMD_HEADER) * 32, BLOCK_SIZE);
   void    *clbVirt = VirtualAllocate(clbPages); //!
   ahciPtr->clbVirt[portno] = clbVirt;
-  size_t clbPhys = VirtualToPhysical(clbVirt);
+  size_t clbPhys = VirtualToPhysical((size_t)clbVirt);
   port->clb = SPLIT_64_LOWER(clbPhys);
   port->clbu = SPLIT_64_HIGHER(clbPhys);
   memset(clbVirt, 0, clbPages * BLOCK_SIZE); // could've just done 1024
@@ -191,7 +192,7 @@ void ahciPortRebase(ahci *ahciPtr, HBA_PORT *port, int portno) {
   HBA_CMD_HEADER *cmdheader = (HBA_CMD_HEADER *)clbVirt;
   void           *ctbaVirt = VirtualAllocate(2); // 2 pages = 8192 bytes //!
   ahciPtr->ctbaVirt[portno] = ctbaVirt;
-  size_t ctbaPhys = (size_t)VirtualToPhysical(ctbaVirt);
+  size_t ctbaPhys = (size_t)VirtualToPhysical((size_t)ctbaVirt);
   memset(ctbaVirt, 0, 8192);
   for (int i = 0; i < 32; i++) {
     cmdheader[i].prdtl = 8; // 8 prdt entries per command table
@@ -257,7 +258,7 @@ bool ahciPortReady(HBA_PORT *port) {
 }
 
 bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
-              uint32_t starth, uint32_t count, uint16_t *buff) {
+              uint32_t starth, uint32_t count, uint8_t *buff) {
   port->is = (uint32_t)-1; // Clear pending interrupt bits
   int slot = ahciCmdFind(port);
   if (slot == -1)
@@ -294,7 +295,7 @@ bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
 }
 
 bool ahciWrite(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
-               uint32_t starth, uint32_t count, uint16_t *buff) {
+               uint32_t starth, uint32_t count, uint8_t *buff) {
   port->is = (uint32_t)-1; // Clear pending interrupt bits
   int slot = ahciCmdFind(port);
   if (slot == -1)
@@ -345,7 +346,7 @@ void ahciInterruptHandler(AsmPassedInterrupt *regs) {
 }
 
 bool initiateAHCI(PCIdevice *device) {
-  AHCI_DEVICE *ahciDevice = isAHCIcontroller(device);
+  const AHCI_DEVICE *ahciDevice = isAHCIcontroller(device);
   if (!ahciDevice)
     return false;
 
@@ -375,7 +376,7 @@ bool initiateAHCI(PCIdevice *device) {
   memset(ahciPtr, 0, sizeof(ahci));
   pci->extra = ahciPtr;
 
-  HBA_MEM *mem = bootloader.hhdmOffset + base; //!
+  HBA_MEM *mem = (HBA_MEM *)(bootloader.hhdmOffset + base); //!
 
   ahciPtr->bsdInfo = ahciDevice;
   ahciPtr->mem = mem;

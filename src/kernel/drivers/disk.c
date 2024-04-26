@@ -62,6 +62,9 @@ void getDiskBytes(uint8_t *target_address, uint32_t LBA, uint8_t sector_count) {
   diskBytes(target_address, LBA, sector_count, false);
 }
 
-void setDiskBytes(uint8_t *target_address, uint32_t LBA, uint8_t sector_count) {
-  diskBytes(target_address, LBA, sector_count, true);
+void setDiskBytes(const uint8_t *target_address, uint32_t LBA,
+                  uint8_t sector_count) {
+  // bad solution but idc, my code is safe
+  uint8_t *rw_target_address = (uint8_t *)((size_t)target_address);
+  diskBytes(rw_target_address, LBA, sector_count, true);
 }

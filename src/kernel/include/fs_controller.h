@@ -89,8 +89,8 @@ int fsUserOpen(char *filename, int flags, uint32_t mode);
 int fsUserClose(int fd);
 int fsUserSeek(uint32_t fd, int offset, int whence);
 
-uint32_t fsRead(OpenFile *file, char *out, uint32_t limit);
-uint32_t fsWrite(OpenFile *file, char *in, uint32_t limit);
+uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit);
+uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit);
 bool     fsWriteChar(OpenFile *file, char in);
 bool     fsWriteSync(OpenFile *file);
 void     fsReadFullFile(OpenFile *file, uint8_t *out);

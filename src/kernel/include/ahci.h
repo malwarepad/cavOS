@@ -41,12 +41,7 @@ typedef struct {
   int         quirks;
 } AHCI_DEVICE;
 
-static const struct {
-  uint32_t    id;
-  uint8_t     rev;
-  const char *name;
-  int         quirks;
-} ahci_ids[] = {
+static const AHCI_DEVICE ahci_ids[] = {
     {0x43801002, 0x00, "AMD SB600",
      AHCI_Q_NOMSI | AHCI_Q_ATI_PMP_BUG | AHCI_Q_MAXIO_64K},
     {0x43901002, 0x00, "AMD SB7x0/SB8x0/SB9x0",
@@ -564,17 +559,17 @@ typedef enum {
 typedef struct ahci ahci;
 
 struct ahci {
-  void        *clbVirt[32];
-  void        *ctbaVirt[32];
-  uint32_t     sata; // bitmap (32 ports -> 32 bits)
-  AHCI_DEVICE *bsdInfo;
-  HBA_MEM     *mem;
+  void              *clbVirt[32];
+  void              *ctbaVirt[32];
+  uint32_t           sata; // bitmap (32 ports -> 32 bits)
+  const AHCI_DEVICE *bsdInfo;
+  HBA_MEM           *mem;
 };
 
 bool initiateAHCI(PCIdevice *device);
 bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
-              uint32_t starth, uint32_t count, uint16_t *buff);
+              uint32_t starth, uint32_t count, uint8_t *buff);
 bool ahciWrite(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
-               uint32_t starth, uint32_t count, uint16_t *buff);
+               uint32_t starth, uint32_t count, uint8_t *buff);
 
 #endif

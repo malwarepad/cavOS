@@ -111,7 +111,7 @@ size_t FindFreeRegion(DS_Bitmap *bitmap, size_t blocks) {
 
 void *BitmapAllocate(DS_Bitmap *bitmap, size_t blocks) {
   if (blocks == 0)
-    return;
+    return 0;
 
   size_t pickedRegion = FindFreeRegion(bitmap, blocks);
   if (pickedRegion == INVALID_BLOCK)
@@ -141,6 +141,6 @@ size_t BitmapAllocatePageframe(DS_Bitmap *bitmap) {
   return (bitmap->mem_start + (pickedRegion * BLOCK_SIZE));
 }
 
-void BitmapFreePageframe(DS_Bitmap *bitmap, size_t addr) {
+void BitmapFreePageframe(DS_Bitmap *bitmap, void *addr) {
   MarkRegion(bitmap, addr, BLOCK_SIZE * 1, 0);
 }

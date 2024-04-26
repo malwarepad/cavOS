@@ -126,7 +126,6 @@ void echo(char *ch) {
 void launch_shell(int n) {
   debugf("[shell] Kernel-land shell launched: n{%d}\n", n);
   char *ch = (char *)malloc(200);
-  char *data[64];
   char *prompt = "$ ";
 
   do {
@@ -172,7 +171,7 @@ void launch_shell(int n) {
         continue;
       }
       char *out = (char *)malloc(fsGetFilesize(dir));
-      fsReadFullFile(dir, out);
+      fsReadFullFile(dir, (uint8_t *)out);
       fsKernelClose(dir);
       clearScreen();
 
@@ -207,7 +206,7 @@ void launch_shell(int n) {
       }
       uint32_t filesize = fsGetFilesize(dir);
       char    *out = (char *)malloc(filesize);
-      fsReadFullFile(dir, out);
+      fsReadFullFile(dir, (uint8_t *)out);
       fsKernelClose(dir);
       for (int i = 0; i < filesize; i++) {
         printf("%c", out[i]);
@@ -308,7 +307,7 @@ void launch_shell(int n) {
 
       size_t *argv = malloc(sizeof(size_t) * 5);
       argv[0] = (size_t)filepath;
-      uint32_t id = elfExecute(filepath, 1, argv);
+      uint32_t id = elfExecute(filepath, 1, (char **)argv);
       if (!id) {
         printf("Failure executing %s!\n", filepath);
         continue;
@@ -323,7 +322,7 @@ void launch_shell(int n) {
       printf("\n");
       Task *browse = firstTask;
       while (browse) {
-        printf("%d: [%c] heap{0x%016lx-0x%016lX}\n", browse->id,
+        printf("%ld: [%c] heap{0x%016lx-0x%016lX}\n", browse->id,
                browse->kernel_task ? '-' : 'u', browse->heap_start,
                browse->heap_end);
 

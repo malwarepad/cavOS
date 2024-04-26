@@ -16,7 +16,7 @@ char serial_recv_async(int device);
 char serial_recv(int device);
 int  serial_rcvd(int device);
 void initiateSerial();
-int  debug(char c, int *arg);
+void debug(char c, void *arg);
 int  debugf(const char *format, ...);
 
 #endif

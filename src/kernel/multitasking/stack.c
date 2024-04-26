@@ -36,7 +36,7 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint8_t *out,
   a -= sizeof(b);                                                              \
   *((b *)(a)) = c
 
-  int *randomByteStart = target->heap_end;
+  int *randomByteStart = (int *)target->heap_end;
   taskAdjustHeap(target, target->heap_end + 16);
   for (int i = 0; i < 4; i++)
     randomByteStart[i] = rand();
@@ -59,7 +59,7 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint8_t *out,
                 elf_ehdr->e_shentsize);
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 4);
   // aux: AT_PHDR
-  void *phstuffStart = target->heap_end;
+  void *phstuffStart = (void *)target->heap_end;
   taskAdjustHeap(target, target->heap_end + filesize);
   memcpy(phstuffStart, out, filesize);
   PUSH_TO_STACK(target->registers.usermode_rsp, size_t,
@@ -70,12 +70,12 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint8_t *out,
   uint32_t argSpace = 0;
   for (int i = 0; i < argc; i++)
     argSpace += strlength(argv[i]) + 1; // null terminator
-  uint8_t *argStart = target->heap_end;
+  uint8_t *argStart = (uint8_t *)target->heap_end;
   taskAdjustHeap(target, target->heap_end + argSpace);
   size_t ellapsed = 0;
   for (int i = 0; i < argc; i++) {
     uint32_t len = strlength(argv[i]) + 1; // null terminator
-    memcpy((size_t)argStart + ellapsed, argv[i], len);
+    memcpy((void *)((size_t)argStart + ellapsed), argv[i], len);
     ellapsed += len;
   }
 
@@ -90,7 +90,7 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint8_t *out,
   // ellapsed already has the full size lol
   for (int i = argc - 1; i >= 0; i--) {
     target->registers.usermode_rsp -= sizeof(uint64_t);
-    uint64_t *finalArgv = target->registers.usermode_rsp;
+    uint64_t *finalArgv = (uint64_t *)target->registers.usermode_rsp;
 
     uint32_t len = strlength(argv[i]) + 1; // null terminator
     finalEllapsed += len;

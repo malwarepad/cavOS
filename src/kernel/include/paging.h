@@ -59,7 +59,7 @@ void initiatePaging();
 
 void VirtualMap(uint64_t virt_addr, uint64_t phys_addr, uint64_t flags);
 // uint32_t VirtualUnmap(uint32_t virt_addr);
-void *VirtualToPhysical(size_t virt_addr);
+size_t VirtualToPhysical(size_t virt_addr);
 
 uint64_t *GetPageDirectory();
 void      ChangePageDirectory(uint64_t *pd);

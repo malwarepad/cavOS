@@ -45,11 +45,11 @@ void        initiateSyscallInst() {
 
 uint32_t syscallCnt = 0;
 #define MAX_SYSCALLS 420
-uint64_t syscalls[MAX_SYSCALLS] = {0};
-void     registerSyscall(uint32_t id, void *handler) {
+size_t syscalls[MAX_SYSCALLS] = {0};
+void   registerSyscall(uint32_t id, void *handler) {
   if (id > MAX_SYSCALLS) {
     debugf("[syscalls] FATAL! Exceded limit! limit{%d} id{%d}\n", MAX_SYSCALLS,
-               id);
+             id);
     panic();
   }
 
@@ -58,7 +58,7 @@ void     registerSyscall(uint32_t id, void *handler) {
     panic();
   }
 
-  syscalls[id] = handler;
+  syscalls[id] = (size_t)handler;
   syscallCnt++;
 }
 
@@ -69,7 +69,7 @@ void syscallHandler(AsmPassedInterrupt *regs) {
 #if DEBUG_SYSCALLS
   debugf("[syscalls] id{%d}\n", id);
 #endif
-  void *handler = syscalls[id];
+  size_t handler = syscalls[id];
 
   if (!handler) {
     regs->rax = -1;
@@ -120,7 +120,7 @@ static uint32_t syscallRead(int file, char *str, uint32_t count) {
     // handle
     return 0;
   }
-  uint32_t read = fsRead(browse, str, count);
+  uint32_t read = fsRead(browse, (uint8_t *)str, count);
 #if DEBUG_SYSCALLS
   debugf("\nread = %d\n", read);
 #endif
@@ -152,7 +152,7 @@ static int syscallWrite(int file, char *str, uint32_t count) {
   if (!browse)
     return -1;
 
-  uint32_t writtenBytes = fsWrite(browse, str, count);
+  uint32_t writtenBytes = fsWrite(browse, (uint8_t *)str, count);
   return writtenBytes;
 }
 
@@ -245,7 +245,7 @@ static int syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
   int cnt = 0;
 
   for (int i = 0; i < ioVcnt; i++) {
-    iovec *curr = (size_t)iov + i * sizeof(iovec);
+    iovec *curr = (iovec *)((size_t)iov + i * sizeof(iovec));
 
 #if DEBUG_SYSCALLS
     debugf("[syscalls::writev] fd{%d} iov_base{%x} iov_len{%x} iovcnt{%d}\n",
@@ -265,9 +265,10 @@ static int syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
 static uint32_t syscallGetPid() { return currentTask->id; }
 
 #define SYSCALL_FORK 57
-static void syscallFork() {
+static int syscallFork() {
   // todo: fork 🍴
   debugf("[syscalls] %d tried to fork()\n", currentTask->id);
+  return -1;
 }
 
 #define SYSCALL_EXIT_TASK 60
@@ -365,6 +366,7 @@ void initiateSyscalls() {
   registerSyscall(SYSCALL_GET_TID, syscallGetTid);
   registerSyscall(SYSCALL_GETCWD, syscallGetcwd);
   registerSyscall(SYSCALL_IOCTL, syscallIoctl);
+  registerSyscall(SYSCALL_FORK, syscallFork);
 
   debugf("[syscalls] System calls are ready to fire: %d/%d\n", syscallCnt,
          MAX_SYSCALLS);

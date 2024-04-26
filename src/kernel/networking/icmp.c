@@ -37,7 +37,7 @@ void netICMPreply(NIC *nic, uint8_t *destination_mac, uint8_t *destination_ip,
   header->code = 0;
 
   header->restOfHeader = requestHeader->restOfHeader;
-  memcpy((size_t) final + sizeof(icmpHeader), body, body_size);
+  memcpy((void *)((size_t) final + sizeof(icmpHeader)), body, body_size);
   header->checksum = checksum(final, finalSize);
 
   netIPv4Send(nic, destination_mac, destination_ip, final, finalSize,
@@ -48,13 +48,14 @@ void netICMPreply(NIC *nic, uint8_t *destination_mac, uint8_t *destination_ip,
 
 void netICMPreceive(NIC *nic, void *packet, uint32_t size) {
   netPacketHeader *rawHeader = packet;
-  IPv4header      *ipv4 = (size_t)packet + sizeof(netPacketHeader);
-  icmpHeader      *icmp = (size_t)ipv4 + sizeof(IPv4header);
+  IPv4header *ipv4 = (IPv4header *)((size_t)packet + sizeof(netPacketHeader));
+  icmpHeader *icmp = (icmpHeader *)((size_t)ipv4 + sizeof(IPv4header));
+  void       *icmpBody = (void *)((size_t)icmp + sizeof(icmpHeader));
 
   switch (icmp->type) {
   case ICMP_ECHO:
     netICMPreply(nic, rawHeader->source_mac, ipv4->source_address, icmp,
-                 (size_t)icmp + sizeof(icmpHeader),
+                 icmpBody,
                  size - sizeof(netPacketHeader) - sizeof(IPv4header) -
                      sizeof(icmpHeader));
     break;

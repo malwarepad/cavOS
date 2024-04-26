@@ -12,7 +12,7 @@ static volatile struct limine_framebuffer_request limineFBreq = {
 void initiateVGA() {
   struct limine_framebuffer *framebufferRes =
       limineFBreq.response->framebuffers[0];
-  framebuffer = (size_t)framebufferRes->address;
+  framebuffer = (uint8_t *)framebufferRes->address;
   framebufferHeight = framebufferRes->height;
   framebufferWidth = framebufferRes->width;
   framebufferPitch = framebufferRes->pitch;

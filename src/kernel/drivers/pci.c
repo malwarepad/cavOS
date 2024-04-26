@@ -149,7 +149,7 @@ void initiatePCI() {
         if ((device->headerType & ~(1 << 7)) != PCI_DEVICE_GENERAL)
           continue;
 
-        PCI *target = LinkedListAllocate(&firstPCI, sizeof(PCI));
+        PCI *target = LinkedListAllocate((void **)(&firstPCI), sizeof(PCI));
         target->bus = bus;
         target->slot = slot;
         target->function = function;

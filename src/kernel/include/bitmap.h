@@ -33,6 +33,6 @@ size_t FindFreeRegion(DS_Bitmap *bitmap, size_t blocks);
 void  *BitmapAllocate(DS_Bitmap *bitmap, size_t blocks);
 
 size_t BitmapAllocatePageframe(DS_Bitmap *bitmap);
-void   BitmapFreePageframe(DS_Bitmap *bitmap, size_t addr);
+void   BitmapFreePageframe(DS_Bitmap *bitmap, void *addr);
 
 #endif

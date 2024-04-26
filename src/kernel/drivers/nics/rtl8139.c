@@ -125,7 +125,7 @@ bool initiateRTL8139(PCIdevice *device) {
   void *virtual = VirtualAllocatePhysicallyContiguous(
       DivRoundUp(8192 + 16 + 1500, BLOCK_SIZE));
   memset(virtual, 0, 8192 + 16 + 1500);
-  void *physical = VirtualToPhysical(virtual);
+  size_t physical = VirtualToPhysical((size_t) virtual);
   outportl(iobase + RTL8139_REG_RBSTART, (uint32_t)physical);
 
   // Save it (physical can be computed if needed)
@@ -181,7 +181,7 @@ void sendRTL8139(NIC *nic, void *packet, uint32_t packetSize) {
 
   void *contiguousContainer =
       VirtualAllocatePhysicallyContiguous(DivRoundUp(packetSize, BLOCK_SIZE));
-  size_t phys = VirtualToPhysical(contiguousContainer);
+  size_t phys = VirtualToPhysical((size_t)contiguousContainer);
   if (phys > (UINT32_MAX - 0x5000)) {
     VirtualFree(contiguousContainer, DivRoundUp(packetSize, BLOCK_SIZE));
     debugf("[pci::rtl8139] FATAL! Ran out of 32-bit addresses!\n");

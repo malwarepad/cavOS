@@ -85,7 +85,7 @@ void initiatePaging() {
   // I will keep on using limine's for the time being
   uint64_t targ;
   asm volatile("movq %%cr3,%0" : "=r"(targ));
-  globalPagedir = targ + bootloader.hhdmOffset;
+  globalPagedir = (uint64_t *)(targ + bootloader.hhdmOffset);
   // VirtualSeek(bootloader.hhdmOffset);
 }
 
@@ -105,7 +105,7 @@ void VirtualMapRegionByLength(uint64_t virt_addr, uint64_t phys_addr,
 
 // Will NOT check for the current task and update it's pagedir (on the struct)!
 void ChangePageDirectoryUnsafe(uint64_t *pd) {
-  uint64_t targ = VirtualToPhysical(pd);
+  uint64_t targ = VirtualToPhysical((size_t)pd);
   if (!targ) {
     debugf("[paging] Could not change to pd{%lx}!\n", pd);
     panic();
@@ -128,7 +128,7 @@ void invalidate(uint64_t vaddr) { asm volatile("invlpg %0" ::"m"(vaddr)); }
 size_t VirtAllocPhys() {
   size_t phys = BitmapAllocatePageframe(&physical);
 
-  void *virt = phys + HHDMoffset;
+  void *virt = (void *)(phys + HHDMoffset);
   memset(virt, 0, PAGE_SIZE);
 
   return phys;
@@ -151,19 +151,20 @@ void VirtualMap(uint64_t virt_addr, uint64_t phys_addr, uint64_t flags) {
     size_t target = VirtAllocPhys();
     globalPagedir[pml4_index] = target | PF_PRESENT | PF_RW | flags;
   }
-  size_t *pdp = PTE_GET_ADDR(globalPagedir[pml4_index]) + HHDMoffset;
+  size_t *pdp =
+      (size_t *)(PTE_GET_ADDR(globalPagedir[pml4_index]) + HHDMoffset);
 
   if (!(pdp[pdp_index] & PF_PRESENT)) {
     size_t target = VirtAllocPhys();
     pdp[pdp_index] = target | PF_PRESENT | PF_RW | flags;
   }
-  size_t *pd = PTE_GET_ADDR(pdp[pdp_index]) + HHDMoffset;
+  size_t *pd = (size_t *)(PTE_GET_ADDR(pdp[pdp_index]) + HHDMoffset);
 
   if (!(pd[pd_index] & PF_PRESENT)) {
     size_t target = VirtAllocPhys();
     pd[pd_index] = target | PF_PRESENT | PF_RW | flags;
   }
-  size_t *pt = PTE_GET_ADDR(pd[pd_index]) + HHDMoffset;
+  size_t *pt = (size_t *)(PTE_GET_ADDR(pd[pd_index]) + HHDMoffset);
 
   if (pt[pt_index] & PF_PRESENT)
     debugf("[paging] Overwrite (without unmapping) WARN!\n");
@@ -186,19 +187,20 @@ void VirtualMap2MB(uint64_t virt_addr, uint64_t phys_addr, uint64_t flags) {
   uint32_t pml4_index = PML4E(virt_addr);
   uint32_t pdp_index = PDPTE(virt_addr);
   uint32_t pd_index = PDE(virt_addr);
-  uint32_t pt_index = PTE(virt_addr);
+  // uint32_t pt_index = PTE(virt_addr); // unused
 
   if (!(globalPagedir[pml4_index] & PF_PRESENT)) {
     size_t target = VirtAllocPhys();
     globalPagedir[pml4_index] = target | PF_PRESENT | PF_RW;
   }
-  size_t *pdp = PTE_GET_ADDR(globalPagedir[pml4_index]) + HHDMoffset;
+  size_t *pdp =
+      (size_t *)(PTE_GET_ADDR(globalPagedir[pml4_index]) + HHDMoffset);
 
   if (!(pdp[pdp_index] & PF_PRESENT)) {
     size_t target = VirtAllocPhys();
     pdp[pdp_index] = target | PF_PRESENT | PF_RW;
   }
-  size_t *pd = PTE_GET_ADDR(pdp[pdp_index]) + HHDMoffset;
+  size_t *pd = (size_t *)(PTE_GET_ADDR(pdp[pdp_index]) + HHDMoffset);
 
   if (pd[pd_index] & PF_PRESENT)
     debugf("[paging] Overwrite (without unmapping) WARN!\n");
@@ -208,12 +210,12 @@ void VirtualMap2MB(uint64_t virt_addr, uint64_t phys_addr, uint64_t flags) {
   invalidate(virt_addr);
 }
 
-void *VirtualToPhysical(size_t virt_addr) {
+size_t VirtualToPhysical(size_t virt_addr) {
   if (!globalPagedir)
     return 0;
 
   if (virt_addr >= HHDMoffset && virt_addr <= (HHDMoffset + bootloader.mmTotal))
-    return (void *)(virt_addr - HHDMoffset);
+    return virt_addr - HHDMoffset;
 
   size_t virt_addr_init = virt_addr;
   virt_addr &= ~0xFFF;
@@ -231,24 +233,25 @@ void *VirtualToPhysical(size_t virt_addr) {
            globalPagedir[pml4_index] & PF_PS)
     return (void *)(PTE_GET_ADDR(globalPagedir[pml4_index] +
                                  (virt_addr & PAGE_MASK(12 + 9 + 9 + 9))));*/
-  size_t *pdp = PTE_GET_ADDR(globalPagedir[pml4_index]) + HHDMoffset;
+  size_t *pdp =
+      (size_t *)(PTE_GET_ADDR(globalPagedir[pml4_index]) + HHDMoffset);
 
   if (!(pdp[pdp_index] & PF_PRESENT))
     return 0;
   /*else if (pdp[pdp_index] & PF_PRESENT && pdp[pdp_index] & PF_PS)
     return (void *)(PTE_GET_ADDR(pdp[pdp_index] +
                                  (virt_addr & PAGE_MASK(12 + 9 + 9))));*/
-  size_t *pd = PTE_GET_ADDR(pdp[pdp_index]) + HHDMoffset;
+  size_t *pd = (size_t *)(PTE_GET_ADDR(pdp[pdp_index]) + HHDMoffset);
 
   if (!(pd[pd_index] & PF_PRESENT))
     return 0;
   /*else if (pd[pd_index] & PF_PRESENT && pd[pd_index] & PF_PS)
     return (
         void *)(PTE_GET_ADDR(pd[pd_index] + (virt_addr & PAGE_MASK(12 + 9))));*/
-  size_t *pt = PTE_GET_ADDR(pd[pd_index]) + HHDMoffset;
+  size_t *pt = (size_t *)(PTE_GET_ADDR(pd[pd_index]) + HHDMoffset);
 
   if (pt[pt_index] & PF_PRESENT)
-    return (void *)(PTE_GET_ADDR(pt[pt_index]) +
+    return (size_t)(PTE_GET_ADDR(pt[pt_index]) +
                     ((size_t)virt_addr_init & 0xFFF));
 
   return 0;
@@ -284,17 +287,17 @@ void PageDirectoryFree(uint64_t *page_dir) {
   for (int pml4_index = 0; pml4_index < 512; pml4_index++) {
     if (!(page_dir[pml4_index] & PF_PRESENT) || page_dir[pml4_index] & PF_PS)
       continue;
-    size_t *pdp = PTE_GET_ADDR(page_dir[pml4_index]) + HHDMoffset;
+    size_t *pdp = (size_t *)(PTE_GET_ADDR(page_dir[pml4_index]) + HHDMoffset);
 
     for (int pdp_index = 0; pdp_index < 512; pdp_index++) {
       if (!(pdp[pdp_index] & PF_PRESENT) || pdp[pdp_index] & PF_PS)
         continue;
-      size_t *pd = PTE_GET_ADDR(pdp[pdp_index]) + HHDMoffset;
+      size_t *pd = (size_t *)(PTE_GET_ADDR(pdp[pdp_index]) + HHDMoffset);
 
       for (int pd_index = 0; pd_index < 512; pd_index++) {
         if (!(pd[pd_index] & PF_PRESENT) || pd[pd_index] & PF_PS)
           continue;
-        size_t *pt = PTE_GET_ADDR(pd[pd_index]) + HHDMoffset;
+        size_t *pt = (size_t *)(PTE_GET_ADDR(pd[pd_index]) + HHDMoffset);
 
         for (int pt_index = 0; pt_index < 512; pt_index++) {
           if (!(pt[pt_index] & PF_PRESENT) || pt[pt_index] & PF_PS)
@@ -305,7 +308,7 @@ void PageDirectoryFree(uint64_t *page_dir) {
             continue;
 
           uint64_t phys = PTE_GET_ADDR(pt[pt_index]);
-          BitmapFreePageframe(&physical, phys);
+          BitmapFreePageframe(&physical, (void *)phys);
         }
       }
     }

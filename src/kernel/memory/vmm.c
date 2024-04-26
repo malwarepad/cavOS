@@ -36,7 +36,7 @@ void initiateVMM() {
 }
 
 void *VirtualAllocate(int pages) {
-  size_t phys = BitmapAllocate(&physical, pages);
+  size_t phys = (size_t)BitmapAllocate(&physical, pages);
   if (!phys) {
     debugf("[vmm::alloc] Physical kernel memory ran out!\n");
     panic();
@@ -55,13 +55,13 @@ void *VirtualAllocatePhysicallyContiguous(int pages) {
 }
 
 bool VirtualFree(void *ptr, int pages) {
-  size_t phys = VirtualToPhysical(ptr);
+  size_t phys = VirtualToPhysical((size_t)ptr);
   if (!phys) {
     debugf("[vmm::free] Could not find physical address! virt{%lx}\n", ptr);
     panic();
   }
 
-  MarkRegion(&physical, phys, pages * BLOCK_SIZE, 0);
+  MarkRegion(&physical, (void *)phys, pages * BLOCK_SIZE, 0);
 
   return 1;
 }

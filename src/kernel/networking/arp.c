@@ -25,7 +25,7 @@ void registerArpTableEntry(NIC *nic, uint8_t *ip, uint8_t *mac) {
     nic->arpTableCurr = 0;
 }
 
-arpTableEntry *lookupArpTable(NIC *nic, uint8_t *ip) {
+arpTableEntry *lookupArpTable(NIC *nic, const uint8_t *ip) {
   for (int i = 0; i < ARP_TABLE_LEN; i++) {
     if (*(uint32_t *)(&nic->arpTable[i].ip[0]) == *(uint32_t *)(ip))
       return &nic->arpTable[i];
@@ -53,7 +53,7 @@ void debugArpTable(NIC *nic) {
 /* The send/respond functions don't manipualte the arp table at all, that's the
  * job of the handle function, called by the generic NIC interface controller*/
 
-void netArpSend(NIC *nic, uint8_t *ip) {
+void netArpSend(NIC *nic, const uint8_t *ip) {
   arpPacket *arp = malloc(sizeof(arpPacket));
   memset(arp, 0, sizeof(arpPacket));
 

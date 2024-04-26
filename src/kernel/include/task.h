@@ -50,7 +50,7 @@ struct Task {
   __attribute__((aligned(16))) uint8_t fpuenv[512];
 
   Task *next;
-} __attribute__((packed));
+};
 
 Task *firstTask;
 Task *currentTask;
@@ -65,8 +65,8 @@ void  taskCreateFinish(Task *task);
 void  taskAdjustHeap(Task *task, size_t new_heap_end);
 void  taskKill(uint32_t id);
 void  taskKillCleanup(Task *task);
-uint8_t *taskGetState(uint32_t id);
-Task    *taskGet(uint32_t id);
-int16_t  taskGenerateId();
+uint8_t taskGetState(uint32_t id);
+Task   *taskGet(uint32_t id);
+int16_t taskGenerateId();
 
 #endif

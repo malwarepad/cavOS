@@ -36,7 +36,7 @@ IPv4fragmentedPacket *netIPv4FindFragmentedPkg(NIC *nic, uint8_t *ip,
 }
 
 bool netIPv4RemoveFragmentedPkg(NIC *nic, uint8_t *ip, uint16_t id) {
-  return LinkedListRemove(&nic->firstFragmentedPacket,
+  return LinkedListRemove((void **)(&nic->firstFragmentedPacket),
                           netIPv4FindFragmentedPkg(nic, ip, id));
 }
 
@@ -77,13 +77,15 @@ uint32_t netIPv4FinishFragmentedPkg(NIC *nic, uint8_t *ip, uint16_t id,
 
   IPv4fragmentedPacketRaw *browse = ref->firstPacket;
   while (browse) {
-    memcpy((size_t)finalBuffer + (size_t)insertStartSize + browse->index,
-           browse->buffer, browse->size);
+    memcpy(
+        (void *)((size_t)finalBuffer + (size_t)insertStartSize + browse->index),
+        browse->buffer, browse->size);
     browse = browse->next;
   }
 
   netIPv4DiscardFragmentedPkg(nic, ip, id);
-  IPv4header *header = (size_t)finalBuffer + sizeof(netPacketHeader);
+  IPv4header *header =
+      (IPv4header *)((size_t)finalBuffer + sizeof(netPacketHeader));
   header->length = switch_endian_16(finalSize); // just in case
 
   *target = finalBuffer;
@@ -133,7 +135,7 @@ bool netIPv4Verify(NIC *nic, IPv4header *header, uint32_t size) {
 }
 
 void netIPv4Receive(NIC *nic, void *body, uint32_t size) {
-  IPv4header *header = (size_t)body + sizeof(netPacketHeader);
+  IPv4header *header = (IPv4header *)((size_t)body + sizeof(netPacketHeader));
   if (!netIPv4Verify(nic, header, size))
     return;
 
@@ -159,7 +161,7 @@ void netIPv4Receive(NIC *nic, void *body, uint32_t size) {
     if (!currFrag) {
       // first fragment we received, register the whole struct
       currFrag = (IPv4fragmentedPacket *)LinkedListAllocate(
-          &nic->firstFragmentedPacket, sizeof(IPv4fragmentedPacket));
+          (void **)(&nic->firstFragmentedPacket), sizeof(IPv4fragmentedPacket));
       memcpy(currFrag->source_address, header->source_address, 4);
       currFrag->id = id;
     }
@@ -181,7 +183,7 @@ void netIPv4Receive(NIC *nic, void *body, uint32_t size) {
         currFrag->max = fmOffset + ipBodySize;
       } else if (currFrag->max) {
         debugf(
-            "[net::ipv4] Reassembly issue: More than one last fragments??!\n");
+            "[net::ipv4] Reassembly issue: More than one last fragments?!\n");
         netIPv4DiscardFragmentedPkg(nic, header->source_address, id);
         return;
       }
@@ -209,7 +211,7 @@ void netIPv4Receive(NIC *nic, void *body, uint32_t size) {
     currFragRaw->index = fmOffset;
     currFragRaw->size = ipBodySize;
     currFragRaw->buffer = malloc(ipBodySize);
-    memcpy(currFragRaw->buffer, (size_t)header + sizeof(IPv4header),
+    memcpy(currFragRaw->buffer, (void *)((size_t)header + sizeof(IPv4header)),
            ipBodySize);
 
     if (currFrag->max) {
@@ -289,7 +291,7 @@ void netIPv4SendInternal(NIC *nic, uint8_t *destination_mac,
   // calculate checksum before request's finalized
   header->checksum = checksum(header, sizeof(IPv4header));
 
-  memcpy((size_t) final + sizeof(IPv4header), data, data_size);
+  memcpy((void *)((size_t) final + sizeof(IPv4header)), data, data_size);
 
   sendPacket(nic, destination_mac, final, finalSize, 0x0800);
 
@@ -371,7 +373,7 @@ void netIPv4Send(NIC *nic, uint8_t *destination_mac, uint8_t *destination_ip,
         continue;
       flags |= (uint16_t)(i * (dataPerEach)) / 8;
       uint8_t *buffer = malloc(bufferSize);
-      memcpy(buffer, (size_t)data + i * (dataPerEach), bufferSize);
+      memcpy(buffer, (void *)((size_t)data + i * (dataPerEach)), bufferSize);
       netIPv4SendInternal(nic, destination_mac, destination_ip, buffer,
                           bufferSize, protocol, flags, id);
       free(buffer);

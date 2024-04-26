@@ -79,14 +79,14 @@ char *PCI_IDlookup(PCI_ID_SESSION *session, uint16_t vendor_id,
       if (session->buff[curr] != CHAR_TAB)
         ignoreTabbed = true; // different entry!
 
-      if (strtol(&session->buff[curr], 0, 16) ==
+      if (strtol((char *)(&session->buff[curr]), 0, 16) ==
           (ignoreTabbed ? vendor_id : device_id)) {
         if (!output) {
           output = malloc(PCI_ID_LIMIT_STR);
           memset(output, 0, PCI_ID_LIMIT_STR);
         }
 
-        recording = output + strlength(output);
+        recording = (uint8_t *)(output + strlength(output));
         recordingPtr = 0;
 
         curr += 6;

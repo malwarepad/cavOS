@@ -49,8 +49,8 @@ typedef struct irqHandler irqHandler;
 struct irqHandler {
   irqHandler *next;
 
-  uint8_t      id;
-  FunctionPtr *handler;
+  uint8_t     id;
+  FunctionPtr handler;
 };
 
 void        initiateISR();

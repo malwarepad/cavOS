@@ -10,7 +10,7 @@ static TSSPtr     tss;
 
 TSSPtr *tssPtr = &tss;
 
-void gdt_load_tss(struct tss *tss) {
+void gdt_load_tss(TSSPtr *tss) {
   size_t addr = (size_t)tss;
 
   gdt.tss.base_low = (uint16_t)addr;

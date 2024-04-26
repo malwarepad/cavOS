@@ -63,7 +63,7 @@ bool LinkedListUnregister(void **LLfirstPtr, const void *LLtarget) {
   return true;
 }
 
-bool LinkedListRemove(void **LLfirstPtr, const void *LLtarget) {
+bool LinkedListRemove(void **LLfirstPtr, void *LLtarget) {
   bool res = LinkedListUnregister(LLfirstPtr, LLtarget);
   free(LLtarget);
   return res;

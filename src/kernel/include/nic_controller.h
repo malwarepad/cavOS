@@ -51,7 +51,7 @@ typedef struct socketPacketHeader socketPacketHeader;
 struct socketPacketHeader {
   socketPacketHeader *next;
   uint32_t            size;
-} __attribute__((packed));
+};
 
 typedef struct Socket Socket;
 struct Socket {
@@ -66,7 +66,7 @@ struct Socket {
   uint16_t server_port;
 
   socketPacketHeader *firstPacket;
-} __attribute__((packed));
+};
 
 struct NIC {
   NIC_TYPE type;
@@ -93,7 +93,7 @@ struct NIC {
 
   // Sockets
   Socket *firstSocket;
-} __attribute__((packed));
+};
 #define defaultIP ((uint8_t[]){0, 0, 0, 0})
 #define macBroadcast ((uint8_t[]){255, 255, 255, 255, 255, 255})
 #define macZero ((uint8_t[]){0, 0, 0, 0, 0, 0})
@@ -111,7 +111,7 @@ typedef struct netPacketHeader {
   uint8_t  destination_mac[6];
   uint8_t  source_mac[6];
   uint16_t ethertype;
-} __attribute__((packed)) netPacketHeader;
+} netPacketHeader;
 
 typedef struct netPacket {
   netPacketHeader header;

@@ -85,7 +85,6 @@ bool initiateNe2000(PCIdevice *device) {
 void sendNe2000(NIC *nic, void *packet, uint32_t packetSize) {
 #ifndef BUGGY_NE2k
   debugf("[pci::ne2k] Ignored!\n");
-  return false;
 #endif
 
   ne2k_interface *info = (ne2k_interface *)nic->infoLocation;

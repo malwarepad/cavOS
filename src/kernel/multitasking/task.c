@@ -100,7 +100,7 @@ void taskAdjustHeap(Task *task, size_t new_heap_end) {
 void taskKill(uint32_t id) {
   Task *browse = firstTask;
   while (browse) {
-    if (browse->next && (Task *)(browse->next)->id == id)
+    if (browse->next && browse->next->id == id)
       break;
     browse = browse->next;
   }
@@ -128,8 +128,8 @@ void taskKill(uint32_t id) {
   ChangePageDirectory(defaultPagedir);*/
   // ^ not needed because of PageDirectoryFree() doing it automatically
 
-  uint64_t currPagedir = GetPageDirectory();
-  if (currPagedir == task->pagedir)
+  size_t currPagedir = (size_t)GetPageDirectory();
+  if (currPagedir == (size_t)task->pagedir)
     ChangePageDirectory(taskGet(KERNEL_TASK_ID)->pagedir);
 
   // PageDirectoryFree(task->pagedir); // left for sched
@@ -172,7 +172,7 @@ Task *taskGet(uint32_t id) {
   return browse;
 }
 
-uint8_t *taskGetState(uint32_t id) {
+uint8_t taskGetState(uint32_t id) {
   Task *browse = taskGet(id);
   if (!browse)
     return 0;

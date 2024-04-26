@@ -12,6 +12,6 @@ struct LLheader {
 
 void *LinkedListAllocate(void **LLfirstPtr, uint32_t structSize);
 bool  LinkedListUnregister(void **LLfirstPtr, const void *LLtarget);
-bool  LinkedListRemove(void **LLfirstPtr, const void *LLtarget);
+bool  LinkedListRemove(void **LLfirstPtr, void *LLtarget);
 
 #endif

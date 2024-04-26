@@ -42,7 +42,7 @@ void weirdTests() {
       continue;
     }
     uint32_t filesize = fsGetFilesize(dir);
-    char    *out = (char *)malloc(filesize);
+    uint8_t *out = (uint8_t *)malloc(filesize);
     fsReadFullFile(dir, out);
     fsKernelClose(dir);
 
@@ -62,7 +62,7 @@ void weirdTests() {
     MD5_Update(ctx, out, filesize);
 
     MD5_OUT *md = malloc(sizeof(MD5_CTX));
-    MD5_Final(md, ctx);
+    MD5_Final((void *)md, ctx);
     if (i != 0 && (md->a != targA || md->b != targB || md->c != targC ||
                    md->d != targD)) {
       debugf("FAIL! FAIL! FAIL!\n");

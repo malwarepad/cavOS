@@ -69,9 +69,10 @@ void netDHCPapproveOptions(NIC *nic) {
 
 // returns true only on ack
 bool netDHCPreceive(NIC *nic, void *body, uint32_t size) {
-  udpHeader  *udp = (size_t)body + sizeof(netPacketHeader) + sizeof(IPv4header);
-  dhcpHeader *dhcp = (size_t)udp + sizeof(udpHeader);
-  uint8_t    *dhcpOptions = (size_t)dhcp + sizeof(dhcpHeader);
+  udpHeader  *udp = (udpHeader *)((size_t)body + sizeof(netPacketHeader) +
+                                 sizeof(IPv4header));
+  dhcpHeader *dhcp = (dhcpHeader *)((size_t)udp + sizeof(udpHeader));
+  uint8_t    *dhcpOptions = (uint8_t *)((size_t)dhcp + sizeof(dhcpHeader));
 
   if (switch_endian_32(dhcp->xid) != nic->dhcpTransactionID)
     return false;
@@ -98,8 +99,8 @@ bool netDHCPreceive(NIC *nic, void *body, uint32_t size) {
       break;
     }
     if (optionFetch)
-      dhcpOptions = (size_t)dhcpOptions + 1 + 1 +
-                    dhcpOptions[1]; // type(1) + size(1) + rest(?)
+      dhcpOptions = (uint8_t *)((size_t)dhcpOptions + 1 + 1 + dhcpOptions[1]);
+    // type(1) + size(1) + rest(?)
   }
 
   switch (dhcpMessageType) {
@@ -108,7 +109,7 @@ bool netDHCPreceive(NIC *nic, void *body, uint32_t size) {
 
     // scan n2; scan all fields now, knowing it's a DHCP "OFFER"
     optionFetch = true;
-    dhcpOptions = (size_t)dhcp + sizeof(dhcpHeader);
+    dhcpOptions = (uint8_t *)((size_t)dhcp + sizeof(dhcpHeader));
     while (optionFetch) { // scan n2
       switch (dhcpOptions[0]) {
       case DHCP_OPTION_MESSAGE_TYPE:
@@ -118,13 +119,13 @@ bool netDHCPreceive(NIC *nic, void *body, uint32_t size) {
                  dhcpOptions[2], dhcpMessageType);
         break;
       case DHCP_OPTION_ROUTER:
-        memcpy(nic->serverIp, (size_t)dhcpOptions + 2, 4);
+        memcpy(nic->serverIp, (void *)((size_t)dhcpOptions + 2), 4);
         break;
       case DHCP_OPTION_DNS_SERVER:
-        memcpy(nic->dnsIp, (size_t)dhcpOptions + 2, 4);
+        memcpy(nic->dnsIp, (void *)((size_t)dhcpOptions + 2), 4);
         break;
       case DHCP_OPTION_SUBNET_MASK:
-        memcpy(nic->subnetMask, (size_t)dhcpOptions + 2, 4);
+        memcpy(nic->subnetMask, (void *)((size_t)dhcpOptions + 2), 4);
         break;
       case DHCP_OPTION_LEASE_TIME:
         break;
@@ -133,8 +134,8 @@ bool netDHCPreceive(NIC *nic, void *body, uint32_t size) {
         break;
       }
       if (optionFetch)
-        dhcpOptions = (size_t)dhcpOptions + 1 + 1 +
-                      dhcpOptions[1]; // type(1) + size(1) + rest(?)
+        dhcpOptions = (uint8_t *)((size_t)dhcpOptions + 1 + 1 + dhcpOptions[1]);
+      // type(1) + size(1) + rest(?)
     }
 
     // if options have no router ip, get it from header (if it has it)
@@ -209,8 +210,8 @@ void netDHCPinit(NIC *nic) {
   while (!dhcpRet && timerTicks < (caputre + DHCP_TIMEOUT)) {
     socketPacketHeader *head = netSocketRecv(nic->dhcpUdpRegistered);
     if (head) {
-      dhcpRet = netDHCPreceive(nic, (size_t)head + sizeof(socketPacketHeader),
-                               head->size);
+      dhcpRet = netDHCPreceive(
+          nic, (void *)((size_t)head + sizeof(socketPacketHeader)), head->size);
       netSocketRecvCleanup(head);
     }
   }

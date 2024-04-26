@@ -25,14 +25,15 @@ uint64_t generateNewHeap(uint64_t rsp, size_t size, void **saved) {
     *saved -= size;
   }
 
-  memcpy(*saved, rsp, size);
-  return *saved;
+  memcpy(*saved, (void *)rsp, size);
+  return (uint64_t)*saved;
 }
 
 // for interrupts
 uint8_t *genericStack = 0;
 uint64_t rsp_fix(uint64_t rsp) {
-  return generateNewHeap(rsp, sizeof(AsmPassedInterrupt), &genericStack);
+  return generateNewHeap(rsp, sizeof(AsmPassedInterrupt),
+                         (void **)&genericStack);
 }
 
 // for syscalls (w/syscall instruction)
@@ -40,7 +41,8 @@ uint8_t *genericStackSyscall = 0;
 uint64_t rsp_fix_syscall(uint64_t rsp) {
   return generateNewHeap(rsp,
                          // +8 since we also have the initial RSP
-                         sizeof(AsmPassedInterrupt) + 8, &genericStackSyscall);
+                         sizeof(AsmPassedInterrupt) + 8,
+                         (void **)&genericStackSyscall);
 }
 
 void schedule(uint64_t rsp) {
@@ -71,7 +73,7 @@ void schedule(uint64_t rsp) {
 #endif
 
   // Change TSS rsp0 (software multitasking)
-  tssPtr->rsp0 = genericStack + sizeof(AsmPassedInterrupt);
+  tssPtr->rsp0 = (size_t)genericStack + sizeof(AsmPassedInterrupt);
 
   // Save MSRIDs (HIGHLY unsure)
   // old->fsbase = rdmsr(MSRID_FSBASE);

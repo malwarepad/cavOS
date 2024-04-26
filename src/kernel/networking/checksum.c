@@ -51,7 +51,7 @@ uint16_t tcpChecksum(void *addr, uint32_t count, uint8_t *source_address,
   fakesumHeader->tcp_length = switch_endian_16(count);
   fakesumHeader->protocol = TCP_PROTOCOL;
 
-  memcpy((size_t)fakesumBody + sizeof(TCPchecksumIPv4), addr, count);
+  memcpy((void *)((size_t)fakesumBody + sizeof(TCPchecksumIPv4)), addr, count);
 
   uint16_t res = checksum(fakesumBody, sizeof(TCPchecksumIPv4) + count);
   free(fakesumBody);
@@ -60,7 +60,7 @@ uint16_t tcpChecksum(void *addr, uint32_t count, uint8_t *source_address,
 }
 
 // I don't feel like making a new file for this, checksum.c she goes...
-bool isLocalIPv4(uint8_t *ip) {
+bool isLocalIPv4(const uint8_t *ip) {
   uint32_t ipAddress = ((uint32_t)ip[0] << 24) | ((uint32_t)ip[1] << 16) |
                        ((uint32_t)ip[2] << 8) | (uint32_t)ip[3];
   return (ipAddress & 0xFF000000) == 0x0A000000 || // 10.0.0.0/8

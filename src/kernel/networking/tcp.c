@@ -12,9 +12,9 @@
 // Copyright (C) 2024 Panagiotis
 
 void netTcpReceive(NIC *nic, void *body, uint32_t size) {
-  tcpHeader *header =
-      (size_t)body + sizeof(netPacketHeader) + sizeof(IPv4header);
-  IPv4header *ipv4 = (size_t)body + sizeof(netPacketHeader);
+  tcpHeader  *header = (tcpHeader *)((size_t)body + sizeof(netPacketHeader) +
+                                    sizeof(IPv4header));
+  IPv4header *ipv4 = (IPv4header *)((size_t)body + sizeof(netPacketHeader));
 
   Socket *browse = nic->firstSocket;
   while (browse) {
@@ -83,7 +83,8 @@ void netTcpSendGeneric(NIC *nic, uint8_t *destination_ip,
   header->checksum = 0;
   header->urgent_ptr = 0;
 
-  memcpy((size_t)header + sizeof(tcpHeader), payload, size);
+  void *targetBody = (void *)((size_t)header + sizeof(tcpHeader));
+  memcpy(targetBody, payload, size);
 
   header->checksum =
       tcpChecksum(body, sizeof(tcpHeader) + size, nic->ip, destination_ip);
@@ -114,8 +115,8 @@ void netTcpAck(NIC *nic, Socket *socket) {
 void netTcpFinishHandshake(NIC *nic, Socket *socket, void *request,
                            uint32_t size) {
   tcpConnection *connection = (tcpConnection *)socket->protocolSpecific;
-  tcpHeader     *tcpReq =
-      (size_t)request + sizeof(netPacketHeader) + sizeof(IPv4header);
+  tcpHeader *tcpReq = (tcpHeader *)((size_t)request + sizeof(netPacketHeader) +
+                                    sizeof(IPv4header));
 
   connection->client_ack_number = switch_endian_32(tcpReq->sequence_number);
 

@@ -24,7 +24,7 @@ void netUdpSend(NIC *nic, uint8_t *destination_mac, uint8_t *destination_ip,
   // calculate checksum before request's finalized
   // header->checksum = checksum(header, sizeof(udpHeader));
 
-  memcpy((size_t) final + sizeof(udpHeader), data, data_size);
+  memcpy((void *)((size_t) final + sizeof(udpHeader)), data, data_size);
 
   netIPv4Send(nic, destination_mac, destination_ip, final, finalSize,
               UDP_PROTOCOL);
@@ -44,8 +44,8 @@ bool netUdpVerify(NIC *nic, udpHeader *header, uint32_t size) {
 }
 
 void netUdpReceive(NIC *nic, void *body, uint32_t size) {
-  udpHeader *header =
-      (size_t)body + sizeof(netPacketHeader) + sizeof(IPv4header);
+  udpHeader *header = (udpHeader *)((size_t)body + sizeof(netPacketHeader) +
+                                    sizeof(IPv4header));
 
   if (!netUdpVerify(nic, header, size))
     return;

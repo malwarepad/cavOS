@@ -15,7 +15,8 @@ Socket *netSocketConnect(NIC *nic, SOCKET_PROT protocol,
                          uint16_t destination_port) {
   if (!nic)
     return 0;
-  Socket *target = LinkedListAllocate(&nic->firstSocket, sizeof(Socket));
+  Socket *target =
+      LinkedListAllocate((void **)&nic->firstSocket, sizeof(Socket));
 
   target->client_port = source_port;
   target->server_port = destination_port;
@@ -34,10 +35,11 @@ Socket *netSocketConnect(NIC *nic, SOCKET_PROT protocol,
   case SOCKET_PROT_UDP:
     // UDP doesn't require any preperation
     break;
-  case SOCKET_PROT_TCP:
+  case SOCKET_PROT_TCP: {
     tcpConnection *tcp = netTcpConnect(nic, target);
     target->protocolSpecific = tcp;
     break;
+  }
   default:
     break;
   }
@@ -46,22 +48,24 @@ Socket *netSocketConnect(NIC *nic, SOCKET_PROT protocol,
 }
 
 void netSocketPass(NIC *nic, SOCKET_PROT protocol, void *body, uint32_t size) {
-  IPv4header *ipv4 = (size_t)body + sizeof(netPacketHeader);
+  IPv4header *ipv4 = (IPv4header *)((size_t)body + sizeof(netPacketHeader));
 
   uint16_t client_port = 0, server_port = 0;
   switch (protocol) {
-  case SOCKET_PROT_UDP:
-    udpHeader *udp =
-        (size_t)body + sizeof(netPacketHeader) + sizeof(IPv4header);
+  case SOCKET_PROT_UDP: {
+    udpHeader *udp = (udpHeader *)((size_t)body + sizeof(netPacketHeader) +
+                                   sizeof(IPv4header));
     client_port = switch_endian_16(udp->destination_port);
     server_port = switch_endian_16(udp->source_port);
     break;
-  case SOCKET_PROT_TCP:
-    tcpHeader *tcp =
-        (size_t)body + sizeof(netPacketHeader) + sizeof(IPv4header);
+  }
+  case SOCKET_PROT_TCP: {
+    tcpHeader *tcp = (tcpHeader *)((size_t)body + sizeof(netPacketHeader) +
+                                   sizeof(IPv4header));
     client_port = switch_endian_16(tcp->destination_port);
     server_port = switch_endian_16(tcp->source_port);
     break;
+  }
   default:
     break;
   }
@@ -102,9 +106,12 @@ void netSocketPass(NIC *nic, SOCKET_PROT protocol, void *body, uint32_t size) {
   }
 
   socketPacketHeader *targetHeader = LinkedListAllocate(
-      &browse->firstPacket, sizeof(socketPacketHeader) + size);
+      (void **)&browse->firstPacket, sizeof(socketPacketHeader) + size);
   targetHeader->size = size;
-  memcpy((size_t)targetHeader + sizeof(socketPacketHeader), body, size);
+
+  void **targetBody =
+      (void **)((size_t)targetHeader + sizeof(socketPacketHeader));
+  memcpy(targetBody, body, size);
 }
 
 socketPacketHeader *netSocketRecv(Socket *socket) {
@@ -118,7 +125,7 @@ socketPacketHeader *netSocketRecv(Socket *socket) {
 
   // First unregisters, so the interrupt handler should have no problem browsing
   // through the list...
-  LinkedListRemove(&socket->firstPacket, target);
+  LinkedListRemove((void **)&socket->firstPacket, target);
   return final;
 }
 

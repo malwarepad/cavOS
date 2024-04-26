@@ -43,7 +43,7 @@ void serial_send(int device, char out) {
   outportb(device, out);
 }
 
-int debug(char c, int *arg) {
+void debug(char c, void *arg) {
   // outportb(0xE9, c);
   serial_send(COM1, c);
 }

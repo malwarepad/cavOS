@@ -20,7 +20,7 @@ void *sbrk(long increment) {
   void    *virt = VirtualAllocate(blocks);
   memset(virt, 0, blocks * BLOCK_SIZE);
 
-  last = (size_t)virt + increment;
+  last = (void *)((size_t)virt + increment);
 
 #if DEBUG_DLMALLOC_GLUE
   debugf("[dlmalloc::sbrk] found{%lx}\n", virt);
@@ -29,10 +29,10 @@ void *sbrk(long increment) {
 }
 
 int  __errnoF = 0;
-int  __errno_location = 0;
-void __errno() { return &__errnoF; }
+int *__errno_location = &__errnoF;
+// void __errno() { return &__errnoF; }
 
 void abort() {
-  debugf("[dlmalloc::abort] errno{%x}!\n", __errno);
+  debugf("[dlmalloc::abort] errno{%x}!\n", __errnoF);
   panic();
 }

@@ -33,7 +33,7 @@
 // Copyright (C) 2024 Panagiotis
 
 static volatile LIMINE_BASE_REVISION(1);
-int _start(void) {
+void _start(void) {
   systemCallOnProgress = false;
   systemDiskInit = false;
 
