@@ -62,5 +62,5 @@ vmware:
 	@$(MAKE) -C src/kernel vmware
 
 # Development tools
-dev: clean disk qemu_dbg
+dev: disk qemu_dbg
 	

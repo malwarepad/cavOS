@@ -202,8 +202,8 @@ void initiateTasks() {
   currentTask->pagedir = GetPageDirectory();
   currentTask->kernel_task = true;
 
-  tasksInitiated = true;
   debugf("[tasks] Current execution ready for multitasking\n");
+  tasksInitiated = true;
 
   // task 0 represents the execution we're in right now
 }

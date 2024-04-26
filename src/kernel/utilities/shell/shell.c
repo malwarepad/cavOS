@@ -104,7 +104,7 @@ void readDisk() {
 
   // saving memory like scrooge mcduck out here
   memset(choice, 0, 200);
-  sprintf(choice, "reading disk{0} LBA{%d}:", lba);
+  snprintf(choice, 200, "reading disk{0} LBA{%d}:", lba);
 
   uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
   getDiskBytes(rawArr, lba, 1);
