@@ -86,13 +86,23 @@ uint32_t elfExecute(char *filepath, uint32_t argc, char **argv) {
     panic();
   }
 
-  size_t tls = 0;
+  Elf64_Phdr *tls = 0;
   // Loop through the multiple ELF32 program header tables
   for (int i = 0; i < elf_ehdr->e_phnum; i++) {
     Elf64_Phdr *elf_phdr = (Elf64_Phdr *)((size_t)out + elf_ehdr->e_phoff +
                                           i * elf_ehdr->e_phentsize);
-    if (elf_phdr->p_type == 7)
-      tls = elf_phdr->p_vaddr;
+    if (elf_phdr->p_type == 7) {
+      if (tls) {
+        debugf("[elf] What devil-sent ELF binary has more than one TLS "
+               "section? %s\n",
+               filepath);
+        ChangePageDirectory(oldpagedir);
+        free(out);
+        return 0;
+      }
+      tls = elf_phdr;
+      continue;
+    }
     if (elf_phdr->p_type != PT_LOAD)
       continue;
 
@@ -141,8 +151,28 @@ uint32_t elfExecute(char *filepath, uint32_t argc, char **argv) {
   Task *target =
       taskCreate(id, (uint64_t)elf_ehdr->e_entry, false, pagedir, argc, argv);
 
-  if (tls)
-    target->fsbase = tls;
+  // libc takes care of tls lmao
+  /*if (tls) {
+    ChangePageDirectory(pagedir);
+
+    size_t tls_start = tls->p_vaddr;
+    size_t tls_end = tls->p_vaddr + tls->p_memsz;
+
+    debugf("[elf::tls] Found: virt{%lx} len{%lx}\n", tls->p_vaddr,
+           tls->p_memsz);
+    uint8_t *tls = (uint8_t *)target->heap_end;
+    taskAdjustHeap(target, target->heap_end + 4096);
+
+    target->fsbase = (size_t)tls + 512;
+    *(uint64_t *)(tls + 512) = (size_t)tls + 512;
+
+    uint8_t *tlsp =
+        (uint8_t *)((size_t)tls + 512 - (tls_end - tls_start)); // copy tls
+    for (uint8_t *i = (uint8_t *)tls_start; (size_t)i < tls_end; i++)
+      *tlsp++ = *i++;
+
+    ChangePageDirectory(oldpagedir);
+  }*/
 
   // User stack generation: the stack itself, AUXs, etc...
   stackGenerateUser(target, argc, argv, out, filesize, elf_ehdr);

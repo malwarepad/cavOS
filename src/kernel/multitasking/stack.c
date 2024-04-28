@@ -37,9 +37,13 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint8_t *out,
   *((b *)(a)) = c
 
   int *randomByteStart = (int *)target->heap_end;
-  taskAdjustHeap(target, target->heap_end + 16);
-  for (int i = 0; i < 4; i++)
-    randomByteStart[i] = rand();
+  taskAdjustHeap(target, target->heap_end + sizeof(int) * 4);
+  for (int i = 0; i < 4; i++) {
+    int thing = 0;
+    while (!thing)
+      thing = rand();
+    randomByteStart[i] = thing;
+  }
 
   // aux: AT_NULL
   PUSH_TO_STACK(target->registers.usermode_rsp, size_t, (size_t)0);
