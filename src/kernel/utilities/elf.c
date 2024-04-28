@@ -118,10 +118,10 @@ uint32_t elfExecute(char *filepath, uint32_t argc, char **argv) {
     memcpy((void *)elf_phdr->p_vaddr, out + elf_phdr->p_offset,
            elf_phdr->p_filesz);
 
-    // wtf is this?
-    // uint64_t file_start = (elf_phdr->p_vaddr & ~0xFFF) + elf_phdr->p_filesz;
-    // uint64_t file_end = (elf_phdr->p_vaddr & ~0xFFF) + pagesRequired *
-    // 0x1000; memset(file_start, 0, file_end - file_start);
+    // wtf is this? (needed)
+    uint64_t file_start = (elf_phdr->p_vaddr & ~0xFFF) + elf_phdr->p_filesz;
+    uint64_t file_end = (elf_phdr->p_vaddr & ~0xFFF) + pagesRequired * 0x1000;
+    memset((void *)file_start, 0, file_end - file_start);
 
 #if ELF_DEBUG
     debugf("[elf] Program header: type{%d} offset{%x} vaddr{%x} size{%x} "
