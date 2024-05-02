@@ -84,7 +84,7 @@ void taskAdjustHeap(Task *task, size_t new_heap_end) {
 
       size_t phys = BitmapAllocatePageframe(&physical);
 
-      VirtualMap(virt, phys, PF_RW | PF_USER | PF_SYSTEM);
+      VirtualMap(virt, phys, PF_RW | PF_USER);
 
       memset((void *)virt, 0, PAGE_SIZE);
     }
@@ -144,6 +144,8 @@ void taskKill(uint32_t id) {
     fsUserClose(id);
   }
   currentTask = old;
+
+  task->state = TASK_STATE_DEAD;
 
   if (currentTask == task) {
     // we're most likely in a syscall context, so...

@@ -149,20 +149,20 @@ void VirtualMap(uint64_t virt_addr, uint64_t phys_addr, uint64_t flags) {
 
   if (!(globalPagedir[pml4_index] & PF_PRESENT)) {
     size_t target = VirtAllocPhys();
-    globalPagedir[pml4_index] = target | PF_PRESENT | PF_RW | flags;
+    globalPagedir[pml4_index] = target | PF_PRESENT | PF_RW | PF_USER;
   }
   size_t *pdp =
       (size_t *)(PTE_GET_ADDR(globalPagedir[pml4_index]) + HHDMoffset);
 
   if (!(pdp[pdp_index] & PF_PRESENT)) {
     size_t target = VirtAllocPhys();
-    pdp[pdp_index] = target | PF_PRESENT | PF_RW | flags;
+    pdp[pdp_index] = target | PF_PRESENT | PF_RW | PF_USER;
   }
   size_t *pd = (size_t *)(PTE_GET_ADDR(pdp[pdp_index]) + HHDMoffset);
 
   if (!(pd[pd_index] & PF_PRESENT)) {
     size_t target = VirtAllocPhys();
-    pd[pd_index] = target | PF_PRESENT | PF_RW | flags;
+    pd[pd_index] = target | PF_PRESENT | PF_RW | PF_USER;
   }
   size_t *pt = (size_t *)(PTE_GET_ADDR(pd[pd_index]) + HHDMoffset);
 
@@ -174,40 +174,6 @@ void VirtualMap(uint64_t virt_addr, uint64_t phys_addr, uint64_t flags) {
 #if ELF_DEBUG
   debugf("[paging] Mapped virt{%lx} to phys{%lx}\n", virt_addr, phys_addr);
 #endif
-}
-
-void VirtualMap2MB(uint64_t virt_addr, uint64_t phys_addr, uint64_t flags) {
-  if (virt_addr % PAGE_SIZE) {
-    debugf("[paging] Tried to map non-aligned address! virt{%lx} phys{%lx}\n",
-           virt_addr, phys_addr);
-    panic();
-  }
-  virt_addr = AMD64_MM_STRIPSX(virt_addr);
-
-  uint32_t pml4_index = PML4E(virt_addr);
-  uint32_t pdp_index = PDPTE(virt_addr);
-  uint32_t pd_index = PDE(virt_addr);
-  // uint32_t pt_index = PTE(virt_addr); // unused
-
-  if (!(globalPagedir[pml4_index] & PF_PRESENT)) {
-    size_t target = VirtAllocPhys();
-    globalPagedir[pml4_index] = target | PF_PRESENT | PF_RW;
-  }
-  size_t *pdp =
-      (size_t *)(PTE_GET_ADDR(globalPagedir[pml4_index]) + HHDMoffset);
-
-  if (!(pdp[pdp_index] & PF_PRESENT)) {
-    size_t target = VirtAllocPhys();
-    pdp[pdp_index] = target | PF_PRESENT | PF_RW;
-  }
-  size_t *pd = (size_t *)(PTE_GET_ADDR(pdp[pdp_index]) + HHDMoffset);
-
-  if (pd[pd_index] & PF_PRESENT)
-    debugf("[paging] Overwrite (without unmapping) WARN!\n");
-  pd[pd_index] = (P_PHYS_ADDR(phys_addr)) | PF_PS | PF_PRESENT |
-                 PTE_GET_FLAGS(flags); // | PF_RW
-
-  invalidate(virt_addr);
 }
 
 size_t VirtualToPhysical(size_t virt_addr) {

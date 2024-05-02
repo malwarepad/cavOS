@@ -18,7 +18,7 @@ void stackGenerateMutual(Task *task) {
   // Map the user stack (for variables & such)
   for (int i = 0; i < USER_STACK_PAGES; i++) {
     VirtualMap(USER_STACK_BOTTOM - USER_STACK_PAGES * 0x1000 + i * 0x1000,
-               BitmapAllocatePageframe(&physical), PF_SYSTEM | PF_USER | PF_RW);
+               BitmapAllocatePageframe(&physical), PF_USER | PF_RW);
   }
 }
 
@@ -55,6 +55,9 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint8_t *out,
   // aux: AT_PAGESZ
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 4096);
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 6);
+  // aux: AT_SECURE
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 0);
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 23);
   // aux: AT_PHNUM
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, elf_ehdr->e_phnum);
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 5);

@@ -111,7 +111,7 @@ uint32_t elfExecute(char *filepath, uint32_t argc, char **argv) {
     for (int j = 0; j < pagesRequired; j++) {
       size_t vaddr = (elf_phdr->p_vaddr & ~0xFFF) + j * 0x1000;
       size_t paddr = BitmapAllocatePageframe(&physical);
-      VirtualMap(vaddr, paddr, PF_SYSTEM | PF_USER | PF_RW);
+      VirtualMap(vaddr, paddr, PF_USER | PF_RW);
     }
 
     // Copy the required info
