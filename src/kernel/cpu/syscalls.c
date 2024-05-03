@@ -65,6 +65,7 @@ void   registerSyscall(uint32_t id, void *handler) {
 typedef uint64_t (*SyscallHandler)(uint64_t a1, uint64_t a2, uint64_t a3,
                                    uint64_t a4, uint64_t a5, uint64_t a6);
 void syscallHandler(AsmPassedInterrupt *regs) {
+  systemCallOnProgress = true;
   uint64_t id = regs->rax;
 #if DEBUG_SYSCALLS
   debugf("[syscalls] id{%d}\n", id);
@@ -74,14 +75,18 @@ void syscallHandler(AsmPassedInterrupt *regs) {
   if (!handler) {
     regs->rax = -1;
     debugf("[syscalls] Tried to access syscall{%d} (doesn't exist)!\n", id);
+    systemCallOnProgress = false;
     return;
   }
 
   long int ret = ((SyscallHandler)(handler))(regs->rdi, regs->rsi, regs->rdx,
                                              regs->r10, regs->r8, regs->r9);
-  // debugf("RET: %d\n", ret);
+#if DEBUG_SYSCALLS
+  debugf("[syscalls] return_code{%d}\n", ret);
+#endif
 
   regs->rax = ret;
+  systemCallOnProgress = false;
 }
 
 bool running = false;
@@ -186,6 +191,10 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
            curr, length);
 #endif
     taskAdjustHeap(currentTask, currentTask->heap_end + length);
+    memset((void *)curr, 0, length);
+#if DEBUG_SYSCALLS
+    debugf("[syscalls::mmap] Found addr{%lx}\n", curr);
+#endif
     return curr;
   }
   debugf(
@@ -277,6 +286,8 @@ static void syscallExitTask(int return_code) {
   debugf("[scheduler] Exiting task{%d} with return code{%d}!\n",
          currentTask->id, return_code);
 #endif
+  // if (return_code)
+  //   panic();
   taskKill(currentTask->id);
 
   // should not return
@@ -305,10 +316,9 @@ static int syscallPrctl(int code, size_t addr) {
 
     return 0;
     break;
-  default:
-    return -1;
-    break;
   }
+
+  return -1;
 }
 
 #define SYSCALL_GET_TID 186

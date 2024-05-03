@@ -9,6 +9,7 @@
 #include <system.h>
 #include <task.h>
 #include <util.h>
+#include <vmm.h>
 
 // Task manager allowing for task management
 // Copyright (C) 2024 Panagiotis
@@ -46,6 +47,11 @@ Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
   target->kernel_task = kernel_task;
   target->state = TASK_STATE_CREATED; // TASK_STATE_READY
   target->pagedir = pagedir;
+
+  void  *tssRsp = VirtualAllocate(USER_STACK_PAGES);
+  size_t tssRspSize = USER_STACK_PAGES * BLOCK_SIZE;
+  memset(tssRsp, 0, tssRspSize);
+  target->tssRsp = (uint64_t)tssRsp + tssRspSize;
 
   target->heap_start = USER_HEAP_START;
   target->heap_end = USER_HEAP_START;
@@ -128,9 +134,9 @@ void taskKill(uint32_t id) {
   ChangePageDirectory(defaultPagedir);*/
   // ^ not needed because of PageDirectoryFree() doing it automatically
 
-  size_t currPagedir = (size_t)GetPageDirectory();
-  if (currPagedir == (size_t)task->pagedir)
-    ChangePageDirectory(taskGet(KERNEL_TASK_ID)->pagedir);
+  // size_t currPagedir = (size_t)GetPageDirectory();
+  // if (currPagedir == (size_t)task->pagedir)
+  //   ChangePageDirectory(taskGet(KERNEL_TASK_ID)->pagedir);
 
   // PageDirectoryFree(task->pagedir); // left for sched
 
@@ -148,12 +154,14 @@ void taskKill(uint32_t id) {
   task->state = TASK_STATE_DEAD;
 
   if (currentTask == task) {
+    asm_task_bailout(task->tssRsp);
     // we're most likely in a syscall context, so...
     // taskKillCleanup(task); // left for sched
-    asm volatile("sti");
+    // asm volatile("sti");
     // wait until we're outta here
-    while (1) {
-    }
+    // while (1) {
+    //   debugf("GET ME OUT ");
+    // }
   }
 
   taskKillCleanup(task);

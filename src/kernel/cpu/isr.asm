@@ -3,6 +3,14 @@
 
 bits    64
 
+global asm_task_bailout
+asm_task_bailout:
+  ; rdi = target rsp
+  mov rsp, rdi
+  sti
+  hlt
+  ret
+
 global syscall_entry
 syscall_entry:
   push rsp
@@ -35,12 +43,6 @@ syscall_entry:
 
   mov rbp, ds
   push rbp
-
-  ; we need to "fix" (=ensure it's high enough) the RSP so the interrupt handler can do whatever it wants
-  mov rdi, rsp ; 1st arg = RSP
-  extern rsp_fix_syscall
-  call rsp_fix_syscall
-  mov rsp, rax ; RSP = return value
 
   mov rdi, rsp
   extern syscallHandler
@@ -100,12 +102,6 @@ isr_common:
     push rbp
 		
 		cld
-
-    ; we need to "fix" (=ensure it's high enough) the RSP so the interrupt handler can do whatever it wants
-    mov rdi, rsp ; 1st arg = RSP
-    extern rsp_fix
-    call rsp_fix
-    mov rsp, rax ; RSP = return value
 
 		mov rdi, rsp
     extern handle_interrupt

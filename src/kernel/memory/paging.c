@@ -26,9 +26,6 @@
 uint64_t *globalPagedir = 0;
 
 void initiatePaging() {
-  globalPagedir =
-      (size_t *)(BitmapAllocatePageframe(&physical) + bootloader.hhdmOffset);
-
   // debugf("phys{%lx} virt{%lx}\n", bootloader.kernelPhysBase,
   //        bootloader.kernelVirtBase);
   // debugf("hhdm{%lx}\n", bootloader.hhdmOffset);
@@ -83,9 +80,16 @@ void initiatePaging() {
   // ChangePageDirectory(globalPagedir);
 
   // I will keep on using limine's for the time being
-  uint64_t targ;
-  asm volatile("movq %%cr3,%0" : "=r"(targ));
-  globalPagedir = (uint64_t *)(targ + bootloader.hhdmOffset);
+  uint64_t pdPhys = 0;
+  asm volatile("movq %%cr3,%0" : "=r"(pdPhys));
+  if (!pdPhys) {
+    debugf("[paging] Could not parse default pagedir!\n");
+    panic();
+  }
+
+  uint64_t pdVirt = pdPhys + bootloader.hhdmOffset;
+  globalPagedir = (uint64_t *)pdVirt;
+
   // VirtualSeek(bootloader.hhdmOffset);
 }
 
@@ -135,6 +139,11 @@ size_t VirtAllocPhys() {
 }
 
 void VirtualMap(uint64_t virt_addr, uint64_t phys_addr, uint64_t flags) {
+  VirtualMapL(globalPagedir, virt_addr, phys_addr, flags);
+}
+
+void VirtualMapL(uint64_t *pagedir, uint64_t virt_addr, uint64_t phys_addr,
+                 uint64_t flags) {
   if (virt_addr % PAGE_SIZE) {
     debugf("[paging] Tried to map non-aligned address! virt{%lx} phys{%lx}\n",
            virt_addr, phys_addr);
@@ -147,12 +156,11 @@ void VirtualMap(uint64_t virt_addr, uint64_t phys_addr, uint64_t flags) {
   uint32_t pd_index = PDE(virt_addr);
   uint32_t pt_index = PTE(virt_addr);
 
-  if (!(globalPagedir[pml4_index] & PF_PRESENT)) {
+  if (!(pagedir[pml4_index] & PF_PRESENT)) {
     size_t target = VirtAllocPhys();
-    globalPagedir[pml4_index] = target | PF_PRESENT | PF_RW | PF_USER;
+    pagedir[pml4_index] = target | PF_PRESENT | PF_RW | PF_USER;
   }
-  size_t *pdp =
-      (size_t *)(PTE_GET_ADDR(globalPagedir[pml4_index]) + HHDMoffset);
+  size_t *pdp = (size_t *)(PTE_GET_ADDR(pagedir[pml4_index]) + HHDMoffset);
 
   if (!(pdp[pdp_index] & PF_PRESENT)) {
     size_t target = VirtAllocPhys();
@@ -167,7 +175,8 @@ void VirtualMap(uint64_t virt_addr, uint64_t phys_addr, uint64_t flags) {
   size_t *pt = (size_t *)(PTE_GET_ADDR(pd[pd_index]) + HHDMoffset);
 
   if (pt[pt_index] & PF_PRESENT)
-    debugf("[paging] Overwrite (without unmapping) WARN!\n");
+    debugf("[paging] Overwrite (without unmapping) WARN! virt{%lx} phys{%lx}\n",
+           virt_addr, phys_addr);
   pt[pt_index] = (P_PHYS_ADDR(phys_addr)) | PF_PRESENT | flags; // | PF_RW
 
   invalidate(virt_addr);

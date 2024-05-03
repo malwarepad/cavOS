@@ -156,6 +156,7 @@ void printNum(uint64_t num) {
   __syscall3(1, 1, frd, strlength(frd));
 }
 
+// static __thread int fr = 2;
 int main(int argc, char **argv) {
   char *msg =
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam hendrerit "
@@ -209,24 +210,29 @@ int main(int argc, char **argv) {
   // int out = my_write(1, msg, strlength(msg));
   // printNum(out);
 
-  float hehe = 0.755;
-  hehe += 1;
-  hehe /= 2;
+  // float hehe = 0.755;
+  // hehe += 1;
+  // hehe /= 2;
 
   char *nl = "\n";
   for (int i = 0; i < argc; i++) {
-    __syscall3(1, 1, argv[i], strlength(argv[i]));
-    __syscall3(1, 1, nl, 1);
+    __syscall3(1, 1, (size_t)argv[i], strlength(argv[i]));
+    __syscall3(1, 1, (size_t)nl, 1);
   }
+
+  // fr += 3;
+  // printNum(fr);
+  // while (1) {
+  // }
 
   // char buf[160] = {0};
   // __syscall2(79, buf, 160);
   // __syscall3(1, 1, buf, 160);
 
-  char str[] = "\nadded (via append) from userspace\n";
-  int  fd = __syscall3(2, "/files/ab.txt", 0x01 | 0x02 | 0x30, 0);
-  __syscall3(1, fd, str, sizeof(str) / sizeof(str[0]));
-  printNum(fd);
+  // char str[] = "\nadded (via append) from userspace\n";
+  // int  fd = __syscall3(2, "/files/ab.txt", 0x01 | 0x02 | 0x30, 0);
+  // __syscall3(1, fd, str, sizeof(str) / sizeof(str[0]));
+  // printNum(fd);
 
   // printNum(argv);
 

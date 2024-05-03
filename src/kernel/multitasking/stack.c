@@ -9,11 +9,12 @@
 // Copyright (C) 2024 Panagiotis
 
 void stackGenerateMutual(Task *task) {
-  if (GetPageDirectory() != task->pagedir) {
-    debugf("[stack] Do NOT run stackGenerateMutual() without changing to the "
-           "correct page directory first!\n");
-    panic();
-  }
+  // if (GetPageDirectory() != task->pagedir) {
+  //   debugf("[stack] Do NOT run stackGenerateMutual() without changing to the
+  //   "
+  //          "correct page directory first!\n");
+  //   panic();
+  // }
 
   // Map the user stack (for variables & such)
   for (int i = 0; i < USER_STACK_PAGES; i++) {

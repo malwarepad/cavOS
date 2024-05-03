@@ -35,6 +35,7 @@ struct Task {
 
   AsmPassedInterrupt registers;
   uint64_t          *pagedir;
+  uint64_t           tssRsp;
 
   // Useful to switch, for when TLS is available
   uint64_t fsbase;
@@ -68,5 +69,7 @@ void  taskKillCleanup(Task *task);
 uint8_t taskGetState(uint32_t id);
 Task   *taskGet(uint32_t id);
 int16_t taskGenerateId();
+
+extern void asm_task_bailout(uint64_t intRsp);
 
 #endif

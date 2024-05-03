@@ -105,6 +105,8 @@ void handleTaskFault(AsmPassedInterrupt *regs) {
   debugf("[isr::task] [%c] Killing task{%d} because of %s!\n",
          currentTask->kernel_task ? '-' : 'u', currentTask->id,
          exceptions[regs->interrupt]);
+  // debugf("at %lx\n", regs->rip);
+  // panic();
   taskKill(currentTask->id);
   schedule((uint64_t)regs);
 }
@@ -158,8 +160,6 @@ void handle_interrupt(uint64_t rsp) {
     //   printf(format, exceptions[cpu->interrupt]);
     panic();
   } else if (cpu->interrupt == 0x80) {
-    systemCallOnProgress = true;
     syscallHandler(cpu);
-    systemCallOnProgress = false;
   }
 }

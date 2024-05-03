@@ -16,35 +16,6 @@
 
 extern TSSPtr *tssPtr;
 
-// We need to "fix" (=ensure it's high enough) the RSP so the interrupt handler
-// can do whatever it wants
-uint64_t generateNewHeap(uint64_t rsp, size_t size, void **saved) {
-  if (!*saved) {
-    *saved = VirtualAllocate(10);
-    memset(*saved, 0, 10 * BLOCK_SIZE);
-    *saved -= size;
-  }
-
-  memcpy(*saved, (void *)rsp, size);
-  return (uint64_t)*saved;
-}
-
-// for interrupts
-uint8_t *genericStack = 0;
-uint64_t rsp_fix(uint64_t rsp) {
-  return generateNewHeap(rsp, sizeof(AsmPassedInterrupt),
-                         (void **)&genericStack);
-}
-
-// for syscalls (w/syscall instruction)
-uint8_t *genericStackSyscall = 0;
-uint64_t rsp_fix_syscall(uint64_t rsp) {
-  return generateNewHeap(rsp,
-                         // +8 since we also have the initial RSP
-                         sizeof(AsmPassedInterrupt) + 8,
-                         (void **)&genericStackSyscall);
-}
-
 void schedule(uint64_t rsp) {
   if (!tasksInitiated)
     return;
@@ -73,7 +44,7 @@ void schedule(uint64_t rsp) {
 #endif
 
   // Change TSS rsp0 (software multitasking)
-  tssPtr->rsp0 = (size_t)genericStack + sizeof(AsmPassedInterrupt);
+  tssPtr->rsp0 = next->tssRsp;
 
   // Save MSRIDs (HIGHLY unsure)
   // old->fsbase = rdmsr(MSRID_FSBASE);
