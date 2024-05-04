@@ -107,7 +107,7 @@ uint32_t elfExecute(char *filepath, uint32_t argc, char **argv) {
       continue;
 
     // Map the (current) program page
-    uint64_t pagesRequired = DivRoundUp(elf_phdr->p_memsz, 0x1000);
+    uint64_t pagesRequired = DivRoundUp(elf_phdr->p_memsz, 0x1000) + 1;
     for (int j = 0; j < pagesRequired; j++) {
       size_t vaddr = (elf_phdr->p_vaddr & ~0xFFF) + j * 0x1000;
       size_t paddr = BitmapAllocatePageframe(&physical);
@@ -119,9 +119,9 @@ uint32_t elfExecute(char *filepath, uint32_t argc, char **argv) {
            elf_phdr->p_filesz);
 
     // wtf is this? (needed)
-    uint64_t file_start = (elf_phdr->p_vaddr & ~0xFFF) + elf_phdr->p_filesz;
-    uint64_t file_end = (elf_phdr->p_vaddr & ~0xFFF) + pagesRequired * 0x1000;
-    memset((void *)file_start, 0, file_end - file_start);
+    if (elf_phdr->p_memsz > elf_phdr->p_filesz)
+      memset((void *)(elf_phdr->p_vaddr + elf_phdr->p_filesz), 0,
+             elf_phdr->p_memsz - elf_phdr->p_filesz);
 
 #if ELF_DEBUG
     debugf("[elf] Program header: type{%d} offset{%x} vaddr{%x} size{%x} "

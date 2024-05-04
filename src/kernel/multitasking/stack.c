@@ -64,8 +64,11 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint8_t *out,
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 5);
   // aux: AT_PHENT
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t,
-                elf_ehdr->e_shentsize);
+                elf_ehdr->e_phentsize);
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 4);
+  // aux: AT_ENTRY
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, elf_ehdr->e_entry);
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 9);
   // aux: AT_PHDR
   void *phstuffStart = (void *)target->heap_end;
   taskAdjustHeap(target, target->heap_end + filesize);
