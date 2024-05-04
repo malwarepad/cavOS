@@ -104,7 +104,8 @@ static uint32_t syscallRead(int file, char *str, uint32_t count) {
     // start reading
     // todo: respect limit
     kbTaskRead(currentTask->id, str, count, true);
-    asm("sti"); // leave this task/execution (awaiting return)
+    // todo!
+    // asm volatile("sti"); // leave this task/execution (awaiting return)
     while (currentTask->state == TASK_STATE_WAITING_INPUT) {
     }
 
@@ -219,6 +220,12 @@ static uint64_t syscallBrk(uint64_t brk) {
   return currentTask->heap_end;
 }
 
+#define SYSCALL_RT_SIGACTION 13
+static int syscallRtSigaction() {
+  debugf("todo!\n");
+  return 0;
+}
+
 typedef struct winsize {
   unsigned short ws_row;
   unsigned short ws_col;
@@ -330,6 +337,12 @@ static int syscallSetTidAddr(int *tidptr) {
   return -1;
 }
 
+#define SYSCALL_EXIT_GROUP 231
+static void syscallExitGroup(int return_code) {
+  // todo: when fork(), etc work; implement
+  syscallExitTask(return_code);
+}
+
 #define SYSCALL_OPENAT 257
 static int syscallOpenAt(int fd, char *filename, int flags, uint16_t mode) {
   // todo: yeah, fix this
@@ -377,6 +390,8 @@ void initiateSyscalls() {
   registerSyscall(SYSCALL_GETCWD, syscallGetcwd);
   registerSyscall(SYSCALL_IOCTL, syscallIoctl);
   registerSyscall(SYSCALL_FORK, syscallFork);
+  registerSyscall(SYSCALL_RT_SIGACTION, syscallRtSigaction);
+  registerSyscall(SYSCALL_EXIT_GROUP, syscallExitGroup);
 
   debugf("[syscalls] System calls are ready to fire: %d/%d\n", syscallCnt,
          MAX_SYSCALLS);
