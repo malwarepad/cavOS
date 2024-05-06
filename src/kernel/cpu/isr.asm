@@ -76,12 +76,6 @@ syscall_entry:
   o64 sysret
 
 isr_common:
-    mov bx, 0x30
-    mov ds, bx
-    mov es, bx
-    mov fs, bx
-    mov gs, bx
-
     push rax
     push rbx
     push rcx
@@ -100,6 +94,13 @@ isr_common:
 
     mov rbp, ds
     push rbp
+
+    mov bx, 0x30
+    mov ds, bx
+    mov es, bx
+    mov ss, bx
+    ; mov fs, bx
+    ; mov gs, bx
 		
 		cld
 
@@ -110,7 +111,7 @@ isr_common:
 global asm_isr_exit
 asm_isr_exit:
     pop rbp
-    mov ds, ebp
+    ; mov ds, ebp
     mov es, ebp
 
     pop r15
