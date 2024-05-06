@@ -1,30 +1,29 @@
-/* POSIX.1 symbolic constants for c_mode field of cpio archive format */
-
 #ifndef _CPIO_H
 #define _CPIO_H
 
-#define	C_IRUSR		0000400	/* Read by owner */
-#define	C_IWUSR		0000200	/* Write by owner */
-#define	C_IXUSR		0000100	/* Execute by owner */
-#define	C_IRGRP		0000040	/* Read by group */
-#define	C_IWGRP		0000020	/* Write by group */
-#define	C_IXGRP		0000010	/* Execute by group */
-#define	C_IROTH		0000004	/* Read by others */
-#define	C_IWOTH		0000002	/* Write by others */
-#define	C_IXOTH		0000001	/* Execute by others */
-#define	C_ISUID		0004000	/* Set user ID */
-#define	C_ISGID		0002000	/* Set group ID */
-#define	C_ISVTX		0001000	/* On directories, restricted deletion flag */
+#define MAGIC "070707"
 
-#define	C_ISDIR		0040000	/* Directory */
-#define	C_ISFIFO	0010000	/* FIFO */
-#define	C_ISREG		0100000	/* Regular file */
-#define	C_ISBLK		0060000	/* Block special */
-#define	C_ISCHR		0020000	/* Character special */
-#define	C_ISCTG		0110000	/* Reserved */
-#define	C_ISLNK		0120000	/* Symbolic link */
-#define	C_ISSOCK	0140000	/* Socket */
+#define C_IRUSR  000400
+#define C_IWUSR  000200
+#define C_IXUSR  000100
+#define C_IRGRP  000040
+#define C_IWGRP  000020
+#define C_IXGRP  000010
+#define C_IROTH  000004
+#define C_IWOTH  000002
+#define C_IXOTH  000001
 
-#define	MAGIC		"070707"
+#define C_ISUID  004000
+#define C_ISGID  002000
+#define C_ISVTX  001000
 
-#endif /* _CPIO_H */
+#define C_ISBLK  060000
+#define C_ISCHR  020000
+#define C_ISDIR  040000
+#define C_ISFIFO 010000
+#define C_ISSOCK 0140000
+#define C_ISLNK  0120000
+#define C_ISCTG  0110000
+#define C_ISREG  0100000
+
+#endif

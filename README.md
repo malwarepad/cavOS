@@ -36,7 +36,7 @@ Important to mention these goals may never be satisfied, take a very long time t
 - Userspace 
   - [x] cavOS Specific Toolchain
   - [x] ELF64 parsing
-  - [ ] Port musl (libc)
+  - [x] Port musl (libc)
 - Interfaces
   - [x] Kernel shell
   - [ ] Bash port

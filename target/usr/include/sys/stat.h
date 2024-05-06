@@ -1,179 +1,182 @@
 #ifndef	_SYS_STAT_H
 #define	_SYS_STAT_H
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <_ansi.h>
-#include <time.h>
-#include <sys/cdefs.h>
-#include <sys/types.h>
-#include <sys/_timespec.h>
+#include <features.h>
 
-/* dj's stat defines _STAT_H_ */
-#ifndef _STAT_H_
+#define __NEED_dev_t
+#define __NEED_ino_t
+#define __NEED_mode_t
+#define __NEED_nlink_t
+#define __NEED_uid_t
+#define __NEED_gid_t
+#define __NEED_off_t
+#define __NEED_time_t
+#define __NEED_blksize_t
+#define __NEED_blkcnt_t
+#define __NEED_struct_timespec
 
-/* It is intended that the layout of this structure not change when the
-   sizes of any of the basic types change (short, int, long) [via a compile
-   time option].  */
+#ifdef _GNU_SOURCE
+#define __NEED_int64_t
+#define __NEED_uint64_t
+#define __NEED_uint32_t
+#define __NEED_uint16_t
+#endif
 
-#ifdef __CYGWIN__
-#include <cygwin/stat.h>
-#ifdef _COMPILING_NEWLIB
-#define stat64 stat
+#include <bits/alltypes.h>
+
+#include <bits/stat.h>
+
+#define st_atime st_atim.tv_sec
+#define st_mtime st_mtim.tv_sec
+#define st_ctime st_ctim.tv_sec
+
+#define S_IFMT  0170000
+
+#define S_IFDIR 0040000
+#define S_IFCHR 0020000
+#define S_IFBLK 0060000
+#define S_IFREG 0100000
+#define S_IFIFO 0010000
+#define S_IFLNK 0120000
+#define S_IFSOCK 0140000
+
+#define S_TYPEISMQ(buf)  0
+#define S_TYPEISSEM(buf) 0
+#define S_TYPEISSHM(buf) 0
+#define S_TYPEISTMO(buf) 0
+
+#define S_ISDIR(mode)  (((mode) & S_IFMT) == S_IFDIR)
+#define S_ISCHR(mode)  (((mode) & S_IFMT) == S_IFCHR)
+#define S_ISBLK(mode)  (((mode) & S_IFMT) == S_IFBLK)
+#define S_ISREG(mode)  (((mode) & S_IFMT) == S_IFREG)
+#define S_ISFIFO(mode) (((mode) & S_IFMT) == S_IFIFO)
+#define S_ISLNK(mode)  (((mode) & S_IFMT) == S_IFLNK)
+#define S_ISSOCK(mode) (((mode) & S_IFMT) == S_IFSOCK)
+
+#ifndef S_IRUSR
+#define S_ISUID 04000
+#define S_ISGID 02000
+#define S_ISVTX 01000
+#define S_IRUSR 0400
+#define S_IWUSR 0200
+#define S_IXUSR 0100
+#define S_IRWXU 0700
+#define S_IRGRP 0040
+#define S_IWGRP 0020
+#define S_IXGRP 0010
+#define S_IRWXG 0070
+#define S_IROTH 0004
+#define S_IWOTH 0002
+#define S_IXOTH 0001
+#define S_IRWXO 0007
 #endif
-#else
-struct	stat 
-{
-  dev_t		st_dev;
-  ino_t		st_ino;
-  mode_t	st_mode;
-  nlink_t	st_nlink;
-  uid_t		st_uid;
-  gid_t		st_gid;
-  dev_t		st_rdev;
-  off_t		st_size;
-#if defined(__svr4__) && !defined(__PPC__) && !defined(__sun__)
-  time_t	st_atime;
-  time_t	st_mtime;
-  time_t	st_ctime;
-#else
-  struct timespec st_atim;
-  struct timespec st_mtim;
-  struct timespec st_ctim;
-  blksize_t     st_blksize;
-  blkcnt_t	st_blocks;
-#if !defined(__rtems__)
-  long		st_spare4[2];
+
+#define UTIME_NOW  0x3fffffff
+#define UTIME_OMIT 0x3ffffffe
+
+int stat(const char *__restrict, struct stat *__restrict);
+int fstat(int, struct stat *);
+int lstat(const char *__restrict, struct stat *__restrict);
+int fstatat(int, const char *__restrict, struct stat *__restrict, int);
+int chmod(const char *, mode_t);
+int fchmod(int, mode_t);
+int fchmodat(int, const char *, mode_t, int);
+mode_t umask(mode_t);
+int mkdir(const char *, mode_t);
+int mkfifo(const char *, mode_t);
+int mkdirat(int, const char *, mode_t);
+int mkfifoat(int, const char *, mode_t);
+
+#if defined(_XOPEN_SOURCE) || defined(_GNU_SOURCE) || defined(_BSD_SOURCE)
+int mknod(const char *, mode_t, dev_t);
+int mknodat(int, const char *, mode_t, dev_t);
 #endif
+
+int futimens(int, const struct timespec [2]);
+int utimensat(int, const char *, const struct timespec [2], int);
+
+#if defined(_GNU_SOURCE) || defined(_BSD_SOURCE)
+int lchmod(const char *, mode_t);
+#define S_IREAD S_IRUSR
+#define S_IWRITE S_IWUSR
+#define S_IEXEC S_IXUSR
 #endif
+
+#if defined(_GNU_SOURCE)
+#define STATX_TYPE 1U
+#define STATX_MODE 2U
+#define STATX_NLINK 4U
+#define STATX_UID 8U
+#define STATX_GID 0x10U
+#define STATX_ATIME 0x20U
+#define STATX_MTIME 0x40U
+#define STATX_CTIME 0x80U
+#define STATX_INO 0x100U
+#define STATX_SIZE 0x200U
+#define STATX_BLOCKS 0x400U
+#define STATX_BASIC_STATS 0x7ffU
+#define STATX_BTIME 0x800U
+#define STATX_ALL 0xfffU
+
+struct statx_timestamp {
+	int64_t tv_sec;
+	uint32_t tv_nsec, __pad;
 };
 
-#if !(defined(__svr4__) && !defined(__PPC__) && !defined(__sun__)) && !defined(__cris__)
-#define st_atime st_atim.tv_sec
-#define st_ctime st_ctim.tv_sec
-#define st_mtime st_mtim.tv_sec
+struct statx {
+	uint32_t stx_mask;
+	uint32_t stx_blksize;
+	uint64_t stx_attributes;
+	uint32_t stx_nlink;
+	uint32_t stx_uid;
+	uint32_t stx_gid;
+	uint16_t stx_mode;
+	uint16_t __pad0[1];
+	uint64_t stx_ino;
+	uint64_t stx_size;
+	uint64_t stx_blocks;
+	uint64_t stx_attributes_mask;
+	struct statx_timestamp stx_atime;
+	struct statx_timestamp stx_btime;
+	struct statx_timestamp stx_ctime;
+	struct statx_timestamp stx_mtime;
+	uint32_t stx_rdev_major;
+	uint32_t stx_rdev_minor;
+	uint32_t stx_dev_major;
+	uint32_t stx_dev_minor;
+	uint64_t __pad1[14];
+};
+
+int statx(int, const char *__restrict, int, unsigned, struct statx *__restrict);
 #endif
 
+#if defined(_LARGEFILE64_SOURCE)
+#define stat64 stat
+#define fstat64 fstat
+#define lstat64 lstat
+#define fstatat64 fstatat
+#define blkcnt64_t blkcnt_t
+#define fsblkcnt64_t fsblkcnt_t
+#define fsfilcnt64_t fsfilcnt_t
+#define ino64_t ino_t
+#define off64_t off_t
 #endif
 
-#define	_IFMT		0170000	/* type of file */
-#define		_IFDIR	0040000	/* directory */
-#define		_IFCHR	0020000	/* character special */
-#define		_IFBLK	0060000	/* block special */
-#define		_IFREG	0100000	/* regular */
-#define		_IFLNK	0120000	/* symbolic link */
-#define		_IFSOCK	0140000	/* socket */
-#define		_IFIFO	0010000	/* fifo */
-
-#define 	S_BLKSIZE  1024 /* size of a block */
-
-#define	S_ISUID		0004000	/* set user id on execution */
-#define	S_ISGID		0002000	/* set group id on execution */
-#define	S_ISVTX		0001000	/* save swapped text even after use */
-#if __BSD_VISIBLE
-#define	S_IREAD		0000400	/* read permission, owner */
-#define	S_IWRITE 	0000200	/* write permission, owner */
-#define	S_IEXEC		0000100	/* execute/search permission, owner */
-#define	S_ENFMT 	0002000	/* enforcement-mode locking */
-#endif	/* !_BSD_VISIBLE */
-
-#define	S_IFMT		_IFMT
-#define	S_IFDIR		_IFDIR
-#define	S_IFCHR		_IFCHR
-#define	S_IFBLK		_IFBLK
-#define	S_IFREG		_IFREG
-#define	S_IFLNK		_IFLNK
-#define	S_IFSOCK	_IFSOCK
-#define	S_IFIFO		_IFIFO
-
-#ifdef _WIN32
-/* The Windows header files define _S_ forms of these, so we do too
-   for easier portability.  */
-#define _S_IFMT		_IFMT
-#define _S_IFDIR	_IFDIR
-#define _S_IFCHR	_IFCHR
-#define _S_IFIFO	_IFIFO
-#define _S_IFREG	_IFREG
-#define _S_IREAD	0000400
-#define _S_IWRITE	0000200
-#define _S_IEXEC	0000100
+#if _REDIR_TIME64
+__REDIR(stat, __stat_time64);
+__REDIR(fstat, __fstat_time64);
+__REDIR(lstat, __lstat_time64);
+__REDIR(fstatat, __fstatat_time64);
+__REDIR(futimens, __futimens_time64);
+__REDIR(utimensat, __utimensat_time64);
 #endif
 
-#define	S_IRWXU 	(S_IRUSR | S_IWUSR | S_IXUSR)
-#define		S_IRUSR	0000400	/* read permission, owner */
-#define		S_IWUSR	0000200	/* write permission, owner */
-#define		S_IXUSR 0000100/* execute/search permission, owner */
-#define	S_IRWXG		(S_IRGRP | S_IWGRP | S_IXGRP)
-#define		S_IRGRP	0000040	/* read permission, group */
-#define		S_IWGRP	0000020	/* write permission, grougroup */
-#define		S_IXGRP 0000010/* execute/search permission, group */
-#define	S_IRWXO		(S_IROTH | S_IWOTH | S_IXOTH)
-#define		S_IROTH	0000004	/* read permission, other */
-#define		S_IWOTH	0000002	/* write permission, other */
-#define		S_IXOTH 0000001/* execute/search permission, other */
-
-#if __BSD_VISIBLE
-#define ACCESSPERMS (S_IRWXU | S_IRWXG | S_IRWXO) /* 0777 */
-#define ALLPERMS (S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO) /* 07777 */
-#define DEFFILEMODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) /* 0666 */
-#endif
-
-#define	S_ISBLK(m)	(((m)&_IFMT) == _IFBLK)
-#define	S_ISCHR(m)	(((m)&_IFMT) == _IFCHR)
-#define	S_ISDIR(m)	(((m)&_IFMT) == _IFDIR)
-#define	S_ISFIFO(m)	(((m)&_IFMT) == _IFIFO)
-#define	S_ISREG(m)	(((m)&_IFMT) == _IFREG)
-#define	S_ISLNK(m)	(((m)&_IFMT) == _IFLNK)
-#define	S_ISSOCK(m)	(((m)&_IFMT) == _IFSOCK)
-
-#if defined(__CYGWIN__)
-/* Special tv_nsec values for futimens(2) and utimensat(2). */
-#define UTIME_NOW	-2L
-#define UTIME_OMIT	-1L
-#endif
-
-int	chmod (const char *__path, mode_t __mode );
-int     fchmod (int __fd, mode_t __mode);
-int	fstat (int __fd, struct stat *__sbuf );
-int	mkdir (const char *_path, mode_t __mode );
-int	mkfifo (const char *__path, mode_t __mode );
-int	stat (const char *__restrict __path, struct stat *__restrict __sbuf );
-mode_t	umask (mode_t __mask );
-
-#if defined (__SPU__) || defined(__rtems__) || defined(__CYGWIN__) && !defined(__INSIDE_CYGWIN__)
-int	lstat (const char *__restrict __path, struct stat *__restrict __buf );
-int	mknod (const char *__path, mode_t __mode, dev_t __dev );
-#endif
-
-#if __ATFILE_VISIBLE && !defined(__INSIDE_CYGWIN__)
-int	fchmodat (int, const char *, mode_t, int);
-int	fstatat (int, const char *__restrict , struct stat *__restrict, int);
-int	mkdirat (int, const char *, mode_t);
-int	mkfifoat (int, const char *, mode_t);
-int	mknodat (int, const char *, mode_t, dev_t);
-int	utimensat (int, const char *, const struct timespec *, int);
-#endif
-#if __POSIX_VISIBLE >= 200809 && !defined(__INSIDE_CYGWIN__)
-int	futimens (int, const struct timespec *);
-#endif
-
-/* Provide prototypes for most of the _<systemcall> names that are
-   provided in newlib for some compilers.  */
-#ifdef _COMPILING_NEWLIB
-int	_fstat (int __fd, struct stat *__sbuf );
-int	_stat (const char *__restrict __path, struct stat *__restrict __sbuf );
-int	_mkdir (const char *_path, mode_t __mode );
-#ifdef __LARGE64_FILES
-struct stat64;
-int	_stat64 (const char *__restrict __path, struct stat64 *__restrict __sbuf );
-int	_fstat64 (int __fd, struct stat64 *__sbuf );
-#endif
-#endif
-
-#endif /* !_STAT_H_ */
 #ifdef __cplusplus
 }
 #endif
-#endif /* _SYS_STAT_H */
+#endif
+
+

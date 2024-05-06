@@ -1,90 +1,46 @@
 #ifndef _SYS_SELECT_H
 #define _SYS_SELECT_H
-
-/* We don't define fd_set and friends if we are compiling POSIX
-   source, or if we have included (or may include as indicated
-   by __USE_W32_SOCKETS) the W32api winsock[2].h header which
-   defines Windows versions of them.   Note that a program which
-   includes the W32api winsock[2].h header must know what it is doing;
-   it must not call the Cygwin select function.
-*/
-# if !(defined (_WINSOCK_H) || defined (_WINSOCKAPI_) || defined (__USE_W32_SOCKETS))
-
-#include <sys/cdefs.h>
-#include <sys/_sigset.h>
-#include <sys/_timeval.h>
-#include <sys/timespec.h>
-
-#if !defined(_SIGSET_T_DECLARED)
-#define	_SIGSET_T_DECLARED
-typedef	__sigset_t	sigset_t;
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#  define _SYS_TYPES_FD_SET
-/*
- * Select uses bit masks of file descriptors in longs.
- * These macros manipulate such bit fields (the filesystem macros use chars).
- * FD_SETSIZE may be defined by the user, but the default here
- * should be >= NOFILE (param.h).
- */
-#ifndef	FD_SETSIZE
-#define	FD_SETSIZE	64
-#endif
+#include <features.h>
 
-typedef unsigned long	__fd_mask;
-#if __BSD_VISIBLE
-typedef __fd_mask	fd_mask;
-#endif
+#define __NEED_size_t
+#define __NEED_time_t
+#define __NEED_suseconds_t
+#define __NEED_struct_timeval
+#define __NEED_struct_timespec
+#define __NEED_sigset_t
 
-#define _NFDBITS	((int)sizeof(__fd_mask) * 8) /* bits per mask */
-#if __BSD_VISIBLE
-#define NFDBITS		_NFDBITS
-#endif
+#include <bits/alltypes.h>
 
-#ifndef	_howmany
-#define	_howmany(x,y)	(((x) + ((y) - 1)) / (y))
-#endif
+#define FD_SETSIZE 1024
 
-typedef	struct fd_set {
-	__fd_mask	__fds_bits[_howmany(FD_SETSIZE, _NFDBITS)];
+typedef unsigned long fd_mask;
+
+typedef struct {
+	unsigned long fds_bits[FD_SETSIZE / 8 / sizeof(long)];
 } fd_set;
-#if __BSD_VISIBLE
-#define fds_bits	__fds_bits
+
+#define FD_ZERO(s) do { int __i; unsigned long *__b=(s)->fds_bits; for(__i=sizeof (fd_set)/sizeof (long); __i; __i--) *__b++=0; } while(0)
+#define FD_SET(d, s)   ((s)->fds_bits[(d)/(8*sizeof(long))] |= (1UL<<((d)%(8*sizeof(long)))))
+#define FD_CLR(d, s)   ((s)->fds_bits[(d)/(8*sizeof(long))] &= ~(1UL<<((d)%(8*sizeof(long)))))
+#define FD_ISSET(d, s) !!((s)->fds_bits[(d)/(8*sizeof(long))] & (1UL<<((d)%(8*sizeof(long)))))
+
+int select (int, fd_set *__restrict, fd_set *__restrict, fd_set *__restrict, struct timeval *__restrict);
+int pselect (int, fd_set *__restrict, fd_set *__restrict, fd_set *__restrict, const struct timespec *__restrict, const sigset_t *__restrict);
+
+#if defined(_GNU_SOURCE) || defined(_BSD_SOURCE)
+#define NFDBITS (8*(int)sizeof(long))
 #endif
 
-#define __fdset_mask(n)	((__fd_mask)1 << ((n) % _NFDBITS))
-#define FD_CLR(n, p)	((p)->__fds_bits[(n)/_NFDBITS] &= ~__fdset_mask(n))
-#if __BSD_VISIBLE
-#define FD_COPY(f, t)	(void)(*(t) = *(f))
-#endif
-#define FD_ISSET(n, p)	(((p)->__fds_bits[(n)/_NFDBITS] & __fdset_mask(n)) != 0)
-#define FD_SET(n, p)	((p)->__fds_bits[(n)/_NFDBITS] |= __fdset_mask(n))
-#define FD_ZERO(p) do {					\
-        fd_set *_p;					\
-        __size_t _n;					\
-							\
-        _p = (p);					\
-        _n = _howmany(FD_SETSIZE, _NFDBITS);		\
-        while (_n > 0)					\
-                _p->__fds_bits[--_n] = 0;		\
-} while (0)
-
-#if !defined (__INSIDE_CYGWIN_NET__)
-
-__BEGIN_DECLS
-
-int select __P ((int __n, fd_set *__readfds, fd_set *__writefds,
-		 fd_set *__exceptfds, struct timeval *__timeout));
-#if __POSIX_VISIBLE >= 200112
-int pselect __P ((int __n, fd_set *__readfds, fd_set *__writefds,
-		  fd_set *__exceptfds, const struct timespec *__timeout,
-		  const sigset_t *__set));
+#if _REDIR_TIME64
+__REDIR(select, __select_time64);
+__REDIR(pselect, __pselect_time64);
 #endif
 
-__END_DECLS
-
-#endif /* !__INSIDE_CYGWIN_NET__ */
-
-#endif /* !(_WINSOCK_H || _WINSOCKAPI_ || __USE_W32_SOCKETS) */
-
-#endif /* sys/select.h */
+#ifdef __cplusplus
+}
+#endif
+#endif

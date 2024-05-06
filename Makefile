@@ -1,18 +1,18 @@
 all: disk
 
 # https://stackoverflow.com/questions/3931741/why-does-make-think-the-target-is-up-to-date
-.PHONY: disk tools clean qemu qemu_dbg vmware dev kernel newlib renewlib cleannewlib limine
+.PHONY: disk tools clean qemu qemu_dbg vmware dev kernel musl remusl cleanmusl limine
 
-# Newlib
-renewlib: cleannewlib newlib
+# Musl libc
+remusl: cleanmusl musl
 
-cleannewlib:
-	rm -rf src/libs/newlib/cavos-build
-	rm -rf src/libs/newlib/cavos-out/i686-cavos/
+cleanmusl:
+	rm -rf src/libs/musl/cavos-build
+	rm -rf src/libs/musl/cavos-out
 
-newlib:
-	chmod +x src/libs/newlib/build.sh
-	./src/libs/newlib/build.sh --noreplace
+musl:
+	chmod +x src/libs/musl/build.sh
+	./src/libs/musl/build.sh --noreplace
 
 # PCI IDs
 repci_id: cleanpci_id target/usr/share/hwdata/pci.ids
@@ -34,9 +34,9 @@ limine:
 	@$(MAKE) -C src/bootloader all
 
 # Primary (disk creation)
-disk: limine target/usr/share/hwdata/pci.ids
+disk: limine musl target/usr/share/hwdata/pci.ids
 # @$(MAKE) -C src/libs/system
-# @$(MAKE) -C src/software/test
+	@$(MAKE) -C src/software/test
 	@$(MAKE) -C src/software/badtest
 	@$(MAKE) -C src/kernel disk
 

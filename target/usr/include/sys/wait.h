@@ -1,44 +1,67 @@
-#ifndef _SYS_WAIT_H
-#define _SYS_WAIT_H
-
+#ifndef	_SYS_WAIT_H
+#define	_SYS_WAIT_H
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <sys/types.h>
+#include <features.h>
 
-#define WNOHANG 1
-#define WUNTRACED 2
+#define __NEED_pid_t
+#define __NEED_id_t
+#include <bits/alltypes.h>
 
-/* A status looks like:
-      <1 byte info> <1 byte code>
-
-      <code> == 0, child has exited, info is the exit value
-      <code> == 1..7e, child has exited, info is the signal number.
-      <code> == 7f, child has stopped, info was the signal number.
-      <code> == 80, there was a core dump.
-*/
-   
-#define WIFEXITED(w)	(((w) & 0xff) == 0)
-#define WIFSIGNALED(w)	(((w) & 0x7f) > 0 && (((w) & 0x7f) < 0x7f))
-#define WIFSTOPPED(w)	(((w) & 0xff) == 0x7f)
-#define WEXITSTATUS(w)	(((w) >> 8) & 0xff)
-#define WTERMSIG(w)	((w) & 0x7f)
-#define WSTOPSIG	WEXITSTATUS
+typedef enum {
+	P_ALL = 0,
+	P_PID = 1,
+	P_PGID = 2,
+	P_PIDFD = 3
+} idtype_t;
 
 pid_t wait (int *);
-pid_t waitpid (pid_t, int *, int);
+pid_t waitpid (pid_t, int *, int );
 
-#ifdef _COMPILING_NEWLIB
-pid_t _wait (int *);
+#if defined(_POSIX_SOURCE) || defined(_POSIX_C_SOURCE) \
+ || defined(_XOPEN_SOURCE) || defined(_GNU_SOURCE) \
+ || defined(_BSD_SOURCE)
+#include <signal.h>
+int waitid (idtype_t, id_t, siginfo_t *, int);
 #endif
 
-/* Provide prototypes for most of the _<systemcall> names that are
-   provided in newlib for some compilers.  */
-pid_t _wait (int *);
+#if defined(_GNU_SOURCE) || defined(_BSD_SOURCE)
+#include <sys/resource.h>
+pid_t wait3 (int *, int, struct rusage *);
+pid_t wait4 (pid_t, int *, int, struct rusage *);
+#endif
+
+#define WNOHANG    1
+#define WUNTRACED  2
+
+#define WSTOPPED   2
+#define WEXITED    4
+#define WCONTINUED 8
+#define WNOWAIT    0x1000000
+
+#define __WNOTHREAD 0x20000000
+#define __WALL      0x40000000
+#define __WCLONE    0x80000000
+
+#define WEXITSTATUS(s) (((s) & 0xff00) >> 8)
+#define WTERMSIG(s) ((s) & 0x7f)
+#define WSTOPSIG(s) WEXITSTATUS(s)
+#define WCOREDUMP(s) ((s) & 0x80)
+#define WIFEXITED(s) (!WTERMSIG(s))
+#define WIFSTOPPED(s) ((short)((((s)&0xffff)*0x10001U)>>8) > 0x7f00)
+#define WIFSIGNALED(s) (((s)&0xffff)-1U < 0xffu)
+#define WIFCONTINUED(s) ((s) == 0xffff)
+
+#if _REDIR_TIME64
+#if defined(_GNU_SOURCE) || defined(_BSD_SOURCE)
+__REDIR(wait3, __wait3_time64);
+__REDIR(wait4, __wait4_time64);
+#endif
+#endif
 
 #ifdef __cplusplus
-};
+}
 #endif
-
 #endif

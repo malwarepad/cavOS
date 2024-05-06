@@ -1,9 +1,0 @@
-cavos-build/
-newlib-4.1.0.tar.gz
-
-newlib-4.1.0
-!newlib-4.1.0/newlib/libc/sys/cavos
-!newlib-4.1.0/newlib/libc/sys/cavos/*
-src/libs/newlib/newlib-4.1.0/newlib/libc/sys/cavos/Makefile.in
-src/libs/newlib/newlib-4.1.0/newlib/libc/sys/cavos/configure
-src/libs/newlib/newlib-4.1.0/newlib/libc/sys/cavos/aclocal.m4
