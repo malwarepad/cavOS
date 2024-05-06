@@ -1,5 +1,5 @@
 COMPILER = ~/opt/cross/bin/x86_64-cavos-gcc
-CFLAGS = -std=gnu99 -Wall -Wextra -ffreestanding -nostartfiles -nostdlib
+CFLAGS = -std=gnu99 -w -ffreestanding -nostartfiles -nostdlib
 OUTPUT = a.cav
 TARGET = ../../../target/software/
 
