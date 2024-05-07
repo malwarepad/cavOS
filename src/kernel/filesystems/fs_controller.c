@@ -487,12 +487,14 @@ bool fsWriteSync(OpenFile *file) {
   return ret;
 }
 
-bool fsStat(char *filename, stat *target) {
+bool fsStat(char *filename, stat *target, stat_extra *extra) {
   char *safeFilename = fsSanitize(filename);
 
   if (safeFilename[0] == '/' && safeFilename[1] == '\0') {
-    target->st_ino = 69;
-    target->st_dev = 29;
+    if (target) {
+      target->st_ino = 69;
+      target->st_dev = 29;
+    }
     return true;
   }
 
@@ -511,8 +513,12 @@ bool fsStat(char *filename, stat *target) {
       ret = true;
     free(safeFilename);
 
-    if (ret) {
+    if (ret && target) {
       target->st_size = filinfo->fsize;
+    }
+
+    if (ret && extra) {
+      extra->file = !(filinfo->fattrib & AM_DIR);
     }
 
     free(filinfo);

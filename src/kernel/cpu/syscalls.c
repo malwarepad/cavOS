@@ -183,7 +183,7 @@ static int syscallClose(int file) { return fsUserClose(file); }
 #define SYSCALL_STAT 4
 static int syscallStat(char *filename, stat *statbuf) {
   debugf("[syscalls::stat] filename{%s} buff{%lx}\n", filename, statbuf);
-  bool ret = fsStat(filename, statbuf);
+  bool ret = fsStat(filename, statbuf, 0);
   if (ret)
     return 0;
 
@@ -330,8 +330,32 @@ static int syscallGetcwd(char *buff, size_t size) {
   return realLength;
 }
 
+#define SYSCALL_CHDIR 80
+static int syscallChdir(char *newdir) {
+  bool ret = taskChangeCwd(newdir);
+  if (ret)
+    return 0;
+
+  return -1;
+}
+
 #define SYSCALL_GETUID 102
 static int syscallGetuid() {
+  return 0; // root ;)
+}
+
+#define SYSCALL_GETGID 104
+static int syscallGetgid() {
+  return 0; // root ;)
+}
+
+#define SYSCALL_GETEUID 107
+static int syscallGeteuid() {
+  return 0; // root ;)
+}
+
+#define SYSCALL_GETEGID 108
+static int syscallGetegid() {
   return 0; // root ;)
 }
 
@@ -420,6 +444,10 @@ void initiateSyscalls() {
   registerSyscall(SYSCALL_STAT, syscallStat);
   registerSyscall(SYSCALL_GETUID, syscallGetuid);
   registerSyscall(SYSCALL_DUP2, syscallDup2);
+  registerSyscall(SYSCALL_GETEUID, syscallGeteuid);
+  registerSyscall(SYSCALL_GETGID, syscallGetgid);
+  registerSyscall(SYSCALL_GETEGID, syscallGetegid);
+  registerSyscall(SYSCALL_CHDIR, syscallChdir);
 
   debugf("[syscalls] System calls are ready to fire: %d/%d\n", syscallCnt,
          MAX_SYSCALLS);

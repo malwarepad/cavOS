@@ -217,6 +217,20 @@ int16_t taskGenerateId() {
   return max + 1;
 }
 
+bool taskChangeCwd(char *newdir) {
+  stat_extra extra = {0};
+  if (!fsStat(newdir, 0, &extra))
+    return false;
+
+  if (extra.file)
+    return false;
+
+  size_t len = strlength(newdir) + 1;
+  currentTask->cwd = realloc(currentTask->cwd, len);
+  memcpy(currentTask->cwd, newdir, len);
+  return true;
+}
+
 void initiateTasks() {
   firstTask = (Task *)malloc(sizeof(Task));
   memset(firstTask, 0, sizeof(Task));

@@ -73,5 +73,6 @@ void  taskKillCleanup(Task *task);
 uint8_t taskGetState(uint32_t id);
 Task   *taskGet(uint32_t id);
 int16_t taskGenerateId();
+bool    taskChangeCwd(char *newdir);
 
 #endif

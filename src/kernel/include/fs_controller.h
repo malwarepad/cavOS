@@ -58,6 +58,10 @@ typedef struct stat {
   uint64_t st_ctime;   // Time of last status change
 } stat;
 
+typedef struct stat_extra {
+  bool file;
+} stat_extra;
+
 typedef struct MountPoint MountPoint;
 struct MountPoint {
   MountPoint *next;
@@ -137,6 +141,6 @@ bool     fsWriteChar(OpenFile *file, char in);
 bool     fsWriteSync(OpenFile *file);
 void     fsReadFullFile(OpenFile *file, uint8_t *out);
 uint32_t fsGetFilesize(OpenFile *file);
-bool     fsStat(char *filename, stat *target);
+bool     fsStat(char *filename, stat *target, stat_extra *extra);
 
 #endif
