@@ -37,6 +37,8 @@ struct Task {
   uint64_t          *pagedir;
   uint64_t           tssRsp;
 
+  bool systemCallInProgress;
+
   // Useful to switch, for when TLS is available
   uint64_t fsbase;
   uint64_t gsbase;
@@ -69,7 +71,5 @@ void  taskKillCleanup(Task *task);
 uint8_t taskGetState(uint32_t id);
 Task   *taskGet(uint32_t id);
 int16_t taskGenerateId();
-
-extern void asm_task_bailout(uint64_t intRsp);
 
 #endif

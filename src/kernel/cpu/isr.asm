@@ -3,13 +3,42 @@
 
 bits    64
 
-global asm_task_bailout
-asm_task_bailout:
-  ; rdi = target rsp
+global asm_finalize_sched
+asm_finalize_sched:
+  ; rdi = switch stack pointer
+  ; rsi = next pagedir
+  ; rdx = next task pointer (for cleanup)
+
   mov rsp, rdi
-  sti
-  hlt
-  ret
+  mov cr3, rsi
+
+  ; cleanup (WILL check task state, dw)
+  mov rdi, rdx
+  extern taskKillCleanup
+  call taskKillCleanup
+
+  pop rbp
+  ; mov ds, ebp
+  mov es, ebp
+
+  pop r15
+  pop r14
+  pop r13
+  pop r12
+  pop r11
+  pop r10
+  pop r9
+  pop r8
+  pop rbp
+  pop rdi
+  pop rsi
+  pop rdx
+  pop rcx
+  pop rbx
+  pop rax
+
+  add rsp, 16      ; pop error code and interrupt number
+  iretq            ; pops (CS, EIP, EFLAGS) and also (SS, ESP) if privilege change occurs
 
 global syscall_entry
 syscall_entry:
@@ -101,8 +130,11 @@ isr_common:
     mov ss, bx
     ; mov fs, bx
     ; mov gs, bx
-		
-		cld
+
+    mov rdi, rsp
+    extern handle_tssrsp
+    call handle_tssrsp
+    mov rsp, rax
 
 		mov rdi, rsp
     extern handle_interrupt

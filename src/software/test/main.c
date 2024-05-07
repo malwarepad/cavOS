@@ -22,9 +22,9 @@ int main(int argc, char **argv) {
     printf("arg%d: %s\n", i, argv[i]);
   }
 
-  // int dec;
-  // scanf("%d", &dec);
-  // printf("\nyou entered: %d\n", dec);
+  int dec;
+  scanf("%d", &dec);
+  printf("you entered: %d\n", dec);
 
   // FILE *file1 = openControlled("/files/lorem.txt");
   // FILE *file2 = openControlled("/files/untitled.txt");

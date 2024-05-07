@@ -208,7 +208,10 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, uint32_t mode) {
   MountPoint *mnt = fsDetermineMountPoint(safeFilename);
   if (!mnt) {
     // no mountpoint for this
-    fsKernelUnregisterNode(target);
+    if (task)
+      fsUserUnregisterNode(task, target);
+    else
+      fsKernelUnregisterNode(target);
     free(target);
     free(safeFilename);
     return 0;

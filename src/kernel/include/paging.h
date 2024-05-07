@@ -64,6 +64,7 @@ size_t VirtualToPhysical(size_t virt_addr);
 uint64_t *GetPageDirectory();
 void      ChangePageDirectory(uint64_t *pd);
 void      ChangePageDirectoryUnsafe(uint64_t *pd);
+void      ChangePageDirectoryFake(uint64_t *pd);
 
 uint64_t *PageDirectoryAllocate();
 void      PageDirectoryFree(uint64_t *page_dir);

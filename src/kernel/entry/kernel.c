@@ -34,7 +34,6 @@
 
 static volatile LIMINE_BASE_REVISION(1);
 void _start(void) {
-  systemCallOnProgress = false;
   systemDiskInit = false;
 
   if (LIMINE_BASE_REVISION_SUPPORTED == false)

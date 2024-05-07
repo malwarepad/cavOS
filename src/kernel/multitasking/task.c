@@ -104,13 +104,35 @@ void taskAdjustHeap(Task *task, size_t new_heap_end) {
 }
 
 void taskKill(uint32_t id) {
+  Task *task = taskGet(id);
+  if (!task)
+    return;
+  task->state = TASK_STATE_DEAD;
+
+  if (currentTask == task) {
+    // we're most likely in a syscall context, so...
+    // taskKillCleanup(task); // left for sched
+    asm volatile("sti");
+    // wait until we're outta here
+    while (1) {
+      //   debugf("GET ME OUT ");
+    }
+  }
+
+  taskKillCleanup(task);
+}
+
+void taskKillCleanup(Task *task) {
+  if (task->state != TASK_STATE_DEAD)
+    return;
+
   Task *browse = firstTask;
   while (browse) {
-    if (browse->next && browse->next->id == id)
+    if (browse->next && browse->next->id == task->id)
       break;
     browse = browse->next;
   }
-  Task *task = browse->next;
+  // Task *task = browse->next;
   if (!task || task->state == TASK_STATE_DEAD)
     return;
 
@@ -151,24 +173,8 @@ void taskKill(uint32_t id) {
   }
   currentTask = old;
 
-  task->state = TASK_STATE_DEAD;
-
-  if (currentTask == task) {
-    asm_task_bailout(task->tssRsp);
-    // we're most likely in a syscall context, so...
-    // taskKillCleanup(task); // left for sched
-    // asm volatile("sti");
-    // wait until we're outta here
-    // while (1) {
-    //   debugf("GET ME OUT ");
-    // }
-  }
-
-  taskKillCleanup(task);
-}
-
-void taskKillCleanup(Task *task) {
   PageDirectoryFree(task->pagedir);
+  VirtualFree((void *)task->tssRsp, USER_STACK_PAGES);
   free(task);
 }
 
@@ -211,6 +217,11 @@ void initiateTasks() {
   currentTask->state = TASK_STATE_READY;
   currentTask->pagedir = GetPageDirectory();
   currentTask->kernel_task = true;
+
+  void  *tssRsp = VirtualAllocate(USER_STACK_PAGES);
+  size_t tssRspSize = USER_STACK_PAGES * BLOCK_SIZE;
+  memset(tssRsp, 0, tssRspSize);
+  currentTask->tssRsp = (uint64_t)tssRsp + tssRspSize;
 
   debugf("[tasks] Current execution ready for multitasking\n");
   tasksInitiated = true;

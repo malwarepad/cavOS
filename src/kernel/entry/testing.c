@@ -20,13 +20,13 @@
 
 extern void weirdTests();
 
-// char *argv[] = {"/bad.cav", "--no-color", "-p"};
+// char *argv[] = {"/usr/bin/busybox", "sh"};
 void testingInit() {
   // netSocketConnect(selectedNIC, SOCKET_PROT_UDP, (uint8_t[]){10, 0, 2, 15},
   //                   5643, 69);
   // weirdTests();
-  // elfExecute("/software/a.cav", 3, argv);
-  // int id = elfExecute("/bad.cav", 3, argv);
+  // elfExecute("/usr/bin/busybox", 2, argv);
+  // int id = elfExecute("/usr/bin/busybox", 2, argv);
   // while (taskGetState(id))
   //   ;
 }

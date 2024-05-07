@@ -54,7 +54,7 @@ void   registerSyscall(uint32_t id, void *handler) {
   }
 
   if (syscalls[id]) {
-    debugf("[syscalls] FATAL! id{%d} found duplicate!\n");
+    debugf("[syscalls] FATAL! id{%d} found duplicate!\n", id);
     panic();
   }
 
@@ -65,7 +65,8 @@ void   registerSyscall(uint32_t id, void *handler) {
 typedef uint64_t (*SyscallHandler)(uint64_t a1, uint64_t a2, uint64_t a3,
                                    uint64_t a4, uint64_t a5, uint64_t a6);
 void syscallHandler(AsmPassedInterrupt *regs) {
-  systemCallOnProgress = true;
+  currentTask->systemCallInProgress = true;
+  asm volatile("sti"); // do other task stuff while we're here!
   uint64_t id = regs->rax;
 #if DEBUG_SYSCALLS
   debugf("[syscalls] id{%d}\n", id);
@@ -75,7 +76,7 @@ void syscallHandler(AsmPassedInterrupt *regs) {
   if (!handler) {
     regs->rax = -1;
     debugf("[syscalls] Tried to access syscall{%d} (doesn't exist)!\n", id);
-    systemCallOnProgress = false;
+    currentTask->systemCallInProgress = false;
     return;
   }
 
@@ -86,28 +87,27 @@ void syscallHandler(AsmPassedInterrupt *regs) {
 #endif
 
   regs->rax = ret;
-  systemCallOnProgress = false;
+  currentTask->systemCallInProgress = false;
 }
 
 bool running = false;
 
 // System calls themselves
 #define SYSCALL_READ 0
-static uint32_t syscallRead(int file, char *str, uint32_t count) {
+static int syscallRead(int file, char *str, uint32_t count) {
   debugf("[syscalls::read] file{%d} str{%x} count{%d}\n", file, str, count);
   if (file == 0 || file == 1) {
     // console fb
-    if (kbIsOccupied()) {
-      return -1;
-    }
+    // while (kbIsOccupied()) {
+    // } done in kbTaskRead()
 
     // start reading
     // todo: respect limit
     kbTaskRead(currentTask->id, str, count, true);
-    // todo!
-    // asm volatile("sti"); // leave this task/execution (awaiting return)
+    asm volatile("sti"); // leave this task/execution (awaiting return)
     while (currentTask->state == TASK_STATE_WAITING_INPUT) {
     }
+    printf("\n"); // you technically pressed enter, didn't you?
 
     // finalise
     uint32_t fr = currentTask->tmpRecV;
@@ -170,6 +170,32 @@ static int syscallOpen(char *filename, int flags, uint16_t mode) {
 #define SYSCALL_CLOSE 3
 static int syscallClose(int file) { return fsUserClose(file); }
 
+#define SYSCALL_STAT 4
+static int syscallStat(char *filename, stat *statbuf) {
+  debugf("[syscalls::stat] filename{%s} buff{%lx}\n", filename, statbuf);
+  int fd = fsUserOpen(filename, FS_MODE_READ, 0);
+  if (fd < 0)
+    return -1;
+
+  OpenFile *browse = currentTask->firstFile;
+  while (browse) {
+    if (browse->id == fd)
+      break;
+    browse = browse->next;
+  }
+
+  if (!browse)
+    return -1;
+
+  debugf("[syscalls::stat] UNIMPLEMENTED! filename{%s}\n", filename);
+
+  statbuf->st_uid = 0;
+  statbuf->st_gid = 0;
+  statbuf->st_size = fsGetFilesize(browse);
+  // todo...
+  return 0;
+}
+
 #define SYSCALL_LSEEK 8
 static int syscallLseek(uint32_t file, int offset, int whence) {
 #if DEBUG_SYSCALLS
@@ -184,7 +210,7 @@ static int syscallLseek(uint32_t file, int offset, int whence) {
 #define SYSCALL_MMAP 9
 static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
                             int fd, size_t pgoffset) {
-  if (!addr && fd == -1) {
+  if (fd == -1) { // before: !addr &&
     size_t curr = currentTask->heap_end;
 #if DEBUG_SYSCALLS
     debugf("[syscalls::mmap] No placement preference, no file descriptor: "
@@ -277,6 +303,13 @@ static int syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
   return cnt;
 }
 
+#define SYSCALL_DUP2 33
+static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
+  // todo: treat 0, 1 and the like FDs like actual files
+  debugf("[syscalls::dup2] UNIMPLEMENTED! old{%d} new{%d}\n", oldFd, newFd);
+  return -1;
+}
+
 #define SYSCALL_GETPID 39
 static uint32_t syscallGetPid() { return currentTask->id; }
 
@@ -308,6 +341,11 @@ static int syscallGetcwd(char *buff, size_t size) {
   memcpy(buff, currentTask->cwd, realLength);
 
   return 0;
+}
+
+#define SYSCALL_GETUID 102
+static int syscallGetuid() {
+  return 0; // root ;)
 }
 
 #define SYSCALL_PRCTL 158
@@ -392,6 +430,9 @@ void initiateSyscalls() {
   registerSyscall(SYSCALL_FORK, syscallFork);
   registerSyscall(SYSCALL_RT_SIGACTION, syscallRtSigaction);
   registerSyscall(SYSCALL_EXIT_GROUP, syscallExitGroup);
+  registerSyscall(SYSCALL_STAT, syscallStat);
+  registerSyscall(SYSCALL_GETUID, syscallGetuid);
+  registerSyscall(SYSCALL_DUP2, syscallDup2);
 
   debugf("[syscalls] System calls are ready to fire: %d/%d\n", syscallCnt,
          MAX_SYSCALLS);

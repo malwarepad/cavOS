@@ -140,6 +140,10 @@ void drawCharacter(int charnum) {
     drawRect(width, height, CHAR_WIDTH, CHAR_HEIGHT, bg_color[0], bg_color[1],
              bg_color[2]);
     break;
+  case '\t':
+    for (int i = 0; i < 4; i++)
+      drawCharacter(' ');
+    break;
   default:
     eraseBull();
     psfPutC(charnum, width, height, textcolor[0], textcolor[1], textcolor[2]);

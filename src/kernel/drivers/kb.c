@@ -103,6 +103,8 @@ char handleKbEvent() {
 
 // used by the kernel atm
 uint32_t readStr(char *buffstr) {
+  while (kbIsOccupied())
+    ;
   bool res = kbTaskRead(KERNEL_TASK_ID, buffstr, 1024, false);
   if (!res)
     return 0;

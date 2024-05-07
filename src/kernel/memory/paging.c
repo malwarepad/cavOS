@@ -119,6 +119,16 @@ void ChangePageDirectoryUnsafe(uint64_t *pd) {
   globalPagedir = pd;
 }
 
+// Used by the scheduler to avoid accessing globalPagedir directly
+void ChangePageDirectoryFake(uint64_t *pd) {
+  if (!VirtualToPhysical((size_t)pd)) {
+    debugf("[paging] Could not (fake) change to pd{%lx}!\n", pd);
+    panic();
+  }
+
+  globalPagedir = pd;
+}
+
 void ChangePageDirectory(uint64_t *pd) {
   if (tasksInitiated)
     currentTask->pagedir = pd;

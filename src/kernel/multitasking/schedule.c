@@ -15,6 +15,7 @@
 #define SCHEDULE_DEBUG 0
 
 extern TSSPtr *tssPtr;
+extern void    asm_finalize_sched(uint64_t rsp, uint64_t cr3, Task *next);
 
 void schedule(uint64_t rsp) {
   if (!tasksInitiated)
@@ -57,17 +58,31 @@ void schedule(uint64_t rsp) {
   // Save generic (and non) registers
   memcpy(&old->registers, cpu, sizeof(AsmPassedInterrupt));
 
-  // Apply new generic (and non) registers
-  memcpy(cpu, &next->registers, sizeof(AsmPassedInterrupt));
+  // Apply new generic (and non) registers (not needed!)
+  // memcpy(cpu, &next->registers, sizeof(AsmPassedInterrupt));
 
-  // Apply pagetable
-  ChangePageDirectoryUnsafe(next->pagedir);
+  // Apply pagetable (not needed!)
+  // ChangePageDirectoryUnsafe(next->pagedir);
 
   // Save & load appropriate FPU state
   asm volatile(" fxsave %0 " ::"m"(old->fpuenv));
   asm volatile(" fxrstor %0 " ::"m"(next->fpuenv));
 
-  // Cleanup any old tasks left dead
-  if (old->state == TASK_STATE_DEAD)
-    taskKillCleanup(old);
+  // Cleanup any old tasks left dead (not needed!)
+  // if (old->state == TASK_STATE_DEAD)
+  //   taskKillCleanup(old);
+
+  // Put next task's registers in tssRsp
+  AsmPassedInterrupt *iretqRsp =
+      (AsmPassedInterrupt *)(next->tssRsp - sizeof(AsmPassedInterrupt));
+  memcpy(iretqRsp, &next->registers, sizeof(AsmPassedInterrupt));
+
+  // Pass off control to our assembly finalization code that:
+  //   - uses the tssRsp to iretq (give control back)
+  //   - applies the new pagetable
+  //   - cleanups old killed task (if necessary)
+  // .. basically replaces all (not needed!) stuff
+  ChangePageDirectoryFake(next->pagedir); // just for globalPagedir to update
+  asm_finalize_sched((size_t)iretqRsp, VirtualToPhysical((size_t)next->pagedir),
+                     next);
 }

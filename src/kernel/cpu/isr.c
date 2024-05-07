@@ -111,6 +111,19 @@ void handleTaskFault(AsmPassedInterrupt *regs) {
   schedule((uint64_t)regs);
 }
 
+uint64_t handle_tssrsp(uint64_t rsp) {
+  if (!tasksInitiated)
+    return rsp;
+
+  AsmPassedInterrupt *cpu = (AsmPassedInterrupt *)rsp;
+
+  AsmPassedInterrupt *iretqRsp =
+      (AsmPassedInterrupt *)(currentTask->tssRsp - sizeof(AsmPassedInterrupt));
+  memcpy(iretqRsp, cpu, sizeof(AsmPassedInterrupt));
+
+  return (size_t)iretqRsp;
+}
+
 // pass stack ptr
 void handle_interrupt(uint64_t rsp) {
   AsmPassedInterrupt *cpu = (AsmPassedInterrupt *)rsp;
@@ -141,10 +154,10 @@ void handle_interrupt(uint64_t rsp) {
     }
     }
   } else if (cpu->interrupt >= 0 && cpu->interrupt <= 31) { // ISR
-    if (systemCallOnProgress)
+    if (currentTask->systemCallInProgress)
       debugf("[isr] Happened from system call!\n");
 
-    if (!systemCallOnProgress && tasksInitiated &&
+    if (!currentTask->systemCallInProgress && tasksInitiated &&
         currentTask->id != KERNEL_TASK_ID) { // && !currentTask->kernel_task
       handleTaskFault(cpu);
       return;
