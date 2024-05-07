@@ -109,10 +109,14 @@ uint32_t readStr(char *buffstr) {
   if (!res)
     return 0;
 
-  uint32_t ret = 0;
+  Task *task = taskGet(KERNEL_TASK_ID);
+  if (!task)
+    return 0;
+
   while (kbBuff) {
-    ret = kbCurr;
   }
+  uint32_t ret = task->tmpRecV;
+  buffstr[ret] = '\0';
   return ret;
 }
 
@@ -168,20 +172,20 @@ void kbIrq() {
 
   switch (out) {
   case CHARACTER_ENTER:
-    kbBuff[kbCurr] = '\0';
+    // kbBuff[kbCurr] = '\0';
     kbFinaliseStream();
     break;
   case CHARACTER_BACK:
     if (kbCurr > 0) {
       printfch('\b');
       kbCurr--;
-      kbBuff[kbCurr + 1] = 0;
       kbBuff[kbCurr] = 0;
     }
     break;
   default:
     printfch(out);
-    kbBuff[kbCurr++] = out;
+    if (kbCurr < kbMax)
+      kbBuff[kbCurr++] = out;
     break;
   }
 

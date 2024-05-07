@@ -102,7 +102,6 @@ static int syscallRead(int file, char *str, uint32_t count) {
     // } done in kbTaskRead()
 
     // start reading
-    // todo: respect limit
     kbTaskRead(currentTask->id, str, count, true);
     asm volatile("sti"); // leave this task/execution (awaiting return)
     while (currentTask->state == TASK_STATE_WAITING_INPUT) {
@@ -111,9 +110,11 @@ static int syscallRead(int file, char *str, uint32_t count) {
 
     // finalise
     uint32_t fr = currentTask->tmpRecV;
-    str[fr] = '\n';
-    str[fr + 1] = '\0';
-    return fr + 1;
+    if (fr < count)
+      str[fr++] = '\n';
+    // only add newline if we can!
+
+    return fr;
   }
 
   OpenFile *browse = currentTask->firstFile;
