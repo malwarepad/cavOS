@@ -42,6 +42,22 @@ typedef enum CONNECTOR { CONNECTOR_AHCI } CONNECTOR;
 #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
 #define O_NDELAY O_NONBLOCK
 
+typedef struct stat {
+  uint32_t st_dev;     // Device ID
+  uint32_t st_ino;     // inode number
+  uint32_t st_mode;    // File mode
+  uint32_t st_nlink;   // Number of hard links
+  uint32_t st_uid;     // User ID of owner
+  uint32_t st_gid;     // Group ID of owner
+  uint32_t st_rdev;    // Device ID (if special file)
+  uint32_t st_size;    // Total size, in bytes
+  uint32_t st_blksize; // Optimal block size for I/O
+  uint32_t st_blocks;  // Number of 512B blocks allocated
+  uint64_t st_atime;   // Time of last access
+  uint64_t st_mtime;   // Time of last modification
+  uint64_t st_ctime;   // Time of last status change
+} stat;
+
 typedef struct MountPoint MountPoint;
 struct MountPoint {
   MountPoint *next;
@@ -121,5 +137,6 @@ bool     fsWriteChar(OpenFile *file, char in);
 bool     fsWriteSync(OpenFile *file);
 void     fsReadFullFile(OpenFile *file, uint8_t *out);
 uint32_t fsGetFilesize(OpenFile *file);
+bool     fsStat(char *filename, stat *target);
 
 #endif

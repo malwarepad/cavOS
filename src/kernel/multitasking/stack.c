@@ -98,6 +98,16 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint8_t *out,
   // todo: Proper environ
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 0);
 
+  size_t   pwdLen = strlength(target->cwd) + 1; // null terminated
+  uint8_t *pathstart = (uint8_t *)target->heap_end;
+  taskAdjustHeap(target, target->heap_end + 4 + pwdLen);
+  pathstart[0] = 'P';
+  pathstart[1] = 'W';
+  pathstart[2] = 'D';
+  pathstart[3] = '=';
+  memcpy((void *)((size_t)pathstart + 4), target->cwd, pwdLen);
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, (size_t)pathstart);
+
   // end of argv
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 0);
 

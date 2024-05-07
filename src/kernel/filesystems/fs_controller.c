@@ -178,7 +178,23 @@ bool fsOpenFsSpecific(char *filename, MountPoint *mnt, OpenFile *target) {
   return res;
 }
 
-void fsSanitize(char *filename) {
+char *fsSanitize(char *filename) {
+  if (filename[0] == '.' && filename[1] == '\0') {
+    // it's asking for our current directory
+    if (!tasksInitiated || !currentTask->cwd)
+      return filename;
+
+    size_t filenameSize = strlength(currentTask->cwd) + 1;
+    char  *safeFilename = (char *)malloc(filenameSize);
+    memcpy(safeFilename, currentTask->cwd, filenameSize);
+
+    return safeFilename;
+  }
+
+  size_t filenameSize = strlength(filename) + 1;
+  char  *safeFilename = (char *)malloc(filenameSize);
+  memcpy(safeFilename, filename, filenameSize);
+
   int i, j;
   for (i = 0, j = 0; filename[i] != '\0'; i++) {
     // double slashes
@@ -187,10 +203,18 @@ void fsSanitize(char *filename) {
     // slashes at the end
     if (filename[i] == '/' && filename[i + 1] == '\0')
       continue;
-    filename[j] = filename[i];
+    safeFilename[j] = filename[i];
     j++;
   }
-  filename[j] = '\0'; // null terminator
+  safeFilename[j] = '\0'; // null terminator
+
+  if (j == 0) {
+    // whoops
+    safeFilename[0] = '/';
+    safeFilename[1] = '\0';
+  }
+
+  return safeFilename;
 }
 
 // TODO! flags! modes!
@@ -198,10 +222,7 @@ void fsSanitize(char *filename) {
 
 int       openId = 3;
 OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, uint32_t mode) {
-  size_t filenameSize = strlength(filename) + 1;
-  char  *safeFilename = (char *)malloc(filenameSize);
-  memcpy(safeFilename, filename, filenameSize);
-  fsSanitize(safeFilename);
+  char *safeFilename = fsSanitize(filename);
 
   SpecialFile *special = fsUserGetSpecialByFilename(safeFilename);
   if (special) {
@@ -460,6 +481,46 @@ bool fsWriteSync(OpenFile *file) {
   default:
     debugf("[vfs] Tried to writeSync with bad filesystem! id{%d}\n",
            file->mountPoint->filesystem);
+    ret = false;
+    break;
+  }
+  return ret;
+}
+
+bool fsStat(char *filename, stat *target) {
+  char *safeFilename = fsSanitize(filename);
+
+  if (safeFilename[0] == '/' && safeFilename[1] == '\0') {
+    target->st_ino = 69;
+    target->st_dev = 29;
+    return true;
+  }
+
+  MountPoint *mnt = fsDetermineMountPoint(safeFilename);
+  if (!mnt) {
+    free(safeFilename);
+    return false;
+  }
+
+  bool ret = false;
+  switch (mnt->filesystem) {
+  case FS_FATFS: {
+    FILINFO *filinfo = (FILINFO *)malloc(sizeof(FILINFO));
+
+    if (f_stat(safeFilename, filinfo) == FR_OK)
+      ret = true;
+    free(safeFilename);
+
+    if (ret) {
+      target->st_size = filinfo->fsize;
+    }
+
+    free(filinfo);
+    break;
+  }
+  default:
+    debugf("[vfs] Tried to stat with bad filesystem! id{%d}\n",
+           mnt->filesystem);
     ret = false;
     break;
   }

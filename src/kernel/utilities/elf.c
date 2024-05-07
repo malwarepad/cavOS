@@ -176,14 +176,14 @@ uint32_t elfExecute(char *filepath, uint32_t argc, char **argv) {
     ChangePageDirectory(oldpagedir);
   }*/
 
-  // User stack generation: the stack itself, AUXs, etc...
-  stackGenerateUser(target, argc, argv, out, filesize, elf_ehdr);
-  free(out);
-
   // Current working directory init
   target->cwd = (char *)malloc(2);
   target->cwd[0] = '/';
   target->cwd[1] = '\0';
+
+  // User stack generation: the stack itself, AUXs, etc...
+  stackGenerateUser(target, argc, argv, out, filesize, elf_ehdr);
+  free(out);
 
   fsUserOpenSpecial("/dev/stdin", target, 0, readHandler, writeHandler,
                     ioctlHandler);

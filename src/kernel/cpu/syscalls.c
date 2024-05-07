@@ -183,23 +183,11 @@ static int syscallClose(int file) { return fsUserClose(file); }
 #define SYSCALL_STAT 4
 static int syscallStat(char *filename, stat *statbuf) {
   debugf("[syscalls::stat] filename{%s} buff{%lx}\n", filename, statbuf);
-  int fd = fsUserOpen(filename, FS_MODE_READ, 0);
-  if (fd < 0)
-    return -1;
+  bool ret = fsStat(filename, statbuf);
+  if (ret)
+    return 0;
 
-  OpenFile *browse = fsUserGetNode(fd);
-  if (!browse)
-    return -1;
-
-  debugf("[syscalls::stat] UNIMPLEMENTED! filename{%s}\n", filename);
-
-  statbuf->st_uid = 0;
-  statbuf->st_gid = 0;
-  statbuf->st_size = fsGetFilesize(browse);
-  // todo...
-
-  fsUserClose(fd);
-  return 0;
+  return -1;
 }
 
 #define SYSCALL_LSEEK 8
