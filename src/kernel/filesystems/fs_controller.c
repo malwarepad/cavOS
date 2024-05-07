@@ -115,20 +115,33 @@ OpenFile *fsUserRegisterNode(Task *task) {
 }
 
 bool fsUserUnregisterNode(Task *task, OpenFile *file) {
+  SpecialFile *special = fsUserGetSpecialById(file->id);
+  if (special)
+    fsUserCloseSpecial(special);
   return LinkedListUnregister((void **)&task->firstFile, file);
 }
 
-OpenFile *fsUserNodeFetch(Task *task, int fd) {
-  OpenFile *browse = task->firstFile;
-  while (browse) {
-    if (browse->id == fd)
-      break;
-    browse = browse->next;
-  }
-  return browse;
+OpenFile *fsUserSpecialDummyGen(int fd, SpecialFile *special, int flags,
+                                int mode) {
+  // we have a special file!
+  OpenFile *dummy = fsUserRegisterNode(currentTask);
+  dummy->id = fd;
+
+  dummy->flags = flags;
+  dummy->mode = mode;
+  dummy->pointer = 0;
+  dummy->tmp1 = 0;
+
+  dummy->mountPoint = (void *)MOUNT_POINT_SPECIAL;
+  dummy->dir = special;
+
+  return dummy;
 }
 
 bool fsCloseFsSpecific(OpenFile *file) {
+  if (file->mountPoint == MOUNT_POINT_SPECIAL)
+    return true;
+
   bool res = false;
   switch (file->mountPoint->filesystem) {
   case FS_FATFS:
@@ -180,8 +193,22 @@ void fsSanitize(char *filename) {
   filename[j] = '\0'; // null terminator
 }
 
-int       openId = 2;
+// TODO! flags! modes!
+// todo: openId in a bitmap or smth, per task/kernel
+
+int       openId = 3;
 OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, uint32_t mode) {
+  size_t filenameSize = strlength(filename) + 1;
+  char  *safeFilename = (char *)malloc(filenameSize);
+  memcpy(safeFilename, filename, filenameSize);
+  fsSanitize(safeFilename);
+
+  SpecialFile *special = fsUserGetSpecialByFilename(safeFilename);
+  if (special) {
+    free(safeFilename);
+    return fsUserSpecialDummyGen(openId++, special, flags, mode);
+  }
+
   OpenFile *target = task ? fsUserRegisterNode(task) : fsKernelRegisterNode();
   target->id = openId++;
   target->mode = mode;
@@ -189,11 +216,6 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, uint32_t mode) {
 
   target->pointer = 0;
   target->tmp1 = 0;
-
-  size_t filenameSize = strlength(filename) + 1;
-  char  *safeFilename = (char *)malloc(filenameSize);
-  memcpy(safeFilename, filename, filenameSize);
-  fsSanitize(safeFilename);
 
   MountPoint *mnt = fsDetermineMountPoint(safeFilename);
   if (!mnt) {
@@ -224,6 +246,88 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, uint32_t mode) {
   return target;
 }
 
+bool fsUserOpenSpecial(char *filename, void *taskPtr, int fd,
+                       SpecialReadHandler read, SpecialWriteHandler write,
+                       SpecialIoctlHandler ioctl) {
+  Task *task = (Task *)taskPtr;
+
+  SpecialFile *target = (SpecialFile *)LinkedListAllocate(
+      (void **)(&task->firstSpecialFile), sizeof(SpecialFile));
+
+  size_t filenameLen = strlength(filename) + 1; // null terminated
+  void  *filenameBuff = malloc(filenameLen);
+  memcpy(filenameBuff, filename, filenameLen);
+  target->filename = filenameBuff;
+
+  target->id = fd;
+  target->readHandler = read;
+  target->writeHandler = write;
+  target->ioctlHandler = ioctl;
+
+  return true;
+}
+
+bool fsUserCloseSpecial(SpecialFile *special) {
+  return LinkedListRemove((void **)&currentTask->firstSpecialFile, special);
+}
+
+SpecialFile *fsUserGetSpecialByFilename(char *filename) {
+  if (!currentTask || !currentTask->firstSpecialFile)
+    return 0;
+  SpecialFile *browse = currentTask->firstSpecialFile;
+  while (browse) {
+    size_t len1 = strlength(filename);
+    size_t len2 = strlength(browse->filename);
+    size_t fin = len1 > len2 ? len1 : len2;
+    if (memcmp(browse->filename, filename, fin) == 0)
+      break;
+    browse = browse->next;
+  }
+
+  return browse;
+}
+
+SpecialFile *fsUserGetSpecialById(int fd) {
+  if (!currentTask || !currentTask->firstSpecialFile)
+    return 0;
+  SpecialFile *browse = currentTask->firstSpecialFile;
+  while (browse) {
+    if (browse->id == fd)
+      break;
+    browse = browse->next;
+  }
+  return browse;
+}
+
+OpenFile *fsUserGetNode(int fd) {
+  OpenFile *browse = currentTask->firstFile;
+  while (browse) {
+    if (browse->id == fd)
+      break;
+
+    browse = browse->next;
+  }
+
+  if (!browse) {
+    // might be a special file then
+    SpecialFile *special = currentTask->firstSpecialFile;
+
+    while (special) {
+      if (special->id == fd)
+        break;
+
+      special = special->next;
+    }
+
+    if (!special)
+      return 0;
+
+    return fsUserSpecialDummyGen(fd, special, 0, 0);
+  }
+
+  return browse;
+}
+
 OpenFile *fsKernelOpen(char *filename, int flags, uint32_t mode) {
   return fsOpenGeneric(filename, 0, flags, mode);
 }
@@ -252,14 +356,12 @@ bool fsCloseGeneric(OpenFile *file, Task *task) {
 bool fsKernelClose(OpenFile *file) { return fsCloseGeneric(file, 0); }
 
 int fsUserClose(int fd) {
-  if (fd < 2)
-    return -1;
-  OpenFile *file = fsUserNodeFetch(currentTask, fd);
+  OpenFile *file = fsUserGetNode(fd);
   if (!file)
     return -1;
   bool res = fsCloseGeneric(file, currentTask);
   if (res)
-    return 1;
+    return 0;
   else
     return -1;
 }
@@ -280,6 +382,9 @@ uint32_t fsGetFilesize(OpenFile *file) {
 }
 
 uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit) {
+  if (file->mountPoint == MOUNT_POINT_SPECIAL)
+    return ((SpecialFile *)file->dir)->readHandler(file, out, limit);
+
   uint32_t ret = 0;
   switch (file->mountPoint->filesystem) {
   case FS_FATFS: {
@@ -299,6 +404,9 @@ uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit) {
 }
 
 uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit) {
+  if (file->mountPoint == MOUNT_POINT_SPECIAL)
+    return ((SpecialFile *)file->dir)->writeHandler(file, in, limit);
+
   uint32_t ret = 0;
   switch (file->mountPoint->filesystem) {
   case FS_FATFS: {
@@ -318,6 +426,9 @@ uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit) {
 }
 
 bool fsWriteChar(OpenFile *file, char in) {
+  if (file->mountPoint == MOUNT_POINT_SPECIAL)
+    return ((SpecialFile *)file->dir)->readHandler(file, (uint8_t *)&in, 1);
+
   bool ret = false;
   switch (file->mountPoint->filesystem) {
   case FS_FATFS: {
@@ -337,6 +448,9 @@ bool fsWriteChar(OpenFile *file, char in) {
 }
 
 bool fsWriteSync(OpenFile *file) {
+  if (file->mountPoint == MOUNT_POINT_SPECIAL)
+    return true;
+
   bool ret = false;
   switch (file->mountPoint->filesystem) {
   case FS_FATFS:
@@ -368,7 +482,7 @@ void fsReadFullFile(OpenFile *file, uint8_t *out) {
 #define SEEK_CURR 1 // current + offset
 #define SEEK_END 2  // end + offset
 int fsUserSeek(uint32_t fd, int offset, int whence) {
-  OpenFile *file = fsUserNodeFetch(currentTask, fd);
+  OpenFile *file = fsUserGetNode(fd);
   if (!file)
     return -1;
   int target = offset;

@@ -58,6 +58,8 @@ struct MountPoint {
   void         *fsInfo;
 };
 
+// mount point for "special" files ;)
+#define MOUNT_POINT_SPECIAL ((MountPoint *)0x69)
 typedef struct OpenFile OpenFile;
 struct OpenFile {
   OpenFile *next;
@@ -71,6 +73,21 @@ struct OpenFile {
 
   MountPoint *mountPoint;
   void       *dir;
+};
+
+typedef struct SpecialFile SpecialFile;
+typedef int (*SpecialReadHandler)(OpenFile *fd, uint8_t *out, size_t limit);
+typedef int (*SpecialWriteHandler)(OpenFile *fd, uint8_t *in, size_t limit);
+typedef int (*SpecialIoctlHandler)(OpenFile *fd, uint64_t request, void *arg);
+struct SpecialFile {
+  SpecialFile *next;
+
+  int   id;
+  char *filename;
+
+  SpecialReadHandler  readHandler;
+  SpecialWriteHandler writeHandler;
+  SpecialIoctlHandler ioctlHandler;
 };
 
 OpenFile *firstKernelFile;
@@ -88,6 +105,15 @@ bool      fsKernelClose(OpenFile *file);
 int fsUserOpen(char *filename, int flags, uint32_t mode);
 int fsUserClose(int fd);
 int fsUserSeek(uint32_t fd, int offset, int whence);
+
+OpenFile *fsUserGetNode(int fd);
+
+bool         fsUserOpenSpecial(char *filename, void *taskPtr, int fd,
+                               SpecialReadHandler read, SpecialWriteHandler write,
+                               SpecialIoctlHandler ioctl);
+bool         fsUserCloseSpecial(SpecialFile *special);
+SpecialFile *fsUserGetSpecialByFilename(char *filename);
+SpecialFile *fsUserGetSpecialById(int fd);
 
 uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit);
 uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit);

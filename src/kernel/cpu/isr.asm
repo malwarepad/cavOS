@@ -7,7 +7,7 @@ global asm_finalize_sched
 asm_finalize_sched:
   ; rdi = switch stack pointer
   ; rsi = next pagedir
-  ; rdx = next task pointer (for cleanup)
+  ; rdx = old task pointer (for cleanup)
 
   mov rsp, rdi
   mov cr3, rsi

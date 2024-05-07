@@ -90,39 +90,64 @@ void syscallHandler(AsmPassedInterrupt *regs) {
   currentTask->systemCallInProgress = false;
 }
 
-bool running = false;
+int readHandler(OpenFile *fd, uint8_t *in, size_t limit) {
+  // console fb
+  // while (kbIsOccupied()) {
+  // } done in kbTaskRead()
+
+  // start reading
+  kbTaskRead(currentTask->id, (char *)in, limit, true);
+  asm volatile("sti"); // leave this task/execution (awaiting return)
+  while (currentTask->state == TASK_STATE_WAITING_INPUT) {
+  }
+  printf("\n"); // you technically pressed enter, didn't you?
+
+  // finalise
+  uint32_t fr = currentTask->tmpRecV;
+  if (fr < limit)
+    in[fr++] = '\n';
+  // only add newline if we can!
+
+  return fr;
+}
+
+int writeHandler(OpenFile *fd, uint8_t *out, size_t limit) {
+  // console fb
+  for (int i = 0; i < limit; i++) {
+#if DEBUG_SYSCALLS
+    serial_send(COM1, out[i]);
+#endif
+    printfch(out[i]);
+  }
+  return limit;
+}
+
+int ioctlHandler(OpenFile *fd, uint64_t request, void *arg) {
+  switch (request) {
+  case 0x5413: {
+    winsize *win = (winsize *)arg;
+    win->ws_row = framebufferHeight / TTY_CHARACTER_HEIGHT;
+    win->ws_col = framebufferWidth / TTY_CHARACTER_WIDTH;
+
+    win->ws_xpixel = framebufferWidth;
+    win->ws_ypixel = framebufferHeight;
+    return 0;
+    break;
+  }
+  default:
+    return -1;
+    break;
+  }
+}
 
 // System calls themselves
 #define SYSCALL_READ 0
 static int syscallRead(int file, char *str, uint32_t count) {
+#if DEBUG_SYSCALLS
   debugf("[syscalls::read] file{%d} str{%x} count{%d}\n", file, str, count);
-  if (file == 0 || file == 1) {
-    // console fb
-    // while (kbIsOccupied()) {
-    // } done in kbTaskRead()
+#endif
 
-    // start reading
-    kbTaskRead(currentTask->id, str, count, true);
-    asm volatile("sti"); // leave this task/execution (awaiting return)
-    while (currentTask->state == TASK_STATE_WAITING_INPUT) {
-    }
-    printf("\n"); // you technically pressed enter, didn't you?
-
-    // finalise
-    uint32_t fr = currentTask->tmpRecV;
-    if (fr < count)
-      str[fr++] = '\n';
-    // only add newline if we can!
-
-    return fr;
-  }
-
-  OpenFile *browse = currentTask->firstFile;
-  while (browse) {
-    if (browse->id == file)
-      break;
-    browse = browse->next;
-  }
+  OpenFile *browse = fsUserGetNode(file);
   if (!browse) {
     // handle
     return 0;
@@ -139,23 +164,7 @@ static int syscallWrite(int file, char *str, uint32_t count) {
 #if DEBUG_SYSCALLS
   debugf("[syscalls::write] file{%d} str{%x} count{%d}\n", file, str, count);
 #endif
-  if (file == 0 || file == 1 || file == 2) {
-    // console fb
-    for (int i = 0; i < count; i++) {
-#if DEBUG_SYSCALLS
-      serial_send(COM1, str[i]);
-#endif
-      printfch(str[i]);
-    }
-    return count;
-  }
-
-  OpenFile *browse = currentTask->firstFile;
-  while (browse) {
-    if (browse->id == file)
-      break;
-    browse = browse->next;
-  }
+  OpenFile *browse = fsUserGetNode(file);
   if (!browse)
     return -1;
 
@@ -178,13 +187,7 @@ static int syscallStat(char *filename, stat *statbuf) {
   if (fd < 0)
     return -1;
 
-  OpenFile *browse = currentTask->firstFile;
-  while (browse) {
-    if (browse->id == fd)
-      break;
-    browse = browse->next;
-  }
-
+  OpenFile *browse = fsUserGetNode(fd);
   if (!browse)
     return -1;
 
@@ -194,6 +197,8 @@ static int syscallStat(char *filename, stat *statbuf) {
   statbuf->st_gid = 0;
   statbuf->st_size = fsGetFilesize(browse);
   // todo...
+
+  fsUserClose(fd);
   return 0;
 }
 
@@ -253,34 +258,24 @@ static int syscallRtSigaction() {
   return 0;
 }
 
-typedef struct winsize {
-  unsigned short ws_row;
-  unsigned short ws_col;
-  unsigned short ws_xpixel;
-  unsigned short ws_ypixel;
-} winsize;
-
 #define SYSCALL_IOCTL 16
 static int syscallIoctl(int fd, unsigned long request, void *arg) {
 #if DEBUG_SYSCALLS
   debugf("[syscalls::ioctl] fd{%d} req{%lx} arg{%lx}\n", fd, request, arg);
 #endif
-  if (request == 0x5413) {
-    if (fd == 0 || fd == 1) {
-      winsize *win = (winsize *)arg;
-      win->ws_row = framebufferHeight / TTY_CHARACTER_HEIGHT;
-      win->ws_col = framebufferWidth / TTY_CHARACTER_WIDTH;
-
-      win->ws_xpixel = framebufferWidth;
-      win->ws_ypixel = framebufferHeight;
-      return 0;
-    }
-
+  OpenFile *browse = fsUserGetNode(fd);
+  if (!browse || browse->mountPoint != MOUNT_POINT_SPECIAL)
     return -1;
-  }
-  debugf("[syscalls::ioctl] UNIMPLEMENTED! fd{%d} req{%lx} arg{%lx}\n", fd,
-         request, arg);
-  return -1;
+
+  SpecialFile *special = (SpecialFile *)browse->dir;
+  if (!special)
+    return -1;
+
+  int ret = special->ioctlHandler(browse, request, arg);
+  if (ret < 0)
+    debugf("[syscalls::ioctl] UNIMPLEMENTED! fd{%d} req{%lx} arg{%lx}\n", fd,
+           request, arg);
+  return ret;
 }
 
 #define SYSCALL_WRITEV 20

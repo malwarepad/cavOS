@@ -50,6 +50,8 @@ struct Task {
   OpenFile *firstFile;
   char     *cwd;
 
+  SpecialFile *firstSpecialFile;
+
   __attribute__((aligned(16))) uint8_t fpuenv[512];
 
   Task *next;

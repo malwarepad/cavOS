@@ -133,8 +133,8 @@ void taskKillCleanup(Task *task) {
     browse = browse->next;
   }
   // Task *task = browse->next;
-  if (!task || task->state == TASK_STATE_DEAD)
-    return;
+  // if (!task || task->state == TASK_STATE_DEAD)
+  //   return;
 
   browse->next = task->next;
 
@@ -163,14 +163,23 @@ void taskKillCleanup(Task *task) {
   // PageDirectoryFree(task->pagedir); // left for sched
 
   // close any left open files
-  OpenFile *file = task->firstFile;
-  Task     *old = currentTask;
+  Task *old = currentTask;
   currentTask = task;
+
+  OpenFile *file = task->firstFile;
   while (file) {
     int id = file->id;
     file = file->next;
     fsUserClose(id);
   }
+
+  SpecialFile *special = task->firstSpecialFile;
+  while (special) {
+    SpecialFile *next = special->next;
+    fsUserCloseSpecial(special);
+    special = next;
+  }
+
   currentTask = old;
 
   PageDirectoryFree(task->pagedir);

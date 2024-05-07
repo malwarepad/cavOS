@@ -15,7 +15,7 @@
 #define SCHEDULE_DEBUG 0
 
 extern TSSPtr *tssPtr;
-extern void    asm_finalize_sched(uint64_t rsp, uint64_t cr3, Task *next);
+extern void    asm_finalize_sched(uint64_t rsp, uint64_t cr3, Task *old);
 
 void schedule(uint64_t rsp) {
   if (!tasksInitiated)
@@ -84,5 +84,5 @@ void schedule(uint64_t rsp) {
   // .. basically replaces all (not needed!) stuff
   ChangePageDirectoryFake(next->pagedir); // just for globalPagedir to update
   asm_finalize_sched((size_t)iretqRsp, VirtualToPhysical((size_t)next->pagedir),
-                     next);
+                     old);
 }

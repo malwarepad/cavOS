@@ -1,10 +1,12 @@
 #include <bitmap.h>
+#include <console.h>
 #include <elf.h>
 #include <fs_controller.h>
 #include <malloc.h>
 #include <paging.h>
 #include <pmm.h>
 #include <stack.h>
+#include <syscalls.h>
 #include <system.h>
 #include <task.h>
 #include <util.h>
@@ -182,6 +184,13 @@ uint32_t elfExecute(char *filepath, uint32_t argc, char **argv) {
   target->cwd = (char *)malloc(2);
   target->cwd[0] = '/';
   target->cwd[1] = '\0';
+
+  fsUserOpenSpecial("/dev/stdin", target, 0, readHandler, writeHandler,
+                    ioctlHandler);
+  fsUserOpenSpecial("/dev/stdout", target, 1, readHandler, writeHandler,
+                    ioctlHandler);
+  fsUserOpenSpecial("/dev/stderr", target, 2, readHandler, writeHandler,
+                    ioctlHandler);
 
   taskCreateFinish(target);
 
