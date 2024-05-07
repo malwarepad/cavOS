@@ -319,12 +319,15 @@ static void syscallExitTask(int return_code) {
 
 #define SYSCALL_GETCWD 79
 static int syscallGetcwd(char *buff, size_t size) {
+#if DEBUG_SYSCALLS
+  debugf("[syscalls::getcwd] buff{%lx} size{%lx}\n", buff, size);
+#endif
   size_t realLength = strlength(currentTask->cwd) + 1;
   if (size < realLength)
     return -1;
   memcpy(buff, currentTask->cwd, realLength);
 
-  return 0;
+  return realLength;
 }
 
 #define SYSCALL_GETUID 102
@@ -356,7 +359,7 @@ static int syscallGetTid() { return currentTask->id; }
 #define SYSCALL_SET_TID_ADDR 218
 static int syscallSetTidAddr(int *tidptr) {
   debugf("[syscalls] tid: %lx\n", tidptr);
-  return -1;
+  return currentTask->id;
 }
 
 #define SYSCALL_EXIT_GROUP 231
