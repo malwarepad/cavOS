@@ -4,8 +4,8 @@
 #ifndef FS_CONTROLLER_H
 #define FS_CONTROLLER_H
 
-typedef enum FS { FS_FATFS, FS_TEST } FS;
-typedef enum CONNECTOR { CONNECTOR_AHCI, CONNECTOR_DUMMY } CONNECTOR;
+typedef enum FS { FS_FATFS } FS;
+typedef enum CONNECTOR { CONNECTOR_AHCI } CONNECTOR;
 
 // Accordingly to fatfs
 #define FS_MODE_READ 0x01

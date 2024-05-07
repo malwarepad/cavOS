@@ -69,10 +69,6 @@ MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
             FR_OK; // todo: (maybe) multiple drives
     }
     break;
-  case CONNECTOR_DUMMY:
-    mount->filesystem = FS_TEST;
-    ret = 1;
-    break;
   default:
     debugf("[vfs] Tried to mount with bad connector! id{%d}\n", connector);
     ret = 0;
@@ -140,9 +136,6 @@ bool fsCloseFsSpecific(OpenFile *file) {
     free(file->dir);
     res = true;
     break;
-  case FS_TEST:
-    res = true;
-    break;
   default:
     debugf("[vfs] Tried to close with bad filesystem! id{%d}\n",
            file->mountPoint->filesystem);
@@ -162,9 +155,6 @@ bool fsOpenFsSpecific(char *filename, MountPoint *mnt, OpenFile *target) {
     target->dir = malloc(sizeof(FIL));
     memset(target->dir, 0, sizeof(FIL));
     res = f_open(target->dir, filename, target->flags) == FR_OK;
-    break;
-  case FS_TEST:
-    res = 1;
     break;
   default:
     debugf("[vfs] Tried to open with bad filesystem! id{%d}\n",
@@ -279,9 +269,6 @@ uint32_t fsGetFilesize(OpenFile *file) {
   case FS_FATFS:
     return f_size((FIL *)file->dir);
     break;
-  case FS_TEST:
-    return 4096;
-    break;
   default:
     debugf("[vfs] Tried to getFilesize with bad filesystem! id{%d}\n",
            file->mountPoint->filesystem);
@@ -302,10 +289,6 @@ uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit) {
       ret = read;
     break;
   }
-  case FS_TEST:
-    memset(out, 'p', limit);
-    ret = limit;
-    break;
   default:
     debugf("[vfs] Tried to read with bad filesystem! id{%d}\n",
            file->mountPoint->filesystem);
@@ -325,10 +308,6 @@ uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit) {
       ret = write;
     break;
   }
-  case FS_TEST:
-    for (int i = 0; i < limit; i++)
-      debugf("%c", in[i]);
-    break;
   default:
     debugf("[vfs] Tried to write with bad filesystem! id{%d}\n",
            file->mountPoint->filesystem);
@@ -348,9 +327,6 @@ bool fsWriteChar(OpenFile *file, char in) {
       ret = write;
     break;
   }
-  case FS_TEST:
-    debugf("%c", in);
-    break;
   default:
     debugf("[vfs] Tried to writeChar with bad filesystem! id{%d}\n",
            file->mountPoint->filesystem);
@@ -367,9 +343,6 @@ bool fsWriteSync(OpenFile *file) {
     if (f_sync(file->dir) == FR_OK)
       ret = true;
     break;
-  case FS_TEST:
-    ret = true;
-    break;
   default:
     debugf("[vfs] Tried to writeSync with bad filesystem! id{%d}\n",
            file->mountPoint->filesystem);
@@ -382,9 +355,6 @@ bool fsWriteSync(OpenFile *file) {
 void fsReadFullFile(OpenFile *file, uint8_t *out) {
   switch (file->mountPoint->filesystem) {
   case FS_FATFS:
-    fsRead(file, out, fsGetFilesize(file));
-    break;
-  case FS_TEST:
     fsRead(file, out, fsGetFilesize(file));
     break;
   default:
@@ -417,9 +387,6 @@ int fsUserSeek(uint32_t fd, int offset, int whence) {
       target += f_tell((FIL *)file->dir);
     // debugf("moving to %d\n", target);
     ret = f_lseek(file->dir, target) == FR_OK;
-    break;
-  case FS_TEST:
-    // idk what to return lmao
     break;
   default:
     debugf("[vfs] Tried to seek with bad filesystem! id{%d}\n",
