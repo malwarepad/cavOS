@@ -40,8 +40,9 @@ void schedule(uint64_t rsp) {
   // if (old->id != 0 || next->id != 0)
   debugf("[scheduler] Switching context: id{%d} -> id{%d}\n", old->id,
          next->id);
-  debugf("cpu->usermode_rsp{%lx} rsp{%lx} fsbase{%lx} gsbase{%lx}\n",
-         cpu->usermode_rsp, rsp, old->fsbase, old->gsbase);
+  debugf("cpu->usermode_rsp{%lx} rip{%lx} fsbase{%lx} gsbase{%lx}\n",
+         next->registers.usermode_rsp, next->registers.rip, old->fsbase,
+         old->gsbase);
 #endif
 
   // Change TSS rsp0 (software multitasking)

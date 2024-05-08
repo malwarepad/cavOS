@@ -301,3 +301,44 @@ void PageDirectoryFree(uint64_t *page_dir) {
 
   // ChangePageDirectory(prev_pagedir);
 }
+
+void PageDirectoryUserDuplicate(uint64_t *source, uint64_t *target) {
+  for (int pml4_index = 0; pml4_index < 512; pml4_index++) {
+    if (!(source[pml4_index] & PF_PRESENT) || source[pml4_index] & PF_PS)
+      continue;
+    size_t *pdp = (size_t *)(PTE_GET_ADDR(source[pml4_index]) + HHDMoffset);
+
+    for (int pdp_index = 0; pdp_index < 512; pdp_index++) {
+      if (!(pdp[pdp_index] & PF_PRESENT) || pdp[pdp_index] & PF_PS)
+        continue;
+      size_t *pd = (size_t *)(PTE_GET_ADDR(pdp[pdp_index]) + HHDMoffset);
+
+      for (int pd_index = 0; pd_index < 512; pd_index++) {
+        if (!(pd[pd_index] & PF_PRESENT) || pd[pd_index] & PF_PS)
+          continue;
+        size_t *pt = (size_t *)(PTE_GET_ADDR(pd[pd_index]) + HHDMoffset);
+
+        for (int pt_index = 0; pt_index < 512; pt_index++) {
+          if (!(pt[pt_index] & PF_PRESENT) || pt[pt_index] & PF_PS)
+            continue;
+
+          // we only duplicate mappings related to userland (ones from ELF)
+          if (!(pt[pt_index] & PF_USER))
+            continue;
+
+          size_t physSource = PTE_GET_ADDR(pt[pt_index]);
+          size_t physTarget = BitmapAllocatePageframe(&physical);
+
+          size_t virt =
+              BITS_TO_VIRT_ADDR(pml4_index, pdp_index, pd_index, pt_index);
+
+          void *ptrSource = (void *)(physSource + HHDMoffset);
+          void *ptrTarget = (void *)(physTarget + HHDMoffset);
+
+          memcpy(ptrTarget, ptrSource, PAGE_SIZE);
+          VirtualMapL(target, virt, physTarget, PF_RW | PF_USER);
+        }
+      }
+    }
+  }
+}

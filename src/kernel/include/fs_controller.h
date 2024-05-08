@@ -133,7 +133,10 @@ bool         fsUserOpenSpecial(char *filename, void *taskPtr, int fd,
                                SpecialIoctlHandler ioctl);
 bool         fsUserCloseSpecial(SpecialFile *special);
 SpecialFile *fsUserGetSpecialByFilename(char *filename);
-SpecialFile *fsUserGetSpecialById(int fd);
+SpecialFile *fsUserGetSpecialById(void *taskPtr, int fd);
+
+OpenFile    *fsUserDuplicateNode(OpenFile *original, SpecialFile *special);
+SpecialFile *fsUserDuplicateSpecialNode(SpecialFile *original);
 
 uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit);
 uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit);

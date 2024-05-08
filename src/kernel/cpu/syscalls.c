@@ -65,7 +65,11 @@ void   registerSyscall(uint32_t id, void *handler) {
 typedef uint64_t (*SyscallHandler)(uint64_t a1, uint64_t a2, uint64_t a3,
                                    uint64_t a4, uint64_t a5, uint64_t a6);
 void syscallHandler(AsmPassedInterrupt *regs) {
+  uint64_t *rspPtr = (uint64_t *)((size_t)regs + sizeof(AsmPassedInterrupt));
+  uint64_t  rsp = *rspPtr;
   currentTask->systemCallInProgress = true;
+  currentTask->syscallRegs = regs;
+  currentTask->syscallRsp = rsp;
   asm volatile("sti"); // do other task stuff while we're here!
   uint64_t id = regs->rax;
 #if DEBUG_SYSCALLS
@@ -76,6 +80,8 @@ void syscallHandler(AsmPassedInterrupt *regs) {
   if (!handler) {
     regs->rax = -1;
     debugf("[syscalls] Tried to access syscall{%d} (doesn't exist)!\n", id);
+    currentTask->syscallRsp = 0;
+    currentTask->syscallRegs = 0;
     currentTask->systemCallInProgress = false;
     return;
   }
@@ -87,6 +93,8 @@ void syscallHandler(AsmPassedInterrupt *regs) {
 #endif
 
   regs->rax = ret;
+  currentTask->syscallRsp = 0;
+  currentTask->syscallRegs = 0;
   currentTask->systemCallInProgress = false;
 }
 
@@ -243,7 +251,13 @@ static uint64_t syscallBrk(uint64_t brk) {
 #define SYSCALL_RT_SIGACTION 13
 static int syscallRtSigaction() {
   debugf("todo!\n");
-  return 0;
+  return -1;
+}
+
+#define SYSCALL_RT_SIGPROCMASK 14
+static int syscallRtSigprocmask() {
+  debugf("todo!\n");
+  return -1;
 }
 
 #define SYSCALL_IOCTL 16
@@ -299,9 +313,8 @@ static uint32_t syscallGetPid() { return currentTask->id; }
 
 #define SYSCALL_FORK 57
 static int syscallFork() {
-  // todo: fork 🍴
-  debugf("[syscalls] %d tried to fork()\n", currentTask->id);
-  return -1;
+  debugf("[syscalls::fork] parent{%d}\n", currentTask->id);
+  return taskFork(currentTask->syscallRegs, currentTask->syscallRsp);
 }
 
 #define SYSCALL_EXIT_TASK 60
@@ -440,6 +453,7 @@ void initiateSyscalls() {
   registerSyscall(SYSCALL_IOCTL, syscallIoctl);
   registerSyscall(SYSCALL_FORK, syscallFork);
   registerSyscall(SYSCALL_RT_SIGACTION, syscallRtSigaction);
+  registerSyscall(SYSCALL_RT_SIGPROCMASK, syscallRtSigprocmask);
   registerSyscall(SYSCALL_EXIT_GROUP, syscallExitGroup);
   registerSyscall(SYSCALL_STAT, syscallStat);
   registerSyscall(SYSCALL_GETUID, syscallGetuid);

@@ -39,6 +39,9 @@ struct Task {
 
   bool systemCallInProgress;
 
+  AsmPassedInterrupt *syscallRegs;
+  uint64_t            syscallRsp;
+
   // Useful to switch, for when TLS is available
   uint64_t fsbase;
   uint64_t gsbase;
@@ -54,6 +57,7 @@ struct Task {
 
   __attribute__((aligned(16))) uint8_t fpuenv[512];
 
+  Task *parent;
   Task *next;
 };
 
@@ -70,9 +74,12 @@ void  taskCreateFinish(Task *task);
 void  taskAdjustHeap(Task *task, size_t new_heap_end);
 void  taskKill(uint32_t id);
 void  taskKillCleanup(Task *task);
+void  taskKillChildren(Task *task);
+void  taskFreeChildren(Task *task);
 uint8_t taskGetState(uint32_t id);
 Task   *taskGet(uint32_t id);
 int16_t taskGenerateId();
 bool    taskChangeCwd(char *newdir);
+int     taskFork(AsmPassedInterrupt *cpu, uint64_t rsp);
 
 #endif

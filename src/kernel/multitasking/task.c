@@ -1,5 +1,6 @@
 #include <gdt.h>
 #include <isr.h>
+#include <linked_list.h>
 #include <malloc.h>
 #include <paging.h>
 #include <pmm.h>
@@ -185,6 +186,32 @@ void taskKillCleanup(Task *task) {
   PageDirectoryFree(task->pagedir);
   VirtualFree((void *)task->tssRsp, USER_STACK_PAGES);
   free(task);
+
+  // taskKillChildren(task); // wait()
+  taskFreeChildren(task);
+}
+
+void taskFreeChildren(Task *task) {
+  Task *child = firstTask;
+  while (child) {
+    Task *next = child->next;
+    if (child->parent == task && child->state != TASK_STATE_DEAD)
+      child->parent = 0;
+    child = next;
+  }
+}
+
+void taskKillChildren(Task *task) {
+  Task *child = firstTask;
+  while (child) {
+    Task *next = child->next;
+    if (child->parent == task && child->state != TASK_STATE_DEAD) {
+      taskKill(child->id);
+      // taskKillCleanup(child); // done automatically
+      taskKillChildren(task); // use recursion
+    }
+    child = next;
+  }
 }
 
 Task *taskGet(uint32_t id) {
@@ -229,6 +256,88 @@ bool taskChangeCwd(char *newdir) {
   currentTask->cwd = realloc(currentTask->cwd, len);
   memcpy(currentTask->cwd, newdir, len);
   return true;
+}
+
+extern void syscall_end();
+
+int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
+  Task *browse = firstTask;
+  while (browse) {
+    if (!browse->next)
+      break; // found final
+    browse = browse->next;
+  }
+  if (!browse) {
+    debugf("[scheduler] Something went wrong with init!\n");
+    panic();
+  }
+  Task *target = (Task *)malloc(sizeof(Task));
+  memset(target, 0, sizeof(Task));
+  browse->next = target;
+
+  uint64_t *targetPagedir = PageDirectoryAllocate();
+  PageDirectoryUserDuplicate(currentTask->pagedir, targetPagedir);
+
+  target->id = taskGenerateId();
+  target->kernel_task = currentTask->kernel_task;
+  target->state = TASK_STATE_CREATED;
+
+  // target->registers = currentTask->registers;
+  memcpy(&target->registers, cpu, sizeof(AsmPassedInterrupt));
+  target->pagedir = targetPagedir;
+  void  *tssRsp = VirtualAllocate(USER_STACK_PAGES);
+  size_t tssRspSize = USER_STACK_PAGES * BLOCK_SIZE;
+  memset(tssRsp, 0, tssRspSize);
+  target->tssRsp = (uint64_t)tssRsp + tssRspSize;
+
+  target->fsbase = currentTask->fsbase;
+  target->gsbase = currentTask->gsbase;
+
+  target->heap_start = currentTask->heap_start;
+  target->heap_end = currentTask->heap_end;
+
+  target->tmpRecV = currentTask->tmpRecV;
+  target->firstFile = 0;
+  size_t cmwdLen = strlength(currentTask->cwd) + 1;
+  char  *newcwd = (char *)malloc(cmwdLen);
+  memcpy(newcwd, currentTask->cwd, cmwdLen);
+  target->cwd = newcwd;
+
+  SpecialFile *specialFile = currentTask->firstSpecialFile;
+  while (specialFile) {
+    SpecialFile *targetSpecial = fsUserDuplicateSpecialNode(specialFile);
+    LinkedListPushFrontUnsafe((void **)(&target->firstSpecialFile),
+                              targetSpecial);
+    specialFile = specialFile->next;
+  }
+
+  OpenFile *realFile = currentTask->firstFile;
+  while (realFile) {
+    SpecialFile *special = 0;
+    if (realFile->mountPoint == MOUNT_POINT_SPECIAL)
+      special =
+          fsUserGetSpecialById(target, ((SpecialFile *)realFile->dir)->id);
+    OpenFile *targetFile = fsUserDuplicateNode(realFile, special);
+    LinkedListPushFrontUnsafe((void **)(&target->firstFile), targetFile);
+  }
+
+  // returns zero yk
+  target->registers.rax = 0;
+
+  // etc (https://www.felixcloutier.com/x86/syscall)
+  target->registers.rip = cpu->rcx;
+  target->registers.cs = GDT_USER_CODE | DPL_USER;
+  target->registers.ds = GDT_USER_DATA | DPL_USER;
+  target->registers.rflags = cpu->r11;
+  target->registers.usermode_rsp = rsp;
+  target->registers.usermode_ss = GDT_USER_DATA | DPL_USER;
+
+  // yk
+  target->parent = currentTask;
+
+  taskCreateFinish(target);
+
+  return target->id;
 }
 
 void initiateTasks() {

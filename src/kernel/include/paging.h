@@ -23,6 +23,11 @@
 #define PGMASK_ENTRY 0x1ff
 #define PGMASK_OFFSET 0x3ff
 
+#define BITS_TO_VIRT_ADDR(pml4_index, pdpte_index, pd_index, pt_index)         \
+  (((uint64_t)pml4_index << PGSHIFT_PML4E) |                                   \
+   ((uint64_t)pdpte_index << PGSHIFT_PDPTE) |                                  \
+   ((uint64_t)pd_index << PGSHIFT_PDE) | ((uint64_t)pt_index << PGSHIFT_PTE))
+
 // Workaround repeated characters
 #define AMD64_MM_STRIPSX(a) ((uintptr_t)(a) & 0xFFFFFFFFFFFF)
 #define AMD64_MM_ADDRSX(a)                                                     \
@@ -68,6 +73,8 @@ void      ChangePageDirectoryFake(uint64_t *pd);
 
 uint64_t *PageDirectoryAllocate();
 void      PageDirectoryFree(uint64_t *page_dir);
+
+void PageDirectoryUserDuplicate(uint64_t *source, uint64_t *target);
 
 void invalidate(uint64_t vaddr);
 

@@ -115,7 +115,7 @@ OpenFile *fsUserRegisterNode(Task *task) {
 }
 
 bool fsUserUnregisterNode(Task *task, OpenFile *file) {
-  SpecialFile *special = fsUserGetSpecialById(file->id);
+  SpecialFile *special = fsUserGetSpecialById(task, file->id);
   if (special)
     fsUserCloseSpecial(special);
   return LinkedListUnregister((void **)&task->firstFile, file);
@@ -288,6 +288,56 @@ bool fsUserOpenSpecial(char *filename, void *taskPtr, int fd,
   return true;
 }
 
+// returns an ORPHAN!
+OpenFile *fsUserDuplicateNode(OpenFile *original, SpecialFile *special) {
+  OpenFile *orphan = (OpenFile *)malloc(sizeof(OpenFile));
+  orphan->next = 0; // duh
+
+  memcpy((void *)((size_t)orphan + sizeof(orphan->next)),
+         (void *)((size_t)original + sizeof(original->next)),
+         sizeof(OpenFile) - sizeof(orphan->next));
+
+  if (orphan->dir) {
+    if (orphan->mountPoint == MOUNT_POINT_SPECIAL) {
+      if (special) {
+        orphan->dir = special;
+        return orphan;
+      }
+
+      return 0;
+    }
+    switch (orphan->mountPoint->filesystem) {
+    case FS_FATFS:
+      orphan->dir = malloc(sizeof(FIL));
+      memcpy(orphan->dir, original->dir, sizeof(FIL));
+      break;
+    default:
+      debugf("[vfs] Tried to duplicateNode with bad filesystem! id{%d}\n",
+             orphan->mountPoint->filesystem);
+      return 0;
+      break;
+    }
+  }
+
+  return orphan;
+}
+
+// returns an ORPHAN!
+SpecialFile *fsUserDuplicateSpecialNode(SpecialFile *original) {
+  SpecialFile *orphan = (SpecialFile *)malloc(sizeof(SpecialFile));
+  orphan->next = 0; // duh
+
+  memcpy((void *)((size_t)orphan + sizeof(orphan->next)),
+         (void *)((size_t)original + sizeof(original->next)),
+         sizeof(SpecialFile) - sizeof(orphan->next));
+
+  size_t filenameLen = strlength(original->filename) + 1;
+  orphan->filename = malloc(filenameLen);
+  memcpy(orphan->filename, original->filename, filenameLen);
+
+  return orphan;
+}
+
 bool fsUserCloseSpecial(SpecialFile *special) {
   return LinkedListRemove((void **)&currentTask->firstSpecialFile, special);
 }
@@ -308,10 +358,11 @@ SpecialFile *fsUserGetSpecialByFilename(char *filename) {
   return browse;
 }
 
-SpecialFile *fsUserGetSpecialById(int fd) {
-  if (!currentTask || !currentTask->firstSpecialFile)
+SpecialFile *fsUserGetSpecialById(void *taskPtr, int fd) {
+  Task *task = (Task *)taskPtr;
+  if (!task || !task->firstSpecialFile)
     return 0;
-  SpecialFile *browse = currentTask->firstSpecialFile;
+  SpecialFile *browse = task->firstSpecialFile;
   while (browse) {
     if (browse->id == fd)
       break;
