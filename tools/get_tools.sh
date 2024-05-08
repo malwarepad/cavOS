@@ -40,7 +40,7 @@ cd ../
 
 mkdir -p build
 cd build
-../configure --target="$TARGET" --prefix="$PREFIX" --with-sysroot="$SYSROOT"
+../configure --target="$TARGET" --prefix="$PREFIX" --with-sysroot="$SYSROOT" --enable-shared
 make -j$(nproc)
 make install
 cd ../../
@@ -58,7 +58,7 @@ cd ../
 
 mkdir -p build
 cd build
-../configure --target="$TARGET" --prefix="$PREFIX" --enable-languages=c,c++ --with-sysroot="$SYSROOT"
+../configure --target="$TARGET" --prefix="$PREFIX" --enable-languages=c,c++ --with-sysroot="$SYSROOT" --enable-shared
 make all-gcc -j$(nproc)
 make all-target-libgcc -j$(nproc)
 make install-gcc

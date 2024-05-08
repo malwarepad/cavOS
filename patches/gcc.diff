@@ -1,18 +1,3 @@
-From 6c31ec0cbacfebef7a900b6505ace9e17865872a Mon Sep 17 00:00:00 2001
-From: Panagiotis <contact@malwarepad.com>
-Date: Sat, 10 Feb 2024 12:29:14 +0200
-Subject: [PATCH] Some basic changes
-
----
- config.sub                  |  2 +-
- fixincludes/mkfixinc.sh     |  2 ++
- gcc/config.gcc              | 12 ++++++++++++
- gcc/config/cavos.h          | 29 +++++++++++++++++++++++++++++
- libgcc/config.host          |  8 ++++++++
- libstdc++-v3/crossconfig.m4 |  6 ++++++
- 6 files changed, 58 insertions(+), 1 deletion(-)
- create mode 100644 gcc/config/cavos.h
-
 diff --git a/config.sub b/config.sub
 index 63c1f1c8b..049b2826a 100755
 --- a/config.sub
@@ -71,10 +56,10 @@ index bf809ef95..88e9da68c 100644
  	tm_file="${tm_file} aarch64/aarch64-elf.h aarch64/aarch64-errata.h aarch64/aarch64-elf-raw.h"
 diff --git a/gcc/config/cavos.h b/gcc/config/cavos.h
 new file mode 100644
-index 000000000..610886f8a
+index 000000000..8cb0b4111
 --- /dev/null
 +++ b/gcc/config/cavos.h
-@@ -0,0 +1,29 @@
+@@ -0,0 +1,37 @@
 +/* Useful if you wish to make target-specific GCC changes. */
 +#undef TARGET_CAVOS
 +#define TARGET_CAVOS 1
@@ -92,6 +77,14 @@ index 000000000..610886f8a
 +/* Files that are linked after user code. */
 +#undef ENDFILE_SPEC
 +#define ENDFILE_SPEC "crtend.o%s crtn.o%s"
++
++/* Tell ld to force 4KB pages*/
++#undef LINK_SPEC
++#define LINK_SPEC "-z max-page-size=4096"
++
++/* Dynamic linking */
++#undef LINK_SPEC
++#define LINK_SPEC "%{shared:-shared} %{static:-static} %{!shared: %{!static: %{rdynamic:-export-dynamic}}}"
 +
 +/* Additional predefined macros. */
 +#undef TARGET_OS_CPP_BUILTINS
@@ -140,6 +133,3 @@ index ff44d5ae0..441708d5d 100644
    arm*-*-symbianelf*)
      # This is a freestanding configuration; there is nothing to do here.
      ;;
--- 
-2.34.1
-
