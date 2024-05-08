@@ -182,6 +182,12 @@ static int syscallWrite(int file, char *str, uint32_t count) {
 
 #define SYSCALL_OPEN 2
 static int syscallOpen(char *filename, int flags, uint16_t mode) {
+#if DEBUG_SYSCALLS
+  debugf("[syscalls::open] filename{%s} flags{%d} mode{%d}\n", filename, flags,
+         mode);
+#endif
+  if (!filename)
+    return -1;
   return fsUserOpen(filename, flags, mode);
 }
 
@@ -190,7 +196,9 @@ static int syscallClose(int file) { return fsUserClose(file); }
 
 #define SYSCALL_STAT 4
 static int syscallStat(char *filename, stat *statbuf) {
+#if DEBUG_SYSCALLS
   debugf("[syscalls::stat] filename{%s} buff{%lx}\n", filename, statbuf);
+#endif
   bool ret = fsStat(filename, statbuf, 0);
   if (ret)
     return 0;
@@ -237,6 +245,9 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
 
 #define SYSCALL_BRK 12
 static uint64_t syscallBrk(uint64_t brk) {
+#if DEBUG_SYSCALLS
+  debugf("[syscalls::brk] brk{%lx}\n", brk);
+#endif
   if (!brk)
     return currentTask->heap_end;
 
@@ -249,13 +260,24 @@ static uint64_t syscallBrk(uint64_t brk) {
 }
 
 #define SYSCALL_RT_SIGACTION 13
-static int syscallRtSigaction() {
-  debugf("todo!\n");
+static int syscallRtSigaction(int sig, const struct sigaction *act,
+                              struct sigaction *oact, size_t sigsetsize) {
+#if DEBUG_SYSCALLS
+  debugf("[syscalls::sigaction] sig{%d} act{%lx} oact{%lx} sigsetsize{%lx}\n",
+         sig, act, oact, sigsetsize);
+#endif
+  debugf("[syscalls::sigaction] UNIMPLEMENTED!\n");
   return -1;
 }
 
 #define SYSCALL_RT_SIGPROCMASK 14
-static int syscallRtSigprocmask() {
+static int syscallRtSigprocmask(int how, sigset_t *nset, sigset_t *oset,
+                                size_t sigsetsize) {
+#if DEBUG_SYSCALLS
+  debugf(
+      "[syscalls::sigprocmask] how{%d} nset{%lx} oset{%lx} sigsetsize{%lx}\n",
+      how, nset, oset, sigsetsize);
+#endif
   debugf("todo!\n");
   return -1;
 }
@@ -303,17 +325,27 @@ static int syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
 
 #define SYSCALL_DUP2 33
 static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
+#if DEBUG_SYSCALLS
+  debugf("[syscalls::dup2] old{%d} new{%d}\n", oldFd, newFd);
+#endif
   // todo: treat 0, 1 and the like FDs like actual files
   debugf("[syscalls::dup2] UNIMPLEMENTED! old{%d} new{%d}\n", oldFd, newFd);
   return -1;
 }
 
 #define SYSCALL_GETPID 39
-static uint32_t syscallGetPid() { return currentTask->id; }
+static uint32_t syscallGetPid() {
+#if DEBUG_SYSCALLS
+  debugf("[syscalls::getpid] pid{%d}\n", currentTask->id);
+#endif
+  return currentTask->id;
+}
 
 #define SYSCALL_FORK 57
 static int syscallFork() {
+#if DEBUG_SYSCALLS
   debugf("[syscalls::fork] parent{%d}\n", currentTask->id);
+#endif
   return taskFork(currentTask->syscallRegs, currentTask->syscallRsp);
 }
 
@@ -345,6 +377,9 @@ static int syscallGetcwd(char *buff, size_t size) {
 
 #define SYSCALL_CHDIR 80
 static int syscallChdir(char *newdir) {
+#if DEBUG_SYSCALLS
+  debugf("[syscalls::chdir] place{%s}\n", newdir);
+#endif
   bool ret = taskChangeCwd(newdir);
   if (ret)
     return 0;
@@ -354,21 +389,33 @@ static int syscallChdir(char *newdir) {
 
 #define SYSCALL_GETUID 102
 static int syscallGetuid() {
+#if DEBUG_SYSCALLS
+  debugf("[syscalls::getuid]\n");
+#endif
   return 0; // root ;)
 }
 
 #define SYSCALL_GETGID 104
 static int syscallGetgid() {
+#if DEBUG_SYSCALLS
+  debugf("[syscalls::getgid]\n");
+#endif
   return 0; // root ;)
 }
 
 #define SYSCALL_GETEUID 107
 static int syscallGeteuid() {
+#if DEBUG_SYSCALLS
+  debugf("[syscalls::geteuid]\n");
+#endif
   return 0; // root ;)
 }
 
 #define SYSCALL_GETEGID 108
 static int syscallGetegid() {
+#if DEBUG_SYSCALLS
+  debugf("[syscalls::getegid]\n");
+#endif
   return 0; // root ;)
 }
 
@@ -391,35 +438,37 @@ static int syscallPrctl(int code, size_t addr) {
 }
 
 #define SYSCALL_GET_TID 186
-static int syscallGetTid() { return currentTask->id; }
+static int syscallGetTid() {
+#if DEBUG_SYSCALLS
+  debugf("[syscalls::gettid]\n");
+#endif
+  return currentTask->id;
+}
 
 #define SYSCALL_SET_TID_ADDR 218
 static int syscallSetTidAddr(int *tidptr) {
-  debugf("[syscalls] tid: %lx\n", tidptr);
+#if DEBUG_SYSCALLS
+  debugf("[syscalls::settid] tidptr{%lx}\n", tidptr);
+#endif
   return currentTask->id;
 }
 
 #define SYSCALL_EXIT_GROUP 231
 static void syscallExitGroup(int return_code) {
-  // todo: when fork(), etc work; implement
+#if DEBUG_SYSCALLS
+  debugf("[syscalls::exitgroup]\n");
+#endif
   syscallExitTask(return_code);
 }
 
 #define SYSCALL_OPENAT 257
 static int syscallOpenAt(int fd, char *filename, int flags, uint16_t mode) {
+#if DEBUG_SYSCALLS
+  debugf("[syscalls::openat] fd{%d} filename{%s} flags{%d} mode{%d}\n", fd,
+         filename, flags, mode);
+#endif
   // todo: yeah, fix this
   return fsUserOpen(filename, flags, mode);
-}
-
-#define SYSCALL_GET_HEAP_START 402
-static uint32_t syscallGetHeapStart() { return currentTask->heap_start; }
-
-#define SYSCALL_GET_HEAP_END 403
-static uint32_t syscallGetHeapEnd() { return currentTask->heap_end; }
-
-#define SYSCALL_ADJUST_HEAP_END 404
-static void syscallAdjustHeapEnd(uint32_t heap_end) {
-  taskAdjustHeap(currentTask, heap_end);
 }
 
 #define SYSCALL_TEST 405
@@ -434,9 +483,6 @@ void initiateSyscalls() {
   registerSyscall(SYSCALL_TEST, syscallTest);
   registerSyscall(SYSCALL_EXIT_TASK, syscallExitTask);
   registerSyscall(SYSCALL_GETPID, syscallGetPid);
-  registerSyscall(SYSCALL_GET_HEAP_START, syscallGetHeapStart);
-  registerSyscall(SYSCALL_GET_HEAP_END, syscallGetHeapEnd);
-  registerSyscall(SYSCALL_ADJUST_HEAP_END, syscallAdjustHeapEnd);
   registerSyscall(SYSCALL_WRITE, syscallWrite);
   registerSyscall(SYSCALL_READ, syscallRead);
   registerSyscall(SYSCALL_OPEN, syscallOpen);

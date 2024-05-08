@@ -17,7 +17,7 @@ Having a good time is my drive for this project + I learn a lot of cool low leve
 The cavOS kernel is a monolithic x86_64 one written in relatively simple C with a few bits of Intel assembly here and there. It uses the Limine bootloader and leverages the FAT32 filesystem for booting. I try to keep the code structure clean and fairly easy to understand, while avoiding too much abstraction.
 
 ## Userspace status
-Userspace is sort of broken right now. Kernel & user tasks (and scheduling) work fine, however crt0.o is non-existent, there is no stable systemcall interface and no libc... See [The x86_64 \"rewrite\"](#the-x86_64-rewrite) for more details.
+Userspace is my primary focus at the time being, with the kernel being *quite* stable. I'm trying to make this OS as close to Linux as I can, while adding my own stuff on top of it. This is visible with the system calls that are exactly like Linux's. That isn't random, I want cavOS to be as binary compatible with it as possible!
 
 ## Goals
 
@@ -27,36 +27,35 @@ Important to mention these goals may never be satisfied, take a very long time t
   - [x] Lose my sanity
 - Architecture: x86_64 (amd64)
   - [x] Interrupts: ISR, IRQ, GDT
-  - [x] Scheduling
-  - [x] Multitasking
+  - [x] Ring3: Scheduling, ELF64, SSE, paging, `systemcall`
+  - [x] Generic: RTC
 - Device drivers
-  - [x] AHCI
-  - [x] PCI read/write
-  - [ ] Mouse
+  - [x] Storage: AHCI
+  - [x] Networking: RTL8139, RTL8169
+  - [x] Generic: PS/2 Keyboard, serial port
+  - [ ] Generic: Mouse
 - Networking stack
-  - [ ] Improve reliability & security
-  - [ ] Sockets
-  - [ ] DNS
-  - [ ] HTTP
-  - [ ] TLS
-- Userspace 
-  - [x] cavOS Specific Toolchain
-  - [x] ELF64 parsing
-  - [x] Port musl (libc)
+  - [x] Layer3: IPv4, ARP, ICMP
+  - [x] Layer4: UDP, TCP
+  - [x] Layer5: DHCP
+  - [ ] Layer6: TLS
+  - [ ] Layer7: DNS, HTTP
+  - [x] OS Interface: Sockets
+  - [ ] Generic: Improve reliability & security
+- Userspace
+  - [x] Toolchain: cavOS-specific
+  - [x] Libraries: musl(libC)
+  - [ ] Linking: Dynamic
+  - [ ] System calls: signals, sockets, filesystem, etc...
 - Interfaces
-  - [x] Kernel shell
-  - [ ] Bash port
-  - [ ] Vim port
-  - [ ] IRC client
+  - [x] Kernel: Embedded shell
+  - [ ] Kernel: Good panic screens
+  - [ ] Ports: Bash, coreutils, vim, binutils, gcc
+  - [ ] Desires: Cool fetch, some damn IRC client
 - Graphics
-  - [ ] idk (seriously)
-
-## The x86_64 "rewrite"
-Saturday March 2nd of 2024. Through many workarounds, "bad" decisions and an overbearing "just-works" mentality, I had pieced together a purely x86 (32-bit) kernel that could unreliably fuel userspace applications. Still holding onto old code (from back when I barely understood simple concepts, like say paging), outdated libraries and a lot of other stuff. It *sometimes* worked, but I was not satisfied.
-
-5:00PM; That afternoon I decided to start a lengthy process of migrating everything to the x86_64 architecture and ironing out plenty of reliability issues, which made for actual nightmares to debug. I basically reached a certain point to understand that quick & dity solutions only lead to completely avoidable mistakes, which were extremely hard to pinpoint after tremendous amounts of abstractions were added.
-
-As of the current commit, a lot of leftovers from x86 are present. While I migrate/rewrite everything left, this repository might contain a few unneeded stuff. Just know that those are not "unusable", they used to be part of the featureset and worked fine.
+  - [x] Framebuffer: Use in kernel
+  - [ ] Framebuffer: Pass to userspace
+  - [ ] Xorg or smth? idk (seriously)
 
 ## Compiling
 Everything about this can be found over at [install.md](docs/install.md). Go there for more info about building the OS correctly, cleaning unused binaries and other stuff. 
@@ -64,5 +63,10 @@ Everything about this can be found over at [install.md](docs/install.md). Go the
 ## Credits
 - [G-9](https://nr9.online/): ASCII art on fetch!
 
+## Archive: The x86_64 "rewrite"
+Saturday March 2nd of 2024. Through many workarounds, "bad" decisions and an overbearing "just-works" mentality, I had pieced together a purely x86 (32-bit) kernel that could unreliably fuel userspace applications. Still holding onto old code (from back when I barely understood simple concepts, like say paging), outdated libraries and a lot of other stuff. It *sometimes* worked, but I was not satisfied.
+
+5:00PM; That afternoon I decided to start a lengthy process of migrating everything to the x86_64 architecture and ironing out plenty of reliability issues, which made for actual nightmares to debug. I basically reached a certain point to understand that quick & dity solutions only lead to completely avoidable mistakes, which were extremely hard to pinpoint after tremendous amounts of abstractions were added.
+
 ## License
-This project is licensed under GPL v3 (GNU General Public License v3.0). For more information go to the LICENSE file.
+This project is licensed under GPL v3 (GNU General Public License v3.0). For more information go to the [LICENSE](LICENSE) file.
