@@ -46,8 +46,8 @@ make install
 mkdir -p "$SCRIPTPATH/../target/usr/"
 cp -r "$PREFIX/lib" "$PREFIX/include" "$SCRIPTPATH/../../../target/usr/"
 
-# libc.so (dynamic deafult) fixup
-mv "$SCRIPTPATH/../../../target/usr/lib/libc.so" "$SCRIPTPATH/../../../target/usr/lib/libc.1.so"
+# libc.so (dynamic deafult) fixup (just use -static man)
+# mv "$SCRIPTPATH/../../../target/usr/lib/libc.so" "$SCRIPTPATH/../../../target/usr/lib/libc.1.so"
 
 # crt0 fixup
 ln -sf "$SCRIPTPATH/../../../target/usr/lib/crt1.o" "$SCRIPTPATH/../../../target/usr/lib/crt0.o"
