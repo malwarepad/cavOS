@@ -88,6 +88,8 @@ struct OpenFile {
   int      flags;
   uint32_t mode;
 
+  char *safeFilename;
+
   size_t pointer;
   size_t tmp1;
 

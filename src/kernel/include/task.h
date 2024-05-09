@@ -30,6 +30,7 @@ typedef struct Task Task;
 
 struct Task {
   uint64_t id;
+  int      pgid;
   bool     kernel_task;
   uint8_t  state;
 

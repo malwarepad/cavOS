@@ -206,6 +206,21 @@ static int syscallStat(char *filename, stat *statbuf) {
   return -1;
 }
 
+#define SYSCALL_FSTAT 5
+static int syscallFstat(int fd, stat *statbuf) {
+#if DEBUG_SYSCALLS
+  debugf("[syscalls::fstat] fd{%d} buff{%lx}\n", fd, statbuf);
+#endif
+  OpenFile *file = fsUserGetNode(fd);
+  if (!file)
+    return -1;
+  bool ret = fsStat(file->safeFilename, statbuf, 0);
+  if (ret)
+    return 0;
+
+  return -1;
+}
+
 #define SYSCALL_LSEEK 8
 static int syscallLseek(uint32_t file, int offset, int whence) {
 #if DEBUG_SYSCALLS
@@ -419,6 +434,31 @@ static int syscallGetegid() {
   return 0; // root ;)
 }
 
+#define SYSCALL_SETPGID 109
+static int syscallSetpgid(int pid, int pgid) {
+#if DEBUG_SYSCALLS
+  debugf("[syscalls::setpgid] pid{%d} pgid{%d}\n", pid, pgid);
+#endif
+
+  if (!pid)
+    pid = currentTask->id;
+
+  Task *task = taskGet(pid);
+  if (!task)
+    return -1;
+
+  task->pgid = pgid;
+  return 0;
+}
+
+#define SYSCALL_GETPGID 121
+static int syscallGetpgid() {
+#if DEBUG_SYSCALLS
+  debugf("[syscalls::getpgid]\n");
+#endif
+  return currentTask->pgid;
+}
+
 #define SYSCALL_PRCTL 158
 static int syscallPrctl(int code, size_t addr) {
 #if DEBUG_SYSCALLS
@@ -502,11 +542,14 @@ void initiateSyscalls() {
   registerSyscall(SYSCALL_RT_SIGPROCMASK, syscallRtSigprocmask);
   registerSyscall(SYSCALL_EXIT_GROUP, syscallExitGroup);
   registerSyscall(SYSCALL_STAT, syscallStat);
+  registerSyscall(SYSCALL_FSTAT, syscallFstat);
   registerSyscall(SYSCALL_GETUID, syscallGetuid);
   registerSyscall(SYSCALL_DUP2, syscallDup2);
   registerSyscall(SYSCALL_GETEUID, syscallGeteuid);
   registerSyscall(SYSCALL_GETGID, syscallGetgid);
   registerSyscall(SYSCALL_GETEGID, syscallGetegid);
+  registerSyscall(SYSCALL_GETPGID, syscallGetpgid);
+  registerSyscall(SYSCALL_SETPGID, syscallSetpgid);
   registerSyscall(SYSCALL_CHDIR, syscallChdir);
 
   debugf("[syscalls] System calls are ready to fire: %d/%d\n", syscallCnt,

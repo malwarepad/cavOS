@@ -238,6 +238,10 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, uint32_t mode) {
   target->pointer = 0;
   target->tmp1 = 0;
 
+  size_t fnLen = strlength(safeFilename) + 1;
+  target->safeFilename = malloc(fnLen);
+  memcpy(target->safeFilename, safeFilename, fnLen);
+
   MountPoint *mnt = fsDetermineMountPoint(safeFilename);
   if (!mnt) {
     // no mountpoint for this
@@ -421,6 +425,7 @@ bool fsCloseGeneric(OpenFile *file, Task *task) {
 
   bool res = fsCloseFsSpecific(file);
 
+  free(file->safeFilename);
   free(file);
   return res;
 }
@@ -543,6 +548,7 @@ bool fsStat(char *filename, stat *target, stat_extra *extra) {
 
   if (safeFilename[0] == '/' && safeFilename[1] == '\0') {
     if (target) {
+      memset(target, 0, sizeof(stat));
       target->st_ino = 69;
       target->st_dev = 29;
     }
