@@ -5,6 +5,20 @@
 #ifndef SYSCALLS_H
 #define SYSCALLS_H
 
+#define MAX_SYSCALLS 420
+
+/* Syscall Debugging: Comprehensive */
+#define DEBUG_SYSCALLS 1
+#define DEBUG_SYSCALLS_ARGS 1
+
+/* Syscall Debugging: Important */
+#define DEBUG_SYSCALLS_FAILS 1
+#define DEBUG_SYSCALLS_STUB 1
+
+/* Syscall Debugging: Essential */
+#define DEBUG_SYSCALLS_MISSING 1
+
+/* Linux's structures */
 typedef struct iovec {
   void  *iov_base; /* Pointer to data.  */
   size_t iov_len;  /* Length of data.  */
@@ -88,11 +102,19 @@ struct sigaction {
 #define sa_handler __sa_handler.sa_handler
 #define sa_sigaction __sa_handler.sa_sigaction
 
-void registerSyscall(uint32_t id, void *handler);
 void syscallHandler(AsmPassedInterrupt *regs);
 void initiateSyscalls();
-void initiateSyscallInst();
 
+/* System call registration */
+void syscallRegFs();
+void syscallRegMem();
+void syscallRegSig();
+void syscallsRegEnv();
+void syscallsRegProc();
+
+void registerSyscall(uint32_t id, void *handler); // <- the master
+
+/* Standard output handlers (io.c) */
 int readHandler(OpenFile *fd, uint8_t *in, size_t limit);
 int writeHandler(OpenFile *fd, uint8_t *out, size_t limit);
 int ioctlHandler(OpenFile *fd, uint64_t request, void *arg);

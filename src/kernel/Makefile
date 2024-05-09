@@ -33,7 +33,7 @@ TARGET_IMG = ../../disk.img
 TARGET_VMWARE = ../../disk.vmdk
 TARGET_ISO = ../../cavOS.iso
 
-OBJS = $(TARGET)/obj/kc.o $(TARGET)/obj/idt.o $(TARGET)/obj/printf.o $(TARGET)/obj/isr.o $(TARGET)/obj/kb.o $(TARGET)/obj/string.o $(TARGET)/obj/system.o $(TARGET)/obj/util.o $(TARGET)/obj/shell.o $(TARGET)/obj/disk.o $(TARGET)/obj/rtc.o $(TARGET)/obj/testing.o $(TARGET)/obj/pmm.o $(TARGET)/obj/gdt.o $(TARGET)/obj/timer.o $(TARGET)/obj/schedule.o $(TARGET)/obj/pci.o $(TARGET)/obj/pci_id.o $(TARGET)/obj/israsm.o $(TARGET)/obj/task.o $(TARGET)/obj/stack.o $(TARGET)/obj/vga.o $(TARGET)/obj/console.o $(TARGET)/obj/serial.o $(TARGET)/obj/elf.o $(TARGET)/obj/paging.o $(TARGET)/obj/vmm.o $(TARGET)/obj/syscalls.o $(TARGET)/obj/ne2k.o $(TARGET)/obj/nic_controller.o $(TARGET)/obj/arp.o $(TARGET)/obj/rtl8139.o $(TARGET)/obj/bitmap.o $(TARGET)/obj/ipv4.o $(TARGET)/obj/udp.o $(TARGET)/obj/checksum.o $(TARGET)/obj/icmp.o $(TARGET)/obj/dhcp.o $(TARGET)/obj/tcp.o $(TARGET)/obj/socket.o $(TARGET)/obj/fs_controller.o $(TARGET)/obj/ahci.o $(TARGET)/obj/rtl8169.o $(TARGET)/obj/linked_list.o $(TARGET)/obj/bootloaderParser.o $(TARGET)/obj/md5.o $(TARGET)/obj/psf.o $(TARGET)/obj/fb.o $(TARGET)/obj/malloc.o $(TARGET)/obj/malloc_glue.o $(TARGET)/obj/sseasm.o $(TARGET)/obj/diskio.o $(TARGET)/obj/ff.o $(TARGET)/obj/ffsystem.o $(TARGET)/obj/ffunicode.o
+OBJS = $(TARGET)/obj/kc.o $(TARGET)/obj/idt.o $(TARGET)/obj/printf.o $(TARGET)/obj/isr.o $(TARGET)/obj/kb.o $(TARGET)/obj/string.o $(TARGET)/obj/system.o $(TARGET)/obj/util.o $(TARGET)/obj/shell.o $(TARGET)/obj/disk.o $(TARGET)/obj/rtc.o $(TARGET)/obj/testing.o $(TARGET)/obj/pmm.o $(TARGET)/obj/gdt.o $(TARGET)/obj/timer.o $(TARGET)/obj/schedule.o $(TARGET)/obj/pci.o $(TARGET)/obj/pci_id.o $(TARGET)/obj/israsm.o $(TARGET)/obj/task.o $(TARGET)/obj/stack.o $(TARGET)/obj/vga.o $(TARGET)/obj/console.o $(TARGET)/obj/serial.o $(TARGET)/obj/elf.o $(TARGET)/obj/paging.o $(TARGET)/obj/vmm.o $(TARGET)/obj/syscalls.o $(TARGET)/obj/syscalls_fs.o $(TARGET)/obj/syscalls_mem.o $(TARGET)/obj/syscalls_sig.o $(TARGET)/obj/ne2k.o $(TARGET)/obj/nic_controller.o $(TARGET)/obj/arp.o $(TARGET)/obj/rtl8139.o $(TARGET)/obj/bitmap.o $(TARGET)/obj/ipv4.o $(TARGET)/obj/udp.o $(TARGET)/obj/checksum.o $(TARGET)/obj/icmp.o $(TARGET)/obj/dhcp.o $(TARGET)/obj/tcp.o $(TARGET)/obj/socket.o $(TARGET)/obj/fs_controller.o $(TARGET)/obj/ahci.o $(TARGET)/obj/rtl8169.o $(TARGET)/obj/linked_list.o $(TARGET)/obj/bootloaderParser.o $(TARGET)/obj/md5.o $(TARGET)/obj/psf.o $(TARGET)/obj/fb.o $(TARGET)/obj/malloc.o $(TARGET)/obj/malloc_glue.o $(TARGET)/obj/sseasm.o $(TARGET)/obj/diskio.o $(TARGET)/obj/ff.o $(TARGET)/obj/ffsystem.o $(TARGET)/obj/ffunicode.o $(TARGET)/obj/io.o $(TARGET)/obj/fastSyscall.o $(TARGET)/obj/syscalls_env.o $(TARGET)/obj/syscalls_proc.o
 OUTPUT = $(TARGET)/boot/kernel.bin
 
 $(TARGET)/obj:
@@ -52,8 +52,26 @@ $(TARGET)/obj/sseasm.o:cpu/sse.asm
 	mkdir $(TARGET)/obj/ -p
 	$(ASSEMBLER) $(ASFLAGS) -o $(TARGET)/obj/sseasm.o cpu/sse.asm
 	
-$(TARGET)/obj/syscalls.o:cpu/syscalls.c
-	$(COMPILER) $(CFLAGS) cpu/syscalls.c -o $(TARGET)/obj/syscalls.o 
+$(TARGET)/obj/syscalls.o:syscalls/syscalls.c
+	$(COMPILER) $(CFLAGS) syscalls/syscalls.c -o $(TARGET)/obj/syscalls.o 
+	
+$(TARGET)/obj/syscalls_fs.o:syscalls/linux/syscalls_fs.c
+	$(COMPILER) $(CFLAGS) syscalls/linux/syscalls_fs.c -o $(TARGET)/obj/syscalls_fs.o
+	
+$(TARGET)/obj/syscalls_mem.o:syscalls/linux/syscalls_mem.c
+	$(COMPILER) $(CFLAGS) syscalls/linux/syscalls_mem.c -o $(TARGET)/obj/syscalls_mem.o
+	
+$(TARGET)/obj/syscalls_sig.o:syscalls/linux/syscalls_sig.c
+	$(COMPILER) $(CFLAGS) syscalls/linux/syscalls_sig.c -o $(TARGET)/obj/syscalls_sig.o
+	
+$(TARGET)/obj/syscalls_env.o:syscalls/linux/syscalls_env.c
+	$(COMPILER) $(CFLAGS) syscalls/linux/syscalls_env.c -o $(TARGET)/obj/syscalls_env.o
+	
+$(TARGET)/obj/syscalls_proc.o:syscalls/linux/syscalls_proc.c
+	$(COMPILER) $(CFLAGS) syscalls/linux/syscalls_proc.c -o $(TARGET)/obj/syscalls_proc.o
+	
+$(TARGET)/obj/io.o:syscalls/io.c
+	$(COMPILER) $(CFLAGS) syscalls/io.c -o $(TARGET)/obj/io.o 
 	
 $(TARGET)/obj/vmm.o:memory/vmm.c
 	$(COMPILER) $(CFLAGS) memory/vmm.c -o $(TARGET)/obj/vmm.o 
@@ -105,6 +123,9 @@ $(TARGET)/obj/malloc_glue.o:memory/malloc_glue.c
 	
 $(TARGET)/obj/timer.o:cpu/timer.c
 	$(COMPILER) $(CFLAGS) cpu/timer.c -o $(TARGET)/obj/timer.o 
+	
+$(TARGET)/obj/fastSyscall.o:cpu/fastSyscall.c
+	$(COMPILER) $(CFLAGS) cpu/fastSyscall.c -o $(TARGET)/obj/fastSyscall.o 
 	
 $(TARGET)/obj/pci.o:drivers/pci.c
 	$(COMPILER) $(CFLAGS) drivers/pci.c -o $(TARGET)/obj/pci.o 

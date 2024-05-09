@@ -2,6 +2,7 @@
 #include <console.h>
 #include <disk.h>
 #include <elf.h>
+#include <fastSyscall.h>
 #include <fb.h>
 #include <gdt.h>
 #include <idt.h>

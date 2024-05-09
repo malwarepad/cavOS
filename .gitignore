@@ -2,9 +2,13 @@
 target/obj/*
 target/boot/*.bin
 target/software/*.cav
+target/usr/bin/*
 target/usr/lib
 disk.img
 disk.vmdk
+
+# Misc (on the target system)
+target/usr/share
 
 pci.ids
 
