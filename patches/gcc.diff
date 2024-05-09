@@ -59,7 +59,7 @@ new file mode 100644
 index 000000000..8cb0b4111
 --- /dev/null
 +++ b/gcc/config/cavos.h
-@@ -0,0 +1,37 @@
+@@ -0,0 +1,39 @@
 +/* Useful if you wish to make target-specific GCC changes. */
 +#undef TARGET_CAVOS
 +#define TARGET_CAVOS 1
@@ -93,9 +93,11 @@ index 000000000..8cb0b4111
 +	{                                 \
 +		builtin_define("__cavos__");    \
 +		builtin_define("__unix__");     \
++		builtin_define("__linux__");     \
 +		builtin_assert("system=cavos"); \
 +		builtin_assert("system=unix");  \
 +		builtin_assert("system=posix"); \
++		builtin_assert("system=linux"); \
 +	} while (0);
 diff --git a/libgcc/config.host b/libgcc/config.host
 index 45f8e19ad..c87841882 100644
