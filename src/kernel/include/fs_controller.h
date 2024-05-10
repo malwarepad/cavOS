@@ -137,8 +137,9 @@ bool         fsUserCloseSpecial(SpecialFile *special);
 SpecialFile *fsUserGetSpecialByFilename(char *filename);
 SpecialFile *fsUserGetSpecialById(void *taskPtr, int fd);
 
-OpenFile    *fsUserDuplicateNode(OpenFile *original, SpecialFile *special);
-SpecialFile *fsUserDuplicateSpecialNode(SpecialFile *original);
+OpenFile *fsUserDuplicateNode(void *taskPtr, OpenFile *original);
+OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original, SpecialFile *special);
+SpecialFile *fsUserDuplicateSpecialNodeUnsafe(SpecialFile *original);
 
 uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit);
 uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit);

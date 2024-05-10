@@ -171,6 +171,20 @@ static int syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
   return cnt;
 }
 
+#define SYSCALL_DUP 32
+static int syscallDup(uint32_t fd) {
+#if DEBUG_SYSCALLS_ARGS
+  debugf("[syscalls::dup] fd{%d}\n", fd);
+#endif
+  OpenFile *file = fsUserGetNode(fd);
+  if (!file)
+    return -1;
+
+  OpenFile *new = fsUserDuplicateNode(currentTask, file);
+
+  return new ? new->id : -1;
+}
+
 #define SYSCALL_DUP2 33
 static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
 #if DEBUG_SYSCALLS_ARGS
@@ -194,4 +208,5 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_IOCTL, syscallIoctl);
   registerSyscall(SYSCALL_WRITEV, syscallWriteV);
   registerSyscall(SYSCALL_DUP2, syscallDup2);
+  registerSyscall(SYSCALL_DUP, syscallDup);
 }

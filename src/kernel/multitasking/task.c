@@ -305,7 +305,7 @@ int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
 
   SpecialFile *specialFile = currentTask->firstSpecialFile;
   while (specialFile) {
-    SpecialFile *targetSpecial = fsUserDuplicateSpecialNode(specialFile);
+    SpecialFile *targetSpecial = fsUserDuplicateSpecialNodeUnsafe(specialFile);
     LinkedListPushFrontUnsafe((void **)(&target->firstSpecialFile),
                               targetSpecial);
     specialFile = specialFile->next;
@@ -317,7 +317,7 @@ int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
     if (realFile->mountPoint == MOUNT_POINT_SPECIAL)
       special =
           fsUserGetSpecialById(target, ((SpecialFile *)realFile->dir)->id);
-    OpenFile *targetFile = fsUserDuplicateNode(realFile, special);
+    OpenFile *targetFile = fsUserDuplicateNodeUnsafe(realFile, special);
     LinkedListPushFrontUnsafe((void **)(&target->firstFile), targetFile);
   }
 

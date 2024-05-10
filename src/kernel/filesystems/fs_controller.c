@@ -121,6 +121,7 @@ bool fsUserUnregisterNode(Task *task, OpenFile *file) {
   return LinkedListUnregister((void **)&task->firstFile, file);
 }
 
+// todo: save safeFilename too
 OpenFile *fsUserSpecialDummyGen(int fd, SpecialFile *special, int flags,
                                 int mode) {
   // we have a special file!
@@ -293,7 +294,7 @@ bool fsUserOpenSpecial(char *filename, void *taskPtr, int fd,
 }
 
 // returns an ORPHAN!
-OpenFile *fsUserDuplicateNode(OpenFile *original, SpecialFile *special) {
+OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original, SpecialFile *special) {
   OpenFile *orphan = (OpenFile *)malloc(sizeof(OpenFile));
   orphan->next = 0; // duh
 
@@ -326,8 +327,24 @@ OpenFile *fsUserDuplicateNode(OpenFile *original, SpecialFile *special) {
   return orphan;
 }
 
+OpenFile *fsUserDuplicateNode(void *taskPtr, OpenFile *original) {
+  Task *task = (Task *)taskPtr;
+
+  // special can be 0
+  SpecialFile *special = 0;
+  if (original->mountPoint == MOUNT_POINT_SPECIAL)
+    special = original->dir;
+
+  OpenFile *target = fsUserDuplicateNodeUnsafe(original, special);
+  target->id = openId++;
+
+  LinkedListPushFrontUnsafe((void **)(&task->firstFile), target);
+
+  return target;
+}
+
 // returns an ORPHAN!
-SpecialFile *fsUserDuplicateSpecialNode(SpecialFile *original) {
+SpecialFile *fsUserDuplicateSpecialNodeUnsafe(SpecialFile *original) {
   SpecialFile *orphan = (SpecialFile *)malloc(sizeof(SpecialFile));
   orphan->next = 0; // duh
 
