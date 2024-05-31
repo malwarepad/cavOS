@@ -64,7 +64,13 @@ static int syscallOpen(char *filename, int flags, uint16_t mode) {
 }
 
 #define SYSCALL_CLOSE 3
-static int syscallClose(int fd) { return fsUserClose(fd); }
+static int syscallClose(int fd) {
+#if DEBUG_SYSCALLS_ARGS
+  debugf("[syscalls::close] fd{%d}\n", fd);
+#endif
+
+  return fsUserClose(fd);
+}
 
 #define SYSCALL_STAT 4
 static int syscallStat(char *filename, stat *statbuf) {
@@ -171,6 +177,30 @@ static int syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
   return cnt;
 }
 
+#define SYSCALL_READV 19
+static int syscallReadV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
+#if DEBUG_SYSCALLS_ARGS
+  debugf("[syscalls::readv] fd{%d} iov{%lx} iovcnt{%d}\n", fd, iov, ioVcnt);
+#endif
+
+  int cnt = 0;
+  for (int i = 0; i < ioVcnt; i++) {
+    iovec *curr = (iovec *)((size_t)iov + i * sizeof(iovec));
+
+#if DEBUG_SYSCALLS
+    debugf("[syscalls::readv(%d)] fd{%d} iov_base{%x} iov_len{%x} iovcnt{%d}\n",
+           i, fd, curr->iov_base, curr->iov_len, ioVcnt);
+#endif
+    int singleCnt = syscallRead(fd, curr->iov_base, curr->iov_len);
+    if (singleCnt == -1)
+      return cnt;
+
+    cnt += singleCnt;
+  }
+
+  return cnt;
+}
+
 #define SYSCALL_DUP 32
 static int syscallDup(uint32_t fd) {
 #if DEBUG_SYSCALLS_ARGS
@@ -206,6 +236,7 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_FSTAT, syscallFstat);
 
   registerSyscall(SYSCALL_IOCTL, syscallIoctl);
+  registerSyscall(SYSCALL_READV, syscallReadV);
   registerSyscall(SYSCALL_WRITEV, syscallWriteV);
   registerSyscall(SYSCALL_DUP2, syscallDup2);
   registerSyscall(SYSCALL_DUP, syscallDup);
