@@ -36,7 +36,8 @@ struct Task {
 
   AsmPassedInterrupt registers;
   uint64_t          *pagedir;
-  uint64_t           tssRsp;
+  uint64_t           whileTssRsp;
+  uint64_t           whileSyscallRsp;
 
   bool systemCallInProgress;
 
@@ -49,6 +50,9 @@ struct Task {
 
   uint64_t heap_start;
   uint64_t heap_end;
+
+  uint64_t mmap_start;
+  uint64_t mmap_end;
 
   uint32_t  tmpRecV;
   OpenFile *firstFile;
@@ -72,7 +76,8 @@ Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
                  uint32_t argc, char **argv);
 Task *taskCreateKernel(uint64_t rip, uint64_t rdi);
 void  taskCreateFinish(Task *task);
-void  taskAdjustHeap(Task *task, size_t new_heap_end);
+void  taskAdjustHeap(Task *task, size_t new_heap_end, size_t *start,
+                     size_t *end);
 void  taskKill(uint32_t id);
 void  taskKillCleanup(Task *task);
 void  taskKillChildren(Task *task);

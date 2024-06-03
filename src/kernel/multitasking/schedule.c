@@ -46,7 +46,7 @@ void schedule(uint64_t rsp) {
 #endif
 
   // Change TSS rsp0 (software multitasking)
-  tssPtr->rsp0 = next->tssRsp;
+  tssPtr->rsp0 = next->whileTssRsp;
 
   // Save MSRIDs (HIGHLY unsure)
   // old->fsbase = rdmsr(MSRID_FSBASE);
@@ -75,7 +75,7 @@ void schedule(uint64_t rsp) {
 
   // Put next task's registers in tssRsp
   AsmPassedInterrupt *iretqRsp =
-      (AsmPassedInterrupt *)(next->tssRsp - sizeof(AsmPassedInterrupt));
+      (AsmPassedInterrupt *)(next->whileTssRsp - sizeof(AsmPassedInterrupt));
   memcpy(iretqRsp, &next->registers, sizeof(AsmPassedInterrupt));
 
   // Pass off control to our assembly finalization code that:

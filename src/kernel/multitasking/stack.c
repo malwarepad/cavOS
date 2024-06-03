@@ -40,7 +40,8 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint8_t *out,
   *((b *)(a)) = c
 
   int *randomByteStart = (int *)target->heap_end;
-  taskAdjustHeap(target, target->heap_end + sizeof(int) * 4);
+  taskAdjustHeap(target, target->heap_end + sizeof(int) * 4,
+                 &target->heap_start, &target->heap_end);
   for (int i = 0; i < 4; i++) {
     int thing = 0;
     while (!thing)
@@ -76,7 +77,8 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint8_t *out,
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 16);
   // aux: AT_PHDR
   void *phstuffStart = (void *)target->heap_end;
-  taskAdjustHeap(target, target->heap_end + filesize);
+  taskAdjustHeap(target, target->heap_end + filesize, &target->heap_start,
+                 &target->heap_end);
   memcpy(phstuffStart, out, filesize);
   PUSH_TO_STACK(target->registers.usermode_rsp, size_t,
                 (size_t)phstuffStart + elf_ehdr->e_phoff);
@@ -87,7 +89,8 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint8_t *out,
   for (int i = 0; i < argc; i++)
     argSpace += strlength(argv[i]) + 1; // null terminator
   uint8_t *argStart = (uint8_t *)target->heap_end;
-  taskAdjustHeap(target, target->heap_end + argSpace);
+  taskAdjustHeap(target, target->heap_end + argSpace, &target->heap_start,
+                 &target->heap_end);
   size_t ellapsed = 0;
   for (int i = 0; i < argc; i++) {
     uint32_t len = strlength(argv[i]) + 1; // null terminator
@@ -100,7 +103,8 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint8_t *out,
 
   size_t   pwdLen = strlength(target->cwd) + 1; // null terminated
   uint8_t *pathstart = (uint8_t *)target->heap_end;
-  taskAdjustHeap(target, target->heap_end + 4 + pwdLen);
+  taskAdjustHeap(target, target->heap_end + 4 + pwdLen, &target->heap_start,
+                 &target->heap_end);
   pathstart[0] = 'P';
   pathstart[1] = 'W';
   pathstart[2] = 'D';

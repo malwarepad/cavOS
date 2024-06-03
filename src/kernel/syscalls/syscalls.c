@@ -71,7 +71,7 @@ void syscallHandler(AsmPassedInterrupt *regs) {
   long int ret = ((SyscallHandler)(handler))(regs->rdi, regs->rsi, regs->rdx,
                                              regs->r10, regs->r8, regs->r9);
 #if DEBUG_SYSCALLS
-  debugf("[syscalls] return_code{%d}\n", ret);
+  debugf("[syscalls] return_code{%ld} return_code{0x%lx}\n", ret, ret);
 #endif
 
   regs->rax = ret;

@@ -52,10 +52,18 @@ Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
   void  *tssRsp = VirtualAllocate(USER_STACK_PAGES);
   size_t tssRspSize = USER_STACK_PAGES * BLOCK_SIZE;
   memset(tssRsp, 0, tssRspSize);
-  target->tssRsp = (uint64_t)tssRsp + tssRspSize;
+  target->whileTssRsp = (uint64_t)tssRsp + tssRspSize;
+
+  void  *syscalltssRsp = VirtualAllocate(USER_STACK_PAGES);
+  size_t syscalltssRspSize = USER_STACK_PAGES * BLOCK_SIZE;
+  memset(syscalltssRsp, 0, syscalltssRspSize);
+  target->whileSyscallRsp = (uint64_t)syscalltssRsp + syscalltssRspSize;
 
   target->heap_start = USER_HEAP_START;
   target->heap_end = USER_HEAP_START;
+
+  target->mmap_start = USER_MMAP_START;
+  target->mmap_end = USER_MMAP_START;
 
   return target;
 }
@@ -70,15 +78,16 @@ Task *taskCreateKernel(uint64_t rip, uint64_t rdi) {
 
 void taskCreateFinish(Task *task) { task->state = TASK_STATE_READY; }
 
-void taskAdjustHeap(Task *task, size_t new_heap_end) {
-  if (new_heap_end <= task->heap_start) {
+void taskAdjustHeap(Task *task, size_t new_heap_end, size_t *start,
+                    size_t *end) {
+  if (new_heap_end <= *start) {
     debugf("[task] Tried to adjust heap behind current values: id{%d}\n",
            task->id);
     taskKill(task->id);
     return;
   }
 
-  size_t old_page_top = DivRoundUp(task->heap_end, PAGE_SIZE);
+  size_t old_page_top = DivRoundUp(*end, PAGE_SIZE);
   size_t new_page_top = DivRoundUp(new_heap_end, PAGE_SIZE);
 
   if (new_page_top > old_page_top) {
@@ -101,7 +110,7 @@ void taskAdjustHeap(Task *task, size_t new_heap_end) {
     return;
   }
 
-  task->heap_end = new_heap_end;
+  *end = new_heap_end;
 }
 
 void taskKill(uint32_t id) {
@@ -184,7 +193,7 @@ void taskKillCleanup(Task *task) {
   currentTask = old;
 
   PageDirectoryFree(task->pagedir);
-  VirtualFree((void *)task->tssRsp, USER_STACK_PAGES);
+  VirtualFree((void *)task->whileTssRsp, USER_STACK_PAGES);
   free(task);
 
   // taskKillChildren(task); // wait()
@@ -288,7 +297,7 @@ int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
   void  *tssRsp = VirtualAllocate(USER_STACK_PAGES);
   size_t tssRspSize = USER_STACK_PAGES * BLOCK_SIZE;
   memset(tssRsp, 0, tssRspSize);
-  target->tssRsp = (uint64_t)tssRsp + tssRspSize;
+  target->whileTssRsp = (uint64_t)tssRsp + tssRspSize;
 
   target->fsbase = currentTask->fsbase;
   target->gsbase = currentTask->gsbase;
@@ -353,7 +362,7 @@ void initiateTasks() {
   void  *tssRsp = VirtualAllocate(USER_STACK_PAGES);
   size_t tssRspSize = USER_STACK_PAGES * BLOCK_SIZE;
   memset(tssRsp, 0, tssRspSize);
-  currentTask->tssRsp = (uint64_t)tssRsp + tssRspSize;
+  currentTask->whileTssRsp = (uint64_t)tssRsp + tssRspSize;
 
   debugf("[tasks] Current execution ready for multitasking\n");
   tasksInitiated = true;

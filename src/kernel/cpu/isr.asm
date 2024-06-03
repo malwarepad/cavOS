@@ -74,6 +74,11 @@ syscall_entry:
   push rbp
 
   mov rdi, rsp
+  extern handle_syscall_tssrsp
+  call handle_syscall_tssrsp
+  mov rsp, rax
+
+  mov rdi, rsp
   extern syscallHandler
   call syscallHandler
   

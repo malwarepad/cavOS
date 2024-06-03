@@ -5,16 +5,18 @@
 #define SYSCALL_MMAP 9
 static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
                             int fd, size_t pgoffset) {
+  length = DivRoundUp(length, 0x1000) * 0x1000;
   /* No point in DEBUG_SYSCALLS_ARGS'ing here */
 
-  if (fd == -1) { // before: !addr &&
-    size_t curr = currentTask->heap_end;
+  if (!addr && fd == -1) { // before: !addr &&
+    size_t curr = currentTask->mmap_end;
 #if DEBUG_SYSCALLS
     debugf("[syscalls::mmap] No placement preference, no file descriptor: "
            "addr{%lx} length{%lx}\n",
            curr, length);
 #endif
-    taskAdjustHeap(currentTask, currentTask->heap_end + length);
+    taskAdjustHeap(currentTask, currentTask->mmap_end + length,
+                   &currentTask->mmap_start, &currentTask->mmap_end);
     memset((void *)curr, 0, length);
 #if DEBUG_SYSCALLS
     debugf("[syscalls::mmap] Found addr{%lx}\n", curr);
@@ -50,7 +52,8 @@ static uint64_t syscallBrk(uint64_t brk) {
     return -1;
   }
 
-  taskAdjustHeap(currentTask, brk);
+  taskAdjustHeap(currentTask, brk, &currentTask->heap_start,
+                 &currentTask->heap_end);
 
   return currentTask->heap_end;
 }

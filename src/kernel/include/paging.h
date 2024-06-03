@@ -53,6 +53,7 @@
 #define PAGE_SIZE_HUGE 0x40000000
 
 // Processes' heap & stack locations
+#define USER_MMAP_START 0x700000000000
 #define USER_HEAP_START 0x600000000000
 #define USER_STACK_BOTTOM 0x800000000000
 

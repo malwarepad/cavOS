@@ -192,6 +192,10 @@ uint32_t elfExecute(char *filepath, uint32_t argc, char **argv) {
   fsUserOpenSpecial("/dev/stderr", target, 2, readHandler, writeHandler,
                     ioctlHandler);
 
+  // Align it, just in case...
+  taskAdjustHeap(target, DivRoundUp(target->heap_end, 0x1000) * 0x1000,
+                 &target->heap_start, &target->heap_end);
+
   taskCreateFinish(target);
 
   return id;

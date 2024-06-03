@@ -111,6 +111,19 @@ void handleTaskFault(AsmPassedInterrupt *regs) {
   schedule((uint64_t)regs);
 }
 
+uint64_t handle_syscall_tssrsp(uint64_t rsp) {
+  if (!tasksInitiated)
+    return rsp;
+
+  void *cpu = (void *)rsp;
+
+  void *iretqRsp =
+      (void *)(currentTask->whileSyscallRsp - sizeof(AsmPassedInterrupt) - 8);
+  memcpy(iretqRsp, cpu, sizeof(AsmPassedInterrupt) + 8);
+
+  return (size_t)iretqRsp;
+}
+
 uint64_t handle_tssrsp(uint64_t rsp) {
   if (!tasksInitiated)
     return rsp;
@@ -118,7 +131,8 @@ uint64_t handle_tssrsp(uint64_t rsp) {
   AsmPassedInterrupt *cpu = (AsmPassedInterrupt *)rsp;
 
   AsmPassedInterrupt *iretqRsp =
-      (AsmPassedInterrupt *)(currentTask->tssRsp - sizeof(AsmPassedInterrupt));
+      (AsmPassedInterrupt *)(currentTask->whileTssRsp -
+                             sizeof(AsmPassedInterrupt));
   memcpy(iretqRsp, cpu, sizeof(AsmPassedInterrupt));
 
   return (size_t)iretqRsp;
