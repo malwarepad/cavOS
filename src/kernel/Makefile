@@ -12,6 +12,7 @@ CFLAGS = -m64 -c -ffreestanding -Wall -Werror -fcommon -Iinclude/ -fPIE -mno-803
 		-I /usr/local/include \
 		-I /usr/target/include \
 		-I /usr/lib/gcc/x86_64-pc-linux-gnu/*/include \
+		-I /usr/lib/gcc/x86_64-redhat-linux/*/include \
     -mno-sse2 \
     -mno-red-zone -fno-stack-protector \
     -fno-stack-check \
