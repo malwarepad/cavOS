@@ -140,6 +140,7 @@ static int syscallSetTidAddr(int *tidptr) {
 #if DEBUG_SYSCALLS_ARGS
   debugf("[syscalls::settid] tidptr{%lx}\n", tidptr);
 #endif
+  *tidptr = currentTask->id;
   return currentTask->id;
 }
 
