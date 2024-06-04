@@ -1,5 +1,6 @@
 #include <fb.h>
 #include <malloc.h>
+#include <paging.h>
 #include <stdarg.h>
 #include <system.h>
 #include <util.h>
@@ -114,3 +115,52 @@ void drawLine(int x1, int y1, int x2, int y2, int r, int g,
     }
   }
 }
+
+int fbUserIllegal() {
+  debugf("[io::fb] Tried to do anything but an mmap/ioctl!\n");
+  return -1;
+}
+
+int fbUserIoctl(OpenFile *fd, uint64_t request, void *arg) {
+  switch (request) {
+  case FBIOGET_VSCREENINFO: {
+    struct fb_var_screeninfo *fb = arg;
+    fb->xres = framebufferWidth;
+    fb->yres = framebufferHeight;
+
+    fb->xres_virtual = framebufferWidth;
+    fb->yres_virtual = framebufferHeight;
+
+    fb->bits_per_pixel = 0;
+    fb->grayscale = 0;
+    // fb->red = 0;
+    // fb->green = 0;
+    // fb->blue = 0;
+    fb->nonstd = 0;
+    fb->activate = 0;                   // idek
+    fb->height = framebufferHeight / 4; // VERY approximate
+    fb->width = framebufferWidth / 4;   // VERY approximate
+    return 0;
+    break;
+  }
+  default:
+    return -1;
+    break;
+  }
+}
+
+size_t fbUserMmap(size_t addr, size_t length, int prot, int flags, OpenFile *fd,
+                  size_t pgoffset) {
+  size_t targPages = DivRoundUp(length, PAGE_SIZE);
+  size_t physStart = VirtualToPhysical((size_t)framebuffer);
+  for (int i = 0; i < targPages; i++) {
+    VirtualMap(0x100000000000 + i * PAGE_SIZE, physStart + i * PAGE_SIZE,
+               PF_RW | PF_USER);
+  } // todo: get rid of hardcoded location!
+  return 0x100000000000;
+}
+
+SpecialHandlers fb0 = {.read = fbUserIllegal,
+                       .write = fbUserIllegal,
+                       .ioctl = fbUserIoctl,
+                       .mmap = fbUserMmap};

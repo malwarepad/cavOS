@@ -190,6 +190,8 @@ uint32_t elfExecute(char *filepath, uint32_t argc, char **argv) {
   fsUserOpenSpecial("/dev/stdout", target, 1, &stdio);
   fsUserOpenSpecial("/dev/stderr", target, 2, &stdio);
 
+  fsUserOpenSpecial("/dev/fb0", target, -1, &fb0);
+
   // Align it, just in case...
   taskAdjustHeap(target, DivRoundUp(target->heap_end, 0x1000) * 0x1000,
                  &target->heap_start, &target->heap_end);

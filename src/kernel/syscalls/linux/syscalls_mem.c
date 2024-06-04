@@ -31,7 +31,7 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
     if (!special)
       return -1;
 
-    return special->handlers->mmap(addr, length, prot, flags, fd, pgoffset);
+    return special->handlers->mmap(addr, length, prot, flags, file, pgoffset);
   }
 
 #if DEBUG_SYSCALLS_STUB

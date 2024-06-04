@@ -102,7 +102,7 @@ typedef int (*SpecialReadHandler)(OpenFile *fd, uint8_t *out, size_t limit);
 typedef int (*SpecialWriteHandler)(OpenFile *fd, uint8_t *in, size_t limit);
 typedef int (*SpecialIoctlHandler)(OpenFile *fd, uint64_t request, void *arg);
 typedef size_t (*SpecialMmapHandler)(size_t addr, size_t length, int prot,
-                                     int flags, int fd, size_t pgoffset);
+                                     int flags, OpenFile *fd, size_t pgoffset);
 
 typedef struct SpecialHandlers {
   SpecialReadHandler  read;
