@@ -1,3 +1,5 @@
+#include <linked_list.h>
+#include <malloc.h>
 #include <syscalls.h>
 #include <task.h>
 #include <util.h>
@@ -5,7 +7,7 @@
 #define SYSCALL_READ 0
 static int syscallRead(int fd, char *str, uint32_t count) {
 #if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::read] file{%d} str{%x} count{%d}\n", fd, str, count);
+  debugf("[syscalls::read] file{%d} str{%lx} count{%d}\n", fd, str, count);
 #endif
 
   OpenFile *browse = fsUserGetNode(fd);
@@ -15,7 +17,10 @@ static int syscallRead(int fd, char *str, uint32_t count) {
 #endif
     return -1;
   }
-  uint32_t read = fsRead(browse, (uint8_t *)str, count);
+  uint8_t *targ = malloc(count);
+  uint32_t read = fsRead(browse, (uint8_t *)targ, count);
+  memcpy(str, targ, count);
+  free(targ);
 #if DEBUG_SYSCALLS_ARGS
   debugf("\nread = %d\n", read);
 #endif
@@ -102,6 +107,23 @@ static int syscallFstat(int fd, stat *statbuf) {
   if (!ret) {
 #if DEBUG_SYSCALLS_FAILS
     debugf("[syscalls::fstat] FAIL! Couldn't stat() file! fd{%d}\n", fd);
+#endif
+    return -1;
+  }
+
+  return 0;
+}
+
+#define SYSCALL_LSTAT 6
+static int syscallLstat(char *filename, stat *statbuf) {
+#if DEBUG_SYSCALLS_ARGS
+  debugf("[syscalls::lstat] filename{%s} buff{%lx}\n", filename, statbuf);
+#endif
+  bool ret = fsStat(filename, statbuf, 0);
+  if (!ret) {
+#if DEBUG_SYSCALLS_FAILS
+    debugf("[syscalls::lstat] FAIL! Couldn't stat() file! filename{%d}\n",
+           filename);
 #endif
     return -1;
   }
@@ -220,10 +242,24 @@ static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
 #if DEBUG_SYSCALLS_ARGS
   debugf("[syscalls::dup2] old{%d} new{%d}\n", oldFd, newFd);
 #endif
+  OpenFile *realFile = fsUserGetNode(oldFd);
+  if (!realFile)
+    return -1;
 
-  // todo: treat 0, 1 and the like FDs like actual files
-  debugf("[syscalls::dup2] UNIMPLEMENTED! old{%d} new{%d}\n", oldFd, newFd);
-  return -1;
+  // OpenFile    *realFile = currentTask->firstFile;
+  SpecialFile *special = 0;
+  if (realFile->mountPoint == MOUNT_POINT_SPECIAL)
+    special =
+        fsUserGetSpecialById(currentTask, ((SpecialFile *)realFile->dir)->id);
+  OpenFile *targetFile = fsUserDuplicateNodeUnsafe(realFile, special);
+  LinkedListPushFrontUnsafe((void **)(&currentTask->firstFile), targetFile);
+
+  if (fsUserGetNode(newFd))
+    fsUserClose(newFd);
+  targetFile->id = newFd;
+
+  debugf("[syscalls::dup2] wonky... old{%d} new{%d}\n", oldFd, newFd);
+  return newFd;
 }
 
 void syscallRegFs() {
@@ -234,6 +270,7 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_LSEEK, syscallLseek);
   registerSyscall(SYSCALL_STAT, syscallStat);
   registerSyscall(SYSCALL_FSTAT, syscallFstat);
+  registerSyscall(SYSCALL_LSTAT, syscallLstat);
 
   registerSyscall(SYSCALL_IOCTL, syscallIoctl);
   registerSyscall(SYSCALL_READV, syscallReadV);
