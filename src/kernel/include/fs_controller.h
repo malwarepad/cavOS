@@ -101,15 +101,23 @@ typedef struct SpecialFile SpecialFile;
 typedef int (*SpecialReadHandler)(OpenFile *fd, uint8_t *out, size_t limit);
 typedef int (*SpecialWriteHandler)(OpenFile *fd, uint8_t *in, size_t limit);
 typedef int (*SpecialIoctlHandler)(OpenFile *fd, uint64_t request, void *arg);
+typedef size_t (*SpecialMmapHandler)(size_t addr, size_t length, int prot,
+                                     int flags, int fd, size_t pgoffset);
+
+typedef struct SpecialHandlers {
+  SpecialReadHandler  read;
+  SpecialWriteHandler write;
+  SpecialIoctlHandler ioctl;
+  SpecialMmapHandler  mmap;
+} SpecialHandlers;
+
 struct SpecialFile {
   SpecialFile *next;
 
   int   id;
   char *filename;
 
-  SpecialReadHandler  readHandler;
-  SpecialWriteHandler writeHandler;
-  SpecialIoctlHandler ioctlHandler;
+  SpecialHandlers *handlers;
 };
 
 OpenFile *firstKernelFile;
@@ -131,8 +139,7 @@ int fsUserSeek(uint32_t fd, int offset, int whence);
 OpenFile *fsUserGetNode(int fd);
 
 bool         fsUserOpenSpecial(char *filename, void *taskPtr, int fd,
-                               SpecialReadHandler read, SpecialWriteHandler write,
-                               SpecialIoctlHandler ioctl);
+                               SpecialHandlers *specialHandlers);
 bool         fsUserCloseSpecial(SpecialFile *special);
 SpecialFile *fsUserGetSpecialByFilename(char *filename);
 SpecialFile *fsUserGetSpecialById(void *taskPtr, int fd);

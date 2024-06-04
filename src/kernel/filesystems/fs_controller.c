@@ -273,8 +273,7 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, uint32_t mode) {
 }
 
 bool fsUserOpenSpecial(char *filename, void *taskPtr, int fd,
-                       SpecialReadHandler read, SpecialWriteHandler write,
-                       SpecialIoctlHandler ioctl) {
+                       SpecialHandlers *specialHandlers) {
   Task *task = (Task *)taskPtr;
 
   SpecialFile *target = (SpecialFile *)LinkedListAllocate(
@@ -286,9 +285,7 @@ bool fsUserOpenSpecial(char *filename, void *taskPtr, int fd,
   target->filename = filenameBuff;
 
   target->id = fd;
-  target->readHandler = read;
-  target->writeHandler = write;
-  target->ioctlHandler = ioctl;
+  target->handlers = specialHandlers;
 
   return true;
 }
@@ -477,7 +474,7 @@ uint32_t fsGetFilesize(OpenFile *file) {
 
 uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit) {
   if (file->mountPoint == MOUNT_POINT_SPECIAL)
-    return ((SpecialFile *)file->dir)->readHandler(file, out, limit);
+    return ((SpecialFile *)file->dir)->handlers->read(file, out, limit);
 
   uint32_t ret = 0;
   switch (file->mountPoint->filesystem) {
@@ -499,7 +496,7 @@ uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit) {
 
 uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit) {
   if (file->mountPoint == MOUNT_POINT_SPECIAL)
-    return ((SpecialFile *)file->dir)->writeHandler(file, in, limit);
+    return ((SpecialFile *)file->dir)->handlers->write(file, in, limit);
 
   uint32_t ret = 0;
   switch (file->mountPoint->filesystem) {
@@ -521,7 +518,7 @@ uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit) {
 
 bool fsWriteChar(OpenFile *file, char in) {
   if (file->mountPoint == MOUNT_POINT_SPECIAL)
-    return ((SpecialFile *)file->dir)->readHandler(file, (uint8_t *)&in, 1);
+    return ((SpecialFile *)file->dir)->handlers->read(file, (uint8_t *)&in, 1);
 
   bool ret = false;
   switch (file->mountPoint->filesystem) {

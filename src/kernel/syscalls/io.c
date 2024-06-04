@@ -56,3 +56,14 @@ int ioctlHandler(OpenFile *fd, uint64_t request, void *arg) {
     break;
   }
 }
+
+size_t mmapHandler(size_t addr, size_t length, int prot, int flags, int fd,
+                   size_t pgoffset) {
+  debugf("[io::mmap] FATAL! Tried to mmap on stdio!\n");
+  return -1;
+}
+
+SpecialHandlers stdio = {.read = readHandler,
+                         .write = writeHandler,
+                         .ioctl = ioctlHandler,
+                         .mmap = mmapHandler};

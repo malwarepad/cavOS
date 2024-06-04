@@ -125,4 +125,10 @@ int readHandler(OpenFile *fd, uint8_t *in, size_t limit);
 int writeHandler(OpenFile *fd, uint8_t *out, size_t limit);
 int ioctlHandler(OpenFile *fd, uint64_t request, void *arg);
 
+size_t mmapHandler(size_t addr, size_t length, int prot, int flags, int fd,
+                   size_t pgoffset);
+
+/* Defined in io.c */
+extern SpecialHandlers stdio;
+
 #endif

@@ -1,6 +1,7 @@
 #include <bitmap.h>
 #include <console.h>
 #include <elf.h>
+#include <fb.h>
 #include <fs_controller.h>
 #include <malloc.h>
 #include <paging.h>
@@ -185,12 +186,9 @@ uint32_t elfExecute(char *filepath, uint32_t argc, char **argv) {
   stackGenerateUser(target, argc, argv, out, filesize, elf_ehdr);
   free(out);
 
-  fsUserOpenSpecial("/dev/stdin", target, 0, readHandler, writeHandler,
-                    ioctlHandler);
-  fsUserOpenSpecial("/dev/stdout", target, 1, readHandler, writeHandler,
-                    ioctlHandler);
-  fsUserOpenSpecial("/dev/stderr", target, 2, readHandler, writeHandler,
-                    ioctlHandler);
+  fsUserOpenSpecial("/dev/stdin", target, 0, &stdio);
+  fsUserOpenSpecial("/dev/stdout", target, 1, &stdio);
+  fsUserOpenSpecial("/dev/stderr", target, 2, &stdio);
 
   // Align it, just in case...
   taskAdjustHeap(target, DivRoundUp(target->heap_end, 0x1000) * 0x1000,

@@ -163,7 +163,7 @@ static int syscallIoctl(int fd, unsigned long request, void *arg) {
   if (!special)
     return -1;
 
-  int ret = special->ioctlHandler(browse, request, arg);
+  int ret = special->handlers->ioctl(browse, request, arg);
 
 #if DEBUG_SYSCALLS_STUB
   if (ret < 0)

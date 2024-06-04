@@ -22,6 +22,16 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
     debugf("[syscalls::mmap] Found addr{%lx}\n", curr);
 #endif
     return curr;
+  } else if (fd != -1) {
+    OpenFile *file = fsUserGetNode(fd);
+    if (!file || file->mountPoint != MOUNT_POINT_SPECIAL)
+      return -1;
+
+    SpecialFile *special = (SpecialFile *)file->dir;
+    if (!special)
+      return -1;
+
+    return special->handlers->mmap(addr, length, prot, flags, fd, pgoffset);
   }
 
 #if DEBUG_SYSCALLS_STUB
