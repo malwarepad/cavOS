@@ -105,6 +105,9 @@ void initiateSyscalls() {
   // Task/Process management
   syscallsRegProc();
 
+  // Time/Date/Clocks!
+  syscallsRegClock();
+
   debugf("[syscalls] System calls are ready to fire: %d/%d\n", syscallCnt,
          MAX_SYSCALLS);
 }

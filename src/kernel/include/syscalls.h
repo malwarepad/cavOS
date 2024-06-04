@@ -90,6 +90,11 @@ typedef struct __sigset_t {
   unsigned long __bits[128 / sizeof(long)];
 } sigset_t;
 
+typedef struct timespec {
+  int64_t tv_sec;  // seconds
+  int64_t tv_nsec; // nanoseconds
+} timespec;
+
 struct sigaction {
   union {
     void (*sa_handler)(int);
@@ -111,6 +116,7 @@ void syscallRegMem();
 void syscallRegSig();
 void syscallsRegEnv();
 void syscallsRegProc();
+void syscallsRegClock();
 
 void registerSyscall(uint32_t id, void *handler); // <- the master
 
