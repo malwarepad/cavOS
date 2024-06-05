@@ -54,15 +54,15 @@ int ioctlHandler(OpenFile *fd, uint64_t request, void *arg) {
   }
   case TCGETS: {
     memcpy(arg, &currentTask->term, sizeof(termios));
-    debugf("got %d %d\n", currentTask->term.c_lflag & ICANON,
-           currentTask->term.c_lflag & ECHO);
+    // debugf("got %d %d\n", currentTask->term.c_lflag & ICANON,
+    //        currentTask->term.c_lflag & ECHO);
     return 0;
     break;
   }
   case TCSETS: {
     memcpy(&currentTask->term, arg, sizeof(termios));
-    debugf("setting %d %d\n", currentTask->term.c_lflag & ICANON,
-           currentTask->term.c_lflag & ECHO);
+    // debugf("setting %d %d\n", currentTask->term.c_lflag & ICANON,
+    //        currentTask->term.c_lflag & ECHO);
     return 0;
     break;
   }
