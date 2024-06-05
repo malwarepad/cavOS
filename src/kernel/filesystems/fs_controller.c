@@ -239,10 +239,6 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, uint32_t mode) {
   target->pointer = 0;
   target->tmp1 = 0;
 
-  size_t fnLen = strlength(safeFilename) + 1;
-  target->safeFilename = malloc(fnLen);
-  memcpy(target->safeFilename, safeFilename, fnLen);
-
   MountPoint *mnt = fsDetermineMountPoint(safeFilename);
   if (!mnt) {
     // no mountpoint for this
@@ -439,7 +435,6 @@ bool fsCloseGeneric(OpenFile *file, Task *task) {
 
   bool res = fsCloseFsSpecific(file);
 
-  free(file->safeFilename);
   free(file);
   return res;
 }
@@ -557,7 +552,41 @@ bool fsWriteSync(OpenFile *file) {
   return ret;
 }
 
-bool fsStat(char *filename, stat *target, stat_extra *extra) {
+extern void
+get_fileinfo(DIR     *dp, /* Pointer to the directory object */
+             FILINFO *fno /* Pointer to the file information to be filled */
+);
+
+bool fsStat(OpenFile *fd, stat *target, stat_extra *extra) {
+  bool ret = false;
+  switch (fd->mountPoint->filesystem) {
+  case FS_FATFS: {
+    FILINFO *filinfo = (FILINFO *)malloc(sizeof(FILINFO));
+
+    get_fileinfo((DIR *)(fd->dir), filinfo);
+    ret = true;
+
+    if (ret && target) {
+      target->st_size = filinfo->fsize;
+    }
+
+    if (ret && extra) {
+      extra->file = !(filinfo->fattrib & AM_DIR);
+    }
+
+    free(filinfo);
+    break;
+  }
+  default:
+    debugf("[vfs] Tried to stat with bad filesystem! id{%d}\n",
+           fd->mountPoint->filesystem);
+    ret = false;
+    break;
+  }
+  return ret;
+}
+
+bool fsStatByFilename(char *filename, stat *target, stat_extra *extra) {
   char *safeFilename = fsSanitize(filename);
 
   if (safeFilename[0] == '/' && safeFilename[1] == '\0') {

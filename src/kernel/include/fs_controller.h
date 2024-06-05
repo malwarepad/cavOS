@@ -88,8 +88,6 @@ struct OpenFile {
   int      flags;
   uint32_t mode;
 
-  char *safeFilename;
-
   size_t pointer;
   size_t tmp1;
 
@@ -154,6 +152,7 @@ bool     fsWriteChar(OpenFile *file, char in);
 bool     fsWriteSync(OpenFile *file);
 void     fsReadFullFile(OpenFile *file, uint8_t *out);
 uint32_t fsGetFilesize(OpenFile *file);
-bool     fsStat(char *filename, stat *target, stat_extra *extra);
+bool     fsStat(OpenFile *fd, stat *target, stat_extra *extra);
+bool     fsStatByFilename(char *filename, stat *target, stat_extra *extra);
 
 #endif

@@ -96,6 +96,6 @@ enum Elf_Type {
 #ifndef ELF_H
 #define ELF_H
 
-uint32_t elfExecute(char *filepath, uint32_t argc, char **argv);
+uint32_t elfExecute(char *filepath, uint32_t argc, char **argv, int32_t selid);
 
 #endif

@@ -255,7 +255,7 @@ int16_t taskGenerateId() {
 
 bool taskChangeCwd(char *newdir) {
   stat_extra extra = {0};
-  if (!fsStat(newdir, 0, &extra))
+  if (!fsStatByFilename(newdir, 0, &extra))
     return false;
 
   if (extra.file)
@@ -299,6 +299,11 @@ int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
   memset(tssRsp, 0, tssRspSize);
   target->whileTssRsp = (uint64_t)tssRsp + tssRspSize;
 
+  void  *syscalltssRsp = VirtualAllocate(USER_STACK_PAGES);
+  size_t syscalltssRspSize = USER_STACK_PAGES * BLOCK_SIZE;
+  memset(syscalltssRsp, 0, syscalltssRspSize);
+  target->whileSyscallRsp = (uint64_t)syscalltssRsp + syscalltssRspSize;
+
   target->fsbase = currentTask->fsbase;
   target->gsbase = currentTask->gsbase;
 
@@ -328,6 +333,7 @@ int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
           fsUserGetSpecialById(target, ((SpecialFile *)realFile->dir)->id);
     OpenFile *targetFile = fsUserDuplicateNodeUnsafe(realFile, special);
     LinkedListPushFrontUnsafe((void **)(&target->firstFile), targetFile);
+    realFile = realFile->next;
   }
 
   // returns zero yk
