@@ -6,6 +6,9 @@
 uint32_t width;
 uint32_t height;
 
+extern int bg_color[];
+extern int textcolor[];
+
 #define TTY_CHARACTER_WIDTH 8
 #define TTY_CHARACTER_HEIGHT 16
 
