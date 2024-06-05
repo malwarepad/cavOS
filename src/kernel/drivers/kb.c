@@ -3,6 +3,7 @@
 #include <paging.h>
 #include <task.h>
 
+#include <syscalls.h>
 #include <system.h>
 
 // Very bare bones, and basic keyboard driver
@@ -160,6 +161,15 @@ void kbFinaliseStream() {
   kbReset();
 }
 
+void kbChar(Task *task, char out) {
+  if (task->term.c_lflag & ECHO)
+    printfch(out);
+  if (kbCurr < kbMax)
+    kbBuff[kbCurr++] = out;
+  if (!(task->term.c_lflag & ICANON))
+    kbFinaliseStream();
+}
+
 void kbIrq() {
   char out = handleKbEvent();
   if (!kbBuff || !out || !tasksInitiated)
@@ -173,19 +183,21 @@ void kbIrq() {
   switch (out) {
   case CHARACTER_ENTER:
     // kbBuff[kbCurr] = '\0';
-    kbFinaliseStream();
+    if (task->term.c_lflag & ICANON)
+      kbFinaliseStream();
+    else
+      kbChar(task, out);
     break;
   case CHARACTER_BACK:
-    if (kbCurr > 0) {
+    if (task->term.c_lflag & ICANON && kbCurr > 0) {
       printfch('\b');
       kbCurr--;
       kbBuff[kbCurr] = 0;
-    }
+    } else if (!(task->term.c_lflag & ICANON))
+      kbChar(task, out);
     break;
   default:
-    printfch(out);
-    if (kbCurr < kbMax)
-      kbBuff[kbCurr++] = out;
+    kbChar(task, out);
     break;
   }
 

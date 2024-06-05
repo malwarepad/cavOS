@@ -13,6 +13,7 @@
 #define PF_DIRTY (1 << 6)   // Indicates whether 4K page was written
 #define PF_PS (1 << 7)      // Page size (valid for PD and PDPT only)
 #define PF_GLOBAL (1 << 8)  // Indicates the page is globally cached
+#define PF_SHARED (1 << 9)  // Userland page is shared
 // #define PF_SYSTEM (1 << 9)  // Page used by the kernel
 
 // Virtual address' bitmasks and shifts

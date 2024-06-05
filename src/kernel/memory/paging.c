@@ -327,7 +327,9 @@ void PageDirectoryUserDuplicate(uint64_t *source, uint64_t *target) {
             continue;
 
           size_t physSource = PTE_GET_ADDR(pt[pt_index]);
-          size_t physTarget = BitmapAllocatePageframe(&physical);
+          size_t physTarget = (pt[pt_index] & PF_SHARED)
+                                  ? physSource
+                                  : BitmapAllocatePageframe(&physical);
 
           size_t virt =
               BITS_TO_VIRT_ADDR(pml4_index, pdp_index, pd_index, pt_index);

@@ -7,6 +7,7 @@
 #include <schedule.h>
 #include <stack.h>
 #include <string.h>
+#include <syscalls.h>
 #include <system.h>
 #include <task.h>
 #include <util.h>
@@ -14,6 +15,32 @@
 
 // Task manager allowing for task management
 // Copyright (C) 2024 Panagiotis
+
+void taskAttachDefTermios(Task *task) {
+  memset(&task->term, 0, sizeof(termios));
+  task->term.c_iflag = BRKINT | ICRNL | INPCK | ISTRIP | IXON;
+  task->term.c_oflag = OPOST;
+  task->term.c_cflag = CS8 | CREAD | CLOCAL;
+  task->term.c_lflag = ECHO | ICANON | IEXTEN | ISIG;
+  task->term.c_line = 0;
+  task->term.c_cc[VINTR] = 3;     // Ctrl-C
+  task->term.c_cc[VQUIT] = 28;    // Ctrl-task->term.c_cc[VERASE] = 127; // DEL
+  task->term.c_cc[VKILL] = 21;    // Ctrl-U
+  task->term.c_cc[VEOF] = 4;      // Ctrl-D
+  task->term.c_cc[VTIME] = 0;     // No timer
+  task->term.c_cc[VMIN] = 1;      // Return each byte
+  task->term.c_cc[VSTART] = 17;   // Ctrl-Q
+  task->term.c_cc[VSTOP] = 19;    // Ctrl-S
+  task->term.c_cc[VSUSP] = 26;    // Ctrl-Z
+  task->term.c_cc[VREPRINT] = 18; // Ctrl-R
+  task->term.c_cc[VDISCARD] = 15; // Ctrl-O
+  task->term.c_cc[VWERASE] = 23;  // Ctrl-W
+  task->term.c_cc[VLNEXT] = 22;   // Ctrl-V
+  // Initialize other control characters to 0
+  for (int i = 16; i < NCCS; i++) {
+    task->term.c_cc[i] = 0;
+  }
+}
 
 Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
                  uint32_t argc, char **argv) {
@@ -64,6 +91,8 @@ Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
 
   target->mmap_start = USER_MMAP_START;
   target->mmap_end = USER_MMAP_START;
+
+  taskAttachDefTermios(target);
 
   return target;
 }
@@ -373,6 +402,7 @@ void initiateTasks() {
   size_t tssRspSize = USER_STACK_PAGES * BLOCK_SIZE;
   memset(tssRsp, 0, tssRspSize);
   currentTask->whileTssRsp = (uint64_t)tssRsp + tssRspSize;
+  taskAttachDefTermios(currentTask);
 
   debugf("[tasks] Current execution ready for multitasking\n");
   tasksInitiated = true;

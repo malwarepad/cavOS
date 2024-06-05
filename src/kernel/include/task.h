@@ -26,6 +26,16 @@ typedef enum TASK_STATE {
   TASK_STATE_CREATED = 4, // just made by taskCreate()
 } TASK_STATE;
 
+#define NCCS 32
+typedef struct termios {
+  uint32_t c_iflag;    /* input mode flags */
+  uint32_t c_oflag;    /* output mode flags */
+  uint32_t c_cflag;    /* control mode flags */
+  uint32_t c_lflag;    /* local mode flags */
+  uint8_t  c_line;     /* line discipline */
+  uint8_t  c_cc[NCCS]; /* control characters */
+} termios;
+
 typedef struct Task Task;
 
 struct Task {
@@ -54,6 +64,7 @@ struct Task {
   uint64_t mmap_start;
   uint64_t mmap_end;
 
+  termios   term;
   uint32_t  tmpRecV;
   OpenFile *firstFile;
   char     *cwd;

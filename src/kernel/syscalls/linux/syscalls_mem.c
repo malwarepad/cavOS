@@ -1,3 +1,4 @@
+#include <paging.h>
 #include <syscalls.h>
 #include <task.h>
 #include <util.h>
@@ -8,7 +9,9 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
   length = DivRoundUp(length, 0x1000) * 0x1000;
   /* No point in DEBUG_SYSCALLS_ARGS'ing here */
 
-  if (!addr && fd == -1) { // before: !addr &&
+  if (!addr && fd == -1 &&
+      (flags & ~MAP_FIXED & ~MAP_PRIVATE) ==
+          MAP_ANONYMOUS) { // before: !addr &&
     size_t curr = currentTask->mmap_end;
 #if DEBUG_SYSCALLS
     debugf("[syscalls::mmap] No placement preference, no file descriptor: "
@@ -22,6 +25,20 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
     debugf("[syscalls::mmap] Found addr{%lx}\n", curr);
 #endif
     return curr;
+  } else if (!addr && fd == -1 &&
+             (flags & ~MAP_FIXED & ~MAP_PRIVATE & ~MAP_SHARED) ==
+                 MAP_ANONYMOUS &&
+             (flags & ~MAP_FIXED & ~MAP_PRIVATE & ~MAP_ANONYMOUS) ==
+                 MAP_SHARED) {
+    size_t base = currentTask->mmap_end;
+    size_t pages = DivRoundUp(length, PAGE_SIZE);
+    currentTask->mmap_end += pages * PAGE_SIZE;
+
+    for (int i = 0; i < pages; i++)
+      VirtualMap(base + i * PAGE_SIZE, BitmapAllocatePageframe(&physical),
+                 PF_RW | PF_USER | PF_SHARED);
+
+    return base;
   } else if (fd != -1) {
     OpenFile *file = fsUserGetNode(fd);
     if (!file || file->mountPoint != MOUNT_POINT_SPECIAL)

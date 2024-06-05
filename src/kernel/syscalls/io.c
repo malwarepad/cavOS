@@ -17,11 +17,12 @@ int readHandler(OpenFile *fd, uint8_t *in, size_t limit) {
   asm volatile("sti"); // leave this task/execution (awaiting return)
   while (currentTask->state == TASK_STATE_WAITING_INPUT) {
   }
-  printf("\n"); // you technically pressed enter, didn't you?
+  if (currentTask->term.c_lflag & ICANON)
+    printf("\n"); // you technically pressed enter, didn't you?
 
   // finalise
   uint32_t fr = currentTask->tmpRecV;
-  if (fr < limit)
+  if (currentTask->term.c_lflag & ICANON && fr < limit)
     in[fr++] = '\n';
   // only add newline if we can!
 
@@ -48,6 +49,20 @@ int ioctlHandler(OpenFile *fd, uint64_t request, void *arg) {
 
     win->ws_xpixel = framebufferWidth;
     win->ws_ypixel = framebufferHeight;
+    return 0;
+    break;
+  }
+  case TCGETS: {
+    memcpy(arg, &currentTask->term, sizeof(termios));
+    debugf("got %d %d\n", currentTask->term.c_lflag & ICANON,
+           currentTask->term.c_lflag & ECHO);
+    return 0;
+    break;
+  }
+  case TCSETS: {
+    memcpy(&currentTask->term, arg, sizeof(termios));
+    debugf("setting %d %d\n", currentTask->term.c_lflag & ICANON,
+           currentTask->term.c_lflag & ECHO);
     return 0;
     break;
   }
