@@ -62,6 +62,9 @@ struct Task {
 
   __attribute__((aligned(16))) uint8_t fpuenv[512];
 
+  // Yes... As absurd as it sounds!
+  uint64_t lastChildKilled;
+
   Task *parent;
   Task *next;
 };

@@ -234,8 +234,8 @@ void launch_shell(int n) {
     } else if (strEql(ch, "busybox")) {
       printf("\n");
       char *argv[] = {"/usr/bin/busybox", "sh"};
-      int   id = elfExecute("/usr/bin/busybox", 2, argv, 0);
-      while (taskGetState(id))
+      Task *task = elfExecute("/usr/bin/busybox", 2, argv, true);
+      while (taskGetState(task->id))
         ;
     } else if (strEql(ch, "ping")) {
       uint8_t ip[4];
@@ -313,13 +313,13 @@ void launch_shell(int n) {
 
       size_t *argv = malloc(sizeof(size_t) * 5);
       argv[0] = (size_t)filepath;
-      uint32_t id = elfExecute(filepath, 1, (char **)argv, 0);
-      if (!id) {
+      Task *task = elfExecute(filepath, 1, (char **)argv, true);
+      if (!task) {
         printf("Failure executing %s!\n", filepath);
         continue;
       }
 
-      while (taskGetState(id)) {
+      while (taskGetState(task->id)) {
       }
 
       free(filepath);

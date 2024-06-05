@@ -192,6 +192,10 @@ void taskKillCleanup(Task *task) {
 
   currentTask = old;
 
+  // Notify that poor parent... they must've been searching all over the place!
+  if (task->parent)
+    task->parent->lastChildKilled = task->id;
+
   PageDirectoryFree(task->pagedir);
   VirtualFree((void *)task->whileTssRsp, USER_STACK_PAGES);
   free(task);

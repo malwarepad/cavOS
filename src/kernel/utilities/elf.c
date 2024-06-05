@@ -44,7 +44,7 @@ bool elf_check_file(Elf64_Ehdr *hdr) {
   return true;
 }
 
-uint32_t elfExecute(char *filepath, uint32_t argc, char **argv, int32_t selid) {
+Task *elfExecute(char *filepath, uint32_t argc, char **argv, bool startup) {
   // Open & read executable file
   OpenFile *dir = fsKernelOpen(filepath, FS_MODE_READ, 0);
   if (!dir) {
@@ -79,7 +79,7 @@ uint32_t elfExecute(char *filepath, uint32_t argc, char **argv, int32_t selid) {
          elf_ehdr->e_phnum, elf_ehdr->e_phentsize);
 #endif
 
-  int32_t id = selid ? selid : taskGenerateId();
+  int32_t id = taskGenerateId();
   if (id == -1) {
     debugf(
         "[elf] Cannot fetch task id... You probably reached the task limit!");
@@ -196,7 +196,8 @@ uint32_t elfExecute(char *filepath, uint32_t argc, char **argv, int32_t selid) {
   taskAdjustHeap(target, DivRoundUp(target->heap_end, 0x1000) * 0x1000,
                  &target->heap_start, &target->heap_end);
 
-  taskCreateFinish(target);
+  if (startup)
+    taskCreateFinish(target);
 
-  return id;
+  return target;
 }

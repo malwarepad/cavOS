@@ -1,3 +1,4 @@
+#include "task.h"
 #include "types.h"
 
 typedef uint16_t Elf64_Half;   // Unsigned medium integer
@@ -96,6 +97,6 @@ enum Elf_Type {
 #ifndef ELF_H
 #define ELF_H
 
-uint32_t elfExecute(char *filepath, uint32_t argc, char **argv, int32_t selid);
+Task *elfExecute(char *filepath, uint32_t argc, char **argv, bool startup);
 
 #endif

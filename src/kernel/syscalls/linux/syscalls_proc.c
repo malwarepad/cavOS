@@ -34,11 +34,15 @@ static int syscallExecve(char *filename, char **argv, char **envp) {
 
   currentTask->id = taskGenerateId();
 
-  int ret = elfExecute(filename, argc, ptrPlace, currentTask->id);
+  Task *ret = elfExecute(filename, argc, ptrPlace, 0);
   free(ptrPlace);
   free(valPlace);
   if (!ret)
     return -1;
+
+  ret->id = currentTask->id;
+  ret->parent = currentTask->parent;
+  taskCreateFinish(ret);
 
   taskKill(currentTask->id);
   return 0; // will never be reached, it **replaces**
@@ -79,19 +83,12 @@ static int syscallWait4(int pid, int *start_addr, int options,
 
     if (!amnt)
       return -1;
+    currentTask->lastChildKilled = 0;
 
-    while (true) {
-      // *start_addr = idek
-      Task *browse = firstTask;
-      int   innerAmnt = 0;
-      while (browse) {
-        if (browse->parent == currentTask)
-          innerAmnt++;
-        browse = browse->next;
-      }
-      if (innerAmnt < amnt)
-        return 0;
+    while (!currentTask->lastChildKilled) {
     }
+
+    return currentTask->lastChildKilled;
   } else {
 #if DEBUG_SYSCALLS_STUB
     debugf("[syscall::wait4] UNIMPLEMENTED pid{%d}!\n", pid);

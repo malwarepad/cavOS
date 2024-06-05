@@ -1,5 +1,6 @@
 #include <arp.h>
 #include <elf.h>
+#include <fb.h>
 #include <icmp.h>
 #include <malloc.h>
 #include <md5.h>
@@ -20,15 +21,18 @@
 
 extern void weirdTests();
 
-char *argv[] = {"/usr/bin/bash"};
+// char *argv[] = {"/doom", "-iwad", "/DOOM.WAD"};
+char *argv[] = {"/usr/bin/busybox", "sh"};
 void  testingInit() {
   // netSocketConnect(selectedNIC, SOCKET_PROT_UDP, (uint8_t[]){10, 0, 2, 15},
   //                   5643, 69);
   // weirdTests();
   // elfExecute("/usr/bin/busybox", 2, argv);
-  int id = elfExecute("/usr/bin/bash", 1, argv);
-  while (taskGetState(id))
+  // while (1) {
+  Task *task = elfExecute(argv[0], sizeof(argv) / sizeof(argv[0]), argv, true);
+  while (taskGetState(task->id))
     ;
+  // }
 }
 
 void weirdTests() {
