@@ -23,7 +23,7 @@ static int syscallExecve(char *filename, char **argv, char **envp) {
     totalLen += strlength(argv[argc]) + 1;
     argc++;
   }
-  char   **ptrPlace = malloc(argc);
+  char   **ptrPlace = malloc(argc * sizeof(void *));
   uint8_t *valPlace = malloc(totalLen);
   size_t   curr = 0;
   for (int i = 0; i < argc; i++) {
