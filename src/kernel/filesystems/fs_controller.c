@@ -561,20 +561,22 @@ bool fsStat(OpenFile *fd, stat *target, stat_extra *extra) {
   bool ret = false;
   switch (fd->mountPoint->filesystem) {
   case FS_FATFS: {
-    FILINFO *filinfo = (FILINFO *)malloc(sizeof(FILINFO));
+    // FILINFO *filinfo = (FILINFO *)malloc(sizeof(FILINFO));
 
-    get_fileinfo((DIR *)(fd->dir), filinfo);
+    // get_fileinfo((DIR *)(fd->dir), filinfo);
     ret = true;
 
     if (ret && target) {
-      target->st_size = filinfo->fsize;
+      target->st_size = f_size((FIL *)(fd->dir));
+
+      // debugf("realsize: %ld\n", target->st_size);
     }
 
     if (ret && extra) {
-      extra->file = !(filinfo->fattrib & AM_DIR);
+      // extra->file = !(filinfo->fattrib & AM_DIR);
     }
 
-    free(filinfo);
+    // free(filinfo);
     break;
   }
   default:
@@ -615,6 +617,7 @@ bool fsStatByFilename(char *filename, stat *target, stat_extra *extra) {
 
     if (ret && target) {
       target->st_size = filinfo->fsize;
+      // debugf("realsize: %ld\n", target->st_size);
     }
 
     if (ret && extra) {

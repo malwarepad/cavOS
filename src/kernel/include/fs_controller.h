@@ -43,19 +43,24 @@ typedef enum CONNECTOR { CONNECTOR_AHCI } CONNECTOR;
 #define O_NDELAY O_NONBLOCK
 
 typedef struct stat {
-  uint32_t st_dev;     // Device ID
-  uint32_t st_ino;     // inode number
-  uint32_t st_mode;    // File mode
-  uint32_t st_nlink;   // Number of hard links
-  uint32_t st_uid;     // User ID of owner
-  uint32_t st_gid;     // Group ID of owner
-  uint32_t st_rdev;    // Device ID (if special file)
-  uint32_t st_size;    // Total size, in bytes
-  uint32_t st_blksize; // Optimal block size for I/O
-  uint32_t st_blocks;  // Number of 512B blocks allocated
-  uint64_t st_atime;   // Time of last access
-  uint64_t st_mtime;   // Time of last modification
-  uint64_t st_ctime;   // Time of last status change
+  uint64_t st_dev;              /* Device */
+  uint64_t st_ino;              /* File serial number */
+  uint64_t st_nlink;            /* Link count */
+  uint32_t st_mode;             /* File mode */
+  uint32_t st_uid;              /* User ID of the file's owner */
+  uint32_t st_gid;              /* Group ID of the file's group */
+  uint32_t __pad0;              /* Padding */
+  uint64_t st_rdev;             /* Device number, if device */
+  uint64_t st_size;             /* Size of file, in bytes */
+  int64_t  st_blksize;          /* Optimal block size for I/O */
+  int64_t  st_blocks;           /* Number 512-byte blocks allocated */
+  uint64_t st_atime;            /* Time of last access */
+  uint64_t st_atimensec;        /* Nanoseconds of last access */
+  uint64_t st_mtime;            /* Time of last modification */
+  uint64_t st_mtimensec;        /* Nanoseconds of last modification */
+  uint64_t st_ctime;            /* Time of last status change */
+  uint64_t st_ctimensec;        /* Nanoseconds of last status change */
+  int64_t  __glibc_reserved[3]; /* Reserved for future use */
 } stat;
 
 typedef struct stat_extra {
