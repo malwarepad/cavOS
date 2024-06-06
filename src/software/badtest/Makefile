@@ -1,7 +1,7 @@
 COMPILER = ~/opt/cross/bin/x86_64-cavos-gcc
 CFLAGS = -std=gnu99 -w -ffreestanding -nostartfiles -nostdlib
-OUTPUT = a.cav
-TARGET = ../../../target/software/
+OUTPUT = a
+TARGET = ../../../target/usr/bin/
 
 all: clean compile install
 

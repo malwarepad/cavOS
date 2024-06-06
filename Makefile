@@ -38,6 +38,7 @@ disk: limine musl target/usr/share/hwdata/pci.ids
 # @$(MAKE) -C src/libs/system
 	@$(MAKE) -C src/software/test
 	@$(MAKE) -C src/software/badtest
+	@$(MAKE) -C src/software/drawimg
 	@$(MAKE) -C src/kernel disk
 
 # Raw kernel.bin
