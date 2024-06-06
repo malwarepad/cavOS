@@ -1,6 +1,7 @@
 #include <gdt.h>
 #include <isr.h>
 #include <linked_list.h>
+#include <linux.h>
 #include <malloc.h>
 #include <paging.h>
 #include <pmm.h>

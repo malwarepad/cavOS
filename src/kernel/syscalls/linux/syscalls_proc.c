@@ -1,4 +1,5 @@
 #include <elf.h>
+#include <linux.h>
 #include <malloc.h>
 #include <string.h>
 #include <syscalls.h>

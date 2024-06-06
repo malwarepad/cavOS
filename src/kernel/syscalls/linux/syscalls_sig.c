@@ -1,3 +1,4 @@
+#include <linux.h>
 #include <syscalls.h>
 
 #define SYSCALL_RT_SIGACTION 13
@@ -15,7 +16,7 @@ static int syscallRtSigaction(int sig, const struct sigaction *act,
 }
 
 #define SYSCALL_RT_SIGPROCMASK 14
-static int syscallRtSigprocmask(int how, sigset_t *nset, sigset_t *oset,
+static int syscallRtSigprocmask(int how, __sigset_t *nset, __sigset_t *oset,
                                 size_t sigsetsize) {
 #if DEBUG_SYSCALLS_ARGS
   debugf(

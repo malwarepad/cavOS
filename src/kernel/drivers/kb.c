@@ -3,7 +3,7 @@
 #include <paging.h>
 #include <task.h>
 
-#include <syscalls.h>
+#include <linux.h>
 #include <system.h>
 
 // Very bare bones, and basic keyboard driver

@@ -1,6 +1,7 @@
 #include <console.h>
 #include <fb.h>
 #include <kb.h>
+#include <linux.h>
 #include <syscalls.h>
 #include <task.h>
 
