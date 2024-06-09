@@ -8,7 +8,8 @@ remusl: cleanmusl musl
 
 cleanmusl:
 	rm -rf src/libs/musl/cavos-build
-	rm -rf src/libs/musl/cavos-out
+	rm -rf src/libs/musl/cavos-out/include
+	rm -rf src/libs/musl/cavos-out/lib
 
 musl:
 	chmod +x src/libs/musl/build.sh
