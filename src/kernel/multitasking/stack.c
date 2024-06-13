@@ -49,6 +49,16 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint8_t *out,
     randomByteStart[i] = thing;
   }
 
+  size_t lowestThing = 0;
+  for (int i = 0; i < elf_ehdr->e_phnum; i++) {
+    Elf64_Phdr *elf_phdr = (Elf64_Phdr *)((size_t)out + elf_ehdr->e_phoff +
+                                          i * elf_ehdr->e_phentsize);
+    if (elf_phdr->p_type != PT_LOAD)
+      continue;
+    if (!lowestThing || lowestThing > elf_phdr->p_vaddr)
+      lowestThing = elf_phdr->p_vaddr;
+  }
+
   // aux: AT_NULL
   PUSH_TO_STACK(target->registers.usermode_rsp, size_t, (size_t)0);
   PUSH_TO_STACK(target->registers.usermode_rsp, size_t, (size_t)0);
@@ -72,16 +82,18 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint8_t *out,
   // aux: AT_ENTRY
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, elf_ehdr->e_entry);
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 9);
+  // aux: AT_BASE // todo: not hardcode
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 0x100000000000);
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 7);
+  // aux: AT_FLAGS
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 0);
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 8);
   // aux: AT_HWCAP
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 0);
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 16);
   // aux: AT_PHDR
-  void *phstuffStart = (void *)target->heap_end;
-  taskAdjustHeap(target, target->heap_end + filesize, &target->heap_start,
-                 &target->heap_end);
-  memcpy(phstuffStart, out, filesize);
   PUSH_TO_STACK(target->registers.usermode_rsp, size_t,
-                (size_t)phstuffStart + elf_ehdr->e_phoff);
+                lowestThing + elf_ehdr->e_phoff);
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 3);
 
   // Store argument contents

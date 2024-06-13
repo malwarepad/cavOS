@@ -67,6 +67,13 @@ int ioctlHandler(OpenFile *fd, uint64_t request, void *arg) {
     return 0;
     break;
   }
+  case 0x540f: // TIOCGPGRP
+  {
+    int *pid = (int *)arg;
+    *pid = currentTask->id;
+    return 0;
+    break;
+  }
   default:
     return -1;
     break;

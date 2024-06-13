@@ -4,6 +4,7 @@ target/boot/*.bin
 target/software/*.cav
 target/usr/bin/*
 target/usr/lib
+target/lib
 disk.img
 disk.vmdk
 

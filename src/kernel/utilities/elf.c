@@ -44,6 +44,25 @@ bool elf_check_file(Elf64_Ehdr *hdr) {
   return true;
 }
 
+void elfProcessLoad(Elf64_Phdr *elf_phdr, uint8_t *out, size_t base) {
+  // Map the (current) program page
+  uint64_t pagesRequired = DivRoundUp(elf_phdr->p_memsz, 0x1000) + 1;
+  for (int j = 0; j < pagesRequired; j++) {
+    size_t vaddr = (elf_phdr->p_vaddr & ~0xFFF) + j * 0x1000;
+    size_t paddr = BitmapAllocatePageframe(&physical);
+    VirtualMap(base + vaddr, paddr, PF_USER | PF_RW);
+  }
+
+  // Copy the required info
+  memcpy((void *)(base + elf_phdr->p_vaddr), out + elf_phdr->p_offset,
+         elf_phdr->p_filesz);
+
+  // wtf is this? (needed)
+  if (elf_phdr->p_memsz > elf_phdr->p_filesz)
+    memset((void *)(base + elf_phdr->p_vaddr + elf_phdr->p_filesz), 0,
+           elf_phdr->p_memsz - elf_phdr->p_filesz);
+}
+
 Task *elfExecute(char *filepath, uint32_t argc, char **argv, bool startup) {
   // Open & read executable file
   OpenFile *dir = fsKernelOpen(filepath, FS_MODE_READ, 0);
@@ -90,6 +109,8 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, bool startup) {
   }
 
   Elf64_Phdr *tls = 0;
+  size_t      interpreterEntry = 0;
+  size_t      interpreterBase = 0x100000000000; // todo: not hardcode
   // Loop through the multiple ELF32 program header tables
   for (int i = 0; i < elf_ehdr->e_phnum; i++) {
     Elf64_Phdr *elf_phdr = (Elf64_Phdr *)((size_t)out + elf_ehdr->e_phoff +
@@ -105,26 +126,38 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, bool startup) {
       }
       tls = elf_phdr;
       continue;
+    } else if (elf_phdr->p_type == 3) {
+      char     *interpreterFilename = (char *)(out + elf_phdr->p_offset);
+      OpenFile *interpreter =
+          fsKernelOpen(interpreterFilename, FS_MODE_READ, 0);
+      size_t size = fsGetFilesize(interpreter);
+
+      uint8_t *interpreterContents = (uint8_t *)malloc(size);
+      fsReadFullFile(interpreter, interpreterContents);
+
+      Elf64_Ehdr *interpreterEhdr = (Elf64_Ehdr *)(interpreterContents);
+      if (interpreterEhdr->e_type != 3) { // ET_DYN
+        debugf("[elf::dyn] Interpreter{%s} isn't really of type ET_DYN!\n",
+               interpreterFilename);
+        panic();
+      }
+      interpreterEntry = interpreterEhdr->e_entry;
+      for (int i = 0; i < interpreterEhdr->e_phnum; i++) {
+        Elf64_Phdr *interpreterPhdr =
+            (Elf64_Phdr *)((size_t)interpreterContents +
+                           interpreterEhdr->e_phoff +
+                           i * interpreterEhdr->e_phentsize);
+        if (interpreterPhdr->p_type != PT_LOAD)
+          continue;
+        elfProcessLoad(interpreterPhdr, interpreterContents, interpreterBase);
+      }
+
+      continue;
     }
     if (elf_phdr->p_type != PT_LOAD)
       continue;
 
-    // Map the (current) program page
-    uint64_t pagesRequired = DivRoundUp(elf_phdr->p_memsz, 0x1000) + 1;
-    for (int j = 0; j < pagesRequired; j++) {
-      size_t vaddr = (elf_phdr->p_vaddr & ~0xFFF) + j * 0x1000;
-      size_t paddr = BitmapAllocatePageframe(&physical);
-      VirtualMap(vaddr, paddr, PF_USER | PF_RW);
-    }
-
-    // Copy the required info
-    memcpy((void *)elf_phdr->p_vaddr, out + elf_phdr->p_offset,
-           elf_phdr->p_filesz);
-
-    // wtf is this? (needed)
-    if (elf_phdr->p_memsz > elf_phdr->p_filesz)
-      memset((void *)(elf_phdr->p_vaddr + elf_phdr->p_filesz), 0,
-             elf_phdr->p_memsz - elf_phdr->p_filesz);
+    elfProcessLoad(elf_phdr, out, 0);
 
 #if ELF_DEBUG
     debugf("[elf] Program header: type{%d} offset{%x} vaddr{%x} size{%x} "
@@ -152,7 +185,10 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, bool startup) {
   ChangePageDirectory(oldpagedir);
 
   Task *target =
-      taskCreate(id, (uint64_t)elf_ehdr->e_entry, false, pagedir, argc, argv);
+      taskCreate(id,
+                 interpreterEntry ? (interpreterBase + interpreterEntry)
+                                  : elf_ehdr->e_entry,
+                 false, pagedir, argc, argv);
 
   // libc takes care of tls lmao
   /*if (tls) {
