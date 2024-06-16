@@ -1,7 +1,5 @@
 # Binaries
-target/obj/*
 target/boot/*.bin
-target/software/*.cav
 target/usr/bin/*
 target/usr/lib
 target/lib

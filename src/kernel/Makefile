@@ -28,210 +28,32 @@ TARGET_IMG = ../../disk.img
 TARGET_VMWARE = ../../disk.vmdk
 TARGET_ISO = ../../cavOS.iso
 
-OBJS = $(TARGET)/obj/kc.o $(TARGET)/obj/idt.o $(TARGET)/obj/printf.o $(TARGET)/obj/isr.o $(TARGET)/obj/kb.o $(TARGET)/obj/string.o $(TARGET)/obj/system.o $(TARGET)/obj/util.o $(TARGET)/obj/shell.o $(TARGET)/obj/disk.o $(TARGET)/obj/rtc.o $(TARGET)/obj/testing.o $(TARGET)/obj/pmm.o $(TARGET)/obj/gdt.o $(TARGET)/obj/timer.o $(TARGET)/obj/schedule.o $(TARGET)/obj/pci.o $(TARGET)/obj/pci_id.o $(TARGET)/obj/israsm.o $(TARGET)/obj/task.o $(TARGET)/obj/stack.o $(TARGET)/obj/vga.o $(TARGET)/obj/console.o $(TARGET)/obj/serial.o $(TARGET)/obj/elf.o $(TARGET)/obj/paging.o $(TARGET)/obj/vmm.o $(TARGET)/obj/syscalls.o $(TARGET)/obj/syscalls_fs.o $(TARGET)/obj/syscalls_mem.o $(TARGET)/obj/syscalls_sig.o $(TARGET)/obj/ne2k.o $(TARGET)/obj/nic_controller.o $(TARGET)/obj/arp.o $(TARGET)/obj/rtl8139.o $(TARGET)/obj/bitmap.o $(TARGET)/obj/ipv4.o $(TARGET)/obj/udp.o $(TARGET)/obj/checksum.o $(TARGET)/obj/icmp.o $(TARGET)/obj/dhcp.o $(TARGET)/obj/tcp.o $(TARGET)/obj/socket.o $(TARGET)/obj/fs_controller.o $(TARGET)/obj/ahci.o $(TARGET)/obj/rtl8169.o $(TARGET)/obj/linked_list.o $(TARGET)/obj/bootloaderParser.o $(TARGET)/obj/md5.o $(TARGET)/obj/psf.o $(TARGET)/obj/fb.o $(TARGET)/obj/malloc.o $(TARGET)/obj/malloc_glue.o $(TARGET)/obj/sseasm.o $(TARGET)/obj/diskio.o $(TARGET)/obj/ff.o $(TARGET)/obj/ffsystem.o $(TARGET)/obj/ffunicode.o $(TARGET)/obj/io.o $(TARGET)/obj/fastSyscall.o $(TARGET)/obj/syscalls_env.o $(TARGET)/obj/syscalls_proc.o $(TARGET)/obj/syscalls_clock.o $(TARGET)/obj/ansi.o
 OUTPUT = $(TARGET)/boot/kernel.bin
 
-$(TARGET)/obj:
-	mkdir -p $(TARGET)/obj
+C_SOURCES := $(shell find . -name '*.c' ! -name "malloc.c" ! -name "printf.c" -printf "%P\n")
+ASM_SOURCES := $(shell find . -name '*.asm' -printf "%P\n")
 
-all:$(TARGET)/obj $(OBJS)
+C_OBJS = $(patsubst %.c,%.o,$(C_SOURCES))
+C_EXTRA_OBJS = memory/malloc.o drivers/printf.o
+
+ASM_OBJS = $(patsubst %.asm,%.asm.o,$(ASM_SOURCES))
+
+all: $(TARGET)/obj $(C_OBJS) $(ASM_OBJS) $(C_EXTRA_OBJS)
 	mkdir $(TARGET)/ -p
 	mkdir $(TARGET)/boot/ -p
-	$(LINKER) $(LDFLAGS) -o $(OUTPUT) $(OBJS)
+	$(LINKER) $(LDFLAGS) -o $(OUTPUT) $(C_OBJS) $(C_EXTRA_OBJS) $(ASM_OBJS)
+	
+memory/malloc.o:memory/malloc.c
+	$(COMPILER) $(CFLAGS) memory/malloc.c -o memory/malloc.o -DHAVE_MMAP=0 -DLACKS_TIME_H=1 -DLACKS_SYS_PARAM_H=1 -LACKS_STRING_H=0 -Dmalloc_getpagesize=4096 -DNO_MALLOC_STATS=1 -DMORECORE_CONTIGUOUS=0
 
-$(TARGET)/obj/israsm.o:cpu/isr.asm
-	mkdir $(TARGET)/obj/ -p
-	$(ASSEMBLER) $(ASFLAGS) -o $(TARGET)/obj/israsm.o cpu/isr.asm
+drivers/printf.o:drivers/printf.c
+	$(COMPILER) $(CFLAGS) drivers/printf.c -o drivers/printf.o -DPRINTF_INCLUDE_CONFIG_H=1
 
-$(TARGET)/obj/sseasm.o:cpu/sse.asm
-	mkdir $(TARGET)/obj/ -p
-	$(ASSEMBLER) $(ASFLAGS) -o $(TARGET)/obj/sseasm.o cpu/sse.asm
-	
-$(TARGET)/obj/syscalls.o:syscalls/syscalls.c
-	$(COMPILER) $(CFLAGS) syscalls/syscalls.c -o $(TARGET)/obj/syscalls.o 
-	
-$(TARGET)/obj/syscalls_fs.o:syscalls/linux/syscalls_fs.c
-	$(COMPILER) $(CFLAGS) syscalls/linux/syscalls_fs.c -o $(TARGET)/obj/syscalls_fs.o
-	
-$(TARGET)/obj/syscalls_mem.o:syscalls/linux/syscalls_mem.c
-	$(COMPILER) $(CFLAGS) syscalls/linux/syscalls_mem.c -o $(TARGET)/obj/syscalls_mem.o
-	
-$(TARGET)/obj/syscalls_sig.o:syscalls/linux/syscalls_sig.c
-	$(COMPILER) $(CFLAGS) syscalls/linux/syscalls_sig.c -o $(TARGET)/obj/syscalls_sig.o
-	
-$(TARGET)/obj/syscalls_env.o:syscalls/linux/syscalls_env.c
-	$(COMPILER) $(CFLAGS) syscalls/linux/syscalls_env.c -o $(TARGET)/obj/syscalls_env.o
-	
-$(TARGET)/obj/syscalls_proc.o:syscalls/linux/syscalls_proc.c
-	$(COMPILER) $(CFLAGS) syscalls/linux/syscalls_proc.c -o $(TARGET)/obj/syscalls_proc.o
-	
-$(TARGET)/obj/syscalls_clock.o:syscalls/linux/syscalls_clock.c
-	$(COMPILER) $(CFLAGS) syscalls/linux/syscalls_clock.c -o $(TARGET)/obj/syscalls_clock.o
-	
-$(TARGET)/obj/io.o:syscalls/io.c
-	$(COMPILER) $(CFLAGS) syscalls/io.c -o $(TARGET)/obj/io.o 
-	
-$(TARGET)/obj/vmm.o:memory/vmm.c
-	$(COMPILER) $(CFLAGS) memory/vmm.c -o $(TARGET)/obj/vmm.o 
-	
-$(TARGET)/obj/paging.o:memory/paging.c
-	$(COMPILER) $(CFLAGS) memory/paging.c -o $(TARGET)/obj/paging.o 
-	
-$(TARGET)/obj/task.o:multitasking/task.c
-	$(COMPILER) $(CFLAGS) multitasking/task.c -o $(TARGET)/obj/task.o 
-	
-$(TARGET)/obj/stack.o:multitasking/stack.c
-	$(COMPILER) $(CFLAGS) multitasking/stack.c -o $(TARGET)/obj/stack.o 
-	
-$(TARGET)/obj/elf.o:utilities/elf.c
-	$(COMPILER) $(CFLAGS) utilities/elf.c -o $(TARGET)/obj/elf.o 
-	
-$(TARGET)/obj/psf.o:utilities/psf.c
-	$(COMPILER) $(CFLAGS) utilities/psf.c -o $(TARGET)/obj/psf.o 
-	
-$(TARGET)/obj/ne2k.o:drivers/nics/ne2k.c
-	$(COMPILER) $(CFLAGS) drivers/nics/ne2k.c -o $(TARGET)/obj/ne2k.o 
-	
-$(TARGET)/obj/rtl8139.o:drivers/nics/rtl8139.c
-	$(COMPILER) $(CFLAGS) drivers/nics/rtl8139.c -o $(TARGET)/obj/rtl8139.o 
-	
-$(TARGET)/obj/rtl8169.o:drivers/nics/rtl8169.c
-	$(COMPILER) $(CFLAGS) drivers/nics/rtl8169.c -o $(TARGET)/obj/rtl8169.o 
-	
-$(TARGET)/obj/nic_controller.o:drivers/nics/nic_controller.c
-	$(COMPILER) $(CFLAGS) drivers/nics/nic_controller.c -o $(TARGET)/obj/nic_controller.o 
-	
-$(TARGET)/obj/serial.o:drivers/serial.c
-	$(COMPILER) $(CFLAGS) drivers/serial.c -o $(TARGET)/obj/serial.o 
-	
-$(TARGET)/obj/schedule.o:multitasking/schedule.c
-	$(COMPILER) $(CFLAGS) multitasking/schedule.c -o $(TARGET)/obj/schedule.o 
-	
-$(TARGET)/obj/console.o:graphical/console.c
-	$(COMPILER) $(CFLAGS) graphical/console.c -o $(TARGET)/obj/console.o 
-	
-$(TARGET)/obj/ansi.o:graphical/ansi.c
-	$(COMPILER) $(CFLAGS) graphical/ansi.c -o $(TARGET)/obj/ansi.o 
-	
-$(TARGET)/obj/fb.o:graphical/fb.c
-	$(COMPILER) $(CFLAGS) graphical/fb.c -o $(TARGET)/obj/fb.o 
-	
-$(TARGET)/obj/malloc.o:memory/malloc.c
-	$(COMPILER) $(CFLAGS) memory/malloc.c -o $(TARGET)/obj/malloc.o -DHAVE_MMAP=0 -DLACKS_TIME_H=1 -DLACKS_SYS_PARAM_H=1 -LACKS_STRING_H=0 -Dmalloc_getpagesize=4096 -DNO_MALLOC_STATS=1 -DMORECORE_CONTIGUOUS=0
-	
-$(TARGET)/obj/malloc_glue.o:memory/malloc_glue.c
-	$(COMPILER) $(CFLAGS) memory/malloc_glue.c -o $(TARGET)/obj/malloc_glue.o 
-	
-$(TARGET)/obj/timer.o:cpu/timer.c
-	$(COMPILER) $(CFLAGS) cpu/timer.c -o $(TARGET)/obj/timer.o 
-	
-$(TARGET)/obj/fastSyscall.o:cpu/fastSyscall.c
-	$(COMPILER) $(CFLAGS) cpu/fastSyscall.c -o $(TARGET)/obj/fastSyscall.o 
-	
-$(TARGET)/obj/pci.o:drivers/pci.c
-	$(COMPILER) $(CFLAGS) drivers/pci.c -o $(TARGET)/obj/pci.o 
-	
-$(TARGET)/obj/pci_id.o:drivers/pci_id.c
-	$(COMPILER) $(CFLAGS) drivers/pci_id.c -o $(TARGET)/obj/pci_id.o 
-	
-$(TARGET)/obj/gdt.o:cpu/gdt.c
-	$(COMPILER) $(CFLAGS) cpu/gdt.c -o $(TARGET)/obj/gdt.o 
+%.o: %.c
+	$(COMPILER) $(CFLAGS) $(subst .o,.c,$@) -o $@
 
-$(TARGET)/obj/arp.o:networking/arp.c
-	$(COMPILER) $(CFLAGS) networking/arp.c -o $(TARGET)/obj/arp.o 
-
-$(TARGET)/obj/ipv4.o:networking/ipv4.c
-	$(COMPILER) $(CFLAGS) networking/ipv4.c -o $(TARGET)/obj/ipv4.o 
-
-$(TARGET)/obj/udp.o:networking/udp.c
-	$(COMPILER) $(CFLAGS) networking/udp.c -o $(TARGET)/obj/udp.o 
-
-$(TARGET)/obj/tcp.o:networking/tcp.c
-	$(COMPILER) $(CFLAGS) networking/tcp.c -o $(TARGET)/obj/tcp.o 
-
-$(TARGET)/obj/socket.o:networking/socket.c
-	$(COMPILER) $(CFLAGS) networking/socket.c -o $(TARGET)/obj/socket.o 
-
-$(TARGET)/obj/checksum.o:networking/checksum.c
-	$(COMPILER) $(CFLAGS) networking/checksum.c -o $(TARGET)/obj/checksum.o 
-
-$(TARGET)/obj/icmp.o:networking/icmp.c
-	$(COMPILER) $(CFLAGS) networking/icmp.c -o $(TARGET)/obj/icmp.o 
-
-$(TARGET)/obj/dhcp.o:networking/dhcp.c
-	$(COMPILER) $(CFLAGS) networking/dhcp.c -o $(TARGET)/obj/dhcp.o 
-		
-$(TARGET)/obj/kc.o:entry/kernel.c
-	$(COMPILER) $(CFLAGS) entry/kernel.c -o $(TARGET)/obj/kc.o 
-		
-$(TARGET)/obj/bootloaderParser.o:entry/bootloader.c
-	$(COMPILER) $(CFLAGS) entry/bootloader.c -o $(TARGET)/obj/bootloaderParser.o
-		
-$(TARGET)/obj/idt.o:cpu/idt.c
-	$(COMPILER) $(CFLAGS) cpu/idt.c -o $(TARGET)/obj/idt.o 
-
-$(TARGET)/obj/kb.o:drivers/kb.c
-	$(COMPILER) $(CFLAGS) drivers/kb.c -o $(TARGET)/obj/kb.o
-
-$(TARGET)/obj/pmm.o:memory/pmm.c
-	$(COMPILER) $(CFLAGS) memory/pmm.c -o $(TARGET)/obj/pmm.o
-
-$(TARGET)/obj/isr.o:cpu/isr.c
-	$(COMPILER) $(CFLAGS) cpu/isr.c -o $(TARGET)/obj/isr.o
-
-$(TARGET)/obj/vga.o:drivers/vga.c
-	$(COMPILER) $(CFLAGS) drivers/vga.c -o $(TARGET)/obj/vga.o
-
-$(TARGET)/obj/printf.o:drivers/printf.c
-	$(COMPILER) $(CFLAGS) drivers/printf.c -o $(TARGET)/obj/printf.o -DPRINTF_INCLUDE_CONFIG_H=1
-
-$(TARGET)/obj/ahci.o:drivers/ahci.c
-	$(COMPILER) $(CFLAGS) drivers/ahci.c -o $(TARGET)/obj/ahci.o
-
-$(TARGET)/obj/disk.o:drivers/disk.c
-	$(COMPILER) $(CFLAGS) drivers/disk.c -o $(TARGET)/obj/disk.o
-	
-$(TARGET)/obj/fs_controller.o:filesystems/fs_controller.c
-	$(COMPILER) $(CFLAGS) filesystems/fs_controller.c -o $(TARGET)/obj/fs_controller.o
-	
-$(TARGET)/obj/diskio.o:filesystems/fatfs/diskio.c
-	$(COMPILER) $(CFLAGS) filesystems/fatfs/diskio.c -o $(TARGET)/obj/diskio.o
-	
-$(TARGET)/obj/ff.o:filesystems/fatfs/ff.c
-	$(COMPILER) $(CFLAGS) filesystems/fatfs/ff.c -o $(TARGET)/obj/ff.o
-	
-$(TARGET)/obj/ffsystem.o:filesystems/fatfs/ffsystem.c
-	$(COMPILER) $(CFLAGS) filesystems/fatfs/ffsystem.c -o $(TARGET)/obj/ffsystem.o
-	
-$(TARGET)/obj/ffunicode.o:filesystems/fatfs/ffunicode.c
-	$(COMPILER) $(CFLAGS) filesystems/fatfs/ffunicode.c -o $(TARGET)/obj/ffunicode.o
-		
-$(TARGET)/obj/rtc.o:cpu/rtc.c
-	$(COMPILER) $(CFLAGS) cpu/rtc.c -o $(TARGET)/obj/rtc.o
-
-$(TARGET)/obj/bitmap.o:utilities/data_structures/bitmap.c
-	$(COMPILER) $(CFLAGS) utilities/data_structures/bitmap.c -o $(TARGET)/obj/bitmap.o
-
-$(TARGET)/obj/linked_list.o:utilities/data_structures/linked_list.c
-	$(COMPILER) $(CFLAGS) utilities/data_structures/linked_list.c -o $(TARGET)/obj/linked_list.o
-
-$(TARGET)/obj/string.o:utilities/shell/string.c
-	$(COMPILER) $(CFLAGS) utilities/shell/string.c -o $(TARGET)/obj/string.o
-
-$(TARGET)/obj/system.o:cpu/system.c
-	$(COMPILER) $(CFLAGS) cpu/system.c -o $(TARGET)/obj/system.o
-
-$(TARGET)/obj/util.o:utilities/util.c
-	$(COMPILER) $(CFLAGS) utilities/util.c -o $(TARGET)/obj/util.o
-
-$(TARGET)/obj/md5.o:utilities/md5.c
-	$(COMPILER) $(CFLAGS) utilities/md5.c -o $(TARGET)/obj/md5.o
-
-$(TARGET)/obj/shell.o:utilities/shell/shell.c
-	$(COMPILER) $(CFLAGS) utilities/shell/shell.c -o $(TARGET)/obj/shell.o
-
-$(TARGET)/obj/testing.o:entry/testing.c
-	$(COMPILER) $(CFLAGS) entry/testing.c -o $(TARGET)/obj/testing.o
+%.asm.o: %.asm
+	$(ASSEMBLER) $(ASFLAGS) -o $@ $(subst .asm.o,.asm,$@)
 
 disk:all
 	chmod +x $(TOOLS)/make_disk.sh
@@ -245,7 +67,8 @@ tools:
 	$(TOOLS)/get_tools.sh
 	
 clean:
-	rm -f $(TARGET)/obj/*.o
+# rm -f $(TARGET)/obj/*.o
+	find . -name '*.o' -delete
 	rm -r -f $(TARGET)/kernel.bin
 	rm -f $(TARGET_IMG) $(TARGET_VMWARE) $(TARGET_ISO)
 

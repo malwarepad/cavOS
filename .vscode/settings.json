@@ -42,5 +42,8 @@
     "-fno-stack-protector",
     "-fno-stack-check",
     "-fno-lto"
-  ]
+  ],
+  "files.exclude": {
+    "**/*.o": true
+  }
 }
