@@ -1,33 +1,11 @@
-# Begin /etc/profile
-# Written for Beyond Linux From Scratch
-# by James Robertson <jameswrobertson@earthlink.net>
-# modifications by Dagmar d'Surreal <rivyqntzne@pbzpnfg.arg>
-# Modifications for managarm by Dennis Bonke <admin@dennisbonke.com>
-
-# System wide environment variables and startup programs.
-
-# System wide aliases and functions should go in /etc/bashrc.  Personal
-# environment variables and startup programs should go into
-# ~/.bash_profile.  Personal aliases and functions should go into
-# ~/.bashrc.
-
 # Set the initial path
 export PATH=/bin:/usr/bin:/usr/local/bin
 
-if [ $EUID -eq 0 ] ; then
-        export PATH=/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
+if [ $EUID -eq 0 ]; then
+  export PATH=/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 fi
 
-# Setup a red prompt for root and a green one for users.
-NORMAL="\[\e[0m\]"
-RED="\[\e[1;31m\]"
-GREEN="\[\e[1;32m\]"
-if [[ $EUID == 0 ]] ; then
-  PS1="$RED\u@\h [ $NORMAL\w$RED ]# $NORMAL"
-else
-  PS1="$GREEN\u@\h [ $NORMAL\w$GREEN ]\$ $NORMAL"
-fi
-
-unset RED GREEN NORMAL
+# PS1='\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+PS1='\u@\h:\w\$ '
 
 # End /etc/profile
