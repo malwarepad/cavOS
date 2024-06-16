@@ -263,7 +263,9 @@ static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
 
   targetFile->id = newFd;
 
+#if DEBUG_SYSCALLS_STUB
   debugf("[syscalls::dup2] wonky... old{%d} new{%d}\n", oldFd, newFd);
+#endif
   return newFd;
 }
 
