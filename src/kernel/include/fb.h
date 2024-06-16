@@ -10,10 +10,16 @@ extern uint16_t framebufferWidth;
 extern uint16_t framebufferHeight;
 extern uint32_t framebufferPitch;
 
+#define drawPixel(x, y, r, g, b)                                               \
+  do {                                                                         \
+    framebuffer[((x) + (y) * framebufferWidth) * 4] = (b);                     \
+    framebuffer[((x) + (y) * framebufferWidth) * 4 + 1] = (g);                 \
+    framebuffer[((x) + (y) * framebufferWidth) * 4 + 2] = (r);                 \
+    framebuffer[((x) + (y) * framebufferWidth) * 4 + 3] = 0;                   \
+  } while (0)
+
 void drawRect(int x, int y, int w, int h, int r, int g, int b);
-void drawPixel(int x, int y, int r, int g, int b);
 void drawLine(int x1, int y1, int x2, int y2, int r, int g, int b);
-void drawCircle(int centerX, int centerY, int radius, int r, int g, int b);
 
 extern SpecialHandlers fb0;
 
