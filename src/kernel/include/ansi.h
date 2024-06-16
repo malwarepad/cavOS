@@ -1,3 +1,3 @@
 #include "types.h"
 
-void ansiHandle(int charnum);
+bool ansiHandle(int charnum);

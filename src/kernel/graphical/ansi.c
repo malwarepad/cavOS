@@ -5,7 +5,28 @@
 // ANSI-compliant terminal stuff
 // Copyright (C) 2024 Panagiotis
 
-void ansiHandle(int charnum) {
+#define IS_VALID_NUMBER(c) (((c) >= 48 && (c) <= 57))
+
+typedef struct ANSIcolors {
+  uint8_t rgb[3];
+} ANSIcolors;
+
+ANSIcolors ansiColors[] = {
+    {{0, 0, 0}},      {{170, 0, 0}},    {{0, 170, 0}},   {{170, 85, 0}},
+    {{0, 0, 170}},    {{170, 0, 170}},  {{0, 170, 170}}, {{170, 170, 170}},
+    {{69, 69, 69}},   {{69, 69, 69}},   {{85, 85, 85}},  {{255, 85, 85}},
+    {{85, 255, 85}},  {{255, 255, 85}}, {{85, 85, 255}}, {{255, 85, 255}},
+    {{85, 255, 255}}, {{255, 255, 255}}};
+
+bool    asciiEscaping = false;  // 0x1B // \033
+bool    asciiInside = false;    //  [   // 0x5B
+bool    asciiWaiting = false;   // any  // any
+int64_t asciiChar1 = 0;         // any  // any
+bool    asciiFirstDone = false; // any  // any
+int64_t asciiChar2 = 0;         // any  // any
+
+// true = we're done with
+bool asciiProcessSimple(int charnum) {
   switch (charnum) {
   case 'H':
     width = 0;
@@ -26,6 +47,91 @@ void ansiHandle(int charnum) {
   }
 
   default:
+    return false;
     break;
   }
+
+  return true;
+}
+
+// true = done with
+bool asciiProcessExtended(int charnum) {
+  bool validNumber = IS_VALID_NUMBER(charnum);
+  if (validNumber) {
+    int target = charnum - '0';
+    if (!asciiFirstDone)
+      asciiChar1 = asciiChar1 * 10 + target;
+    else
+      asciiChar2 = asciiChar2 * 10 + target;
+
+    return false;
+  }
+
+  if (charnum == ';') {
+    if (asciiFirstDone)
+      return true;
+
+    asciiFirstDone = true;
+    return false;
+  }
+
+  // end it all (asciiWaitingChar != 0xff && validAsciiChar)
+  switch (charnum) {
+  case 'm':
+    if (!asciiChar1 && !asciiChar2) {
+      changeBg(0, 0, 0);
+      changeTextColor(255, 255, 255);
+      break;
+    }
+    bool        extra = asciiChar1 == 1;
+    bool        do2 = asciiChar2 >= 30;
+    bool        bg = (do2 ? asciiChar2 : asciiChar1) >= 40;
+    ANSIcolors *colors = &ansiColors[(do2 ? asciiChar2 : asciiChar1) - 30 -
+                                     (bg ? 10 : 0) + (extra ? 10 : 0)];
+    (bg ? changeBg : changeTextColor)(colors->rgb[0], colors->rgb[1],
+                                      colors->rgb[2]);
+    break;
+  default:
+    break;
+  }
+
+  return true;
+}
+
+void ansiReset() {
+  asciiEscaping = false;
+  asciiInside = false;
+  asciiWaiting = false;
+
+  asciiFirstDone = false;
+
+  asciiChar1 = 0;
+  asciiChar2 = 0;
+}
+
+// true = don't echo it out
+bool ansiHandle(int charnum) {
+  if (charnum == 0x1B) { // \033
+    ansiReset();
+    asciiEscaping = true;
+    return true;
+  } else if (asciiEscaping && charnum == '[') { // 0x5B
+    ansiReset();
+    asciiEscaping = true;
+    asciiInside = true;
+    return true;
+  } else if (asciiEscaping && asciiInside && !asciiWaiting) {
+    if (asciiProcessSimple(charnum))
+      ansiReset();
+    else {
+      asciiWaiting = true;
+    }
+    return true;
+  } else if (asciiEscaping && asciiInside) { // && asciiWaitingChar
+    if (asciiProcessExtended(charnum))
+      ansiReset();
+    return true;
+  }
+
+  return false;
 }

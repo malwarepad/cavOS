@@ -38,14 +38,14 @@ static int syscallExecve(char *filename, char **argv, char **envp) {
     memcpy(ptrPlace[i], argv[i], strlength(argv[i]) + 1);
   }
 
-  int targetId = currentTask->id;
-  currentTask->id = taskGenerateId();
-
   Task *ret = elfExecute(filename, argc, ptrPlace, 0);
   free(ptrPlace);
   free(valPlace);
   if (!ret)
     return -1;
+
+  int targetId = currentTask->id;
+  currentTask->id = taskGenerateId();
 
   ret->id = targetId;
   ret->parent = currentTask->parent;
@@ -113,7 +113,7 @@ static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
     currentTask->lastChildKilled.ret = 0;
 
     if (wstatus)
-      *wstatus = ((ret & 0xff) & 0xffff00ff) << 8;
+      *wstatus = (ret & 0xff) << 8;
 
 #if DEBUG_SYSCALLS
     debugf("[syscall::wait4] ret{%d}\n", output);

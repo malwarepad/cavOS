@@ -5,7 +5,7 @@
 #ifndef SYSCALLS_H
 #define SYSCALLS_H
 
-#define MAX_SYSCALLS 420
+#define MAX_SYSCALLS 450
 
 /* Syscall Debugging: Comprehensive */
 #define DEBUG_SYSCALLS 1

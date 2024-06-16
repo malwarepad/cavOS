@@ -276,9 +276,9 @@ typedef struct {
 } fd_set;
 
 #define SYSCALL_PSELECT6 270
-int syscallPselect6(int nfds, fd_set *readfds, fd_set *writefds,
-                    fd_set *exceptfds, struct timespec *timeout,
-                    void *smthsignalthing) {
+static int syscallPselect6(int nfds, fd_set *readfds, fd_set *writefds,
+                           fd_set *exceptfds, struct timespec *timeout,
+                           void *smthsignalthing) {
 #if DEBUG_SYSCALLS_ARGS
   debugf("[syscalls::pselect6] nfds{%d} readfds{%lx} writefds{%lx} "
          "exceptfds{%lx} timeout{%lx} signal{%lx}\n",
@@ -330,6 +330,12 @@ int syscallPselect6(int nfds, fd_set *readfds, fd_set *writefds,
   return amnt;
 }
 
+// #define SYSCALL_FACCESSAT2 439
+// static int syscallFaccessat2(int dirfd, char *pathname, int mode, int flags)
+// {
+//   return -1;
+// }
+
 void syscallRegFs() {
   registerSyscall(SYSCALL_WRITE, syscallWrite);
   registerSyscall(SYSCALL_READ, syscallRead);
@@ -346,4 +352,5 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_DUP2, syscallDup2);
   registerSyscall(SYSCALL_DUP, syscallDup);
   registerSyscall(SYSCALL_PSELECT6, syscallPselect6);
+  // registerSyscall(SYSCALL_FACCESSAT2, syscallFaccessat2);
 }

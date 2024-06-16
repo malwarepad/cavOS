@@ -112,24 +112,12 @@ void setConsoleY(uint32_t y) {
   updateBull();
 }
 
-bool asciiEscaping = false;
-bool asciiInside = false;
 void drawCharacter(int charnum) {
   if (!charnum)
     return;
 
-  if (charnum == 0x1B) {
-    asciiEscaping = true;
+  if (ansiHandle(charnum))
     return;
-  } else if (asciiEscaping && charnum == 0x5B) {
-    asciiInside = true;
-    return;
-  } else if (asciiEscaping && asciiInside) {
-    ansiHandle(charnum);
-    asciiEscaping = false;
-    asciiInside = false;
-    return;
-  }
 
   if (width > (framebufferWidth - CHAR_WIDTH)) {
     width = 0;
