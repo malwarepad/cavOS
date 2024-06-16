@@ -18,6 +18,11 @@ static int syscallFork() {
 
 #define SYSCALL_EXECVE 59
 static int syscallExecve(char *filename, char **argv, char **envp) {
+#if DEBUG_SYSCALLS_ARGS
+  debugf("[syscalls::execve] Replacing task{%d} with filename{%s}!\n",
+         currentTask->id, filename);
+#endif
+  // todo: envp!
   int    argc = 0;
   size_t totalLen = 0;
   while (argv[argc]) {
@@ -33,6 +38,7 @@ static int syscallExecve(char *filename, char **argv, char **envp) {
     memcpy(ptrPlace[i], argv[i], strlength(argv[i]) + 1);
   }
 
+  int targetId = currentTask->id;
   currentTask->id = taskGenerateId();
 
   Task *ret = elfExecute(filename, argc, ptrPlace, 0);
@@ -41,11 +47,15 @@ static int syscallExecve(char *filename, char **argv, char **envp) {
   if (!ret)
     return -1;
 
-  ret->id = currentTask->id;
+  ret->id = targetId;
   ret->parent = currentTask->parent;
+  size_t cwdLen = strlength(currentTask->cwd) + 1;
+  ret->cwd = malloc(cwdLen);
+  memcpy(ret->cwd, currentTask->cwd, cwdLen);
   taskCreateFinish(ret);
 
-  taskKill(currentTask->id);
+  currentTask->noInformParent = true;
+  taskKill(currentTask->id, 0);
   return 0; // will never be reached, it **replaces**
 }
 
@@ -57,39 +67,58 @@ static void syscallExitTask(int return_code) {
 #endif
   // if (return_code)
   //   panic();
-  taskKill(currentTask->id);
+  taskKill(currentTask->id, return_code);
 }
 
 #define SYSCALL_WAIT4 61
-static int syscallWait4(int pid, int *start_addr, int options,
-                        struct rusage *ru) {
+static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
 #if DEBUG_SYSCALLS_ARGS
-  debugf("[syscall::wait4] pid{%d} start_addr{%lx} options{%d} rusage{%lx}!\n",
-         pid, start_addr, options, ru);
+  debugf("[syscall::wait4] pid{%d} wstatus{%lx} options{%d} rusage{%lx}!\n",
+         pid, wstatus, options, ru);
 #endif
 #if DEBUG_SYSCALLS_STUB
   if (options || ru)
     debugf("[syscall::wait4] UNIMPLEMENTED options{%d} rusage{%lx}!\n", options,
            ru);
+  debugf("[syscall::wait4] UNIMPLEMENTED WNOHANG{%d} WUNTRACED{%d} "
+         "WSTOPPED{%d} WEXITED{%d} WCONTINUED{%d} "
+         "WNOWAIT{%d}\n",
+         options & WNOHANG, options & WUNTRACED, options & WSTOPPED,
+         options & WEXITED, options & WCONTINUED, options & WNOWAIT);
 #endif
 
   if (pid == -1) {
-    int   amnt = 0;
-    Task *browse = firstTask;
-    while (browse) {
-      if (browse->parent == currentTask)
-        amnt++;
-      browse = browse->next;
+    if (!currentTask->lastChildKilled.pid) {
+      int   amnt = 0;
+      Task *browse = firstTask;
+      while (browse) {
+        if (browse->parent == currentTask)
+          amnt++;
+        browse = browse->next;
+      }
+
+      if (!amnt)
+        return -1;
+      // currentTask->lastChildKilled.pid = 0;
+
+      while (!currentTask->lastChildKilled.pid) {
+      }
     }
 
-    if (!amnt)
-      return -1;
-    currentTask->lastChildKilled = 0;
+    int output = currentTask->lastChildKilled.pid;
+    int ret = currentTask->lastChildKilled.ret;
 
-    while (!currentTask->lastChildKilled) {
-    }
+    // clean
+    currentTask->lastChildKilled.pid = 0;
+    currentTask->lastChildKilled.ret = 0;
 
-    return currentTask->lastChildKilled;
+    if (wstatus)
+      *wstatus = ((ret & 0xff) & 0xffff00ff) << 8;
+
+#if DEBUG_SYSCALLS
+    debugf("[syscall::wait4] ret{%d}\n", output);
+#endif
+    return output;
   } else {
 #if DEBUG_SYSCALLS_STUB
     debugf("[syscall::wait4] UNIMPLEMENTED pid{%d}!\n", pid);

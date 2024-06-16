@@ -142,6 +142,7 @@ struct sigaction {
 // /usr/include/asm-generic/ioctls.h
 #define TCGETS 0x5401
 #define TCSETS 0x5402
+#define TCSETSW 0x5403
 
 // /usr/include/bits/termios-c_cc.h
 #define VINTR 0
@@ -382,5 +383,23 @@ struct sigaction {
   8 // Like CLOCK_BOOTTIME but can wake system from suspend
 #define CLOCK_TAI                                                              \
   9 // International Atomic Time (TAI) clock, not subject to leap seconds
+
+// https://docs.huihoo.com/doxygen/linux/kernel/3.7/uapi_2linux_2utsname_8h_source.html
+struct old_utsname {
+  char sysname[65];
+  char nodename[65];
+  char release[65];
+  char version[65];
+  char machine[65];
+};
+
+// /usr/include/sys/wait.h
+#define WNOHANG 1
+#define WUNTRACED 2
+
+#define WSTOPPED 2
+#define WEXITED 4
+#define WCONTINUED 8
+#define WNOWAIT 0x1000000
 
 #endif

@@ -267,6 +267,69 @@ static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
   return newFd;
 }
 
+#define FD_SETSIZE 1024
+
+typedef unsigned long fd_mask;
+
+typedef struct {
+  unsigned long fds_bits[FD_SETSIZE / 8 / sizeof(long)];
+} fd_set;
+
+#define SYSCALL_PSELECT6 270
+int syscallPselect6(int nfds, fd_set *readfds, fd_set *writefds,
+                    fd_set *exceptfds, struct timespec *timeout,
+                    void *smthsignalthing) {
+#if DEBUG_SYSCALLS_ARGS
+  debugf("[syscalls::pselect6] nfds{%d} readfds{%lx} writefds{%lx} "
+         "exceptfds{%lx} timeout{%lx} signal{%lx}\n",
+         nfds, readfds, writefds, exceptfds, timeout, smthsignalthing);
+  if (timeout)
+    debugf("[syscalls::pselect6::timeout] tv_sec{%ld} tv_nsec{%ld}",
+           timeout->tv_sec, timeout->tv_nsec);
+#endif
+
+  if (timeout && !timeout->tv_nsec && !timeout->tv_sec)
+    return 0;
+
+#if DEBUG_SYSCALLS_FAILS
+  debugf("[syscalls::pselect6::wonky]\n");
+#endif
+
+  int amnt = 0;
+  int bits_per_long = sizeof(unsigned long) * 8;
+  if (readfds)
+    for (int fd = 0; fd < nfds; fd++) {
+      int index = fd / bits_per_long;
+      int bit = fd % bits_per_long;
+      if (readfds->fds_bits[index] & (1UL << bit)) {
+        // todo: uhm.. poll?
+        amnt++;
+      }
+    }
+  if (writefds)
+    for (int fd = 0; fd < nfds; fd++) {
+      int index = fd / bits_per_long;
+      int bit = fd % bits_per_long;
+      if (writefds->fds_bits[index] & (1UL << bit)) {
+        // todo: uhm.. poll?
+        amnt++;
+      }
+    }
+  if (exceptfds)
+    for (int fd = 0; fd < nfds; fd++) {
+      int index = fd / bits_per_long;
+      int bit = fd % bits_per_long;
+      if (exceptfds->fds_bits[index] & (1UL << bit)) {
+        // todo: uhm.. poll?
+        amnt++;
+      }
+    }
+
+  // todo: timelimit (for when I actually poll)
+
+  return amnt;
+}
+
 void syscallRegFs() {
   registerSyscall(SYSCALL_WRITE, syscallWrite);
   registerSyscall(SYSCALL_READ, syscallRead);
@@ -282,4 +345,5 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_WRITEV, syscallWriteV);
   registerSyscall(SYSCALL_DUP2, syscallDup2);
   registerSyscall(SYSCALL_DUP, syscallDup);
+  registerSyscall(SYSCALL_PSELECT6, syscallPselect6);
 }

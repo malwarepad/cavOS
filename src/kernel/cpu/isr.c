@@ -107,7 +107,7 @@ void handleTaskFault(AsmPassedInterrupt *regs) {
          exceptions[regs->interrupt]);
   // debugf("at %lx\n", regs->rip);
   // panic();
-  taskKill(currentTask->id);
+  taskKill(currentTask->id, 139);
   schedule((uint64_t)regs);
 }
 

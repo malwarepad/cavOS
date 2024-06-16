@@ -227,6 +227,7 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, bool startup) {
   fsUserOpenSpecial("/dev/stderr", target, 2, &stdio);
 
   fsUserOpenSpecial("/dev/fb0", target, -1, &fb0);
+  fsUserOpenSpecial("/dev/tty", target, -1, &stdio);
 
   // Align it, just in case...
   taskAdjustHeap(target, DivRoundUp(target->heap_end, 0x1000) * 0x1000,

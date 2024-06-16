@@ -113,7 +113,7 @@ void taskAdjustHeap(Task *task, size_t new_heap_end, size_t *start,
   if (new_heap_end <= *start) {
     debugf("[task] Tried to adjust heap behind current values: id{%d}\n",
            task->id);
-    taskKill(task->id);
+    taskKill(task->id, 139);
     return;
   }
 
@@ -136,18 +136,19 @@ void taskAdjustHeap(Task *task, size_t new_heap_end, size_t *start,
     }
   } else if (new_page_top < old_page_top) {
     debugf("[task] New page is lower than old page: id{%d}\n", task->id);
-    taskKill(task->id);
+    taskKill(task->id, 139);
     return;
   }
 
   *end = new_heap_end;
 }
 
-void taskKill(uint32_t id) {
+void taskKill(uint32_t id, uint16_t ret) {
   Task *task = taskGet(id);
   if (!task)
     return;
   task->state = TASK_STATE_DEAD;
+  task->ret = ret;
 
   if (currentTask == task) {
     // we're most likely in a syscall context, so...
@@ -223,8 +224,10 @@ void taskKillCleanup(Task *task) {
   currentTask = old;
 
   // Notify that poor parent... they must've been searching all over the place!
-  if (task->parent)
-    task->parent->lastChildKilled = task->id;
+  if (task->parent && !task->noInformParent) {
+    task->parent->lastChildKilled.pid = task->id;
+    task->parent->lastChildKilled.ret = task->ret;
+  }
 
   PageDirectoryFree(task->pagedir);
   VirtualFree((void *)task->whileTssRsp, USER_STACK_PAGES);
@@ -249,7 +252,7 @@ void taskKillChildren(Task *task) {
   while (child) {
     Task *next = child->next;
     if (child->parent == task && child->state != TASK_STATE_DEAD) {
-      taskKill(child->id);
+      taskKill(child->id, 0);
       // taskKillCleanup(child); // done automatically
       taskKillChildren(task); // use recursion
     }
@@ -322,6 +325,7 @@ int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
   PageDirectoryUserDuplicate(currentTask->pagedir, targetPagedir);
 
   target->id = taskGenerateId();
+  target->pgid = currentTask->pgid;
   target->kernel_task = currentTask->kernel_task;
   target->state = TASK_STATE_CREATED;
 
@@ -343,6 +347,11 @@ int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
 
   target->heap_start = currentTask->heap_start;
   target->heap_end = currentTask->heap_end;
+
+  target->mmap_start = currentTask->mmap_start;
+  target->mmap_end = currentTask->mmap_end;
+
+  target->term = currentTask->term;
 
   target->tmpRecV = currentTask->tmpRecV;
   target->firstFile = 0;

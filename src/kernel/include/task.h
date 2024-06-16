@@ -36,6 +36,11 @@ typedef struct termios {
   uint8_t  c_cc[NCCS]; /* control characters */
 } termios;
 
+typedef struct KilledInfo {
+  uint64_t pid;
+  uint16_t ret;
+} KilledInfo;
+
 typedef struct Task Task;
 
 struct Task {
@@ -74,7 +79,9 @@ struct Task {
   __attribute__((aligned(16))) uint8_t fpuenv[512];
 
   // Yes... As absurd as it sounds!
-  uint64_t lastChildKilled;
+  bool       noInformParent;
+  KilledInfo lastChildKilled;
+  uint16_t   ret;
 
   Task *parent;
   Task *next;
@@ -92,7 +99,7 @@ Task *taskCreateKernel(uint64_t rip, uint64_t rdi);
 void  taskCreateFinish(Task *task);
 void  taskAdjustHeap(Task *task, size_t new_heap_end, size_t *start,
                      size_t *end);
-void  taskKill(uint32_t id);
+void  taskKill(uint32_t id, uint16_t ret);
 void  taskKillCleanup(Task *task);
 void  taskKillChildren(Task *task);
 void  taskFreeChildren(Task *task);

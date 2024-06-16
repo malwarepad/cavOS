@@ -1,3 +1,4 @@
+#include <linux.h>
 #include <string.h>
 #include <syscalls.h>
 #include <system.h>
@@ -29,6 +30,28 @@ static int syscallGetcwd(char *buff, size_t size) {
   memcpy(buff, currentTask->cwd, realLength);
 
   return realLength;
+}
+
+// Beware the 65 character limit!
+char sysname[] = "Cave-Like Operating System";
+char nodename[] = "cavOS";
+char release[] = "0.69.2";
+char version[] = "0.69.2";
+char machine[] = "x86_64";
+
+#define SYSCALL_UNAME 63
+static int syscallUname(struct old_utsname *utsname) {
+#if DEBUG_SYSCALLS_ARGS
+  debugf("[syscalls::uname] utsname{%lx}\n", utsname);
+#endif
+
+  memcpy(utsname->sysname, sysname, sizeof(sysname));
+  memcpy(utsname->nodename, nodename, sizeof(nodename));
+  memcpy(utsname->release, release, sizeof(release));
+  memcpy(utsname->version, version, sizeof(version));
+  memcpy(utsname->machine, machine, sizeof(machine));
+
+  return 0;
 }
 
 #define SYSCALL_CHDIR 80
@@ -157,4 +180,5 @@ void syscallsRegEnv() {
   registerSyscall(SYSCALL_PRCTL, syscallPrctl);
   registerSyscall(SYSCALL_SET_TID_ADDR, syscallSetTidAddr);
   registerSyscall(SYSCALL_GET_TID, syscallGetTid);
+  registerSyscall(SYSCALL_UNAME, syscallUname);
 }
