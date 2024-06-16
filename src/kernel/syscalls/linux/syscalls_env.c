@@ -60,12 +60,13 @@ static int syscallChdir(char *newdir) {
   debugf("[syscalls::chdir] place{%s}\n", newdir);
 #endif
   bool ret = taskChangeCwd(newdir);
-  if (!ret)
-    return -1;
-
+  if (!ret) {
 #if DEBUG_SYSCALLS_FAILS
-  debugf("[syscalls::chdir] FAIL! Tried to change to %s!\n", newdir);
+    debugf("[syscalls::chdir] FAIL! Tried to change to %s!\n", newdir);
 #endif
+    return -1;
+  }
+
   return 0;
 }
 

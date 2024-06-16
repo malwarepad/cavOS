@@ -179,6 +179,26 @@ bool fsOpenFsSpecific(char *filename, MountPoint *mnt, OpenFile *target) {
   return res;
 }
 
+void fsSanitizeCopySafe(char *filename, char *safeFilename) {
+  int i, j;
+  for (i = 0, j = 0; filename[i] != '\0'; i++) {
+    // double slashes
+    if (filename[i] == '/' && filename[i + 1] == '/')
+      continue;
+    // slashes at the end
+    if (filename[i] == '/' && filename[i + 1] == '\0')
+      continue;
+    safeFilename[j] = filename[i];
+    j++;
+  }
+  safeFilename[j] = '\0'; // null terminator
+  if (j == 0) {
+    // whoops
+    safeFilename[0] = '/';
+    safeFilename[1] = '\0';
+  }
+}
+
 char *fsSanitize(char *filename) {
   if (filename[0] == '.' && filename[1] == '\0') {
     // it's asking for our current directory
@@ -192,27 +212,26 @@ char *fsSanitize(char *filename) {
     return safeFilename;
   }
 
-  size_t filenameSize = strlength(filename) + 1;
-  char  *safeFilename = (char *)malloc(filenameSize);
-  memcpy(safeFilename, filename, filenameSize);
+  char  *safeFilename = 0;
+  size_t filenameSize = strlength(filename);
+  if (filename[0] != '/') {
+    // prepend path
+    size_t cwdLen = strlength(currentTask->cwd);
 
-  int i, j;
-  for (i = 0, j = 0; filename[i] != '\0'; i++) {
-    // double slashes
-    if (filename[i] == '/' && filename[i + 1] == '/')
-      continue;
-    // slashes at the end
-    if (filename[i] == '/' && filename[i + 1] == '\0')
-      continue;
-    safeFilename[j] = filename[i];
-    j++;
-  }
-  safeFilename[j] = '\0'; // null terminator
+    safeFilename = (char *)malloc(cwdLen + 1 + filenameSize + 1);
 
-  if (j == 0) {
-    // whoops
-    safeFilename[0] = '/';
-    safeFilename[1] = '\0';
+    int offset = 0;
+    memcpy(safeFilename, currentTask->cwd, cwdLen);
+    if (currentTask->cwd[0] == '/' && currentTask->cwd[1] != '\0') {
+      safeFilename[cwdLen] = '/';
+      offset++;
+    }
+    // memcpy(safeFilename + cwdLen, filename, filenameSize);
+    fsSanitizeCopySafe(filename, safeFilename + offset + cwdLen);
+    safeFilename[cwdLen + offset + filenameSize] = '\0';
+  } else {
+    safeFilename = (char *)malloc(filenameSize + 1);
+    fsSanitizeCopySafe(filename, safeFilename);
   }
 
   return safeFilename;
@@ -224,6 +243,7 @@ char *fsSanitize(char *filename) {
 int       openId = 3;
 OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, uint32_t mode) {
   char *safeFilename = fsSanitize(filename);
+  // debugf("opening %s\n", safeFilename);
 
   SpecialFile *special = fsUserGetSpecialByFilename(safeFilename);
   if (special) {
@@ -568,6 +588,7 @@ bool fsStat(OpenFile *fd, stat *target, stat_extra *extra) {
 
     if (ret && target) {
       target->st_size = f_size((FIL *)(fd->dir));
+      target->st_mode = 0100;
 
       // debugf("realsize: %ld\n", target->st_size);
     }
@@ -617,6 +638,7 @@ bool fsStatByFilename(char *filename, stat *target, stat_extra *extra) {
 
     if (ret && target) {
       target->st_size = filinfo->fsize;
+      target->st_mode = 0100;
       // debugf("realsize: %ld\n", target->st_size);
     }
 
