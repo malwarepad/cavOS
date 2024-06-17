@@ -557,7 +557,6 @@ bool fsStat(OpenFile *fd, stat *target, stat_extra *extra) {
 
 bool fsStatByFilename(char *filename, stat *target, stat_extra *extra) {
   char *safeFilename = fsSanitize(filename);
-  debugf("%s %s\n", filename, safeFilename);
 
   if (safeFilename[0] == '/' && safeFilename[1] == '\0') {
     if (target) {
