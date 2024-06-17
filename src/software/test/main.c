@@ -1,47 +1,54 @@
-#include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
-#include "utils.h" // for itoa and atoi
+int main() {
+  pid_t pid;
+  int   status;
 
-FILE *openControlled(char *filename) {
-  FILE *res = fopen(filename, "r");
-  printf("Opened file res{%d} filename{%s}\n", res == 0, filename);
-  return res;
-}
+  // Fork a new process
+  pid = fork();
 
-int closeControlled(FILE *file) {
-  int res = fclose(file);
-  printf("Closed file res{%d}\n", res);
-  return res;
-}
+  if (pid < 0) {
+    // Fork failed
+    perror("Fork failed");
+    exit(EXIT_FAILURE);
+  } else if (pid == 0) {
+    // Child process
+    char *argv[] = {"/usr/bin/bash", "-c", "/asdfiygfasdiugfsa7tyfs", NULL};
+    char *envp[] = {NULL};
 
-int main(int argc, char **argv) {
-  printf("args: %d\n", argc);
-  for (int i = 0; i < argc; i++) {
-    printf("arg%d: %s\n", i, argv[i]);
+    if (execve(argv[0], argv, envp) == -1) {
+      perror("execve failed");
+      exit(EXIT_FAILURE);
+    }
+  } else {
+    // Parent process
+    struct rusage usage;
+
+    // Wait for the child process to finish and get resource usage
+    if (wait4(-1, &status, 0, &usage) == -1) {
+      perror("wait4 failed");
+      exit(EXIT_FAILURE);
+    }
+
+    // Check if the child process terminated normally
+    if (WIFEXITED(status)) {
+      printf("Child process exited with status %d\n", WEXITSTATUS(status));
+    } else {
+      printf("Child process did not terminate normally\n");
+    }
+
+    printf("ffff %lx\n", status);
+
+    // Print some resource usage statistics
+    printf("User CPU time used: %ld.%06ld seconds\n", usage.ru_utime.tv_sec,
+           usage.ru_utime.tv_usec);
+    printf("System CPU time used: %ld.%06ld seconds\n", usage.ru_stime.tv_sec,
+           usage.ru_stime.tv_usec);
   }
 
-  int dec;
-  scanf("%d", &dec);
-  printf("you entered: %d\n", dec);
-
-  // FILE *file1 = openControlled("/files/lorem.txt");
-  // FILE *file2 = openControlled("/files/untitled.txt");
-  // FILE *file3 = openControlled("/files/ab.txt");
-  // FILE *file4 = openControlled("/software/testing.cav");
-
-  // closeControlled(file1);
-  // closeControlled(file2);
-  // closeControlled(file3);
-  // closeControlled(file4);
-
-  // for (int i = 0; i < argc; i++) {
-  //   syscallTest(argv[i]);
-  // }
-
-  char *msg = "hello world!\n";
-  write(0, msg, strlength(msg));
-
-  return 1;
+  return 0;
 }

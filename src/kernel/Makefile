@@ -56,15 +56,15 @@ drivers/printf.o:drivers/printf.c
 	$(ASSEMBLER) $(ASFLAGS) -o $@ $(subst .asm.o,.asm,$@)
 
 disk:all
-	chmod +x $(TOOLS)/make_disk.sh
-	$(TOOLS)/make_disk.sh $(TARGET) $(MOUNTPOINT) $(TARGET_IMG) || (chmod +x $(TOOLS)/cleanup.sh && $(TOOLS)/cleanup.sh $(MOUNTPOINT))
+	chmod +x $(TOOLS)/kernel/make_disk.sh
+	$(TOOLS)/kernel/make_disk.sh $(TARGET) $(MOUNTPOINT) $(TARGET_IMG) || (chmod +x $(TOOLS)/kernel/cleanup.sh && $(TOOLS)/kernel/cleanup.sh $(MOUNTPOINT))
 
 vmware:disk
 	qemu-img convert $(TARGET_IMG) -O vmdk $(TARGET_VMWARE)
 
 tools:
-	chmod +x $(TOOLS)/get_tools.sh
-	$(TOOLS)/get_tools.sh
+	chmod +x $(TOOLS)/toolchain/get_tools.sh
+	$(TOOLS)/toolchain/get_tools.sh
 	
 clean:
 # rm -f $(TARGET)/obj/*.o

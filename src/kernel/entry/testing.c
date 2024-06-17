@@ -26,7 +26,7 @@ extern void weirdTests();
 
 // char *argv[] = {"/doom", "-iwad", "/DOOM.WAD"};
 // char *argv[] = {"/usr/bin/busybox", "sh"};
-// char *argv[] = {"/usr/bin/bash"};
+char *argv[] = {"/usr/bin/bash"};
 // char *argv[] = {"/usr/bin/testing"};
 // char *argv[] = {"/a.out"};
 // char *argv[] = {"/usr/bin/doom", "-iwad", "/usr/bin/doom.wad"};
@@ -36,9 +36,9 @@ void testingInit() {
   // weirdTests();
   // elfExecute("/usr/bin/busybox", 2, argv);
   // while (1) {
-  // Task *task = elfExecute(argv[0], sizeof(argv) / sizeof(argv[0]), argv,
-  // true); while (taskGetState(task->id))
-  //   ;
+  Task *task = elfExecute(argv[0], sizeof(argv) / sizeof(argv[0]), argv, true);
+  while (taskGetState(task->id))
+    ;
   // }
 }
 

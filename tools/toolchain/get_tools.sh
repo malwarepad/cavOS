@@ -9,7 +9,7 @@ cd "${SCRIPTPATH}"
 
 export PREFIX="$HOME/opt/cross"
 export TARGET=x86_64-cavos
-export SYSROOT="$SCRIPTPATH/../target"
+export SYSROOT="$SCRIPTPATH/../../target"
 export PATH="$PREFIX/bin:$PATH"
 
 mkdir -p "$PREFIX"
@@ -33,7 +33,7 @@ tar xpvf gcc-*.tar.gz
 cd binutils-2.38
 
 # Binutils: Pre-build
-patch -p1 <"${SCRIPTPATH}/../patches/binutils.diff"
+patch -p1 <"${SCRIPTPATH}/../../patches/binutils.diff"
 cd ld/
 automake
 cd ../
@@ -49,7 +49,7 @@ cd ../../
 cd gcc-11.4.0
 
 # GCC: Pre-build
-patch -p1 <"${SCRIPTPATH}/../patches/gcc.diff"
+patch -p1 <"${SCRIPTPATH}/../../patches/gcc.diff"
 cd libstdc++-v3/
 autoconf
 cd ../
@@ -63,6 +63,8 @@ make all-gcc -j$(nproc)
 make all-target-libgcc -j$(nproc)
 make install-gcc
 make install-target-libgcc
+make all-target-libstdc++-v3 -j$(nproc)
+make install-target-libstdc++-v3
 cd ../../
 
 cd ../

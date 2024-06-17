@@ -11,7 +11,7 @@ fi
 SCRIPT=$(realpath "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 
-LIMINE_DIR="${SCRIPTPATH}/../src/bootloader/limine/"
+LIMINE_DIR="${SCRIPTPATH}/../../src/bootloader/limine/"
 LIMINE_EXEC="${LIMINE_DIR}/limine"
 
 if [ ! -f "${LIMINE_EXEC}" ]; then
