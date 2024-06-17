@@ -26,7 +26,7 @@ extern void weirdTests();
 
 // char *argv[] = {"/doom", "-iwad", "/DOOM.WAD"};
 // char *argv[] = {"/usr/bin/busybox", "sh"};
-char *argv[] = {"/usr/bin/bash"};
+// char *argv[] = {"/usr/bin/bash"};
 // char *argv[] = {"/usr/bin/testing"};
 // char *argv[] = {"/a.out"};
 // char *argv[] = {"/usr/bin/doom", "-iwad", "/usr/bin/doom.wad"};
@@ -36,18 +36,19 @@ void testingInit() {
   // weirdTests();
   // elfExecute("/usr/bin/busybox", 2, argv);
   // while (1) {
-  char fn[] = "hehe/hehe2/fuck/./././////..//./////./././..//./././";
-  printf("ticks before: %ld\n", timerTicks);
-  printf("%s\n", fsSanitize(fn));
-  printf("ticks before: %ld\n", timerTicks);
-  panic();
-  Task *task = elfExecute(argv[0], sizeof(argv) / sizeof(argv[0]), argv, true);
-  while (taskGetState(task->id))
-    ;
+  // Task *task = elfExecute(argv[0], sizeof(argv) / sizeof(argv[0]), argv,
+  // true); while (taskGetState(task->id))
+  //   ;
   // }
 }
 
 void weirdTests() {
+  // char fn[] = "hehe/hehe2/fuck/./././////..//./////./././..//./././";
+  // printf("ticks before: %ld\n", timerTicks);
+  // printf("%s\n", fsSanitize(fn));
+  // printf("ticks before: %ld\n", timerTicks);
+  // panic();
+
   // fsMount("/test/", CONNECTOR_DUMMY, 0, 0);
 
   uint32_t targA, targB, targC, targD;
