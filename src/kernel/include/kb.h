@@ -7,6 +7,7 @@
 #define SCANCODE_BACK 14
 #define SCANCODE_SHIFT 42
 #define SCANCODE_CAPS 58
+#define SCANCODE_UP 0x48
 
 #define CHARACTER_ENTER '\n'
 #define CHARACTER_BACK '\b'

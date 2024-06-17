@@ -7,6 +7,12 @@
 
 #define MAX_SYSCALLS 450
 
+/* Ignore everything! */
+
+/* Syscall Debugging: None */
+#define NO_DEBUG_SYSCALLS 1
+
+#if !NO_DEBUG_SYSCALLS
 /* Syscall Debugging: Comprehensive */
 #define DEBUG_SYSCALLS 1
 #define DEBUG_SYSCALLS_ARGS 1
@@ -17,6 +23,7 @@
 
 /* Syscall Debugging: Essential */
 #define DEBUG_SYSCALLS_MISSING 1
+#endif
 
 void syscallHandler(AsmPassedInterrupt *regs);
 void initiateSyscalls();

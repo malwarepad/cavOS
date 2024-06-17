@@ -16,6 +16,9 @@
 #include <util.h>
 #include <vmm.h>
 
+#include <timer.h>
+#include <vfs_sanitize.h>
+
 // Testing stuff
 // Copyright (C) 2024 Panagiotis
 
@@ -23,7 +26,9 @@ extern void weirdTests();
 
 // char *argv[] = {"/doom", "-iwad", "/DOOM.WAD"};
 // char *argv[] = {"/usr/bin/busybox", "sh"};
-// char *argv[] = {"/usr/bin/bash"};
+char *argv[] = {"/usr/bin/bash"};
+// char *argv[] = {"/usr/bin/testing"};
+// char *argv[] = {"/a.out"};
 // char *argv[] = {"/usr/bin/doom", "-iwad", "/usr/bin/doom.wad"};
 void testingInit() {
   // netSocketConnect(selectedNIC, SOCKET_PROT_UDP, (uint8_t[]){10, 0, 2, 15},
@@ -31,9 +36,14 @@ void testingInit() {
   // weirdTests();
   // elfExecute("/usr/bin/busybox", 2, argv);
   // while (1) {
-  // Task *task = elfExecute(argv[0], sizeof(argv) / sizeof(argv[0]), argv,
-  // true); while (taskGetState(task->id))
-  //   ;
+  char fn[] = "hehe/hehe2/fuck/./././////..//./////./././..//./././";
+  printf("ticks before: %ld\n", timerTicks);
+  printf("%s\n", fsSanitize(fn));
+  printf("ticks before: %ld\n", timerTicks);
+  panic();
+  Task *task = elfExecute(argv[0], sizeof(argv) / sizeof(argv[0]), argv, true);
+  while (taskGetState(task->id))
+    ;
   // }
 }
 

@@ -407,6 +407,9 @@ void initiateTasks() {
   currentTask->state = TASK_STATE_READY;
   currentTask->pagedir = GetPageDirectory();
   currentTask->kernel_task = true;
+  currentTask->cwd = malloc(2);
+  currentTask->cwd[0] = '/';
+  currentTask->cwd[1] = '\0';
 
   void  *tssRsp = VirtualAllocate(USER_STACK_PAGES);
   size_t tssRspSize = USER_STACK_PAGES * BLOCK_SIZE;

@@ -6,8 +6,12 @@
 #include <system.h>
 #include <task.h>
 #include <util.h>
+#include <vfs_sanitize.h>
 
-#include "./fatfs/ff.h"
+#include "../fatfs/ff.h"
+
+// Simple VFS abstraction to manage filesystems
+// Copyright (C) 2024 Panagiotis
 
 bool fsUnmount(MountPoint *mnt) {
   debugf("[vfs] Tried to unmount!\n");
@@ -177,64 +181,6 @@ bool fsOpenFsSpecific(char *filename, MountPoint *mnt, OpenFile *target) {
     break;
   }
   return res;
-}
-
-void fsSanitizeCopySafe(char *filename, char *safeFilename) {
-  int i, j;
-  for (i = 0, j = 0; filename[i] != '\0'; i++) {
-    // double slashes
-    if (filename[i] == '/' && filename[i + 1] == '/')
-      continue;
-    // slashes at the end
-    if (filename[i] == '/' && filename[i + 1] == '\0')
-      continue;
-    safeFilename[j] = filename[i];
-    j++;
-  }
-  safeFilename[j] = '\0'; // null terminator
-  if (j == 0) {
-    // whoops
-    safeFilename[0] = '/';
-    safeFilename[1] = '\0';
-  }
-}
-
-char *fsSanitize(char *filename) {
-  if (filename[0] == '.' && filename[1] == '\0') {
-    // it's asking for our current directory
-    if (!tasksInitiated || !currentTask->cwd)
-      return filename;
-
-    size_t filenameSize = strlength(currentTask->cwd) + 1;
-    char  *safeFilename = (char *)malloc(filenameSize);
-    memcpy(safeFilename, currentTask->cwd, filenameSize);
-
-    return safeFilename;
-  }
-
-  char  *safeFilename = 0;
-  size_t filenameSize = strlength(filename);
-  if (filename[0] != '/') {
-    // prepend path
-    size_t cwdLen = strlength(currentTask->cwd);
-
-    safeFilename = (char *)malloc(cwdLen + 1 + filenameSize + 1);
-
-    int offset = 0;
-    memcpy(safeFilename, currentTask->cwd, cwdLen);
-    if (currentTask->cwd[0] == '/' && currentTask->cwd[1] != '\0') {
-      safeFilename[cwdLen] = '/';
-      offset++;
-    }
-    // memcpy(safeFilename + cwdLen, filename, filenameSize);
-    fsSanitizeCopySafe(filename, safeFilename + offset + cwdLen);
-    safeFilename[cwdLen + offset + filenameSize] = '\0';
-  } else {
-    safeFilename = (char *)malloc(filenameSize + 1);
-    fsSanitizeCopySafe(filename, safeFilename);
-  }
-
-  return safeFilename;
 }
 
 // TODO! flags! modes!
@@ -611,12 +557,22 @@ bool fsStat(OpenFile *fd, stat *target, stat_extra *extra) {
 
 bool fsStatByFilename(char *filename, stat *target, stat_extra *extra) {
   char *safeFilename = fsSanitize(filename);
+  debugf("%s %s\n", filename, safeFilename);
 
   if (safeFilename[0] == '/' && safeFilename[1] == '\0') {
     if (target) {
       memset(target, 0, sizeof(stat));
       target->st_ino = 69;
       target->st_dev = 29;
+    }
+    return true;
+  }
+
+  if (safeFilename[0] == '/' && safeFilename[1] == 'f') {
+    if (target) {
+      memset(target, 0, sizeof(stat));
+      target->st_ino = 43;
+      target->st_dev = 12;
     }
     return true;
   }
