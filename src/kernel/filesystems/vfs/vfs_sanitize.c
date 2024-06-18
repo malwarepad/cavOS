@@ -2,7 +2,7 @@
 #include <string.h>
 #include <task.h>
 #include <util.h>
-#include <vfs_sanitize.h>
+#include <vfs.h>
 
 // Generic file path/name sanitization
 // Copyright (C) 2024 Panagiotis

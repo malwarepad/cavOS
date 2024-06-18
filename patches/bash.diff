@@ -1,0 +1,13 @@
+diff --git a/m4/strtoimax.m4 b/m4/strtoimax.m4
+index 3098572..d311c9d 100644
+--- a/m4/strtoimax.m4
++++ b/m4/strtoimax.m4
+@@ -29,7 +29,7 @@ AC_CACHE_VAL(bash_cv_func_strtoimax,
+   fi
+ ])
+ AC_MSG_RESULT($bash_cv_func_strtoimax)
+-if test $bash_cv_func_strtoimax = yes; then
++if test $bash_cv_func_strtoimax = no; then
+ AC_LIBOBJ(strtoimax)
+ fi
+ ])

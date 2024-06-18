@@ -1,8 +1,8 @@
-#include <fs_controller.h>
 #include <malloc.h>
 #include <pci.h>
 #include <pci_id.h>
 #include <string.h>
+#include <vfs.h>
 
 // https://pci-ids.ucw.cz/
 // pci.ids file parser... Basically a database of PCI devices!

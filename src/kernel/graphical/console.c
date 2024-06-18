@@ -1,13 +1,13 @@
 #include <ansi.h>
 #include <console.h>
 #include <fb.h>
-#include <fs_controller.h>
 #include <malloc.h>
 #include <md5.h>
 #include <psf.h>
 #include <string.h>
 #include <system.h>
 #include <util.h>
+#include <vfs.h>
 
 // Kernel console implementation
 // Copyright (C) 2024 Panagiotis

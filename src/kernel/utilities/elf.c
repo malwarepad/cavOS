@@ -2,7 +2,6 @@
 #include <console.h>
 #include <elf.h>
 #include <fb.h>
-#include <fs_controller.h>
 #include <malloc.h>
 #include <paging.h>
 #include <pmm.h>
@@ -11,6 +10,7 @@
 #include <system.h>
 #include <task.h>
 #include <util.h>
+#include <vfs.h>
 
 // ELF (for now only 64) parser
 // Copyright (C) 2024 Panagiotis

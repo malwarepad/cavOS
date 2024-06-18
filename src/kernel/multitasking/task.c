@@ -291,16 +291,23 @@ int16_t taskGenerateId() {
 }
 
 bool taskChangeCwd(char *newdir) {
-  stat_extra extra = {0};
-  if (!fsStatByFilename(newdir, 0, &extra))
+  stat  stat = {0};
+  char *safeNewdir = fsSanitize(newdir);
+  if (!fsStatByFilename(safeNewdir, &stat)) {
+    free(safeNewdir);
     return false;
+  }
 
-  if (extra.file)
+  if (!(stat.st_mode & S_IFDIR)) {
+    free(safeNewdir);
     return false;
+  }
 
-  size_t len = strlength(newdir) + 1;
+  size_t len = strlength(safeNewdir) + 1;
   currentTask->cwd = realloc(currentTask->cwd, len);
-  memcpy(currentTask->cwd, newdir, len);
+  memcpy(currentTask->cwd, safeNewdir, len);
+
+  free(safeNewdir);
   return true;
 }
 

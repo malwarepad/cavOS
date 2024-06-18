@@ -1,8 +1,8 @@
 #ifndef FB_H
 #define FB_H
 
-#include "fs_controller.h"
 #include "types.h"
+#include "vfs.h"
 
 extern uint8_t *framebuffer;
 

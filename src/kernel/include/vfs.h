@@ -1,4 +1,5 @@
 #include "disk.h"
+#include "linux.h"
 #include "types.h"
 
 #ifndef FS_CONTROLLER_H
@@ -41,31 +42,6 @@ typedef enum CONNECTOR { CONNECTOR_AHCI } CONNECTOR;
 #define __O_TMPFILE 020000000
 #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
 #define O_NDELAY O_NONBLOCK
-
-typedef struct stat {
-  uint64_t st_dev;              /* Device */
-  uint64_t st_ino;              /* File serial number */
-  uint64_t st_nlink;            /* Link count */
-  uint32_t st_mode;             /* File mode */
-  uint32_t st_uid;              /* User ID of the file's owner */
-  uint32_t st_gid;              /* Group ID of the file's group */
-  uint32_t __pad0;              /* Padding */
-  uint64_t st_rdev;             /* Device number, if device */
-  uint64_t st_size;             /* Size of file, in bytes */
-  int64_t  st_blksize;          /* Optimal block size for I/O */
-  int64_t  st_blocks;           /* Number 512-byte blocks allocated */
-  uint64_t st_atime;            /* Time of last access */
-  uint64_t st_atimensec;        /* Nanoseconds of last access */
-  uint64_t st_mtime;            /* Time of last modification */
-  uint64_t st_mtimensec;        /* Nanoseconds of last modification */
-  uint64_t st_ctime;            /* Time of last status change */
-  uint64_t st_ctimensec;        /* Nanoseconds of last status change */
-  int64_t  __glibc_reserved[3]; /* Reserved for future use */
-} stat;
-
-typedef struct stat_extra {
-  bool file;
-} stat_extra;
 
 typedef struct MountPoint MountPoint;
 struct MountPoint {
@@ -157,7 +133,12 @@ bool     fsWriteChar(OpenFile *file, char in);
 bool     fsWriteSync(OpenFile *file);
 void     fsReadFullFile(OpenFile *file, uint8_t *out);
 uint32_t fsGetFilesize(OpenFile *file);
-bool     fsStat(OpenFile *fd, stat *target, stat_extra *extra);
-bool     fsStatByFilename(char *filename, stat *target, stat_extra *extra);
+
+// vfs_sanitize.c
+char *fsSanitize(char *filename);
+
+// vfs_stat.c
+bool fsStat(OpenFile *fd, stat *target);
+bool fsStatByFilename(char *filename, stat *target);
 
 #endif

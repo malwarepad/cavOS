@@ -1,6 +1,6 @@
-#include "fs_controller.h"
 #include "isr.h"
 #include "types.h"
+#include "vfs.h"
 
 #ifndef SYSCALLS_H
 #define SYSCALLS_H

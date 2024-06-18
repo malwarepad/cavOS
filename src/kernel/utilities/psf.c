@@ -1,7 +1,7 @@
 #include <fb.h>
-#include <fs_controller.h>
 #include <malloc.h>
 #include <psf.h>
+#include <vfs.h>
 
 // ONLY include this here!
 #include <gohufont.h>

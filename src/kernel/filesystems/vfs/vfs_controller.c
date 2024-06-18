@@ -1,12 +1,11 @@
 #include <disk.h>
-#include <fs_controller.h>
 #include <linked_list.h>
 #include <malloc.h>
 #include <string.h>
 #include <system.h>
 #include <task.h>
 #include <util.h>
-#include <vfs_sanitize.h>
+#include <vfs.h>
 
 #include "../fatfs/ff.h"
 
@@ -512,101 +511,6 @@ bool fsWriteSync(OpenFile *file) {
   default:
     debugf("[vfs] Tried to writeSync with bad filesystem! id{%d}\n",
            file->mountPoint->filesystem);
-    ret = false;
-    break;
-  }
-  return ret;
-}
-
-extern void
-get_fileinfo(DIR     *dp, /* Pointer to the directory object */
-             FILINFO *fno /* Pointer to the file information to be filled */
-);
-
-bool fsStat(OpenFile *fd, stat *target, stat_extra *extra) {
-  bool ret = false;
-  switch (fd->mountPoint->filesystem) {
-  case FS_FATFS: {
-    // FILINFO *filinfo = (FILINFO *)malloc(sizeof(FILINFO));
-
-    // get_fileinfo((DIR *)(fd->dir), filinfo);
-    ret = true;
-
-    if (ret && target) {
-      target->st_size = f_size((FIL *)(fd->dir));
-      target->st_mode = 0100;
-
-      // debugf("realsize: %ld\n", target->st_size);
-    }
-
-    if (ret && extra) {
-      // extra->file = !(filinfo->fattrib & AM_DIR);
-    }
-
-    // free(filinfo);
-    break;
-  }
-  default:
-    debugf("[vfs] Tried to stat with bad filesystem! id{%d}\n",
-           fd->mountPoint->filesystem);
-    ret = false;
-    break;
-  }
-  return ret;
-}
-
-bool fsStatByFilename(char *filename, stat *target, stat_extra *extra) {
-  char *safeFilename = fsSanitize(filename);
-
-  if (safeFilename[0] == '/' && safeFilename[1] == '\0') {
-    if (target) {
-      memset(target, 0, sizeof(stat));
-      target->st_ino = 69;
-      target->st_dev = 29;
-    }
-    return true;
-  }
-
-  if (safeFilename[0] == '/' && safeFilename[1] == 'f') {
-    if (target) {
-      memset(target, 0, sizeof(stat));
-      target->st_ino = 43;
-      target->st_dev = 12;
-    }
-    return true;
-  }
-
-  MountPoint *mnt = fsDetermineMountPoint(safeFilename);
-  if (!mnt) {
-    free(safeFilename);
-    return false;
-  }
-
-  bool ret = false;
-  switch (mnt->filesystem) {
-  case FS_FATFS: {
-    FILINFO *filinfo = (FILINFO *)malloc(sizeof(FILINFO));
-
-    if (f_stat(safeFilename, filinfo) == FR_OK)
-      ret = true;
-    free(safeFilename);
-
-    if (ret && target) {
-      target->st_size = filinfo->fsize;
-      target->st_mode = 0100;
-      // debugf("realsize: %ld\n", target->st_size);
-    }
-
-    if (ret && extra) {
-      extra->file = !(filinfo->fattrib & AM_DIR);
-    }
-
-    free(filinfo);
-    break;
-  }
-  default:
-    debugf("[vfs] Tried to stat with bad filesystem! id{%d}\n",
-           mnt->filesystem);
     ret = false;
     break;
   }

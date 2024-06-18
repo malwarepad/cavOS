@@ -17,7 +17,7 @@
 #include <vmm.h>
 
 #include <timer.h>
-#include <vfs_sanitize.h>
+#include <vfs.h>
 
 // Testing stuff
 // Copyright (C) 2024 Panagiotis
