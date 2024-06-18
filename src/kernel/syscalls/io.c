@@ -87,7 +87,26 @@ size_t mmapHandler(size_t addr, size_t length, int prot, int flags,
   return -1;
 }
 
+int statHandler(OpenFile *fd, stat *target) {
+  target->st_dev = 420;
+  target->st_ino = rand(); // todo!
+  target->st_mode = S_IFCHR | S_IRUSR | S_IWUSR;
+  target->st_nlink = 1;
+  target->st_uid = 0;
+  target->st_gid = 0;
+  target->st_rdev = 34830;
+  target->st_blksize = 0x1000;
+  target->st_size = 0;
+  target->st_blocks = DivRoundUp(target->st_size, 512);
+  target->st_atime = 69;
+  target->st_mtime = 69;
+  target->st_ctime = 69;
+
+  return 0;
+}
+
 SpecialHandlers stdio = {.read = readHandler,
                          .write = writeHandler,
                          .ioctl = ioctlHandler,
-                         .mmap = mmapHandler};
+                         .mmap = mmapHandler,
+                         .stat = statHandler};

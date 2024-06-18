@@ -19,6 +19,8 @@ bool fsStatGeneric(char *filename, OpenFile *fd, stat *target) {
   target->st_blksize = 0x1000;
 
   if (fd) {
+    if (fd->mountPoint == MOUNT_POINT_SPECIAL && fd->dir)
+      return ((SpecialFile *)(fd->dir))->handlers->stat(fd, target) == 0;
     switch (fd->mountPoint->filesystem) {
     case FS_FATFS: {
       ret = true;
@@ -41,6 +43,10 @@ bool fsStatGeneric(char *filename, OpenFile *fd, stat *target) {
     }
   } else if (filename) {
     char *safeFilename = fsSanitize(filename);
+
+    SpecialFile *special = fsUserGetSpecialByFilename(safeFilename);
+    if (special)
+      return special->handlers->stat(fd, target) == 0;
 
     if (safeFilename[0] == '/' && safeFilename[1] == '\0') {
       target->st_size = 0;
