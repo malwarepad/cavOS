@@ -21,3 +21,8 @@ fi
 if [ ! -f "$USR_PATHNAME/bin/ls" ]; then
 	build_package_autotools https://ftp.gnu.org/gnu/coreutils/coreutils-9.5.tar.xz "$USR_PATHNAME" build-aux/config.sub
 fi
+
+# GNU ncurses (useful library)
+if [ ! -f "$USR_PATHNAME/bin/clear" ]; then
+	build_package_autotools https://ftp.gnu.org/gnu/ncurses/ncurses-6.5.tar.gz "$USR_PATHNAME" config.sub
+fi

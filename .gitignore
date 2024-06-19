@@ -6,6 +6,9 @@ target/lib
 disk.img
 disk.vmdk
 
+# Libraries
+target/usr/include/ncursesw
+
 # Misc (on the target system)
 target/usr/share
 
