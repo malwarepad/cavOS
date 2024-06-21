@@ -19,7 +19,7 @@ if [ ! -f "${LIMINE_EXEC}" ]; then
 	exit 1
 fi
 
-dd if=/dev/zero of="${3}" bs=512 count=131072
+dd if=/dev/zero of="${3}" bs=512 count=261072
 parted "${3}" mklabel msdos mkpart primary ext4 2048s 100% set 1 boot on
 "$LIMINE_EXEC" bios-install "${3}"
 

@@ -131,9 +131,9 @@ SpecialFile *fsUserDuplicateSpecialNodeUnsafe(SpecialFile *original);
 
 uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit);
 uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit);
-bool     fsWriteChar(OpenFile *file, char in);
 bool     fsWriteSync(OpenFile *file);
 void     fsReadFullFile(OpenFile *file, uint8_t *out);
+int      fsGetdents64(unsigned int fd, void *start, unsigned int hardlimit);
 uint32_t fsGetFilesize(OpenFile *file);
 
 // vfs_sanitize.c

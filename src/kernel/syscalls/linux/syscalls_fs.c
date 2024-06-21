@@ -269,6 +269,17 @@ static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
   return newFd;
 }
 
+#define SYSCALL_GETDENTS64 217
+static int syscallGetdents64(unsigned int fd, struct linux_dirent64 *dirp,
+                             unsigned int count) {
+#if DEBUG_SYSCALLS_ARGS
+  debugf("[syscalls::getdents64] fd{%d} dirp{%lx} count{%d}\n", fd, dirp,
+         count);
+#endif
+  return -1;
+  // return fsGetdents64(fd, dirp, count);
+}
+
 #define FD_SETSIZE 1024
 
 typedef unsigned long fd_mask;
@@ -353,6 +364,7 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_WRITEV, syscallWriteV);
   registerSyscall(SYSCALL_DUP2, syscallDup2);
   registerSyscall(SYSCALL_DUP, syscallDup);
+  registerSyscall(SYSCALL_GETDENTS64, syscallGetdents64);
   registerSyscall(SYSCALL_PSELECT6, syscallPselect6);
   // registerSyscall(SYSCALL_FACCESSAT2, syscallFaccessat2);
 }

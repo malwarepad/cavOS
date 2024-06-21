@@ -1,6 +1,8 @@
 # Set the initial path
 export PATH=/bin:/usr/bin:/usr/local/bin
 
+export TERM=rxvt-16color
+
 if [ $EUID -eq 0 ]; then
   export PATH=/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 fi
