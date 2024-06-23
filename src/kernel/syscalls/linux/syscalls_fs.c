@@ -18,10 +18,7 @@ static int syscallRead(int fd, char *str, uint32_t count) {
 #endif
     return -1;
   }
-  uint8_t *targ = malloc(count);
-  uint32_t read = fsRead(browse, (uint8_t *)targ, count);
-  memcpy(str, targ, count);
-  free(targ);
+  uint32_t read = fsRead(browse, (uint8_t *)str, count);
 #if DEBUG_SYSCALLS_ARGS
   debugf("\nread = %d\n", read);
 #endif
