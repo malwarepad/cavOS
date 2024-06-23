@@ -8,8 +8,7 @@ uint32_t fat32FATtraverse(FAT32 *fat, uint32_t offset) {
   uint32_t offsetSector = fat->offsetFats + (offsetFAT / SECTOR_SIZE);
   uint32_t offsetEntry = offsetFAT % SECTOR_SIZE;
 
-  uint8_t *bytes =
-      (uint8_t *)malloc(LBA_TO_OFFSET(fat->bootsec.sectors_per_cluster));
+  uint8_t *bytes = (uint8_t *)malloc(SECTOR_SIZE);
   getDiskBytes(bytes, offsetSector, 1);
 
   uint32_t *retLocation = (uint32_t *)(&bytes[offsetEntry]);

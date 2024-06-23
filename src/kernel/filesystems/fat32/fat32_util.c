@@ -32,7 +32,7 @@ int fat32IsShortFilenamePossible(char *filename) {
 // Seriously, why add any for() loops for 5 items or something, limiting the
 // amount of optimizations the compiler can apply?
 void fat32LFNmemcpy(uint8_t *lfnName, FAT32LFN *lfn, int index) {
-  uint8_t *target = lfnName + index * 13;
+  uint8_t *target = &lfnName[index * 13];
   target[0] = lfn->first_five[0];
   target[1] = lfn->first_five[2];
   target[2] = lfn->first_five[4];

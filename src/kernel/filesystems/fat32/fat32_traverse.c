@@ -45,7 +45,10 @@ FAT32TraverseResult fat32Traverse(FAT32 *fat, uint32_t initDirectory,
         bool found = false;
 
         if (lfnLast >= 0) {
-          int lfnLen = strlength((char *)lfnName); // without null terminator
+          int lfnLen = 0;
+          while (lfnName[lfnLen++])
+            ;
+          lfnLen--; // without null terminator
           if (lfnLen < 0) {
             debugf("[fat32] Something is horribly wrong... lfnLen{%d}\n",
                    lfnLen);

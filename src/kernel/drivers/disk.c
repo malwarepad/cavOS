@@ -68,7 +68,7 @@ void getDiskBytes(uint8_t *target_address, uint32_t LBA, size_t sector_count) {
 
   if (remainder)
     diskBytes(target_address + chunks * UINT8_MAX * SECTOR_SIZE,
-              LBA + chunks * UINT8_MAX, 1, false);
+              LBA + chunks * UINT8_MAX, remainder, false);
 }
 
 void setDiskBytes(const uint8_t *target_address, uint32_t LBA,
