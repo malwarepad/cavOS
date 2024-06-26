@@ -135,7 +135,8 @@ int    fat32IsShortFilenamePossible(char *filename);
 void   fat32LFNmemcpy(uint8_t *lfnName, FAT32LFN *lfn, int index);
 
 // fat32_fat.c
-uint32_t fat32FATtraverse(FAT32 *fat, uint32_t offset);
+uint32_t  fat32FATtraverse(FAT32 *fat, uint32_t offset);
+uint32_t *fat32FATchain(FAT32 *fat, uint32_t offsetStart, uint32_t amount);
 
 // fat32_traverse.c
 typedef struct FAT32TraverseResult {

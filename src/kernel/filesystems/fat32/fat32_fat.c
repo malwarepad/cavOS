@@ -16,16 +16,14 @@ void fat32FATcacheAdd(FAT32 *fat, uint32_t offset, uint8_t *bytes) {
   if (fat->cacheCurr >= FAT32_CACHE_MAX)
     fat->cacheCurr = 0;
   fat->cacheBase[fat->cacheCurr] = offset;
-  memcpy(fat->cache[fat->cacheCurr], bytes,
-         LBA_TO_OFFSET(fat->bootsec.sectors_per_cluster));
+  memcpy(fat->cache[fat->cacheCurr], bytes, SECTOR_SIZE);
   fat->cacheCurr++;
 }
 
 void fat32FATfetch(FAT32 *fat, uint32_t offsetSector, uint8_t *bytes) {
   uint32_t cacheRes = fat32FATcacheLookup(fat, offsetSector);
   if (cacheRes != FAT32_CACHE_BAD) {
-    memcpy(bytes, fat->cache[cacheRes],
-           LBA_TO_OFFSET(fat->bootsec.sectors_per_cluster));
+    memcpy(bytes, fat->cache[cacheRes], SECTOR_SIZE);
     return;
   }
   getDiskBytes(bytes, offsetSector, 1);
@@ -33,7 +31,7 @@ void fat32FATfetch(FAT32 *fat, uint32_t offsetSector, uint8_t *bytes) {
 }
 
 uint32_t fat32FATtraverse(FAT32 *fat, uint32_t offset) {
-  int bytesPerCluster = LBA_TO_OFFSET(fat->bootsec.sectors_per_cluster);
+  int bytesPerCluster = SECTOR_SIZE;
 
   uint32_t offsetFAT = offset * 4; // every entry is sizeof(uint32_t) = 4
   uint32_t offsetSector = fat->offsetFats + (offsetFAT / bytesPerCluster);
@@ -50,6 +48,18 @@ uint32_t fat32FATtraverse(FAT32 *fat, uint32_t offset) {
 
   if (ret == 0x0FFFFFF7) // invalid/bad cluster
     return 0;
+
+  return ret;
+}
+
+// +1 for starting
+uint32_t *fat32FATchain(FAT32 *fat, uint32_t offsetStart, uint32_t amount) {
+  uint32_t *ret = malloc((amount + 1) * sizeof(uint32_t));
+  memset(ret, 0, (amount + 1) * sizeof(uint32_t));
+
+  ret[0] = offsetStart;
+  for (int i = 1; i < amount; i++)
+    ret[i] = fat32FATtraverse(fat, ret[i - 1]);
 
   return ret;
 }
