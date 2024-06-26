@@ -95,7 +95,7 @@ typedef struct FAT32LFN {
 // fat->bootsec.table_count * fat->bootsec.extended_section.table_size_32
 
 #define FAT32_CACHE_BAD 0xFFFFFFFF
-#define FAT32_CACHE_MAX 5
+#define FAT32_CACHE_MAX 32
 typedef struct FAT32 {
   // various offsets
   size_t offsetBase;

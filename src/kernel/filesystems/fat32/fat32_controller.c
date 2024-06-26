@@ -85,15 +85,15 @@ int fat32Read(MountPoint *mount, OpenFile *fd, uint8_t *buff, int limit) {
   uint8_t *bytes = (uint8_t *)malloc(bytesPerCluster);
 
   while (true) {
+    if (!dir->directoryCurr)
+      goto cleanup;
     int offsetStarting = dir->ptr % bytesPerCluster; // remainder
     getDiskBytes(bytes, fat32ClusterToLBA(fat, dir->directoryCurr),
                  fat->bootsec.sectors_per_cluster);
 
     for (int i = offsetStarting; i < bytesPerCluster; i++) {
-      if (curr >= limit || dir->ptr >= dir->dirEnt.filesize) {
-        free(bytes);
-        return curr;
-      }
+      if (curr >= limit || dir->ptr >= dir->dirEnt.filesize)
+        goto cleanup;
 
       if (buff)
         buff[curr] = bytes[i];
@@ -105,6 +105,7 @@ int fat32Read(MountPoint *mount, OpenFile *fd, uint8_t *buff, int limit) {
     dir->directoryCurr = fat32FATtraverse(fat, dir->directoryCurr);
   }
 
+cleanup:
   free(bytes);
   return curr;
 }
