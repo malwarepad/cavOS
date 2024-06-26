@@ -28,7 +28,7 @@ bool validateMbr(uint8_t *mbrSector) {
   return mbrSector[510] == 0x55 && mbrSector[511] == 0xaa;
 }
 
-void diskBytes(uint8_t *target_address, uint32_t LBA, uint8_t sector_count,
+void diskBytes(uint8_t *target_address, uint32_t LBA, uint32_t sector_count,
                bool write) {
   // todo: yeah, this STILL is NOT ideal
 
@@ -59,16 +59,25 @@ void diskBytes(uint8_t *target_address, uint32_t LBA, uint8_t sector_count,
 }
 
 void getDiskBytes(uint8_t *target_address, uint32_t LBA, size_t sector_count) {
-  size_t chunks = sector_count / UINT8_MAX;
-  size_t remainder = sector_count % UINT8_MAX;
+  // calculated by: (bytesPerPRDT * PRDTamnt) / SECTOR_SIZE
+  //                (    8192     *    32   ) /     512
+  int max = 512;
+
+  size_t chunks = sector_count / max;
+  size_t remainder = sector_count % max;
   if (chunks)
     for (size_t i = 0; i < chunks; i++)
-      diskBytes(target_address + i * UINT8_MAX * SECTOR_SIZE,
-                LBA + i * UINT8_MAX, UINT8_MAX, false);
+      diskBytes(target_address + i * max * SECTOR_SIZE, LBA + i * max, max,
+                false);
 
   if (remainder)
-    diskBytes(target_address + chunks * UINT8_MAX * SECTOR_SIZE,
-              LBA + chunks * UINT8_MAX, remainder, false);
+    diskBytes(target_address + chunks * max * SECTOR_SIZE, LBA + chunks * max,
+              remainder, false);
+
+  // for (int i = 0; i < sector_count; i++)
+  //   diskBytes(target_address + i * 512, LBA + i, 1, false);
+
+  // diskBytes(target_address, LBA, sector_count, false);
 }
 
 void setDiskBytes(const uint8_t *target_address, uint32_t LBA,

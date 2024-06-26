@@ -115,11 +115,11 @@ HBA_CMD_TBL *ahciSetUpCmdTable(ahci *ahciPtr, HBA_CMD_HEADER *cmdheader,
 }
 
 void ahciSetUpPRDT(HBA_CMD_HEADER *cmdheader, HBA_CMD_TBL *cmdtbl,
-                   uint8_t *buff, uint32_t *count) {
+                   uint16_t *buff, uint32_t *count) {
   // 8K bytes (16 sectors) per PRDT
-  int    i = 0;
-  size_t targPhys = VirtualToPhysical((size_t)buff);
+  int i = 0;
   for (i = 0; i < cmdheader->prdtl - 1; i++) {
+    size_t targPhys = VirtualToPhysical((size_t)buff);
     cmdtbl->prdt_entry[i].dba = SPLIT_64_LOWER(targPhys);
     cmdtbl->prdt_entry[i].dbau = SPLIT_64_HIGHER(targPhys);
     cmdtbl->prdt_entry[i].dbc =
@@ -129,6 +129,7 @@ void ahciSetUpPRDT(HBA_CMD_HEADER *cmdheader, HBA_CMD_TBL *cmdtbl,
     buff += 4 * 1024; // 4K words
     *count -= 16;     // 16 sectors
   }
+  size_t targPhys = VirtualToPhysical((size_t)buff);
   // Last entry
   cmdtbl->prdt_entry[i].dba = SPLIT_64_LOWER(targPhys);
   cmdtbl->prdt_entry[i].dbau = SPLIT_64_HIGHER(targPhys);
@@ -268,7 +269,9 @@ bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
       ahciSetUpCmdHeader(ahciPtr, portId, slot, AHCI_CALC_PRDT(count), false);
   HBA_CMD_TBL *cmdtbl = ahciSetUpCmdTable(ahciPtr, cmdheader, portId);
 
-  ahciSetUpPRDT(cmdheader, cmdtbl, buff, &count);
+  // todo: look this up
+  uint32_t countSec = count;
+  ahciSetUpPRDT(cmdheader, cmdtbl, (uint16_t *)buff, &countSec);
 
   FIS_REG_H2D *cmdfis = (FIS_REG_H2D *)(&cmdtbl->cfis);
 
@@ -305,7 +308,7 @@ bool ahciWrite(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
       ahciSetUpCmdHeader(ahciPtr, portId, slot, AHCI_CALC_PRDT(count), true);
   HBA_CMD_TBL *cmdtbl = ahciSetUpCmdTable(ahciPtr, cmdheader, portId);
 
-  ahciSetUpPRDT(cmdheader, cmdtbl, buff, &count);
+  ahciSetUpPRDT(cmdheader, cmdtbl, (uint16_t *)buff, &count);
 
   FIS_REG_H2D *cmdfis = (FIS_REG_H2D *)(&cmdtbl->cfis);
 
