@@ -37,6 +37,12 @@ bool fat32Mount(MountPoint *mount) {
       fat->offsetFats +
       fat->bootsec.table_count * fat->bootsec.extended_section.table_size_32;
 
+  for (int i = 0; i < FAT32_CACHE_MAX; i++) {
+    fat->cacheBase[i] = FAT32_CACHE_BAD;
+    fat->cache[i] = malloc(LBA_TO_OFFSET(fat->bootsec.sectors_per_cluster));
+    memset(fat->cache[i], 0, LBA_TO_OFFSET(fat->bootsec.sectors_per_cluster));
+  }
+
   // done :")
   return true;
 }
