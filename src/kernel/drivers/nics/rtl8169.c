@@ -1,3 +1,4 @@
+#include <bootloader.h>
 #include <dhcp.h>
 #include <isr.h>
 #include <malloc.h>
@@ -51,10 +52,13 @@ void interruptHandlerRTL8169(AsmPassedInterrupt *regs) {
         continue;
 
       uint32_t buffSize = info->RxDescriptors[i].command & 0x3FFF;
-      // uint32_t low = info->RxDescriptors[i].low_buf;
-      // uint32_t high = info->RxDescriptors[i].high_buf;
+      uint32_t low = info->RxDescriptors[i].low_buf;
+      uint32_t high = info->RxDescriptors[i].high_buf;
 
-      handlePacket(selectedNIC, info->packetBuffers[i], buffSize - 4);
+      uint64_t phys = ((uint64_t)high << 32) | low;
+      uint64_t virt = phys + bootloader.hhdmOffset;
+
+      handlePacket(selectedNIC, (void *)virt, buffSize - 4);
 
       info->RxDescriptors[i].command |= RTL8169_OWN;
     }
@@ -91,13 +95,10 @@ void sendRTL8169(NIC *nic, void *packet, uint32_t packetSize) {
       ((rtl8169_descriptor *)((size_t)info->TxDescriptors +
                               (sizeof(rtl8169_descriptor) * 0)));
 
-  uint32_t allocSize = DivRoundUp(packetSize, BLOCK_SIZE);
-  void    *contiguousContainer = VirtualAllocatePhysicallyContiguous(allocSize);
-  size_t   phys = VirtualToPhysical((size_t)contiguousContainer);
-  memcpy(contiguousContainer, packet, packetSize);
+  uint64_t phys = ((uint64_t)desc->high_buf << 32) | desc->low_buf;
+  uint64_t virt = phys + bootloader.hhdmOffset;
 
-  desc->low_buf = (uint32_t)(phys & 0xFFFFFFFF);
-  desc->high_buf = (uint32_t)(phys >> 32);
+  memcpy((void *)virt, packet, packetSize);
   desc->vlan = 0;
   desc->command = cmd;
 
@@ -107,8 +108,42 @@ void sendRTL8169(NIC *nic, void *packet, uint32_t packetSize) {
   while (!info->txSent && (inportb(iobase + 0x38) & 0x40))
     ;
   info->txSent = false;
+}
 
-  VirtualFree(contiguousContainer, allocSize);
+void setupDescriptorsRTL8169(rtl8169_interface *infoLocation) {
+  for (uint32_t i = 0; i < RTL8169_DESCRIPTORS; i++) {
+    uint32_t buffer_len = 1536;
+
+    // will be consecutive
+    void *addrRX = (void *)malloc(buffer_len);
+    memset(addrRX, 0, buffer_len);
+    void *addrTX = (void *)malloc(buffer_len);
+    memset(addrTX, 0, buffer_len);
+
+    // setup RX
+    if (i == (RTL8169_DESCRIPTORS - 1)) {
+      infoLocation->RxDescriptors[i].command =
+          (RTL8169_OWN | RTL8169_EOR | (buffer_len & 0x3FFF));
+    } else {
+      infoLocation->RxDescriptors[i].command =
+          (RTL8169_OWN | (buffer_len & 0x3FFF));
+    }
+    size_t physRX = VirtualToPhysical((size_t)addrRX);
+    infoLocation->RxDescriptors[i].low_buf = (uint32_t)(physRX & 0xFFFFFFFF);
+    infoLocation->RxDescriptors[i].high_buf = (uint32_t)(physRX >> 32);
+
+    // setup TX
+    if (i == (RTL8169_DESCRIPTORS - 1)) {
+      infoLocation->TxDescriptors[i].command =
+          (RTL8169_OWN | RTL8169_EOR | (buffer_len & 0x3FFF));
+    } else {
+      infoLocation->TxDescriptors[i].command =
+          (RTL8169_OWN | (buffer_len & 0x3FFF));
+    }
+    size_t physTX = VirtualToPhysical((size_t)addrTX);
+    infoLocation->TxDescriptors[i].low_buf = (uint32_t)(physTX & 0xFFFFFFFF);
+    infoLocation->TxDescriptors[i].high_buf = (uint32_t)(physTX >> 32);
+  }
 }
 
 bool initiateRTL8169(PCIdevice *device) {
@@ -176,22 +211,7 @@ bool initiateRTL8169(PCIdevice *device) {
          nic->MAC[1], nic->MAC[2], nic->MAC[3], nic->MAC[4], nic->MAC[5]);
 #endif
 
-  for (uint32_t i = 0; i < RTL8169_RX_DESCRIPTORS; i++) {
-    uint32_t rx_buffer_len = 1536;
-    void    *packet_buffer_address = (void *)malloc(rx_buffer_len);
-    memset(packet_buffer_address, 0, rx_buffer_len);
-    infoLocation->packetBuffers[i] = packet_buffer_address;
-    if (i == (RTL8169_RX_DESCRIPTORS - 1)) {
-      infoLocation->RxDescriptors[i].command =
-          (RTL8169_OWN | RTL8169_EOR | (rx_buffer_len & 0x3FFF));
-    } else {
-      infoLocation->RxDescriptors[i].command =
-          (RTL8169_OWN | (rx_buffer_len & 0x3FFF));
-    }
-    size_t phys = VirtualToPhysical((size_t)packet_buffer_address);
-    infoLocation->RxDescriptors[i].low_buf = (uint32_t)(phys & 0xFFFFFFFF);
-    infoLocation->RxDescriptors[i].high_buf = (uint32_t)(phys >> 32);
-  }
+  setupDescriptorsRTL8169(infoLocation);
 
 #if DEBUG_RTL8169
   printf("[pci::rtl8169] Starting configuration...\n");
