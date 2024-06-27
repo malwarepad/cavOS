@@ -82,31 +82,83 @@ int fat32Read(MountPoint *mount, OpenFile *fd, uint8_t *buff, int limit) {
   int bytesPerCluster = LBA_TO_OFFSET(fat->bootsec.sectors_per_cluster);
   // ^ is used everywhere!
 
-  uint8_t *bytes = (uint8_t *)malloc(bytesPerCluster);
+  uint8_t  *bytes = (uint8_t *)malloc(bytesPerCluster);
+  int       fatLookupsNeeded = DivRoundUp(limit, bytesPerCluster);
+  uint32_t *fatLookup =
+      fat32FATchain(fat, dir->directoryCurr, fatLookupsNeeded);
 
-  while (true) {
-    if (!dir->directoryCurr)
-      goto cleanup;
-    int offsetStarting = dir->ptr % bytesPerCluster; // remainder
-    getDiskBytes(bytes, fat32ClusterToLBA(fat, dir->directoryCurr),
-                 fat->bootsec.sectors_per_cluster);
+  // optimization: we can use consecutive sectors to make our life easier
+  int consecStart = -1;
+  int consecEnd = 0;
 
-    for (int i = offsetStarting; i < bytesPerCluster; i++) {
-      if (curr >= limit || dir->ptr >= dir->dirEnt.filesize)
-        goto cleanup;
-
-      if (buff)
-        buff[curr] = bytes[i];
-
-      dir->ptr++;
-      curr++;
+  // +1 for starting
+  for (int i = 0; i < (fatLookupsNeeded + 1); i++) {
+    if (!fatLookup[i])
+      break;
+    dir->directoryCurr = fatLookup[i];
+    bool last = i == (fatLookupsNeeded - 1);
+    if (consecStart < 0) {
+      // nothing consecutive yet
+      if (!last && fatLookup[i + 1] == (fatLookup[i] + 1)) {
+        // consec starts here
+        consecStart = i;
+        continue;
+      }
+    } else {
+      // we are in a consecutive that started since consecStart
+      if (last || fatLookup[i + 1] != (fatLookup[i] + 1))
+        consecEnd = i; // either last or the end
+      else             // otherwise, we good
+        continue;
     }
 
-    dir->directoryCurr = fat32FATtraverse(fat, dir->directoryCurr);
+    int offsetStarting = dir->ptr % bytesPerCluster; // remainder
+    if (consecEnd) {
+      // optimized consecutive cluster reading
+      int      needed = consecEnd - consecStart + 1;
+      uint8_t *optimizedBytes = malloc(needed * bytesPerCluster);
+      getDiskBytes(optimizedBytes,
+                   fat32ClusterToLBA(fat, fatLookup[consecStart]),
+                   needed * fat->bootsec.sectors_per_cluster);
+
+      for (int i = offsetStarting; i < (needed * bytesPerCluster); i++) {
+        if (curr >= limit || dir->ptr >= dir->dirEnt.filesize) {
+          free(optimizedBytes);
+          goto cleanup;
+        }
+
+        if (buff)
+          buff[curr] = optimizedBytes[i];
+
+        dir->ptr++;
+        curr++;
+      }
+
+      free(optimizedBytes);
+    } else {
+      getDiskBytes(bytes, fat32ClusterToLBA(fat, fatLookup[i]),
+                   fat->bootsec.sectors_per_cluster);
+
+      for (int i = offsetStarting; i < bytesPerCluster; i++) {
+        if (curr >= limit || dir->ptr >= dir->dirEnt.filesize)
+          goto cleanup;
+
+        if (buff)
+          buff[curr] = bytes[i];
+
+        dir->ptr++;
+        curr++;
+      }
+    }
+
+    // traverse
+    consecStart = -1;
+    consecEnd = 0;
   }
 
 cleanup:
   free(bytes);
+  free(fatLookup);
   return curr;
 }
 
