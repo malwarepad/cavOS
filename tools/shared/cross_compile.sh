@@ -19,7 +19,8 @@ build_package_autotools() {
 	# EXTRA arguments
 	extra_parameters=$4
 	optional_patchname=$5
-	autoconf_extra=$6
+	extra_install_parameters=$6
+	autoconf_extra=$7
 
 	# Download and extract the tarball
 	wget -nc "$uri"
@@ -46,7 +47,11 @@ build_package_autotools() {
 	# Compilation itself
 	../configure --prefix="$install_dir" --host=x86_64-cavos $extra_parameters
 	make -j$(nproc)
-	make install
+	if [ -n "$extra_install_parameters" ]; then
+		make install $extra_install_parameters
+	else
+		make install
+	fi
 
 	# Cleanup
 	cd ../../
