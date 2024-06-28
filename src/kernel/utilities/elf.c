@@ -63,7 +63,8 @@ void elfProcessLoad(Elf64_Phdr *elf_phdr, uint8_t *out, size_t base) {
            elf_phdr->p_memsz - elf_phdr->p_filesz);
 }
 
-Task *elfExecute(char *filepath, uint32_t argc, char **argv, bool startup) {
+Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
+                 char **envv, bool startup) {
   // Open & read executable file
   OpenFile *dir = fsKernelOpen(filepath, FS_MODE_READ, 0);
   if (!dir) {
@@ -219,7 +220,7 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, bool startup) {
   target->cwd[1] = '\0';
 
   // User stack generation: the stack itself, AUXs, etc...
-  stackGenerateUser(target, argc, argv, out, filesize, elf_ehdr);
+  stackGenerateUser(target, argc, argv, envc, envv, out, filesize, elf_ehdr);
   free(out);
 
   fsUserOpenSpecial("/dev/stdin", target, 0, &stdio);

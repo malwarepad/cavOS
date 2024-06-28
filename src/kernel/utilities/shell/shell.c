@@ -234,7 +234,7 @@ void launch_shell(int n) {
     } else if (strEql(ch, "busybox")) {
       printf("\n");
       char *argv[] = {"/usr/bin/busybox", "sh"};
-      Task *task = elfExecute("/usr/bin/busybox", 2, argv, true);
+      Task *task = elfExecute("/usr/bin/busybox", 2, argv, 0, 0, true);
       while (taskGetState(task->id))
         ;
     } else if (strEql(ch, "ping")) {
@@ -313,7 +313,7 @@ void launch_shell(int n) {
 
       size_t *argv = malloc(sizeof(size_t) * 5);
       argv[0] = (size_t)filepath;
-      Task *task = elfExecute(filepath, 1, (char **)argv, true);
+      Task *task = elfExecute(filepath, 1, (char **)argv, 0, 0, true);
       if (!task) {
         printf("Failure executing %s!\n", filepath);
         continue;

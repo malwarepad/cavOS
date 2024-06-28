@@ -97,6 +97,7 @@ enum Elf_Type {
 #ifndef ELF_H
 #define ELF_H
 
-Task *elfExecute(char *filepath, uint32_t argc, char **argv, bool startup);
+Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
+                 char **envv, bool startup);
 
 #endif

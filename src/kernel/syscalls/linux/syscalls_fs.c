@@ -221,6 +221,12 @@ static int syscallReadV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
   return cnt;
 }
 
+#define SYSCALL_ACCESS 21
+static int syscallAccess(char *filename, int mode) {
+  struct stat buf;
+  return syscallStat(filename, &buf);
+}
+
 #define SYSCALL_DUP 32
 static int syscallDup(uint32_t fd) {
 #if DEBUG_SYSCALLS_ARGS
@@ -361,6 +367,7 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_WRITEV, syscallWriteV);
   registerSyscall(SYSCALL_DUP2, syscallDup2);
   registerSyscall(SYSCALL_DUP, syscallDup);
+  registerSyscall(SYSCALL_ACCESS, syscallAccess);
   registerSyscall(SYSCALL_GETDENTS64, syscallGetdents64);
   registerSyscall(SYSCALL_PSELECT6, syscallPselect6);
   // registerSyscall(SYSCALL_FACCESSAT2, syscallFaccessat2);

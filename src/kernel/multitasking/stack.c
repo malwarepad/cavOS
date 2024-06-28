@@ -25,8 +25,31 @@ void stackGenerateMutual(Task *task) {
   }
 }
 
-void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint8_t *out,
-                       size_t filesize, void *elf_ehdr_ptr) {
+typedef struct StackStorePtrStyle {
+  uint8_t *start;
+  int      ellapsed;
+} StackStorePtrStyle;
+StackStorePtrStyle stackStorePtrStyle(Task *target, int ptrc, char **ptrv) {
+  // Store argument contents
+  uint32_t argSpace = 0;
+  for (int i = 0; i < ptrc; i++)
+    argSpace += strlength(ptrv[i]) + 1; // null terminator
+  uint8_t *argStart = (uint8_t *)target->heap_end;
+  taskAdjustHeap(target, target->heap_end + argSpace, &target->heap_start,
+                 &target->heap_end);
+  size_t ellapsed = 0;
+  for (int i = 0; i < ptrc; i++) {
+    uint32_t len = strlength(ptrv[i]) + 1; // null terminator
+    memcpy((void *)((size_t)argStart + ellapsed), ptrv[i], len);
+    ellapsed += len;
+  }
+  StackStorePtrStyle ret = {.start = argStart, .ellapsed = ellapsed};
+  return ret;
+}
+
+void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint32_t envc,
+                       char **envv, uint8_t *out, size_t filesize,
+                       void *elf_ehdr_ptr) {
   Elf64_Ehdr *elf_ehdr = (Elf64_Ehdr *)(elf_ehdr_ptr);
 
   // yeah, we will need to construct a stackframe...
@@ -96,33 +119,27 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint8_t *out,
                 lowestThing + elf_ehdr->e_phoff);
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 3);
 
-  // Store argument contents
-  uint32_t argSpace = 0;
-  for (int i = 0; i < argc; i++)
-    argSpace += strlength(argv[i]) + 1; // null terminator
-  uint8_t *argStart = (uint8_t *)target->heap_end;
-  taskAdjustHeap(target, target->heap_end + argSpace, &target->heap_start,
-                 &target->heap_end);
-  size_t ellapsed = 0;
-  for (int i = 0; i < argc; i++) {
-    uint32_t len = strlength(argv[i]) + 1; // null terminator
-    memcpy((void *)((size_t)argStart + ellapsed), argv[i], len);
-    ellapsed += len;
-  }
+  // store arguments & environment variables in heap
+  StackStorePtrStyle arguments = stackStorePtrStyle(target, argc, argv);
+  StackStorePtrStyle environment = {0};
+  if (envc > 0)
+    environment = stackStorePtrStyle(target, envc, envv);
 
-  // todo: Proper environ
+  // end of environ
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 0);
+  if (environment.ellapsed > 0) {
+    size_t finalEllapsed = 0;
+    // ellapsed already has the full size lol
+    for (int i = envc - 1; i >= 0; i--) {
+      target->registers.usermode_rsp -= sizeof(uint64_t);
+      uint64_t *finalEnvv = (uint64_t *)target->registers.usermode_rsp;
 
-  // size_t   pwdLen = strlength(target->cwd) + 1; // null terminated
-  // uint8_t *pathstart = (uint8_t *)target->heap_end;
-  // taskAdjustHeap(target, target->heap_end + 4 + pwdLen, &target->heap_start,
-  //                &target->heap_end);
-  // pathstart[0] = 'P';
-  // pathstart[1] = 'W';
-  // pathstart[2] = 'D';
-  // pathstart[3] = '=';
-  // memcpy((void *)((size_t)pathstart + 4), target->cwd, pwdLen);
-  // PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, (size_t)pathstart);
+      uint32_t len = strlength(envv[i]) + 1; // null terminator
+      finalEllapsed += len;
+      *finalEnvv =
+          (size_t)environment.start + (environment.ellapsed - finalEllapsed);
+    }
+  }
 
   // end of argv
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 0);
@@ -136,15 +153,11 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint8_t *out,
 
     uint32_t len = strlength(argv[i]) + 1; // null terminator
     finalEllapsed += len;
-    *finalArgv = (size_t)argStart + (ellapsed - finalEllapsed);
+    *finalArgv = (size_t)arguments.start + (arguments.ellapsed - finalEllapsed);
   }
 
   // argc
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, argc);
-
-  /*for (uint64_t i = target->registers.usermode_rsp; i < USER_STACK_BOTTOM;
-       i += sizeof(uint64_t))
-    debugf("[%lx] %lx\n", i, *((uint64_t *)i));*/
 
   ChangePageDirectory(oldPagedir);
 }

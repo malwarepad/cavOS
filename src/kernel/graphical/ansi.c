@@ -20,42 +20,12 @@ ANSIcolors ansiColors[] = {
 
 bool    asciiEscaping = false;  // 0x1B // \033
 bool    asciiInside = false;    //  [   // 0x5B
-bool    asciiWaiting = false;   // any  // any
 int64_t asciiChar1 = 0;         // any  // any
 bool    asciiFirstDone = false; // any  // any
 int64_t asciiChar2 = 0;         // any  // any
 
-// true = we're done with
-bool asciiProcessSimple(int charnum) {
-  switch (charnum) {
-  case 'H':
-    width = 0;
-    height = 0;
-    break;
-
-  case 'J': {
-    int restWidth = framebufferWidth - (width + TTY_CHARACTER_WIDTH);
-    if (restWidth > 0)
-      drawRect(width, height, restWidth, TTY_CHARACTER_HEIGHT, bg_color[0],
-               bg_color[1], bg_color[2]);
-    int restHeight = framebufferHeight - (height + TTY_CHARACTER_HEIGHT);
-    if (restHeight > 0)
-      drawRect(0, height + TTY_CHARACTER_HEIGHT, framebufferWidth,
-               framebufferHeight, bg_color[0], bg_color[1], bg_color[2]);
-    updateBull();
-    break;
-  }
-
-  default:
-    return false;
-    break;
-  }
-
-  return true;
-}
-
 // true = done with
-bool asciiProcessExtended(int charnum) {
+bool asciiProcess(int charnum) {
   bool validNumber = IS_VALID_NUMBER(charnum);
   if (validNumber) {
     int target = charnum - '0';
@@ -91,6 +61,35 @@ bool asciiProcessExtended(int charnum) {
     (bg ? changeBg : changeTextColor)(colors->rgb[0], colors->rgb[1],
                                       colors->rgb[2]);
     break;
+  case 'H':
+    width = 0;
+    height = 0;
+    break;
+
+  case 'J':
+    switch (asciiChar1) {
+    case 0: { // no
+      int restWidth = framebufferWidth - (width + TTY_CHARACTER_WIDTH);
+      if (restWidth > 0)
+        drawRect(width, height, restWidth, TTY_CHARACTER_HEIGHT, bg_color[0],
+                 bg_color[1], bg_color[2]);
+      int restHeight = framebufferHeight - (height + TTY_CHARACTER_HEIGHT);
+      if (restHeight > 0)
+        drawRect(0, height + TTY_CHARACTER_HEIGHT, framebufferWidth,
+                 framebufferHeight, bg_color[0], bg_color[1], bg_color[2]);
+      updateBull();
+      break;
+    }
+
+    case 2:
+      clearScreen();
+      break;
+
+    case 3: // + scrollback clear
+      clearScreen();
+      break;
+    }
+    break;
   default:
     break;
   }
@@ -101,7 +100,6 @@ bool asciiProcessExtended(int charnum) {
 void ansiReset() {
   asciiEscaping = false;
   asciiInside = false;
-  asciiWaiting = false;
 
   asciiFirstDone = false;
 
@@ -120,15 +118,8 @@ bool ansiHandle(int charnum) {
     asciiEscaping = true;
     asciiInside = true;
     return true;
-  } else if (asciiEscaping && asciiInside && !asciiWaiting) {
-    if (asciiProcessSimple(charnum))
-      ansiReset();
-    else {
-      asciiWaiting = true;
-    }
-    return true;
-  } else if (asciiEscaping && asciiInside) { // && asciiWaitingChar
-    if (asciiProcessExtended(charnum))
+  } else if (asciiEscaping && asciiInside) {
+    if (asciiProcess(charnum))
       ansiReset();
     return true;
   }

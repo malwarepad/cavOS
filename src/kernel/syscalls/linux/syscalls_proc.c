@@ -16,6 +16,32 @@ static int syscallFork() {
   return taskFork(currentTask->syscallRegs, currentTask->syscallRsp);
 }
 
+typedef struct CopyPtrStyle {
+  int      count;
+  char   **ptrPlace;
+  uint8_t *valPlace;
+} CopyPtrStyle;
+
+CopyPtrStyle copyPtrStyle(char **ptr) {
+  int    count = 0;
+  size_t totalLen = 0;
+  while (ptr[count]) {
+    totalLen += strlength(ptr[count]) + 1;
+    count++;
+  }
+  char   **ptrPlace = malloc(count * sizeof(void *));
+  uint8_t *valPlace = malloc(totalLen);
+  size_t   curr = 0;
+  for (int i = 0; i < count; i++) {
+    ptrPlace[i] = (void *)((size_t)valPlace + curr);
+    curr += strlength(ptr[i]) + 1;
+    memcpy(ptrPlace[i], ptr[i], strlength(ptr[i]) + 1);
+  }
+  CopyPtrStyle ret = {
+      .count = count, .ptrPlace = ptrPlace, .valPlace = valPlace};
+  return ret;
+}
+
 #define SYSCALL_EXECVE 59
 static int syscallExecve(char *filename, char **argv, char **envp) {
 #if DEBUG_SYSCALLS_ARGS
@@ -23,24 +49,16 @@ static int syscallExecve(char *filename, char **argv, char **envp) {
          currentTask->id, filename);
 #endif
   // todo: envp!
-  int    argc = 0;
-  size_t totalLen = 0;
-  while (argv[argc]) {
-    totalLen += strlength(argv[argc]) + 1;
-    argc++;
-  }
-  char   **ptrPlace = malloc(argc * sizeof(void *));
-  uint8_t *valPlace = malloc(totalLen);
-  size_t   curr = 0;
-  for (int i = 0; i < argc; i++) {
-    ptrPlace[i] = (void *)((size_t)valPlace + curr);
-    curr += strlength(argv[i]) + 1;
-    memcpy(ptrPlace[i], argv[i], strlength(argv[i]) + 1);
-  }
 
-  Task *ret = elfExecute(filename, argc, ptrPlace, 0);
-  free(ptrPlace);
-  free(valPlace);
+  CopyPtrStyle arguments = copyPtrStyle(argv);
+  CopyPtrStyle environment = copyPtrStyle(envp);
+
+  Task *ret = elfExecute(filename, arguments.count, arguments.ptrPlace,
+                         environment.count, environment.ptrPlace, 0);
+  free(arguments.ptrPlace);
+  free(arguments.valPlace);
+  free(environment.ptrPlace);
+  free(environment.valPlace);
   if (!ret)
     return -1;
 
