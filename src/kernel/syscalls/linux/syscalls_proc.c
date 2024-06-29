@@ -45,8 +45,9 @@ CopyPtrStyle copyPtrStyle(char **ptr) {
 #define SYSCALL_EXECVE 59
 static int syscallExecve(char *filename, char **argv, char **envp) {
 #if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::execve] Replacing task{%d} with filename{%s}!\n",
-         currentTask->id, filename);
+  debugf("[syscalls::execve] Replacing task{%d} with filename{%s}! argv{%lx} "
+         "envp{%lx}\n",
+         currentTask->id, filename, argv, envp);
 #endif
   // todo: envp!
 

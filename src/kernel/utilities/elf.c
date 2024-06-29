@@ -131,10 +131,15 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
       char     *interpreterFilename = (char *)(out + elf_phdr->p_offset);
       OpenFile *interpreter =
           fsKernelOpen(interpreterFilename, FS_MODE_READ, 0);
+      if (!interpreter) {
+        debugf("[elf] Interpreter path{%s} could not be found!\n");
+        panic();
+      }
       size_t size = fsGetFilesize(interpreter);
 
       uint8_t *interpreterContents = (uint8_t *)malloc(size);
       fsReadFullFile(interpreter, interpreterContents);
+      fsKernelClose(interpreter);
 
       Elf64_Ehdr *interpreterEhdr = (Elf64_Ehdr *)(interpreterContents);
       if (interpreterEhdr->e_type != 3) { // ET_DYN
@@ -152,6 +157,7 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
           continue;
         elfProcessLoad(interpreterPhdr, interpreterContents, interpreterBase);
       }
+      free(interpreterContents);
 
       continue;
     }
@@ -220,7 +226,7 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
   target->cwd[1] = '\0';
 
   // User stack generation: the stack itself, AUXs, etc...
-  stackGenerateUser(target, argc, argv, envc, envv, out, filesize, elf_ehdr);
+  stackGenerateUser(target, argc, argv, 0, 0, out, filesize, elf_ehdr);
   free(out);
 
   fsUserOpenSpecial("/dev/stdin", target, 0, &stdio);

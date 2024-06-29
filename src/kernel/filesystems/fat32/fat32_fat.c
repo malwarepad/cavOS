@@ -42,6 +42,7 @@ uint32_t fat32FATtraverse(FAT32 *fat, uint32_t offset) {
 
   uint32_t *retLocation = (uint32_t *)(&bytes[offsetEntry]);
   uint32_t  ret = (*retLocation) & 0x0FFFFFFF; // remember; we're on FAT32
+  free(bytes);
 
   if (ret >= 0x0FFFFFF8) // end of cluster chain
     return 0;
