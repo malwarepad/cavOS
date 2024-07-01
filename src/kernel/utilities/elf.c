@@ -226,7 +226,7 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
   target->cwd[1] = '\0';
 
   // User stack generation: the stack itself, AUXs, etc...
-  stackGenerateUser(target, argc, argv, 0, 0, out, filesize, elf_ehdr);
+  stackGenerateUser(target, argc, argv, envc, envv, out, filesize, elf_ehdr);
   free(out);
 
   fsUserOpenSpecial("/dev/stdin", target, 0, &stdio);
