@@ -231,6 +231,7 @@ void taskKillCleanup(Task *task) {
 
   PageDirectoryFree(task->pagedir);
   VirtualFree((void *)task->whileTssRsp, USER_STACK_PAGES);
+  VirtualFree((void *)task->whileSyscallRsp, USER_STACK_PAGES);
   free(task);
 
   // taskKillChildren(task); // wait()
@@ -310,8 +311,6 @@ bool taskChangeCwd(char *newdir) {
   free(safeNewdir);
   return true;
 }
-
-extern void syscall_end();
 
 int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
   Task *browse = firstTask;

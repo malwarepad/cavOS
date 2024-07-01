@@ -172,14 +172,18 @@ bool fat32Seek(MountPoint *mount, OpenFile *fd, uint32_t target) {
   if (target > dir->dirEnt.filesize)
     return false;
 
+  int old = dir->ptr;
+  if (old > target) {
+    dir->directoryCurr =
+        FAT_COMB_HIGH_LOW(dir->dirEnt.clusterhigh, dir->dirEnt.clusterlow);
+    dir->ptr = 0;
+  }
   dir->ptr = target;
-  dir->directoryCurr =
-      FAT_COMB_HIGH_LOW(dir->dirEnt.clusterhigh, dir->dirEnt.clusterlow);
 
   // this REALLY needs optimization!
-  int clustersToBeSkipped =
-      target / LBA_TO_OFFSET(fat->bootsec.sectors_per_cluster);
-  for (int i = 0; i < clustersToBeSkipped; i++) {
+  int toBeSkipped = target / LBA_TO_OFFSET(fat->bootsec.sectors_per_cluster);
+  int alreadySkipped = old / LBA_TO_OFFSET(fat->bootsec.sectors_per_cluster);
+  for (int i = 0; i < (toBeSkipped - alreadySkipped); i++) {
     dir->directoryCurr = fat32FATtraverse(fat, dir->directoryCurr);
     if (!dir->directoryCurr)
       return false;
