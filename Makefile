@@ -79,5 +79,6 @@ vmware:
 	@$(MAKE) -C src/kernel vmware
 
 # Development tools
-dev: disk qemu_dbg
-	
+ringhome:
+	cmd.exe /c C:/Users/Panagiotis/ring.bat
+dev: clean disk ringhome
