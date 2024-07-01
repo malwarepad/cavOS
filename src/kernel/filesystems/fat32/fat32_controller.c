@@ -176,7 +176,7 @@ bool fat32Seek(MountPoint *mount, OpenFile *fd, uint32_t target) {
   if (old > target) {
     dir->directoryCurr =
         FAT_COMB_HIGH_LOW(dir->dirEnt.clusterhigh, dir->dirEnt.clusterlow);
-    dir->ptr = 0;
+    old = 0;
   }
   dir->ptr = target;
 
