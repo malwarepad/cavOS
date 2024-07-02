@@ -1,3 +1,4 @@
+#include <fat32.h>
 #include <linked_list.h>
 #include <linux.h>
 #include <malloc.h>
@@ -345,6 +346,77 @@ static int syscallPselect6(int nfds, fd_set *readfds, fd_set *writefds,
   return amnt;
 }
 
+#define SYSCALL_STATX 332
+static int syscallStatx(int dirfd, char *pathname, int flags, uint32_t mask,
+                        struct statx *buff) {
+#if DEBUG_SYSCALLS_ARGS
+  debugf(
+      "[syscalls::stat] dirfd{%d} pathname{%s} flags{%x} mask{%x} buff{%lx}\n",
+      dirfd, pathname, flags, mask, buff);
+#endif
+  struct stat simple = {0};
+  if (pathname[0] == '\0') { // by fd
+    OpenFile *file = fsUserGetNode(dirfd);
+    if (!fsStat(file, &simple))
+      return -1;
+  } else if (pathname[0] == '/') { // by absolute pathname
+    char *safeFilename = fsSanitize(pathname);
+    bool  ret = fsStatByFilename(safeFilename, &simple);
+    free(safeFilename);
+    if (!ret)
+      return -1;
+  } else if (pathname[0] != '/') {
+    if (dirfd == AT_FDCWD) { // relative to cwd
+      char *safeFilename = fsSanitize(pathname);
+      bool  ret = fsStatByFilename(safeFilename, &simple);
+      free(safeFilename);
+      if (!ret)
+        return -1;
+    } else {
+#if DEBUG_SYSCALLS_STUB
+      debugf("[syscalls::statx] todo: partial sanitization!");
+#endif
+      return -1;
+    }
+  } else {
+#if DEBUG_SYSCALLS_FAILS
+    debugf("[syscalls::statx] Unsupported!\n");
+#endif
+    return -1;
+  }
+
+  memset(buff, 0, sizeof(struct statx));
+
+  buff->stx_mask = STATX_BASIC_STATS | STATX_BTIME;
+  buff->stx_blksize = simple.st_blksize;
+  buff->stx_attributes = 0; // naw
+  buff->stx_nlink = simple.st_nlink;
+  buff->stx_uid = simple.st_uid;
+  buff->stx_gid = simple.st_gid;
+  buff->stx_mode = simple.st_mode;
+  buff->stx_ino = simple.st_ino;
+  buff->stx_size = simple.st_size;
+  buff->stx_blocks = simple.st_blocks;
+  buff->stx_attributes_mask = 0; // naw
+
+  buff->stx_atime.tv_sec = simple.st_atime;
+  buff->stx_atime.tv_nsec = simple.st_atimensec;
+
+  // well, it's a creation time but whatever
+  buff->stx_btime.tv_sec = simple.st_ctime;
+  buff->stx_btime.tv_nsec = simple.st_ctimensec;
+
+  buff->stx_ctime.tv_sec = simple.st_ctime;
+  buff->stx_ctime.tv_nsec = simple.st_ctimensec;
+
+  buff->stx_mtime.tv_sec = simple.st_mtime;
+  buff->stx_mtime.tv_nsec = simple.st_mtimensec;
+
+  // todo: special devices
+
+  return 0;
+}
+
 // #define SYSCALL_FACCESSAT2 439
 // static int syscallFaccessat2(int dirfd, char *pathname, int mode, int flags)
 // {
@@ -369,5 +441,6 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_ACCESS, syscallAccess);
   registerSyscall(SYSCALL_GETDENTS64, syscallGetdents64);
   registerSyscall(SYSCALL_PSELECT6, syscallPselect6);
+  registerSyscall(SYSCALL_STATX, syscallStatx);
   // registerSyscall(SYSCALL_FACCESSAT2, syscallFaccessat2);
 }

@@ -1,5 +1,6 @@
 #include <fat32.h>
 #include <malloc.h>
+#include <system.h>
 #include <util.h>
 
 void fat32StatInternal(FAT32TraverseResult *res, struct stat *target) {
@@ -13,7 +14,7 @@ void fat32StatInternal(FAT32TraverseResult *res, struct stat *target) {
   target->st_blksize = 0x1000;
 
   if (res->dirEntry.attrib & FAT_ATTRIB_DIRECTORY) {
-    target->st_size = 0;
+    target->st_size = 0x1000;
 
     target->st_mode &= ~S_IFREG; // mark as dir
     target->st_mode |= S_IFDIR;
@@ -24,14 +25,16 @@ void fat32StatInternal(FAT32TraverseResult *res, struct stat *target) {
       (DivRoundUp(target->st_size, target->st_blksize) * target->st_blksize) /
       512;
 
-  // todo!
-  target->st_atime = 69;
-  target->st_mtime = 69;
-  target->st_ctime = 69;
+  target->st_atime = fat32UnixTime(res->dirEntry.accessdate, 0);
+  target->st_mtime =
+      fat32UnixTime(res->dirEntry.modifieddate, res->dirEntry.modifiedtime);
+  target->st_ctime =
+      fat32UnixTime(res->dirEntry.createdate, res->dirEntry.createtime);
 }
 
 bool fat32Stat(FAT32 *fat, char *filename, struct stat *target) {
-  FAT32TraverseResult res = fat32TraversePath(fat, filename);
+  FAT32TraverseResult res = fat32TraversePath(
+      fat, filename, fat->bootsec.extended_section.root_cluster);
   if (!res.directory)
     return false;
   fat32StatInternal(&res, target);

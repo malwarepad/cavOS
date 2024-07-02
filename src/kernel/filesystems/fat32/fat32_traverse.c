@@ -87,8 +87,9 @@ FAT32TraverseResult fat32Traverse(FAT32 *fat, uint32_t initDirectory,
   return ret;
 }
 
-FAT32TraverseResult fat32TraversePath(FAT32 *fat, char *path) {
-  uint32_t directory = fat->bootsec.extended_section.root_cluster;
+FAT32TraverseResult fat32TraversePath(FAT32 *fat, char *path,
+                                      uint32_t directoryStarting) {
+  uint32_t directory = directoryStarting;
   size_t   len = strlength(path);
 
   if (len == 1) { // meaning it's trying to open /

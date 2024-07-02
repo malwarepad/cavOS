@@ -683,4 +683,94 @@ struct linux_dirent64 {
 #define CDT_SOCK 12
 #define CDT_WHT 14
 
+// assumption
+typedef uint16_t __u16;
+typedef uint32_t __u32;
+typedef uint64_t __u64;
+
+typedef int16_t __s16;
+typedef int32_t __s32;
+typedef int64_t __s64;
+
+// include/linux/stat.h
+/*
+ * Timestamp structure for the timestamps in struct statx.
+ *
+ * tv_sec holds the number of seconds before (negative) or after (positive)
+ * 00:00:00 1st January 1970 UTC.
+ *
+ * tv_nsec holds a number of nanoseconds (0..999,999,999) after the tv_sec time.
+ *
+ * __reserved is held in case we need a yet finer resolution.
+ */
+struct statx_timestamp {
+  __s64 tv_sec;
+  __u32 tv_nsec;
+  __s32 __reserved;
+};
+
+struct statx {
+  /* 0x00 */
+  __u32 stx_mask;    /* What results were written [uncond] */
+  __u32 stx_blksize; /* Preferred general I/O size [uncond] */
+  __u64
+      stx_attributes; /* Flags conveying information about the file [uncond] */
+  /* 0x10 */
+  __u32 stx_nlink; /* Number of hard links */
+  __u32 stx_uid;   /* User ID of owner */
+  __u32 stx_gid;   /* Group ID of owner */
+  __u16 stx_mode;  /* File mode */
+  __u16 __spare0[1];
+  /* 0x20 */
+  __u64 stx_ino;    /* Inode number */
+  __u64 stx_size;   /* File size */
+  __u64 stx_blocks; /* Number of 512-byte blocks allocated */
+  __u64
+      stx_attributes_mask; /* Mask to show what's supported in stx_attributes */
+  /* 0x40 */
+  struct statx_timestamp stx_atime; /* Last access time */
+  struct statx_timestamp stx_btime; /* File creation time */
+  struct statx_timestamp stx_ctime; /* Last attribute change time */
+  struct statx_timestamp stx_mtime; /* Last data modification time */
+  /* 0x80 */
+  __u32 stx_rdev_major; /* Device ID of special file [if bdev/cdev] */
+  __u32 stx_rdev_minor;
+  __u32 stx_dev_major; /* ID of device containing file [uncond] */
+  __u32 stx_dev_minor;
+  /* 0x90 */
+  __u64 stx_mnt_id;
+  __u32 stx_dio_mem_align;    /* Memory buffer alignment for direct I/O */
+  __u32 stx_dio_offset_align; /* File offset alignment for direct I/O */
+  /* 0xa0 */
+  __u64 __spare3[12]; /* Spare space for future expansion */
+                      /* 0x100 */
+};
+
+#define STATX_TYPE 0x00000001U          /* Want/got stx_mode & S_IFMT */
+#define STATX_MODE 0x00000002U          /* Want/got stx_mode & ~S_IFMT */
+#define STATX_NLINK 0x00000004U         /* Want/got stx_nlink */
+#define STATX_UID 0x00000008U           /* Want/got stx_uid */
+#define STATX_GID 0x00000010U           /* Want/got stx_gid */
+#define STATX_ATIME 0x00000020U         /* Want/got stx_atime */
+#define STATX_MTIME 0x00000040U         /* Want/got stx_mtime */
+#define STATX_CTIME 0x00000080U         /* Want/got stx_ctime */
+#define STATX_INO 0x00000100U           /* Want/got stx_ino */
+#define STATX_SIZE 0x00000200U          /* Want/got stx_size */
+#define STATX_BLOCKS 0x00000400U        /* Want/got stx_blocks */
+#define STATX_BASIC_STATS 0x000007ffU   /* The stuff in the normal stat struct \
+                                         */
+#define STATX_BTIME 0x00000800U         /* Want/got stx_btime */
+#define STATX_MNT_ID 0x00001000U        /* Got stx_mnt_id */
+#define STATX_DIOALIGN 0x00002000U      /* Want/got direct I/O alignment info */
+#define STATX_MNT_ID_UNIQUE 0x00004000U /* Want/got extended stx_mount_id */
+
+#define STATX__RESERVED                                                        \
+  0x80000000U /* Reserved for future struct statx expansion */
+
+// include/linux/fcntl.h
+#define AT_FDCWD                                                               \
+  -100 /* Special value used to indicate                                       \
+          openat should use the current                                        \
+          working directory. */
+
 #endif

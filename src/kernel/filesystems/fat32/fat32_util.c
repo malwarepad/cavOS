@@ -68,3 +68,58 @@ int fat32SFNtoNormal(uint8_t *target, FAT32DirectoryEntry *dirent) {
   target[i] = '\0'; // null terminator
   return i + 1;
 }
+
+#define SECONDS_PER_MINUTE 60
+#define SECONDS_PER_HOUR (60 * SECONDS_PER_MINUTE)
+#define SECONDS_PER_DAY (24 * SECONDS_PER_HOUR)
+#define SECONDS_FROM_1970_TO_1980                                              \
+  (315532800) // Number of seconds from 1970 to 1980
+
+// Check if a year is a leap year
+int is_leap_year(int year) {
+  return (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0));
+}
+
+// Get the number of days in a given month of a given year
+int days_in_month(int year, int month) {
+  static const int days_per_month[] = {31, 28, 31, 30, 31, 30,
+                                       31, 31, 30, 31, 30, 31};
+  if (month == 2 && is_leap_year(year)) {
+    return 29;
+  } else {
+    return days_per_month[month - 1];
+  }
+}
+
+// Calculate the number of days from 1980-01-01 to the given date
+int days_since_1980(int year, int month, int day) {
+  int days = 0;
+  for (int y = 1980; y < year; y++) {
+    days += is_leap_year(y) ? 366 : 365;
+  }
+  for (int m = 1; m < month; m++) {
+    days += days_in_month(year, m);
+  }
+  days += day - 1;
+  return days;
+}
+
+// Convert FAT date and time to Unix time
+unsigned long fat32UnixTime(unsigned short fat_date, unsigned short fat_time) {
+  int year = ((fat_date >> 9) & 0x7F) + 1980;
+  int month = (fat_date >> 5) & 0x0F;
+  int day = fat_date & 0x1F;
+
+  int hour = (fat_time >> 11) & 0x1F;
+  int minute = (fat_time >> 5) & 0x3F;
+  int second = (fat_time & 0x1F) * 2;
+
+  // Calculate total days since 1970-01-01
+  int days = days_since_1980(year, month, day) +
+             (365 * 10 + 2); // Days from 1970 to 1980
+  unsigned long total_seconds = days * SECONDS_PER_DAY +
+                                hour * SECONDS_PER_HOUR +
+                                minute * SECONDS_PER_MINUTE + second;
+
+  return total_seconds;
+}

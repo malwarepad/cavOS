@@ -132,9 +132,10 @@ uint32_t fat32GetFilesize(OpenFile *fd);
 bool     fat32Close(MountPoint *mount, OpenFile *fd);
 
 // fat32_util.c
-size_t fat32ClusterToLBA(FAT32 *fat, uint32_t cluster);
-int    fat32IsShortFilenamePossible(char *filename);
-void   fat32LFNmemcpy(uint8_t *lfnName, FAT32LFN *lfn, int index);
+size_t        fat32ClusterToLBA(FAT32 *fat, uint32_t cluster);
+int           fat32IsShortFilenamePossible(char *filename);
+void          fat32LFNmemcpy(uint8_t *lfnName, FAT32LFN *lfn, int index);
+unsigned long fat32UnixTime(unsigned short fat_date, unsigned short fat_time);
 
 // fat32_fat.c
 uint32_t  fat32FATtraverse(FAT32 *fat, uint32_t offset);
@@ -148,7 +149,8 @@ typedef struct FAT32TraverseResult {
 } FAT32TraverseResult;
 FAT32TraverseResult fat32Traverse(FAT32 *fat, uint32_t initDirectory,
                                   char *search, size_t searchLength);
-FAT32TraverseResult fat32TraversePath(FAT32 *fat, char *path);
+FAT32TraverseResult fat32TraversePath(FAT32 *fat, char *path,
+                                      uint32_t directoryStarting);
 
 // fat32_stat.c
 bool fat32Stat(FAT32 *fat, char *filename, struct stat *target);

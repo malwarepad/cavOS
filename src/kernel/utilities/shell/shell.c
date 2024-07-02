@@ -231,10 +231,10 @@ void launch_shell(int n) {
       else
         printf("MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", mac[0], mac[1], mac[2],
                mac[3], mac[4], mac[5]);
-    } else if (strEql(ch, "busybox")) {
+    } else if (strEql(ch, "bash")) {
       printf("\n");
-      char *argv[] = {"/usr/bin/busybox", "sh"};
-      Task *task = elfExecute("/usr/bin/busybox", 2, argv, 0, 0, true);
+      char *argv[] = {"/usr/bin/bash"};
+      Task *task = elfExecute("/usr/bin/bash", 1, argv, 0, 0, true);
       while (taskGetState(task->id))
         ;
     } else if (strEql(ch, "ping")) {

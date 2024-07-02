@@ -51,7 +51,8 @@ bool fat32Open(MountPoint *mount, OpenFile *fd, char *filename) {
   FAT32 *fat = FAT_PTR(mount->fsInfo);
 
   // first make sure it.. exists!
-  FAT32TraverseResult res = fat32TraversePath(fat, filename);
+  FAT32TraverseResult res = fat32TraversePath(
+      fat, filename, fat->bootsec.extended_section.root_cluster);
   if (!res.directory)
     return false;
 
