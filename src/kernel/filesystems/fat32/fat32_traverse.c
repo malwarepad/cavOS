@@ -91,6 +91,18 @@ FAT32TraverseResult fat32TraversePath(FAT32 *fat, char *path) {
   int    directory = fat->bootsec.extended_section.root_cluster;
   size_t len = strlength(path);
 
+  if (len == 1) { // meaning it's trying to open /
+    FAT32TraverseResult res = {0};
+    res.directory = -1;
+    res.index = -1;
+    res.dirEntry.attrib = FAT_ATTRIB_DIRECTORY;
+    res.dirEntry.clusterhigh =
+        SPLIT_32_HIGHER(fat->bootsec.extended_section.root_cluster);
+    res.dirEntry.clusterlow =
+        SPLIT_32_LOWER(fat->bootsec.extended_section.root_cluster);
+    return res;
+  }
+
   int lastslash = 0;
   for (int i = 1; i < len; i++) { // 1 to skip /[...]
     bool last = i == (len - 1);

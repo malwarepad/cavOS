@@ -3,8 +3,8 @@
 #include <util.h>
 
 void fat32StatInternal(FAT32TraverseResult *res, struct stat *target) {
-  target->st_dev = 69;                                // haha
-  target->st_ino = res->directory * 100 + res->index; // could work
+  target->st_dev = 69;                                        // haha
+  target->st_ino = FAT_INODE_GEN(res->directory, res->index); // could work
   target->st_mode = S_IFREG | S_IRUSR | S_IWUSR | S_IXUSR;
   target->st_nlink = 1;
   target->st_uid = 0;

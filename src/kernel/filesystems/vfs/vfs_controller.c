@@ -536,3 +536,11 @@ int fsUserSeek(uint32_t fd, int offset, int whence) {
     return -1;
   return target;
 }
+
+int fsGetdents64(unsigned int fd, void *start, unsigned int hardlimit) {
+  // todo, special files, directories, etc
+  OpenFile *file = fsUserGetNode(fd);
+  if (!file)
+    return -1;
+  return fat32Getdents64(file, start, hardlimit);
+}

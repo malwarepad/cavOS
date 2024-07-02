@@ -28,6 +28,8 @@
 #define FAT_COMB_HIGH_LOW(clusterhigh, clusterlow)                             \
   (((uint32_t)clusterhigh << 16) | clusterlow)
 
+#define FAT_INODE_GEN(directory, index) ((directory) * 100 + (index))
+
 typedef struct FAT32DirectoryEntry {
   char    name[8];
   char    ext[3];
@@ -151,5 +153,9 @@ FAT32TraverseResult fat32TraversePath(FAT32 *fat, char *path);
 // fat32_stat.c
 bool fat32Stat(FAT32 *fat, char *filename, struct stat *target);
 bool fat32StatFd(FAT32 *fat, OpenFile *fd, struct stat *target);
+
+// fat32_dirs.c
+int fat32Getdents64(OpenFile *file, void *start, unsigned int hardlimit);
+int fat32SFNtoNormal(uint8_t *target, FAT32DirectoryEntry *dirent);
 
 #endif

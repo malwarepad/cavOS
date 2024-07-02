@@ -13,6 +13,9 @@
 #define SPLIT_64_HIGHER(value) ((value) >> 32)
 #define SPLIT_64_LOWER(value) ((value) & 0xFFFFFFFF)
 
+#define SPLIT_32_HIGHER(value) ((value) >> 16)
+#define SPLIT_32_LOWER(value) ((value) & 0xFFFF)
+
 void *memcpy(void *restrict dstptr, const void *restrict srcptr, size_t size);
 void *memmove(void *dstptr, const void *srcptr, size_t size);
 void  memset(void *_dst, int val, size_t len);

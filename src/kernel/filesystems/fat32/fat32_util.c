@@ -49,3 +49,22 @@ void fat32LFNmemcpy(uint8_t *lfnName, FAT32LFN *lfn, int index) {
   target[11] = lfn->last_two[0];
   target[12] = lfn->last_two[2];
 }
+
+int fat32SFNtoNormal(uint8_t *target, FAT32DirectoryEntry *dirent) {
+  int i;
+  for (i = 0; i < 8 && dirent->name[i] != ' '; i++)
+    target[i] = dirent->name[i];
+
+  // add a dot if there is an extension
+  if (dirent->ext[0] != ' ' && dirent->ext[0] != '\0') {
+    target[i++] = '.';
+
+    // copy the extension part, ensuring no trailing spaces are copied
+    for (int j = 0; j < 3 && dirent->ext[j] != ' '; ++j) {
+      target[i++] = dirent->ext[j];
+    }
+  }
+
+  target[i] = '\0'; // null terminator
+  return i + 1;
+}

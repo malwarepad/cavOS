@@ -669,4 +669,18 @@ struct linux_dirent64 {
   */
 };
 
+// include/linux/coda.h
+/*
+ * File types
+ */
+#define CDT_UNKNOWN 0
+#define CDT_FIFO 1
+#define CDT_CHR 2
+#define CDT_DIR 4
+#define CDT_BLK 6
+#define CDT_REG 8
+#define CDT_LNK 10
+#define CDT_SOCK 12
+#define CDT_WHT 14
+
 #endif

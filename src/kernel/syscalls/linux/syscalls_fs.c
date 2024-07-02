@@ -279,8 +279,7 @@ static int syscallGetdents64(unsigned int fd, struct linux_dirent64 *dirp,
   debugf("[syscalls::getdents64] fd{%d} dirp{%lx} count{%d}\n", fd, dirp,
          count);
 #endif
-  return -1;
-  // return fsGetdents64(fd, dirp, count);
+  return fsGetdents64(fd, dirp, count);
 }
 
 #define FD_SETSIZE 1024
