@@ -112,7 +112,7 @@ int fat32Read(MountPoint *mount, OpenFile *fd, uint8_t *buff, int limit) {
         continue;
     }
 
-    int offsetStarting = dir->ptr % bytesPerCluster; // remainder
+    uint32_t offsetStarting = dir->ptr % bytesPerCluster; // remainder
     if (consecEnd) {
       // optimized consecutive cluster reading
       int      needed = consecEnd - consecStart + 1;
@@ -121,7 +121,7 @@ int fat32Read(MountPoint *mount, OpenFile *fd, uint8_t *buff, int limit) {
                    fat32ClusterToLBA(fat, fatLookup[consecStart]),
                    needed * fat->bootsec.sectors_per_cluster);
 
-      for (int i = offsetStarting; i < (needed * bytesPerCluster); i++) {
+      for (uint32_t i = offsetStarting; i < (needed * bytesPerCluster); i++) {
         if (curr >= limit || dir->ptr >= dir->dirEnt.filesize) {
           free(optimizedBytes);
           goto cleanup;
@@ -139,7 +139,7 @@ int fat32Read(MountPoint *mount, OpenFile *fd, uint8_t *buff, int limit) {
       getDiskBytes(bytes, fat32ClusterToLBA(fat, fatLookup[i]),
                    fat->bootsec.sectors_per_cluster);
 
-      for (int i = offsetStarting; i < bytesPerCluster; i++) {
+      for (uint32_t i = offsetStarting; i < bytesPerCluster; i++) {
         if (curr >= limit || dir->ptr >= dir->dirEnt.filesize)
           goto cleanup;
 

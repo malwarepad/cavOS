@@ -28,11 +28,11 @@ int fat32Getdents64(OpenFile *file, void *start, unsigned int hardlimit) {
     if (!fatDir->directoryCurr)
       goto cleanup;
 
-    int offsetStarting = fatDir->ptr % bytesPerCluster;
+    uint32_t offsetStarting = fatDir->ptr % bytesPerCluster;
     getDiskBytes(bytes, fat32ClusterToLBA(fat, fatDir->directoryCurr),
                  fat->bootsec.sectors_per_cluster);
 
-    for (int i = offsetStarting; i < bytesPerCluster;
+    for (uint32_t i = offsetStarting; i < bytesPerCluster;
          i += sizeof(FAT32DirectoryEntry)) {
       FAT32DirectoryEntry *dir = (FAT32DirectoryEntry *)(&bytes[i]);
       FAT32LFN            *lfn = (FAT32LFN *)dir;

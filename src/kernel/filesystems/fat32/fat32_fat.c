@@ -59,7 +59,7 @@ uint32_t *fat32FATchain(FAT32 *fat, uint32_t offsetStart, uint32_t amount) {
   memset(ret, 0, (amount + 1) * sizeof(uint32_t));
 
   ret[0] = offsetStart;
-  for (int i = 1; i < (amount + 1); i++)
+  for (uint32_t i = 1; i < (amount + 1); i++)
     ret[i] = fat32FATtraverse(fat, ret[i - 1]);
 
   return ret;

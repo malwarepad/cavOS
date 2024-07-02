@@ -114,7 +114,7 @@ typedef struct FAT32 {
 } FAT32;
 
 typedef struct FAT32OpenFd {
-  int ptr;
+  uint32_t ptr;
 
   uint8_t  index; // x / 32
   uint32_t directoryStarting;
