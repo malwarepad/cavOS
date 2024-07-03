@@ -35,7 +35,7 @@ sudo cp "$LIMINE_DIR/limine-bios.sys" "${2}/boot/limine/"
 sudo cp "$LIMINE_DIR/BOOTX64.EFI" "${2}/EFI/BOOT"
 sudo cp "$LIMINE_DIR/BOOTIA32.EFI" "${2}/EFI/BOOT"
 
-sudo cp -r ${1}/* "${2}/"
+sudo cp -r "${1}"/* "${2}/"
 
 CURRENT_DIRECTORY=$(dirname "$0")
 chmod +x "${CURRENT_DIRECTORY}/cleanup.sh"
