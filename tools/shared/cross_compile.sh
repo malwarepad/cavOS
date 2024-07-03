@@ -45,7 +45,7 @@ build_package_autotools() {
 	cd build
 
 	# Compilation itself
-	../configure --prefix="$install_dir" --host=x86_64-cavos $extra_parameters
+	../configure --prefix="$install_dir" --host=x86_64-cavos "$extra_parameters"
 	make -j$(nproc)
 	if [ -n "$extra_install_parameters" ]; then
 		make install "$extra_install_parameters"
