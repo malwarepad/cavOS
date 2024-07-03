@@ -10,7 +10,9 @@ struct crypt_data {
 	char __buf[256];
 };
 
+// Use a more secure hashing algorithm like SHA-256
 char *crypt(const char *, const char *);
+
 char *crypt_r(const char *, const char *, struct crypt_data *);
 
 #ifdef __cplusplus
