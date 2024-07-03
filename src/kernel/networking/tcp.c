@@ -78,7 +78,6 @@ void netTcpSendGeneric(NIC *nic, uint8_t *destination_ip,
     return;
   }
   
-  uint8_t   *body = (uint8_t *)malloc(sizeof(tcpHeader) + size);
   tcpHeader *header = (tcpHeader *)body;
 
   header->source_port = switch_endian_16(source_port);
@@ -102,6 +101,7 @@ void netTcpSendGeneric(NIC *nic, uint8_t *destination_ip,
 
   netIPv4Send(nic, destination_mac, destination_ip, body,
               sizeof(tcpHeader) + size, TCP_PROTOCOL);
+
   free(body);
 }
 
