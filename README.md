@@ -1,15 +1,19 @@
-# Cave-Like Operating System
-
 [![GitHub top language](https://img.shields.io/github/languages/top/malwarepad/cavOS?logo=c&label=)](https://github.com/malwarepad/cavOS/blob/master/src/kernel/Makefile)
 [![GitHub license](https://img.shields.io/github/license/malwarepad/cavOS)](https://github.com/malwarepad/cavOS/blob/master/LICENSE)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/e78ad48f394f46d1bb98f1942c7e1f21)]()
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/e78ad48f394f46d1bb98f1942c7e1f21)]
 [![GitHub contributors](https://img.shields.io/github/contributors/malwarepad/cavOS)](https://github.com/malwarepad/cavOS/graphs/contributors)
 [![GitHub commit activity (branch)](https://img.shields.io/github/commit-activity/m/malwarepad/cavOS)](https://github.com/malwarepad/cavOS/commits)
 
+
+## Table of Contents
+- [Cave-Like Operating System](#cave-like-operating-system)
+ 
+
+# Cave-Like Operating System
 ![Preview of the OS](https://raw.malwarepad.com/cavos/images/preview.png)
 
 ## Why make your own OS in [insert year]?
-> **because I can.**
+> **Because I can.**
 
 Having a good time is my drive for this project + I learn a lot of cool low level stuff alongside that! 
 
