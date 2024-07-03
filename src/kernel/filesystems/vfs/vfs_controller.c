@@ -259,6 +259,7 @@ OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original, SpecialFile *special) {
         return orphan;
       }
 
+      free(orphan);
       return 0;
     }
     switch (orphan->mountPoint->filesystem) {
