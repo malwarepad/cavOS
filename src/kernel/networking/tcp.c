@@ -67,6 +67,17 @@ void netTcpSendGeneric(NIC *nic, uint8_t *destination_ip,
                        uint32_t destination_port, uint32_t sequence_number,
                        uint32_t acknowledgement_number, uint8_t flags,
                        void *payload, uint32_t size) {
+  if (payload == NULL) {
+    debugf("[tcp] Attempted to send with null payload!\n");
+    return;
+  }
+
+  uint8_t *body = (uint8_t *)malloc(sizeof(tcpHeader) + size);
+  if (body == NULL) {
+    debugf("[tcp] Failed to allocate memory for packet body!\n");
+    return;
+  }
+  
   uint8_t   *body = (uint8_t *)malloc(sizeof(tcpHeader) + size);
   tcpHeader *header = (tcpHeader *)body;
 
