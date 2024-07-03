@@ -4,9 +4,25 @@
 [![GitHub contributors](https://img.shields.io/github/contributors/malwarepad/cavOS)](https://github.com/malwarepad/cavOS/graphs/contributors)
 [![GitHub commit activity (branch)](https://img.shields.io/github/commit-activity/m/malwarepad/cavOS)](https://github.com/malwarepad/cavOS/commits)
 
+# Table of Contents
 
-## Table of Contents
-- [Cave-Like Operating System](#cave-like-operating-system)
+1. [Cave-Like Operating System](#cave-like-operating-system)
+2. [Why make your own OS in [insert year]?](#why-make-your-own-os-in-insert-year)
+3. [Kernel status](#kernel-status)
+4. [Userspace status](#userspace-status)
+5. [Goals](#goals)
+   - [Life](#life)
+   - [Architecture: x86_64 (amd64)](#architecture-x86_64-amd64)
+   - [Device drivers](#device-drivers)
+   - [Networking stack](#networking-stack)
+   - [Userspace](#userspace)
+   - [Interfaces](#interfaces)
+   - [Graphics](#graphics)
+6. [Compiling](#compiling)
+7. [Credits](#credits)
+8. [Archive: The x86_64 "rewrite"](#archive-the-x86_64-rewrite)
+9. [License](#license)
+
  
 
 # Cave-Like Operating System
