@@ -123,6 +123,17 @@ static int syscallSetpgid(int pid, int pgid) {
   return 0;
 }
 
+#define SYSCALL_GETPPID 110
+static int syscallGetppid() {
+#if DEBUG_SYSCALLS_ARGS
+  debugf("[syscalls::getppid]\n");
+#endif
+  if (currentTask->parent)
+    return currentTask->parent->id;
+  else
+    return KERNEL_TASK_ID;
+}
+
 #define SYSCALL_GETPGID 121
 static int syscallGetpgid() {
 #if DEBUG_SYSCALLS_ARGS
@@ -176,6 +187,7 @@ void syscallsRegEnv() {
   registerSyscall(SYSCALL_GETEUID, syscallGeteuid);
   registerSyscall(SYSCALL_GETGID, syscallGetgid);
   registerSyscall(SYSCALL_GETEGID, syscallGetegid);
+  registerSyscall(SYSCALL_GETPPID, syscallGetppid);
   registerSyscall(SYSCALL_GETPGID, syscallGetpgid);
   registerSyscall(SYSCALL_SETPGID, syscallSetpgid);
   registerSyscall(SYSCALL_PRCTL, syscallPrctl);

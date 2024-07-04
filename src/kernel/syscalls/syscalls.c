@@ -11,6 +11,10 @@
 #include <task.h>
 #include <util.h>
 
+#if DEBUG_SYSCALLS
+#include <linux_syscalls.h>
+#endif
+
 // System call entry and management-related functions
 // Copyright (C) 2024 Panagiotis
 
@@ -57,11 +61,35 @@ void syscallHandler(AsmPassedInterrupt *regs) {
   size_t handler = syscalls[id];
 
 #if DEBUG_SYSCALLS
-  debugf("[syscalls] id{%d} handler{%lx}\n", id, handler);
+  // debugf("[syscalls] id{%d} handler{%lx}\n", id, handler);
+
+  bool usable = id < (sizeof(linux_syscalls) / sizeof(linux_syscalls[0]));
+  const LINUX_SYSCALL *info = &linux_syscalls[id];
+
+  if (!handler)
+    debugf("\033[0;31m");
+  debugf("%d [syscalls] %s( ", currentTask->id, usable ? info->name : "???");
+  if (usable) {
+    if (info->rdi[0])
+      debugf("\b%s:%lx ", info->rdi, regs->rdi);
+    if (info->rsi[0])
+      debugf("%s:%lx ", info->rsi, regs->rsi);
+    if (info->rdx[0])
+      debugf("%s:%lx ", info->rdx, regs->rdx);
+    if (info->r10[0])
+      debugf("%s:%lx ", info->r10, regs->r10);
+    if (info->r8[0])
+      debugf("%s:%lx ", info->r8, regs->r8);
+    if (info->r9[0])
+      debugf("%s:%lx ", info->r9, regs->r9);
+  }
+  debugf("\b)");
+  if (!handler)
+    debugf("\033[0m\n");
 #endif
 
   if (!handler) {
-    regs->rax = -1;
+    regs->rax = -ENOSYS;
 #if DEBUG_SYSCALLS_MISSING
     debugf("[syscalls] Tried to access syscall{%d} (doesn't exist)!\n", id);
 #endif
@@ -71,7 +99,7 @@ void syscallHandler(AsmPassedInterrupt *regs) {
   long int ret = ((SyscallHandler)(handler))(regs->rdi, regs->rsi, regs->rdx,
                                              regs->r10, regs->r8, regs->r9);
 #if DEBUG_SYSCALLS
-  debugf("[syscalls] return_code{%ld} return_code{0x%lx}\n", ret, ret);
+  debugf(" = %d\n", ret);
 #endif
 
   regs->rax = ret;

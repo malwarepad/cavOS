@@ -106,6 +106,8 @@ static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
          options & WEXITED, options & WCONTINUED, options & WNOWAIT);
 #endif
 
+  asm volatile("sti");
+
   if (pid == -1) {
     if (!currentTask->lastChildKilled.pid) {
       int   amnt = 0;

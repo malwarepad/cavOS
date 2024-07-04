@@ -12,7 +12,7 @@ static int syscallRtSigaction(int sig, const struct sigaction *act,
 #if DEBUG_SYSCALLS_STUB
   debugf("[syscalls::sigaction] UNIMPLEMENTED!\n");
 #endif
-  return -1;
+  return -ENOSYS;
 }
 
 #define SYSCALL_RT_SIGPROCMASK 14
@@ -27,7 +27,7 @@ static int syscallRtSigprocmask(int how, __sigset_t *nset, __sigset_t *oset,
 #if DEBUG_SYSCALLS_STUB
   debugf("[syscalls::sigprocmask] UNIMPLEMENTED!\n");
 #endif
-  return -1;
+  return -ENOSYS;
 }
 
 void syscallRegSig() {
