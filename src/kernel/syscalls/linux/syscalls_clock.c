@@ -12,10 +12,6 @@
 
 #define SYSCALL_CLOCK_GETTIME 228
 static int syscallClockGettime(int which, timespec *spec) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::gettime] which{%d} timespec{%lx}!\n", which, spec);
-#endif
-
   switch (which) {
   case CLOCK_REALTIME:
     spec->tv_sec = timerTicks / 1000;

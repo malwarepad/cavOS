@@ -14,8 +14,8 @@
 
 #if !NO_DEBUG_SYSCALLS
 /* Syscall Debugging: Comprehensive */
-#define DEBUG_SYSCALLS 1
-#define DEBUG_SYSCALLS_ARGS 1
+#define DEBUG_SYSCALLS_STRACE 1
+#define DEBUG_SYSCALLS_EXTRA 0
 
 /* Syscall Debugging: Important */
 #define DEBUG_SYSCALLS_FAILS 1

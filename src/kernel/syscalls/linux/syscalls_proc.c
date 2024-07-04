@@ -9,10 +9,6 @@
 
 #define SYSCALL_FORK 57
 static int syscallFork() {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::fork] parent{%d}\n", currentTask->id);
-#endif
-
   return taskFork(currentTask->syscallRegs, currentTask->syscallRsp);
 }
 
@@ -44,13 +40,6 @@ CopyPtrStyle copyPtrStyle(char **ptr) {
 
 #define SYSCALL_EXECVE 59
 static int syscallExecve(char *filename, char **argv, char **envp) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::execve] Replacing task{%d} with filename{%s}! argv{%lx} "
-         "envp{%lx}\n",
-         currentTask->id, filename, argv, envp);
-#endif
-  // todo: envp!
-
   CopyPtrStyle arguments = copyPtrStyle(argv);
   CopyPtrStyle environment = copyPtrStyle(envp);
 
@@ -80,10 +69,6 @@ static int syscallExecve(char *filename, char **argv, char **envp) {
 
 #define SYSCALL_EXIT_TASK 60
 static void syscallExitTask(int return_code) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[scheduler] Exiting task{%d} with return code{%d}!\n",
-         currentTask->id, return_code);
-#endif
   // if (return_code)
   //   panic();
   taskKill(currentTask->id, return_code);
@@ -91,10 +76,6 @@ static void syscallExitTask(int return_code) {
 
 #define SYSCALL_WAIT4 61
 static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscall::wait4] pid{%d} wstatus{%lx} options{%d} rusage{%lx}!\n",
-         pid, wstatus, options, ru);
-#endif
 #if DEBUG_SYSCALLS_STUB
   if (options || ru)
     debugf("[syscall::wait4] UNIMPLEMENTED options{%d} rusage{%lx}!\n", options,
@@ -136,7 +117,7 @@ static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
     if (wstatus)
       *wstatus = (ret & 0xff) << 8;
 
-#if DEBUG_SYSCALLS
+#if DEBUG_SYSCALLS_EXTRA
     debugf("[syscall::wait4] ret{%d}\n", output);
 #endif
     return output;
@@ -150,12 +131,7 @@ static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
 }
 
 #define SYSCALL_EXIT_GROUP 231
-static void syscallExitGroup(int return_code) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::exitgroup]\n");
-#endif
-  syscallExitTask(return_code);
-}
+static void syscallExitGroup(int return_code) { syscallExitTask(return_code); }
 
 void syscallsRegProc() {
   registerSyscall(SYSCALL_EXIT_TASK, syscallExitTask);

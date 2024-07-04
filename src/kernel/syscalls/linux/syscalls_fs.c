@@ -8,10 +8,6 @@
 
 #define SYSCALL_READ 0
 static int syscallRead(int fd, char *str, uint32_t count) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::read] file{%d} str{%lx} count{%d}\n", fd, str, count);
-#endif
-
   OpenFile *browse = fsUserGetNode(fd);
   if (!browse) {
 #if DEBUG_SYSCALLS_FAILS
@@ -20,17 +16,11 @@ static int syscallRead(int fd, char *str, uint32_t count) {
     return -1;
   }
   uint32_t read = fsRead(browse, (uint8_t *)str, count);
-#if DEBUG_SYSCALLS_ARGS
-  debugf("\nread = %d\n", read);
-#endif
   return read;
 }
 
 #define SYSCALL_WRITE 1
 static int syscallWrite(int fd, char *str, uint32_t count) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::write] file{%d} str{%x} count{%d}\n", fd, str, count);
-#endif
   OpenFile *browse = fsUserGetNode(fd);
   if (!browse) {
 #if DEBUG_SYSCALLS_FAILS
@@ -45,10 +35,6 @@ static int syscallWrite(int fd, char *str, uint32_t count) {
 
 #define SYSCALL_OPEN 2
 static int syscallOpen(char *filename, int flags, uint16_t mode) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::open] filename{%s} flags{%d} mode{%d}\n", filename, flags,
-         mode);
-#endif
   if (!filename) {
 #if DEBUG_SYSCALLS_FAILS
     debugf("[syscalls::open] FAIL! No filename given... yeah.\n");
@@ -68,19 +54,10 @@ static int syscallOpen(char *filename, int flags, uint16_t mode) {
 }
 
 #define SYSCALL_CLOSE 3
-static int syscallClose(int fd) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::close] fd{%d}\n", fd);
-#endif
-
-  return fsUserClose(fd);
-}
+static int syscallClose(int fd) { return fsUserClose(fd); }
 
 #define SYSCALL_STAT 4
 static int syscallStat(char *filename, stat *statbuf) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::stat] filename{%s} buff{%lx}\n", filename, statbuf);
-#endif
   bool ret = fsStatByFilename(filename, statbuf);
   if (!ret) {
 #if DEBUG_SYSCALLS_FAILS
@@ -95,9 +72,6 @@ static int syscallStat(char *filename, stat *statbuf) {
 
 #define SYSCALL_FSTAT 5
 static int syscallFstat(int fd, stat *statbuf) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::fstat] fd{%d} buff{%lx}\n", fd, statbuf);
-#endif
   OpenFile *file = fsUserGetNode(fd);
   if (!file)
     return -1;
@@ -115,9 +89,6 @@ static int syscallFstat(int fd, stat *statbuf) {
 
 #define SYSCALL_LSTAT 6
 static int syscallLstat(char *filename, stat *statbuf) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::lstat] filename{%s} buff{%lx}\n", filename, statbuf);
-#endif
   bool ret = fsStatByFilename(filename, statbuf);
   if (!ret) {
 #if DEBUG_SYSCALLS_FAILS
@@ -132,10 +103,6 @@ static int syscallLstat(char *filename, stat *statbuf) {
 
 #define SYSCALL_LSEEK 8
 static int syscallLseek(uint32_t file, int offset, int whence) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::seek] file{%d} offset{%d} whence{%d}\n", file, offset,
-         whence);
-#endif
   // todo!
   if (file == 0 || file == 1)
     return -1;
@@ -144,9 +111,6 @@ static int syscallLseek(uint32_t file, int offset, int whence) {
 
 #define SYSCALL_IOCTL 16
 static int syscallIoctl(int fd, unsigned long request, void *arg) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::ioctl] fd{%d} req{%lx} arg{%lx}\n", fd, request, arg);
-#endif
   OpenFile *browse = fsUserGetNode(fd);
   if (!browse || browse->mountPoint != MOUNT_POINT_SPECIAL) {
 #if DEBUG_SYSCALLS_FAILS
@@ -175,15 +139,11 @@ static int syscallIoctl(int fd, unsigned long request, void *arg) {
 
 #define SYSCALL_WRITEV 20
 static int syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::writev] fd{%d} iov{%lx} iovcnt{%d}\n", fd, iov, ioVcnt);
-#endif
-
   int cnt = 0;
   for (int i = 0; i < ioVcnt; i++) {
     iovec *curr = (iovec *)((size_t)iov + i * sizeof(iovec));
 
-#if DEBUG_SYSCALLS
+#if DEBUG_SYSCALLS_EXTRA
     debugf(
         "[syscalls::writev(%d)] fd{%d} iov_base{%x} iov_len{%x} iovcnt{%d}\n",
         i, fd, curr->iov_base, curr->iov_len, ioVcnt);
@@ -200,15 +160,11 @@ static int syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
 
 #define SYSCALL_READV 19
 static int syscallReadV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::readv] fd{%d} iov{%lx} iovcnt{%d}\n", fd, iov, ioVcnt);
-#endif
-
   int cnt = 0;
   for (int i = 0; i < ioVcnt; i++) {
     iovec *curr = (iovec *)((size_t)iov + i * sizeof(iovec));
 
-#if DEBUG_SYSCALLS
+#if DEBUG_SYSCALLS_EXTRA
     debugf("[syscalls::readv(%d)] fd{%d} iov_base{%x} iov_len{%x} iovcnt{%d}\n",
            i, fd, curr->iov_base, curr->iov_len, ioVcnt);
 #endif
@@ -230,9 +186,6 @@ static int syscallAccess(char *filename, int mode) {
 
 #define SYSCALL_DUP 32
 static int syscallDup(uint32_t fd) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::dup] fd{%d}\n", fd);
-#endif
   OpenFile *file = fsUserGetNode(fd);
   if (!file)
     return -1;
@@ -244,9 +197,6 @@ static int syscallDup(uint32_t fd) {
 
 #define SYSCALL_DUP2 33
 static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::dup2] old{%d} new{%d}\n", oldFd, newFd);
-#endif
   OpenFile *realFile = fsUserGetNode(oldFd);
   if (!realFile)
     return -1;
@@ -276,10 +226,6 @@ static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
 #define SYSCALL_GETDENTS64 217
 static int syscallGetdents64(unsigned int fd, struct linux_dirent64 *dirp,
                              unsigned int count) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::getdents64] fd{%d} dirp{%lx} count{%d}\n", fd, dirp,
-         count);
-#endif
   return fsGetdents64(fd, dirp, count);
 }
 
@@ -295,15 +241,6 @@ typedef struct {
 static int syscallPselect6(int nfds, fd_set *readfds, fd_set *writefds,
                            fd_set *exceptfds, struct timespec *timeout,
                            void *smthsignalthing) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::pselect6] nfds{%d} readfds{%lx} writefds{%lx} "
-         "exceptfds{%lx} timeout{%lx} signal{%lx}\n",
-         nfds, readfds, writefds, exceptfds, timeout, smthsignalthing);
-  if (timeout)
-    debugf("[syscalls::pselect6::timeout] tv_sec{%ld} tv_nsec{%ld}",
-           timeout->tv_sec, timeout->tv_nsec);
-#endif
-
   if (timeout && !timeout->tv_nsec && !timeout->tv_sec)
     return 0;
 
@@ -349,11 +286,6 @@ static int syscallPselect6(int nfds, fd_set *readfds, fd_set *writefds,
 #define SYSCALL_STATX 332
 static int syscallStatx(int dirfd, char *pathname, int flags, uint32_t mask,
                         struct statx *buff) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf(
-      "[syscalls::stat] dirfd{%d} pathname{%s} flags{%x} mask{%x} buff{%lx}\n",
-      dirfd, pathname, flags, mask, buff);
-#endif
   struct stat simple = {0};
   if (pathname[0] == '\0') { // by fd
     OpenFile *file = fsUserGetNode(dirfd);

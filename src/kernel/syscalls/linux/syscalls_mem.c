@@ -14,7 +14,7 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
       (flags & ~MAP_FIXED & ~MAP_PRIVATE) ==
           MAP_ANONYMOUS) { // before: !addr &&
     size_t curr = currentTask->mmap_end;
-#if DEBUG_SYSCALLS
+#if DEBUG_SYSCALLS_EXTRA
     debugf("[syscalls::mmap] No placement preference, no file descriptor: "
            "addr{%lx} length{%lx}\n",
            curr, length);
@@ -22,7 +22,7 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
     taskAdjustHeap(currentTask, currentTask->mmap_end + length,
                    &currentTask->mmap_start, &currentTask->mmap_end);
     memset((void *)curr, 0, length);
-#if DEBUG_SYSCALLS
+#if DEBUG_SYSCALLS_EXTRA
     debugf("[syscalls::mmap] Found addr{%lx}\n", curr);
 #endif
     return curr;
@@ -65,9 +65,6 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
 
 #define SYSCALL_BRK 12
 static uint64_t syscallBrk(uint64_t brk) {
-#if DEBUG_SYSCALLS_ARGS
-  debugf("[syscalls::brk] brk{%lx}\n", brk);
-#endif
   if (!brk)
     return currentTask->heap_end;
 

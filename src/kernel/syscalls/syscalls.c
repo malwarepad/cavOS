@@ -11,7 +11,7 @@
 #include <task.h>
 #include <util.h>
 
-#if DEBUG_SYSCALLS
+#if DEBUG_SYSCALLS_STRACE
 #include <linux_syscalls.h>
 #endif
 
@@ -60,7 +60,7 @@ void syscallHandler(AsmPassedInterrupt *regs) {
   }
   size_t handler = syscalls[id];
 
-#if DEBUG_SYSCALLS
+#if DEBUG_SYSCALLS_STRACE
   // debugf("[syscalls] id{%d} handler{%lx}\n", id, handler);
 
   bool usable = id < (sizeof(linux_syscalls) / sizeof(linux_syscalls[0]));
@@ -98,7 +98,7 @@ void syscallHandler(AsmPassedInterrupt *regs) {
 
   long int ret = ((SyscallHandler)(handler))(regs->rdi, regs->rsi, regs->rdx,
                                              regs->r10, regs->r8, regs->r9);
-#if DEBUG_SYSCALLS
+#if DEBUG_SYSCALLS_STRACE
   debugf(" = %d\n", ret);
 #endif
 
