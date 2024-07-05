@@ -9,7 +9,7 @@ int fat32Getdents64(OpenFile *file, void *start, unsigned int hardlimit) {
   FAT32OpenFd *fatDir = FAT_DIR_PTR(file->dir);
 
   if (!(fatDir->dirEnt.attrib & FAT_ATTRIB_DIRECTORY))
-    return -1;
+    return -ENOTDIR;
 
   if (!fatDir->directoryCurr)
     return 0;

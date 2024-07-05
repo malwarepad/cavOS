@@ -106,7 +106,7 @@ void  taskFreeChildren(Task *task);
 uint8_t taskGetState(uint32_t id);
 Task   *taskGet(uint32_t id);
 int16_t taskGenerateId();
-bool    taskChangeCwd(char *newdir);
+int     taskChangeCwd(char *newdir);
 int     taskFork(AsmPassedInterrupt *cpu, uint64_t rsp);
 
 #endif

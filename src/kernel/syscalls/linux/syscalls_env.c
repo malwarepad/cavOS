@@ -17,7 +17,7 @@ static int syscallGetcwd(char *buff, size_t size) {
            "required{%ld}\n",
            size, realLength);
 #endif
-    return -1;
+    return -ERANGE;
   }
   memcpy(buff, currentTask->cwd, realLength);
 
@@ -44,15 +44,13 @@ static int syscallUname(struct old_utsname *utsname) {
 
 #define SYSCALL_CHDIR 80
 static int syscallChdir(char *newdir) {
-  bool ret = taskChangeCwd(newdir);
-  if (!ret) {
+  int ret = taskChangeCwd(newdir);
 #if DEBUG_SYSCALLS_FAILS
+  if (ret < 0)
     debugf("[syscalls::chdir] FAIL! Tried to change to %s!\n", newdir);
 #endif
-    return -1;
-  }
 
-  return 0;
+  return ret;
 }
 
 #define SYSCALL_GETUID 102
@@ -85,7 +83,7 @@ static int syscallSetpgid(int pid, int pgid) {
 #if DEBUG_SYSCALLS_FAILS
     debugf("[syscalls::setpgid] FAIL! Couldn't find task. pid{%d}\n", pid);
 #endif
-    return -1;
+    return -EPERM;
   }
 
   task->pgid = pgid;
@@ -116,7 +114,7 @@ static int syscallPrctl(int code, size_t addr) {
 
   debugf("[syscalls::prctl] Unsupported code! code_10{%d} code_16{%x}!\n", code,
          code);
-  return -1;
+  return -ENOSYS;
 }
 
 #define SYSCALL_GET_TID 186

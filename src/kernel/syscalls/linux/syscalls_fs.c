@@ -13,7 +13,7 @@ static int syscallRead(int fd, char *str, uint32_t count) {
 #if DEBUG_SYSCALLS_FAILS
     debugf("[syscalls::read] FAIL! Couldn't find file! fd{%d}\n", fd);
 #endif
-    return -1;
+    return -EBADF;
   }
   uint32_t read = fsRead(browse, (uint8_t *)str, count);
   return read;
@@ -26,7 +26,7 @@ static int syscallWrite(int fd, char *str, uint32_t count) {
 #if DEBUG_SYSCALLS_FAILS
     debugf("[syscalls::write] FAIL! Couldn't find file! fd{%d}\n", fd);
 #endif
-    return -1;
+    return -EBADF;
   }
 
   uint32_t writtenBytes = fsWrite(browse, (uint8_t *)str, count);
@@ -43,12 +43,11 @@ static int syscallOpen(char *filename, int flags, uint16_t mode) {
   }
 
   int ret = fsUserOpen(filename, flags, mode);
-  if (ret < 0) {
 #if DEBUG_SYSCALLS_FAILS
+  if (ret < 0)
     debugf("[syscalls::open] FAIL! Couldn't open file! filename{%s}\n",
            filename);
 #endif
-  }
 
   return ret;
 }
@@ -74,7 +73,7 @@ static int syscallStat(char *filename, stat *statbuf) {
 static int syscallFstat(int fd, stat *statbuf) {
   OpenFile *file = fsUserGetNode(fd);
   if (!file)
-    return -1;
+    return -EBADF;
 
   bool ret = fsStat(file, statbuf);
   if (!ret) {
@@ -119,12 +118,12 @@ static int syscallIoctl(int fd, unsigned long request, void *arg) {
         "req{%lx} arg{%lx}\n",
         fd, request, arg);
 #endif
-    return -1;
+    return -EBADF;
   }
 
   SpecialFile *special = (SpecialFile *)browse->dir;
   if (!special)
-    return -1;
+    return -ENOTTY;
 
   int ret = special->handlers->ioctl(browse, request, arg);
 
@@ -149,7 +148,7 @@ static int syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
         i, fd, curr->iov_base, curr->iov_len, ioVcnt);
 #endif
     int singleCnt = syscallWrite(fd, curr->iov_base, curr->iov_len);
-    if (singleCnt == -1)
+    if (singleCnt < 0)
       return cnt;
 
     cnt += singleCnt;
@@ -169,7 +168,7 @@ static int syscallReadV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
            i, fd, curr->iov_base, curr->iov_len, ioVcnt);
 #endif
     int singleCnt = syscallRead(fd, curr->iov_base, curr->iov_len);
-    if (singleCnt == -1)
+    if (singleCnt < 0)
       return cnt;
 
     cnt += singleCnt;
@@ -199,7 +198,7 @@ static int syscallDup(uint32_t fd) {
 static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
   OpenFile *realFile = fsUserGetNode(oldFd);
   if (!realFile)
-    return -1;
+    return -EBADF;
 
   if (oldFd == newFd)
     return newFd;
@@ -290,7 +289,7 @@ static int syscallStatx(int dirfd, char *pathname, int flags, uint32_t mask,
   if (pathname[0] == '\0') { // by fd
     OpenFile *file = fsUserGetNode(dirfd);
     if (!fsStat(file, &simple))
-      return -1;
+      return -EBADF;
   } else if (pathname[0] == '/') { // by absolute pathname
     char *safeFilename = fsSanitize(pathname);
     bool  ret = fsStatByFilename(safeFilename, &simple);

@@ -291,17 +291,17 @@ int16_t taskGenerateId() {
   return max + 1;
 }
 
-bool taskChangeCwd(char *newdir) {
+int taskChangeCwd(char *newdir) {
   stat  stat = {0};
   char *safeNewdir = fsSanitize(newdir);
   if (!fsStatByFilename(safeNewdir, &stat)) {
     free(safeNewdir);
-    return false;
+    return -ENOENT;
   }
 
   if (!(stat.st_mode & S_IFDIR)) {
     free(safeNewdir);
-    return false;
+    return -ENOTDIR;
   }
 
   size_t len = strlength(safeNewdir) + 1;
@@ -309,7 +309,7 @@ bool taskChangeCwd(char *newdir) {
   memcpy(currentTask->cwd, safeNewdir, len);
 
   free(safeNewdir);
-  return true;
+  return 0;
 }
 
 int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {

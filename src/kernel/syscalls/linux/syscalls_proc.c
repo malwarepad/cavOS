@@ -50,7 +50,7 @@ static int syscallExecve(char *filename, char **argv, char **envp) {
   free(environment.ptrPlace);
   free(environment.valPlace);
   if (!ret)
-    return -1;
+    return -ENOENT;
 
   int targetId = currentTask->id;
   currentTask->id = taskGenerateId();
@@ -100,7 +100,7 @@ static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
       }
 
       if (!amnt)
-        return -1;
+        return -ECHILD;
       // currentTask->lastChildKilled.pid = 0;
 
       while (!currentTask->lastChildKilled.pid) {

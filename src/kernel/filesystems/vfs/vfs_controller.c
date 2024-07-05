@@ -379,7 +379,7 @@ int fsUserOpen(char *filename, int flags, uint32_t mode) {
   // todo: modes & flags
   OpenFile *file = fsOpenGeneric(filename, currentTask, 0, 0);
   if (!file)
-    return -1;
+    return -ENOENT;
 
   return file->id;
 }
@@ -401,7 +401,7 @@ bool fsKernelClose(OpenFile *file) { return fsCloseGeneric(file, 0); }
 int fsUserClose(int fd) {
   OpenFile *file = fsUserGetNode(fd);
   if (!file)
-    return -1;
+    return -EBADF;
   bool res = fsCloseGeneric(file, currentTask);
   if (res)
     return 0;
@@ -541,6 +541,6 @@ int fsGetdents64(unsigned int fd, void *start, unsigned int hardlimit) {
   // todo, special files, directories, etc
   OpenFile *file = fsUserGetNode(fd);
   if (!file)
-    return -1;
+    return -EBADF;
   return fat32Getdents64(file, start, hardlimit);
 }
