@@ -19,7 +19,10 @@ if [ ! -f "${LIMINE_EXEC}" ]; then
 	exit 1
 fi
 
-dd if=/dev/zero of="${3}" bs=512 count=261072
+SIZE_IN_BYTES=$(du -sb "$1" | cut -f1)
+SIZE_IN_BLOCKS=$((($SIZE_IN_BYTES / 512) * 2))
+
+dd if=/dev/zero of="${3}" bs=512 count=$SIZE_IN_BLOCKS
 parted "${3}" mklabel msdos mkpart primary ext4 2048s 100% set 1 boot on
 "$LIMINE_EXEC" bios-install "${3}"
 

@@ -1,7 +1,7 @@
 # Set the initial path
 export PATH=/bin:/usr/bin:/usr/local/bin
-
-export TERM=xterm-16color
+export LANG=C.UTF-8
+export TERM=linux
 
 if [ $EUID -eq 0 ]; then
   export PATH=/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin

@@ -35,6 +35,9 @@ static int syscallWrite(int fd, char *str, uint32_t count) {
 
 #define SYSCALL_OPEN 2
 static int syscallOpen(char *filename, int flags, uint16_t mode) {
+#if DEBUG_SYSCALLS_EXTRA
+  debugf("[syscalls::open] filename{%s}\n", filename);
+#endif
   if (!filename) {
 #if DEBUG_SYSCALLS_FAILS
     debugf("[syscalls::open] FAIL! No filename given... yeah.\n");
@@ -57,6 +60,9 @@ static int syscallClose(int fd) { return fsUserClose(fd); }
 
 #define SYSCALL_STAT 4
 static int syscallStat(char *filename, stat *statbuf) {
+#if DEBUG_SYSCALLS_EXTRA
+  debugf("[syscalls::stat] filename{%s}\n", filename);
+#endif
   bool ret = fsStatByFilename(filename, statbuf);
   if (!ret) {
 #if DEBUG_SYSCALLS_FAILS
@@ -143,9 +149,8 @@ static int syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
     iovec *curr = (iovec *)((size_t)iov + i * sizeof(iovec));
 
 #if DEBUG_SYSCALLS_EXTRA
-    debugf(
-        "[syscalls::writev(%d)] fd{%d} iov_base{%x} iov_len{%x} iovcnt{%d}\n",
-        i, fd, curr->iov_base, curr->iov_len, ioVcnt);
+    debugf("[syscalls::writev(%d)] fd{%d} iov_base{%x} iov_len{%x}\n", i, fd,
+           curr->iov_base, curr->iov_len);
 #endif
     int singleCnt = syscallWrite(fd, curr->iov_base, curr->iov_len);
     if (singleCnt < 0)
@@ -164,8 +169,8 @@ static int syscallReadV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
     iovec *curr = (iovec *)((size_t)iov + i * sizeof(iovec));
 
 #if DEBUG_SYSCALLS_EXTRA
-    debugf("[syscalls::readv(%d)] fd{%d} iov_base{%x} iov_len{%x} iovcnt{%d}\n",
-           i, fd, curr->iov_base, curr->iov_len, ioVcnt);
+    debugf("[syscalls::readv(%d)] fd{%d} iov_base{%x} iov_len{%x}\n", i, fd,
+           curr->iov_base, curr->iov_len);
 #endif
     int singleCnt = syscallRead(fd, curr->iov_base, curr->iov_len);
     if (singleCnt < 0)
