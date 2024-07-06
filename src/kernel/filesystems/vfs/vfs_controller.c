@@ -178,7 +178,7 @@ bool fsOpenFsSpecific(char *filename, MountPoint *mnt, OpenFile *target) {
 // todo: openId in a bitmap or smth, per task/kernel
 
 int       openId = 3;
-OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, uint32_t mode) {
+OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
   char *safeFilename = fsSanitize(filename);
   // debugf("opening %s\n", safeFilename);
 
@@ -259,6 +259,7 @@ OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original, SpecialFile *special) {
         return orphan;
       }
 
+      panic();
       return 0;
     }
     switch (orphan->mountPoint->filesystem) {
@@ -365,7 +366,7 @@ OpenFile *fsUserGetNode(int fd) {
     if (!special)
       return 0;
 
-    return fsUserSpecialDummyGen(fd, special, 0, 0);
+    return fsUserSpecialDummyGen(fd, special, O_RDWR, 0);
   }
 
   return browse;
@@ -375,9 +376,9 @@ OpenFile *fsKernelOpen(char *filename, int flags, uint32_t mode) {
   return fsOpenGeneric(filename, 0, flags, mode);
 }
 
-int fsUserOpen(char *filename, int flags, uint32_t mode) {
+int fsUserOpen(char *filename, int flags, int mode) {
   // todo: modes & flags
-  OpenFile *file = fsOpenGeneric(filename, currentTask, 0, 0);
+  OpenFile *file = fsOpenGeneric(filename, currentTask, flags, mode);
   if (!file)
     return -ENOENT;
 

@@ -65,9 +65,9 @@ typedef struct OpenFile OpenFile;
 struct OpenFile {
   OpenFile *next;
 
-  int      id;
-  int      flags;
-  uint32_t mode;
+  int id;
+  int flags;
+  int mode;
 
   size_t pointer;
   size_t tmp1;
@@ -113,7 +113,7 @@ MountPoint *fsDetermineMountPoint(char *filename);
 OpenFile *fsKernelOpen(char *filename, int flags, uint32_t mode);
 bool      fsKernelClose(OpenFile *file);
 
-int fsUserOpen(char *filename, int flags, uint32_t mode);
+int fsUserOpen(char *filename, int flags, int mode);
 int fsUserClose(int fd);
 int fsUserSeek(uint32_t fd, int offset, int whence);
 

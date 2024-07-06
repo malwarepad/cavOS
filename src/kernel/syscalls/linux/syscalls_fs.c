@@ -34,7 +34,7 @@ static int syscallWrite(int fd, char *str, uint32_t count) {
 }
 
 #define SYSCALL_OPEN 2
-static int syscallOpen(char *filename, int flags, uint16_t mode) {
+static int syscallOpen(char *filename, int flags, int mode) {
 #if DEBUG_SYSCALLS_EXTRA
   debugf("[syscalls::open] filename{%s}\n", filename);
 #endif
@@ -154,7 +154,7 @@ static int syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
 #endif
     int singleCnt = syscallWrite(fd, curr->iov_base, curr->iov_len);
     if (singleCnt < 0)
-      return cnt;
+      return singleCnt;
 
     cnt += singleCnt;
   }
@@ -174,7 +174,7 @@ static int syscallReadV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
 #endif
     int singleCnt = syscallRead(fd, curr->iov_base, curr->iov_len);
     if (singleCnt < 0)
-      return cnt;
+      return singleCnt;
 
     cnt += singleCnt;
   }
@@ -214,8 +214,7 @@ static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
   // OpenFile    *realFile = currentTask->firstFile;
   SpecialFile *special = 0;
   if (realFile->mountPoint == MOUNT_POINT_SPECIAL)
-    special =
-        fsUserGetSpecialById(currentTask, ((SpecialFile *)realFile->dir)->id);
+    special = ((SpecialFile *)realFile->dir);
   OpenFile *targetFile = fsUserDuplicateNodeUnsafe(realFile, special);
   LinkedListPushFrontUnsafe((void **)(&currentTask->firstFile), targetFile);
 
@@ -225,6 +224,31 @@ static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
   debugf("[syscalls::dup2] wonky... old{%d} new{%d}\n", oldFd, newFd);
 #endif
   return newFd;
+}
+
+#define SYSCALL_FCNTL 72
+static int syscallFcntl(uint32_t fd, uint32_t cmd, uint64_t arg) {
+  OpenFile *file = fsUserGetNode(fd);
+  switch (cmd) {
+  case F_DUPFD:
+    (void)arg; // todo: not ignore arg
+    return syscallDup(fd);
+    break;
+  // todo: close on exec stuff
+  case F_GETFL:
+    return file->flags;
+    break;
+  case F_SETFL:
+    file->flags = arg;
+    return 0;
+    break;
+  default:
+#if DEBUG_SYSCALLS_STUB
+    debugf("[syscalls::fcntl] cmd{%d} not implemented!\n");
+#endif
+    return -1;
+    break;
+  }
 }
 
 #define SYSCALL_GETDENTS64 217
@@ -285,6 +309,18 @@ static int syscallPselect6(int nfds, fd_set *readfds, fd_set *writefds,
   // todo: timelimit (for when I actually poll)
 
   return amnt;
+}
+
+#define SYSCALL_SELECT 23
+static int syscallSelect(int nfds, fd_set *readfds, fd_set *writefds,
+                         fd_set *exceptfds, struct timeval *timeout) {
+  if (timeout) {
+    struct timespec timeoutformat = {.tv_sec = timeout->tv_sec,
+                                     .tv_nsec = timeout->tv_usec * 1000};
+    return syscallPselect6(nfds, readfds, writefds, exceptfds, &timeoutformat,
+                           0);
+  }
+  return syscallPselect6(nfds, readfds, writefds, exceptfds, 0, 0);
 }
 
 #define SYSCALL_STATX 332
@@ -377,6 +413,8 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_ACCESS, syscallAccess);
   registerSyscall(SYSCALL_GETDENTS64, syscallGetdents64);
   registerSyscall(SYSCALL_PSELECT6, syscallPselect6);
+  registerSyscall(SYSCALL_SELECT, syscallSelect);
+  registerSyscall(SYSCALL_FCNTL, syscallFcntl);
   registerSyscall(SYSCALL_STATX, syscallStatx);
   // registerSyscall(SYSCALL_FACCESSAT2, syscallFaccessat2);
 }
