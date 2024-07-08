@@ -108,5 +108,7 @@ Task   *taskGet(uint32_t id);
 int16_t taskGenerateId();
 int     taskChangeCwd(char *newdir);
 int     taskFork(AsmPassedInterrupt *cpu, uint64_t rsp);
+void    taskFilesCopy(Task *original, Task *target);
+void    taskFilesEmpty(Task *task);
 
 #endif

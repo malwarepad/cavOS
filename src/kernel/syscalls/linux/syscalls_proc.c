@@ -7,6 +7,8 @@
 #include <task.h>
 #include <util.h>
 
+// process lifetime system calls (send help)
+
 #define SYSCALL_FORK 57
 static int syscallFork() {
   return taskFork(currentTask->syscallRegs, currentTask->syscallRsp);
@@ -60,6 +62,10 @@ static int syscallExecve(char *filename, char **argv, char **envp) {
   size_t cwdLen = strlength(currentTask->cwd) + 1;
   ret->cwd = malloc(cwdLen);
   memcpy(ret->cwd, currentTask->cwd, cwdLen);
+
+  taskFilesEmpty(ret);
+  taskFilesCopy(currentTask, ret);
+
   taskCreateFinish(ret);
 
   currentTask->noInformParent = true;

@@ -113,16 +113,16 @@ MountPoint *fsDetermineMountPoint(char *filename);
 OpenFile *fsKernelOpen(char *filename, int flags, uint32_t mode);
 bool      fsKernelClose(OpenFile *file);
 
-int fsUserOpen(char *filename, int flags, int mode);
-int fsUserClose(int fd);
-int fsUserSeek(uint32_t fd, int offset, int whence);
+int fsUserOpen(void *task, char *filename, int flags, int mode);
+int fsUserClose(void *task, int fd);
+int fsUserSeek(void *task, uint32_t fd, int offset, int whence);
 
-OpenFile *fsUserGetNode(int fd);
+OpenFile *fsUserGetNode(void *task, int fd);
 
 bool         fsUserOpenSpecial(char *filename, void *taskPtr, int fd,
                                SpecialHandlers *specialHandlers);
-bool         fsUserCloseSpecial(SpecialFile *special);
-SpecialFile *fsUserGetSpecialByFilename(char *filename);
+bool         fsUserCloseSpecial(void *task, SpecialFile *special);
+SpecialFile *fsUserGetSpecialByFilename(void *task, char *filename);
 SpecialFile *fsUserGetSpecialById(void *taskPtr, int fd);
 
 OpenFile *fsUserDuplicateNode(void *taskPtr, OpenFile *original);
@@ -133,14 +133,15 @@ uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit);
 uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit);
 bool     fsWriteSync(OpenFile *file);
 void     fsReadFullFile(OpenFile *file, uint8_t *out);
-int      fsGetdents64(unsigned int fd, void *start, unsigned int hardlimit);
+int      fsGetdents64(void *task, unsigned int fd, void *start,
+                      unsigned int hardlimit);
 uint32_t fsGetFilesize(OpenFile *file);
 
 // vfs_sanitize.c
-char *fsSanitize(char *filename);
+char *fsSanitize(char *prefix, char *filename);
 
 // vfs_stat.c
 bool fsStat(OpenFile *fd, stat *target);
-bool fsStatByFilename(char *filename, stat *target);
+bool fsStatByFilename(void *task, char *filename, stat *target);
 
 #endif

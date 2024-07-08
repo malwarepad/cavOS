@@ -41,7 +41,7 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
 
     return base;
   } else if (fd != -1) {
-    OpenFile *file = fsUserGetNode(fd);
+    OpenFile *file = fsUserGetNode(currentTask, fd);
     if (!file || file->mountPoint != MOUNT_POINT_SPECIAL)
       return -1;
 
@@ -61,6 +61,12 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
 #endif
 
   return -1;
+}
+
+#define SYSCALL_MUNMAP 11
+static int syscallMunmap(uint64_t addr, size_t len) {
+  // todo
+  return 0;
 }
 
 #define SYSCALL_BRK 12
@@ -85,5 +91,6 @@ static uint64_t syscallBrk(uint64_t brk) {
 
 void syscallRegMem() {
   registerSyscall(SYSCALL_MMAP, syscallMmap);
+  registerSyscall(SYSCALL_MUNMAP, syscallMunmap);
   registerSyscall(SYSCALL_BRK, syscallBrk);
 }

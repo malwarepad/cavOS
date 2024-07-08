@@ -116,15 +116,15 @@ OpenFile *fsUserRegisterNode(Task *task) {
 bool fsUserUnregisterNode(Task *task, OpenFile *file) {
   SpecialFile *special = fsUserGetSpecialById(task, file->id);
   if (special)
-    fsUserCloseSpecial(special);
+    fsUserCloseSpecial(task, special);
   return LinkedListUnregister((void **)&task->firstFile, file);
 }
 
 // todo: save safeFilename too
-OpenFile *fsUserSpecialDummyGen(int fd, SpecialFile *special, int flags,
-                                int mode) {
+OpenFile *fsUserSpecialDummyGen(void *task, int fd, SpecialFile *special,
+                                int flags, int mode) {
   // we have a special file!
-  OpenFile *dummy = fsUserRegisterNode(currentTask);
+  OpenFile *dummy = fsUserRegisterNode((Task *)task);
   dummy->id = fd;
 
   dummy->flags = flags;
@@ -177,15 +177,16 @@ bool fsOpenFsSpecific(char *filename, MountPoint *mnt, OpenFile *target) {
 // TODO! flags! modes!
 // todo: openId in a bitmap or smth, per task/kernel
 
+char     *prefix = "/";
 int       openId = 3;
 OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
-  char *safeFilename = fsSanitize(filename);
+  char *safeFilename = fsSanitize(task ? task->cwd : prefix, filename);
   // debugf("opening %s\n", safeFilename);
 
-  SpecialFile *special = fsUserGetSpecialByFilename(safeFilename);
+  SpecialFile *special = fsUserGetSpecialByFilename(task, safeFilename);
   if (special) {
     free(safeFilename);
-    return fsUserSpecialDummyGen(openId++, special, flags, mode);
+    return fsUserSpecialDummyGen(task, openId++, special, flags, mode);
   }
 
   OpenFile *target = task ? fsUserRegisterNode(task) : fsKernelRegisterNode();
@@ -310,14 +311,16 @@ SpecialFile *fsUserDuplicateSpecialNodeUnsafe(SpecialFile *original) {
   return orphan;
 }
 
-bool fsUserCloseSpecial(SpecialFile *special) {
-  return LinkedListRemove((void **)&currentTask->firstSpecialFile, special);
+bool fsUserCloseSpecial(void *task, SpecialFile *special) {
+  Task *target = (Task *)task;
+  return LinkedListRemove((void **)&target->firstSpecialFile, special);
 }
 
-SpecialFile *fsUserGetSpecialByFilename(char *filename) {
-  if (!currentTask || !currentTask->firstSpecialFile)
+SpecialFile *fsUserGetSpecialByFilename(void *task, char *filename) {
+  Task *target = (Task *)task;
+  if (!target || !target->firstSpecialFile)
     return 0;
-  SpecialFile *browse = currentTask->firstSpecialFile;
+  SpecialFile *browse = target->firstSpecialFile;
   while (browse) {
     size_t len1 = strlength(filename);
     size_t len2 = strlength(browse->filename);
@@ -343,8 +346,9 @@ SpecialFile *fsUserGetSpecialById(void *taskPtr, int fd) {
   return browse;
 }
 
-OpenFile *fsUserGetNode(int fd) {
-  OpenFile *browse = currentTask->firstFile;
+OpenFile *fsUserGetNode(void *task, int fd) {
+  Task     *target = (Task *)task;
+  OpenFile *browse = target->firstFile;
   while (browse) {
     if (browse->id == fd)
       break;
@@ -354,7 +358,7 @@ OpenFile *fsUserGetNode(int fd) {
 
   if (!browse) {
     // might be a special file then
-    SpecialFile *special = currentTask->firstSpecialFile;
+    SpecialFile *special = target->firstSpecialFile;
 
     while (special) {
       if (special->id == fd)
@@ -366,7 +370,7 @@ OpenFile *fsUserGetNode(int fd) {
     if (!special)
       return 0;
 
-    return fsUserSpecialDummyGen(fd, special, O_RDWR, 0);
+    return fsUserSpecialDummyGen(target, fd, special, O_RDWR, 0);
   }
 
   return browse;
@@ -376,9 +380,9 @@ OpenFile *fsKernelOpen(char *filename, int flags, uint32_t mode) {
   return fsOpenGeneric(filename, 0, flags, mode);
 }
 
-int fsUserOpen(char *filename, int flags, int mode) {
+int fsUserOpen(void *task, char *filename, int flags, int mode) {
   // todo: modes & flags
-  OpenFile *file = fsOpenGeneric(filename, currentTask, flags, mode);
+  OpenFile *file = fsOpenGeneric(filename, (Task *)task, flags, mode);
   if (!file)
     return -ENOENT;
 
@@ -399,11 +403,11 @@ bool fsCloseGeneric(OpenFile *file, Task *task) {
 
 bool fsKernelClose(OpenFile *file) { return fsCloseGeneric(file, 0); }
 
-int fsUserClose(int fd) {
-  OpenFile *file = fsUserGetNode(fd);
+int fsUserClose(void *task, int fd) {
+  OpenFile *file = fsUserGetNode(task, fd);
   if (!file)
     return -EBADF;
-  bool res = fsCloseGeneric(file, currentTask);
+  bool res = fsCloseGeneric(file, (Task *)task);
   if (res)
     return 0;
   else
@@ -506,8 +510,8 @@ void fsReadFullFile(OpenFile *file, uint8_t *out) {
 #define SEEK_SET 0  // start + offset
 #define SEEK_CURR 1 // current + offset
 #define SEEK_END 2  // end + offset
-int fsUserSeek(uint32_t fd, int offset, int whence) {
-  OpenFile *file = fsUserGetNode(fd);
+int fsUserSeek(void *task, uint32_t fd, int offset, int whence) {
+  OpenFile *file = fsUserGetNode(task, fd);
   if (!file)
     return -1;
   int target = offset;
@@ -538,9 +542,10 @@ int fsUserSeek(uint32_t fd, int offset, int whence) {
   return target;
 }
 
-int fsGetdents64(unsigned int fd, void *start, unsigned int hardlimit) {
+int fsGetdents64(void *task, unsigned int fd, void *start,
+                 unsigned int hardlimit) {
   // todo, special files, directories, etc
-  OpenFile *file = fsUserGetNode(fd);
+  OpenFile *file = fsUserGetNode(task, fd);
   if (!file)
     return -EBADF;
   return fat32Getdents64(file, start, hardlimit);

@@ -1,6 +1,7 @@
 #include <fat32.h>
 #include <linux.h>
 #include <malloc.h>
+#include <task.h>
 #include <util.h>
 #include <vfs.h>
 
@@ -24,10 +25,10 @@ bool fsStat(OpenFile *fd, stat *target) {
   return ret;
 }
 
-bool fsStatByFilename(char *filename, stat *target) {
-  char *safeFilename = fsSanitize(filename);
+bool fsStatByFilename(void *task, char *filename, stat *target) {
+  char *safeFilename = fsSanitize(((Task *)task)->cwd, filename);
 
-  SpecialFile *special = fsUserGetSpecialByFilename(safeFilename);
+  SpecialFile *special = fsUserGetSpecialByFilename(task, safeFilename);
   if (special) {
     free(safeFilename);
     return special->handlers->stat(0, target) == 0;

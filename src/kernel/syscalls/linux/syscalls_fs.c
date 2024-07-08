@@ -8,7 +8,7 @@
 
 #define SYSCALL_READ 0
 static int syscallRead(int fd, char *str, uint32_t count) {
-  OpenFile *browse = fsUserGetNode(fd);
+  OpenFile *browse = fsUserGetNode(currentTask, fd);
   if (!browse) {
 #if DEBUG_SYSCALLS_FAILS
     debugf("[syscalls::read] FAIL! Couldn't find file! fd{%d}\n", fd);
@@ -21,7 +21,7 @@ static int syscallRead(int fd, char *str, uint32_t count) {
 
 #define SYSCALL_WRITE 1
 static int syscallWrite(int fd, char *str, uint32_t count) {
-  OpenFile *browse = fsUserGetNode(fd);
+  OpenFile *browse = fsUserGetNode(currentTask, fd);
   if (!browse) {
 #if DEBUG_SYSCALLS_FAILS
     debugf("[syscalls::write] FAIL! Couldn't find file! fd{%d}\n", fd);
@@ -45,7 +45,7 @@ static int syscallOpen(char *filename, int flags, int mode) {
     return -1;
   }
 
-  int ret = fsUserOpen(filename, flags, mode);
+  int ret = fsUserOpen(currentTask, filename, flags, mode);
 #if DEBUG_SYSCALLS_FAILS
   if (ret < 0)
     debugf("[syscalls::open] FAIL! Couldn't open file! filename{%s}\n",
@@ -56,14 +56,14 @@ static int syscallOpen(char *filename, int flags, int mode) {
 }
 
 #define SYSCALL_CLOSE 3
-static int syscallClose(int fd) { return fsUserClose(fd); }
+static int syscallClose(int fd) { return fsUserClose(currentTask, fd); }
 
 #define SYSCALL_STAT 4
 static int syscallStat(char *filename, stat *statbuf) {
 #if DEBUG_SYSCALLS_EXTRA
   debugf("[syscalls::stat] filename{%s}\n", filename);
 #endif
-  bool ret = fsStatByFilename(filename, statbuf);
+  bool ret = fsStatByFilename(currentTask, filename, statbuf);
   if (!ret) {
 #if DEBUG_SYSCALLS_FAILS
     debugf("[syscalls::stat] FAIL! Couldn't stat() file! filename{%s}\n",
@@ -77,7 +77,7 @@ static int syscallStat(char *filename, stat *statbuf) {
 
 #define SYSCALL_FSTAT 5
 static int syscallFstat(int fd, stat *statbuf) {
-  OpenFile *file = fsUserGetNode(fd);
+  OpenFile *file = fsUserGetNode(currentTask, fd);
   if (!file)
     return -EBADF;
 
@@ -94,7 +94,7 @@ static int syscallFstat(int fd, stat *statbuf) {
 
 #define SYSCALL_LSTAT 6
 static int syscallLstat(char *filename, stat *statbuf) {
-  bool ret = fsStatByFilename(filename, statbuf);
+  bool ret = fsStatByFilename(currentTask, filename, statbuf);
   if (!ret) {
 #if DEBUG_SYSCALLS_FAILS
     debugf("[syscalls::lstat] FAIL! Couldn't stat() file! filename{%d}\n",
@@ -111,12 +111,12 @@ static int syscallLseek(uint32_t file, int offset, int whence) {
   // todo!
   if (file == 0 || file == 1)
     return -1;
-  return fsUserSeek(file, offset, whence);
+  return fsUserSeek(currentTask, file, offset, whence);
 }
 
 #define SYSCALL_IOCTL 16
 static int syscallIoctl(int fd, unsigned long request, void *arg) {
-  OpenFile *browse = fsUserGetNode(fd);
+  OpenFile *browse = fsUserGetNode(currentTask, fd);
   if (!browse || browse->mountPoint != MOUNT_POINT_SPECIAL) {
 #if DEBUG_SYSCALLS_FAILS
     debugf(
@@ -190,7 +190,7 @@ static int syscallAccess(char *filename, int mode) {
 
 #define SYSCALL_DUP 32
 static int syscallDup(uint32_t fd) {
-  OpenFile *file = fsUserGetNode(fd);
+  OpenFile *file = fsUserGetNode(currentTask, fd);
   if (!file)
     return -1;
 
@@ -201,15 +201,15 @@ static int syscallDup(uint32_t fd) {
 
 #define SYSCALL_DUP2 33
 static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
-  OpenFile *realFile = fsUserGetNode(oldFd);
+  OpenFile *realFile = fsUserGetNode(currentTask, oldFd);
   if (!realFile)
     return -EBADF;
 
   if (oldFd == newFd)
     return newFd;
 
-  if (fsUserGetNode(newFd))
-    fsUserClose(newFd);
+  if (fsUserGetNode(currentTask, newFd))
+    fsUserClose(currentTask, newFd);
 
   // OpenFile    *realFile = currentTask->firstFile;
   SpecialFile *special = 0;
@@ -228,7 +228,7 @@ static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
 
 #define SYSCALL_FCNTL 72
 static int syscallFcntl(uint32_t fd, uint32_t cmd, uint64_t arg) {
-  OpenFile *file = fsUserGetNode(fd);
+  OpenFile *file = fsUserGetNode(currentTask, fd);
   switch (cmd) {
   case F_DUPFD:
     (void)arg; // todo: not ignore arg
@@ -254,7 +254,7 @@ static int syscallFcntl(uint32_t fd, uint32_t cmd, uint64_t arg) {
 #define SYSCALL_GETDENTS64 217
 static int syscallGetdents64(unsigned int fd, struct linux_dirent64 *dirp,
                              unsigned int count) {
-  return fsGetdents64(fd, dirp, count);
+  return fsGetdents64(currentTask, fd, dirp, count);
 }
 
 #define FD_SETSIZE 1024
@@ -328,19 +328,19 @@ static int syscallStatx(int dirfd, char *pathname, int flags, uint32_t mask,
                         struct statx *buff) {
   struct stat simple = {0};
   if (pathname[0] == '\0') { // by fd
-    OpenFile *file = fsUserGetNode(dirfd);
+    OpenFile *file = fsUserGetNode(currentTask, dirfd);
     if (!fsStat(file, &simple))
       return -EBADF;
   } else if (pathname[0] == '/') { // by absolute pathname
-    char *safeFilename = fsSanitize(pathname);
-    bool  ret = fsStatByFilename(safeFilename, &simple);
+    char *safeFilename = fsSanitize(currentTask->cwd, pathname);
+    bool  ret = fsStatByFilename(currentTask, safeFilename, &simple);
     free(safeFilename);
     if (!ret)
       return -1;
   } else if (pathname[0] != '/') {
     if (dirfd == AT_FDCWD) { // relative to cwd
-      char *safeFilename = fsSanitize(pathname);
-      bool  ret = fsStatByFilename(safeFilename, &simple);
+      char *safeFilename = fsSanitize(currentTask->cwd, pathname);
+      bool  ret = fsStatByFilename(currentTask, safeFilename, &simple);
       free(safeFilename);
       if (!ret)
         return -1;

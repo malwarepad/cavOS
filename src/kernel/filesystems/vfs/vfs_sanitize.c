@@ -32,19 +32,20 @@ void fsSanitizeCopySafe(char *filename, char *safeFilename) {
   }
 }
 
-char *fsSanitize(char *filename) {
+// prefix can be the current working directory yk
+char *fsSanitize(char *prefix, char *filename) {
   char  *safeFilename = 0;
   size_t filenameSize = strlength(filename);
   if (filename[0] != '/') {
     // smth/[...]
-    size_t cwdLen = strlength(currentTask->cwd);
+    size_t cwdLen = strlength(prefix);
 
     safeFilename = (char *)malloc(cwdLen + 1 + filenameSize + 1);
 
     // prepend path
     int offset = 0;
-    memcpy(safeFilename, currentTask->cwd, cwdLen);
-    if (currentTask->cwd[0] == '/' && currentTask->cwd[1] != '\0') {
+    memcpy(safeFilename, prefix, cwdLen);
+    if (prefix[0] == '/' && prefix[1] != '\0') {
       safeFilename[cwdLen] = '/';
       offset++;
     }

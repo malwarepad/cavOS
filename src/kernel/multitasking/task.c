@@ -211,13 +211,13 @@ void taskKillCleanup(Task *task) {
   while (file) {
     int id = file->id;
     file = file->next;
-    fsUserClose(id);
+    fsUserClose(task, id);
   }
 
   SpecialFile *special = task->firstSpecialFile;
   while (special) {
     SpecialFile *next = special->next;
-    fsUserCloseSpecial(special);
+    fsUserCloseSpecial(task, special);
     special = next;
   }
 
@@ -293,8 +293,8 @@ int16_t taskGenerateId() {
 
 int taskChangeCwd(char *newdir) {
   stat  stat = {0};
-  char *safeNewdir = fsSanitize(newdir);
-  if (!fsStatByFilename(safeNewdir, &stat)) {
+  char *safeNewdir = fsSanitize(currentTask->cwd, newdir);
+  if (!fsStatByFilename(currentTask, safeNewdir, &stat)) {
     free(safeNewdir);
     return -ENOENT;
   }
@@ -310,6 +310,42 @@ int taskChangeCwd(char *newdir) {
 
   free(safeNewdir);
   return 0;
+}
+
+void taskFilesEmpty(Task *task) {
+  SpecialFile *specialFile = task->firstSpecialFile;
+  OpenFile    *realFile = task->firstFile;
+  while (specialFile) {
+    SpecialFile *next = specialFile->next;
+    fsUserCloseSpecial(task, specialFile);
+    specialFile = next;
+  }
+  while (realFile) {
+    OpenFile *next = realFile->next;
+    fsUserClose(task, realFile->id);
+    realFile = next;
+  }
+}
+
+void taskFilesCopy(Task *original, Task *target) {
+  SpecialFile *specialFile = original->firstSpecialFile;
+  while (specialFile) {
+    SpecialFile *targetSpecial = fsUserDuplicateSpecialNodeUnsafe(specialFile);
+    LinkedListPushFrontUnsafe((void **)(&target->firstSpecialFile),
+                              targetSpecial);
+    specialFile = specialFile->next;
+  }
+
+  OpenFile *realFile = original->firstFile;
+  while (realFile) {
+    SpecialFile *special = 0;
+    if (realFile->mountPoint == MOUNT_POINT_SPECIAL)
+      special =
+          fsUserGetSpecialById(target, ((SpecialFile *)realFile->dir)->id);
+    OpenFile *targetFile = fsUserDuplicateNodeUnsafe(realFile, special);
+    LinkedListPushFrontUnsafe((void **)(&target->firstFile), targetFile);
+    realFile = realFile->next;
+  }
 }
 
 int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
@@ -366,24 +402,7 @@ int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
   memcpy(newcwd, currentTask->cwd, cmwdLen);
   target->cwd = newcwd;
 
-  SpecialFile *specialFile = currentTask->firstSpecialFile;
-  while (specialFile) {
-    SpecialFile *targetSpecial = fsUserDuplicateSpecialNodeUnsafe(specialFile);
-    LinkedListPushFrontUnsafe((void **)(&target->firstSpecialFile),
-                              targetSpecial);
-    specialFile = specialFile->next;
-  }
-
-  OpenFile *realFile = currentTask->firstFile;
-  while (realFile) {
-    SpecialFile *special = 0;
-    if (realFile->mountPoint == MOUNT_POINT_SPECIAL)
-      special =
-          fsUserGetSpecialById(target, ((SpecialFile *)realFile->dir)->id);
-    OpenFile *targetFile = fsUserDuplicateNodeUnsafe(realFile, special);
-    LinkedListPushFrontUnsafe((void **)(&target->firstFile), targetFile);
-    realFile = realFile->next;
-  }
+  taskFilesCopy(currentTask, target);
 
   // returns zero yk
   target->registers.rax = 0;
