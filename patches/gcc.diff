@@ -56,7 +56,7 @@ index bf809ef95..88e9da68c 100644
  	tm_file="${tm_file} aarch64/aarch64-elf.h aarch64/aarch64-errata.h aarch64/aarch64-elf-raw.h"
 diff --git a/gcc/config/cavos.h b/gcc/config/cavos.h
 new file mode 100644
-index 000000000..8cb0b4111
+index 000000000..e8efbde49
 --- /dev/null
 +++ b/gcc/config/cavos.h
 @@ -0,0 +1,39 @@
@@ -118,6 +118,19 @@ index 45f8e19ad..c87841882 100644
  aarch64*-*-elf | aarch64*-*-rtems*)
  	extra_parts="$extra_parts crtbegin.o crtend.o crti.o crtn.o"
  	extra_parts="$extra_parts crtfastmath.o"
+diff --git a/libiberty/simple-object-mach-o.c b/libiberty/simple-object-mach-o.c
+index 72b69d19c..a8869e7c6 100644
+--- a/libiberty/simple-object-mach-o.c
++++ b/libiberty/simple-object-mach-o.c
+@@ -1228,7 +1228,7 @@ simple_object_mach_o_write_segment (simple_object_write *sobj, int descriptor,
+       /* Swap the indices, if required.  */
+ 
+       for (i = 0; i < (nsects_in * 4); ++i)
+-	set_32 (&index[i], index[i]);
++	set_32 ((unsigned char *) &index[i], index[i]);
+ 
+       sechdr_offset += sechdrsize;
+ 
 diff --git a/libstdc++-v3/crossconfig.m4 b/libstdc++-v3/crossconfig.m4
 index ff44d5ae0..441708d5d 100644
 --- a/libstdc++-v3/crossconfig.m4

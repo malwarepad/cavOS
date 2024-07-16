@@ -15,7 +15,8 @@ export PATH="$PREFIX/bin:$PATH"
 mkdir -p "$PREFIX"
 
 # Ensure autotools
-if ! test -f "$HOME/opt/autotools_gcc"; then
+if ! test -f "$HOME/opt/autotools_gcc/bin/automake"; then
+	chmod +x get_autotools.sh
 	./get_autotools.sh "1.15.1" "2.69" "$HOME/opt/autotools_gcc"
 	export PATH=$HOME/opt/autotools_gcc/bin:$PATH
 fi
@@ -63,8 +64,14 @@ make all-gcc -j$(nproc)
 make all-target-libgcc -j$(nproc)
 make install-gcc
 make install-target-libgcc
+
+# Building musl alone is essential before libstdc++ is built & installed
+chmod +x "${SCRIPTPATH}/../../src/libs/musl/build.sh"
+"${SCRIPTPATH}/../../src/libs/musl/build.sh" --noreplace
+
 make all-target-libstdc++-v3 -j$(nproc)
 make install-target-libstdc++-v3
+
 cd ../../
 
 cd ../

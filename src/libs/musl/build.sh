@@ -53,4 +53,5 @@ cp -r "$PREFIX/lib" "$PREFIX/include" "$SCRIPTPATH/../../../target/usr/"
 ln -sf "$SCRIPTPATH/../../../target/usr/lib/crt1.o" "$SCRIPTPATH/../../../target/usr/lib/crt0.o"
 
 # required for proper dynamic linking
+mkdir -p "$SCRIPTPATH/../../../target/lib/"
 cp "$SCRIPTPATH/../../../target/usr/lib/libc.so" "$SCRIPTPATH/../../../target/lib/ld64.so.1"

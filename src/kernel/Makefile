@@ -38,7 +38,7 @@ C_EXTRA_OBJS = memory/malloc.o drivers/printf.o
 
 ASM_OBJS = $(patsubst %.asm,%.asm.o,$(ASM_SOURCES))
 
-all: $(TARGET)/obj $(C_OBJS) $(ASM_OBJS) $(C_EXTRA_OBJS)
+all: $(C_OBJS) $(ASM_OBJS) $(C_EXTRA_OBJS)
 	mkdir $(TARGET)/ -p
 	mkdir $(TARGET)/boot/ -p
 	$(LINKER) $(LDFLAGS) -o $(OUTPUT) $(C_OBJS) $(C_EXTRA_OBJS) $(ASM_OBJS)
