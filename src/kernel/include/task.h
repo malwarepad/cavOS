@@ -88,7 +88,7 @@ struct Task {
   Task *next;
 };
 
-SpinlockCnt TASK_LL_MODIFY;
+SpinlockCnt TASK_LL_MODIFY = {0};
 
 Task *firstTask;
 Task *currentTask;

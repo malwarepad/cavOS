@@ -37,7 +37,7 @@ void spinlockCntReadRelease(SpinlockCnt *lock) {
 }
 
 void spinlockCntWriteAcquire(SpinlockCnt *lock) {
-  while (lock->cnt > 0)
+  while (lock->cnt != 0)
     ;
   lock->cnt = -1;
 }
