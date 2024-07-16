@@ -101,8 +101,6 @@ struct SpecialFile {
   SpecialHandlers *handlers;
 };
 
-OpenFile *firstKernelFile;
-
 MountPoint *firstMountPoint;
 
 MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,

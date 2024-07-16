@@ -65,6 +65,9 @@ void _start(void) {
   firstMountPoint = 0;
   fsMount("/", CONNECTOR_AHCI, 0, 0);
 
+  // any filesystem operations depend on currentTask
+  initiateTasks();
+
   // just in case there's another font preference
   psfLoadFromFile(DEFAULT_FONT_PATH);
 
@@ -74,7 +77,7 @@ void _start(void) {
   initiateSyscalls();
 
   initiateSSE();
-  initiateTasks();
+  // initiateTasks();
 
   testingInit();
 

@@ -102,11 +102,13 @@ MountPoint *fsDetermineMountPoint(char *filename) {
 }
 
 OpenFile *fsKernelRegisterNode() {
-  return LinkedListAllocate((void **)&firstKernelFile, sizeof(OpenFile));
+  Task *target = taskGet(KERNEL_TASK_ID);
+  return LinkedListAllocate((void **)&target->firstFile, sizeof(OpenFile));
 }
 
 bool fsKernelUnregisterNode(OpenFile *file) {
-  return LinkedListUnregister((void **)&firstKernelFile, file);
+  Task *target = taskGet(KERNEL_TASK_ID);
+  return LinkedListUnregister((void **)&target->firstFile, file);
 }
 
 OpenFile *fsUserRegisterNode(Task *task) {
