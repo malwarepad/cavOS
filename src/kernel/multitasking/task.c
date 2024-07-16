@@ -16,6 +16,8 @@
 // Task manager allowing for task management
 // Copyright (C) 2024 Panagiotis
 
+SpinlockCnt TASK_LL_MODIFY = {0};
+
 void taskAttachDefTermios(Task *task) {
   memset(&task->term, 0, sizeof(termios));
   task->term.c_iflag = BRKINT | ICRNL | INPCK | ISTRIP | IXON;
