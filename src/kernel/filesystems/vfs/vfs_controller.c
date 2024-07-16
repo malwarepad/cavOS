@@ -101,21 +101,11 @@ MountPoint *fsDetermineMountPoint(char *filename) {
   return largestAddr;
 }
 
-OpenFile *fsKernelRegisterNode() {
-  Task *target = taskGet(KERNEL_TASK_ID);
-  return LinkedListAllocate((void **)&target->firstFile, sizeof(OpenFile));
-}
-
-bool fsKernelUnregisterNode(OpenFile *file) {
-  Task *target = taskGet(KERNEL_TASK_ID);
-  return LinkedListUnregister((void **)&target->firstFile, file);
-}
-
-OpenFile *fsUserRegisterNode(Task *task) {
+OpenFile *fsRegisterNode(Task *task) {
   return LinkedListAllocate((void **)&task->firstFile, sizeof(OpenFile));
 }
 
-bool fsUserUnregisterNode(Task *task, OpenFile *file) {
+bool fsUnregisterNode(Task *task, OpenFile *file) {
   SpecialFile *special = fsUserGetSpecialById(task, file->id);
   if (special)
     fsUserCloseSpecial(task, special);
@@ -126,7 +116,7 @@ bool fsUserUnregisterNode(Task *task, OpenFile *file) {
 OpenFile *fsUserSpecialDummyGen(void *task, int fd, SpecialFile *special,
                                 int flags, int mode) {
   // we have a special file!
-  OpenFile *dummy = fsUserRegisterNode((Task *)task);
+  OpenFile *dummy = fsRegisterNode((Task *)task);
   dummy->id = fd;
 
   dummy->flags = flags;
@@ -191,7 +181,7 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
     return fsUserSpecialDummyGen(task, openId++, special, flags, mode);
   }
 
-  OpenFile *target = task ? fsUserRegisterNode(task) : fsKernelRegisterNode();
+  OpenFile *target = fsRegisterNode(task);
   target->id = openId++;
   target->mode = mode;
   target->flags = flags;
@@ -202,10 +192,7 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
   MountPoint *mnt = fsDetermineMountPoint(safeFilename);
   if (!mnt) {
     // no mountpoint for this
-    if (task)
-      fsUserUnregisterNode(task, target);
-    else
-      fsKernelUnregisterNode(target);
+    fsUnregisterNode(task, target);
     free(target);
     free(safeFilename);
     return 0;
@@ -217,10 +204,7 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
 
   if (!res) {
     // failed to open
-    if (task)
-      fsUserUnregisterNode(task, target);
-    else
-      fsKernelUnregisterNode(target);
+    fsUnregisterNode(task, target);
     free(target);
     return 0;
   }
@@ -379,7 +363,8 @@ OpenFile *fsUserGetNode(void *task, int fd) {
 }
 
 OpenFile *fsKernelOpen(char *filename, int flags, uint32_t mode) {
-  return fsOpenGeneric(filename, 0, flags, mode);
+  Task *target = taskGet(KERNEL_TASK_ID);
+  return fsOpenGeneric(filename, target, flags, mode);
 }
 
 int fsUserOpen(void *task, char *filename, int flags, int mode) {
@@ -392,10 +377,7 @@ int fsUserOpen(void *task, char *filename, int flags, int mode) {
 }
 
 bool fsCloseGeneric(OpenFile *file, Task *task) {
-  if (task)
-    fsUserUnregisterNode(task, file);
-  else
-    fsKernelUnregisterNode(file);
+  fsUnregisterNode(task, file);
 
   bool res = fsCloseFsSpecific(file);
 
@@ -403,7 +385,10 @@ bool fsCloseGeneric(OpenFile *file, Task *task) {
   return res;
 }
 
-bool fsKernelClose(OpenFile *file) { return fsCloseGeneric(file, 0); }
+bool fsKernelClose(OpenFile *file) {
+  Task *target = taskGet(KERNEL_TASK_ID);
+  return fsCloseGeneric(file, target);
+}
 
 int fsUserClose(void *task, int fd) {
   OpenFile *file = fsUserGetNode(task, fd);
