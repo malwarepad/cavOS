@@ -9,7 +9,6 @@
 #include <stack.h>
 #include <string.h>
 #include <syscalls.h>
-#include <system.h>
 #include <task.h>
 #include <util.h>
 #include <vmm.h>
@@ -45,6 +44,7 @@ void taskAttachDefTermios(Task *task) {
 
 Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
                  uint32_t argc, char **argv) {
+  spinlockCntWriteAcquire(&TASK_LL_MODIFY);
   Task *browse = firstTask;
   while (browse) {
     if (!browse->next)
@@ -58,6 +58,7 @@ Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
   Task *target = (Task *)malloc(sizeof(Task));
   memset(target, 0, sizeof(Task));
   browse->next = target;
+  spinlockCntWriteRelease(&TASK_LL_MODIFY);
 
   uint64_t code_selector =
       kernel_task ? GDT_KERNEL_CODE : (GDT_USER_CODE | DPL_USER);
@@ -150,6 +151,17 @@ void taskKill(uint32_t id, uint16_t ret) {
   task->state = TASK_STATE_DEAD;
   task->ret = ret;
 
+  spinlockCntWriteAcquire(&TASK_LL_MODIFY);
+  Task *browse = firstTask;
+  while (browse) {
+    if (browse->next && browse->next->id == task->id)
+      break;
+    browse = browse->next;
+  }
+  spinlockCntWriteRelease(&TASK_LL_MODIFY);
+
+  browse->next = task->next;
+
   if (currentTask == task) {
     // we're most likely in a syscall context, so...
     // taskKillCleanup(task); // left for sched
@@ -167,17 +179,18 @@ void taskKillCleanup(Task *task) {
   if (task->state != TASK_STATE_DEAD)
     return;
 
-  Task *browse = firstTask;
-  while (browse) {
-    if (browse->next && browse->next->id == task->id)
-      break;
-    browse = browse->next;
-  }
+  // Task *browse = firstTask;
+  // while (browse) {
+  //   if (browse->next && browse->next->id == task->id)
+  //     break;
+  //   browse = browse->next;
+  // }
+
   // Task *task = browse->next;
   // if (!task || task->state == TASK_STATE_DEAD)
   //   return;
 
-  browse->next = task->next;
+  // browse->next = task->next;
 
   // free user heap
   /*uint32_t *defaultPagedir = GetPageDirectory();
@@ -203,10 +216,15 @@ void taskKillCleanup(Task *task) {
 
   // PageDirectoryFree(task->pagedir); // left for sched
 
-  // close any left open files
-  Task *old = currentTask;
-  currentTask = task;
+  if (task->parent && !task->noInformParent) {
+    task->parent->lastChildKilled.pid = task->id;
+    task->parent->lastChildKilled.ret = task->ret;
+  }
 
+  return;
+  // todo: this is horrible... below stuff causes a lot of corruption
+
+  // close any left open files
   OpenFile *file = task->firstFile;
   while (file) {
     int id = file->id;
@@ -220,8 +238,6 @@ void taskKillCleanup(Task *task) {
     fsUserCloseSpecial(task, special);
     special = next;
   }
-
-  currentTask = old;
 
   // Notify that poor parent... they must've been searching all over the place!
   if (task->parent && !task->noInformParent) {
@@ -262,12 +278,14 @@ void taskKillChildren(Task *task) {
 }
 
 Task *taskGet(uint32_t id) {
+  spinlockCntReadAcquire(&TASK_LL_MODIFY);
   Task *browse = firstTask;
   while (browse) {
     if (browse->id == id)
       break;
     browse = browse->next;
   }
+  spinlockCntReadRelease(&TASK_LL_MODIFY);
   return browse;
 }
 
@@ -280,6 +298,7 @@ uint8_t taskGetState(uint32_t id) {
 }
 
 int16_t taskGenerateId() {
+  spinlockCntReadAcquire(&TASK_LL_MODIFY);
   Task    *browse = firstTask;
   uint16_t max = 0;
   while (browse) {
@@ -288,6 +307,7 @@ int16_t taskGenerateId() {
     browse = browse->next;
   }
 
+  spinlockCntReadRelease(&TASK_LL_MODIFY);
   return max + 1;
 }
 
@@ -349,6 +369,7 @@ void taskFilesCopy(Task *original, Task *target) {
 }
 
 int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
+  spinlockCntWriteAcquire(&TASK_LL_MODIFY);
   Task *browse = firstTask;
   while (browse) {
     if (!browse->next)
@@ -362,6 +383,7 @@ int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
   Task *target = (Task *)malloc(sizeof(Task));
   memset(target, 0, sizeof(Task));
   browse->next = target;
+  spinlockCntWriteRelease(&TASK_LL_MODIFY);
 
   uint64_t *targetPagedir = PageDirectoryAllocate();
   PageDirectoryUserDuplicate(currentTask->pagedir, targetPagedir);

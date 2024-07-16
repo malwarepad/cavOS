@@ -345,9 +345,9 @@ void launch_shell(int n) {
       }
     } else if (strEql(ch, "proctest")) {
       printf("\n");
-      taskCreateKernel((size_t)task1, 0);
-      taskCreateKernel((size_t)task2, 0);
-      taskCreateKernel((size_t)task3, 0);
+      char *argv[] = {"/usr/bin/testing"};
+      for (int i = 0; i < 4; i++)
+        elfExecute(argv[0], 1, argv, 0, 0, true);
     } else if (strEql(ch, "cwm")) {
       printf("\n%s\n",
              "After taking some time off the project, I realized I was "

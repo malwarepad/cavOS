@@ -1,4 +1,5 @@
 #include "isr.h"
+#include "system.h"
 #include "types.h"
 #include "vfs.h"
 
@@ -86,6 +87,8 @@ struct Task {
   Task *parent;
   Task *next;
 };
+
+SpinlockCnt TASK_LL_MODIFY;
 
 Task *firstTask;
 Task *currentTask;
