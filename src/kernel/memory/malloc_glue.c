@@ -36,3 +36,21 @@ void abort() {
   debugf("[dlmalloc::abort] errno{%x}!\n", __errnoF);
   panic();
 }
+
+// spinlocks/mutexes/whatever people call them; I truly don't care!
+MLOCK_T malloc_global_mutex = ATOMIC_FLAG_INIT;
+
+int ACQUIRE_LOCK(Spinlock *lock) {
+  spinlockAcquire(lock);
+  return 0;
+}
+
+int RELEASE_LOCK(Spinlock *lock) {
+  spinlockRelease(lock);
+  return 0;
+}
+
+int INITIAL_LOCK(Spinlock *lock) {
+  memset(&malloc_global_mutex, 0, sizeof(MLOCK_T));
+  return 0;
+}

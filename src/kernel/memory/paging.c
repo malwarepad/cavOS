@@ -148,6 +148,8 @@ size_t VirtAllocPhys() {
   return phys;
 }
 
+SpinlockCnt WLOCK_PAGING = {0};
+
 void VirtualMap(uint64_t virt_addr, uint64_t phys_addr, uint64_t flags) {
   VirtualMapL(globalPagedir, virt_addr, phys_addr, flags);
 }
@@ -166,6 +168,7 @@ void VirtualMapL(uint64_t *pagedir, uint64_t virt_addr, uint64_t phys_addr,
   uint32_t pd_index = PDE(virt_addr);
   uint32_t pt_index = PTE(virt_addr);
 
+  spinlockCntWriteAcquire(&WLOCK_PAGING);
   if (!(pagedir[pml4_index] & PF_PRESENT)) {
     size_t target = VirtAllocPhys();
     pagedir[pml4_index] = target | PF_PRESENT | PF_RW | PF_USER;
@@ -190,6 +193,7 @@ void VirtualMapL(uint64_t *pagedir, uint64_t virt_addr, uint64_t phys_addr,
   pt[pt_index] = (P_PHYS_ADDR(phys_addr)) | PF_PRESENT | flags; // | PF_RW
 
   invalidate(virt_addr);
+  spinlockCntWriteRelease(&WLOCK_PAGING);
 #if ELF_DEBUG
   debugf("[paging] Mapped virt{%lx} to phys{%lx}\n", virt_addr, phys_addr);
 #endif
@@ -212,8 +216,9 @@ size_t VirtualToPhysical(size_t virt_addr) {
   uint32_t pd_index = PDE(virt_addr);
   uint32_t pt_index = PTE(virt_addr);
 
+  spinlockCntReadAcquire(&WLOCK_PAGING);
   if (!(globalPagedir[pml4_index] & PF_PRESENT))
-    return 0;
+    goto error;
   /*else if (globalPagedir[pml4_index] & PF_PRESENT &&
            globalPagedir[pml4_index] & PF_PS)
     return (void *)(PTE_GET_ADDR(globalPagedir[pml4_index] +
@@ -222,23 +227,27 @@ size_t VirtualToPhysical(size_t virt_addr) {
       (size_t *)(PTE_GET_ADDR(globalPagedir[pml4_index]) + HHDMoffset);
 
   if (!(pdp[pdp_index] & PF_PRESENT))
-    return 0;
+    goto error;
   /*else if (pdp[pdp_index] & PF_PRESENT && pdp[pdp_index] & PF_PS)
     return (void *)(PTE_GET_ADDR(pdp[pdp_index] +
                                  (virt_addr & PAGE_MASK(12 + 9 + 9))));*/
   size_t *pd = (size_t *)(PTE_GET_ADDR(pdp[pdp_index]) + HHDMoffset);
 
   if (!(pd[pd_index] & PF_PRESENT))
-    return 0;
+    goto error;
   /*else if (pd[pd_index] & PF_PRESENT && pd[pd_index] & PF_PS)
     return (
         void *)(PTE_GET_ADDR(pd[pd_index] + (virt_addr & PAGE_MASK(12 + 9))));*/
   size_t *pt = (size_t *)(PTE_GET_ADDR(pd[pd_index]) + HHDMoffset);
 
-  if (pt[pt_index] & PF_PRESENT)
+  if (pt[pt_index] & PF_PRESENT) {
+    spinlockCntReadRelease(&WLOCK_PAGING);
     return (size_t)(PTE_GET_ADDR(pt[pt_index]) +
                     ((size_t)virt_addr_init & 0xFFF));
+  }
 
+error:
+  spinlockCntReadRelease(&WLOCK_PAGING);
   return 0;
 }
 
@@ -266,8 +275,7 @@ uint64_t *PageDirectoryAllocate() {
 // todo: clear orphans after a whole page level is emptied!
 // destroys any userland stuff on the page directory
 void PageDirectoryFree(uint64_t *page_dir) {
-  // uint32_t *prev_pagedir = GetPageDirectory();
-  // ChangePageDirectory(page_dir);
+  spinlockCntWriteAcquire(&WLOCK_PAGING);
 
   for (int pml4_index = 0; pml4_index < 512; pml4_index++) {
     if (!(page_dir[pml4_index] & PF_PRESENT) || page_dir[pml4_index] & PF_PS)
@@ -299,10 +307,11 @@ void PageDirectoryFree(uint64_t *page_dir) {
     }
   }
 
-  // ChangePageDirectory(prev_pagedir);
+  spinlockCntWriteRelease(&WLOCK_PAGING);
 }
 
 void PageDirectoryUserDuplicate(uint64_t *source, uint64_t *target) {
+  spinlockCntReadAcquire(&WLOCK_PAGING);
   for (int pml4_index = 0; pml4_index < 512; pml4_index++) {
     if (!(source[pml4_index] & PF_PRESENT) || source[pml4_index] & PF_PS)
       continue;
@@ -338,9 +347,14 @@ void PageDirectoryUserDuplicate(uint64_t *source, uint64_t *target) {
           void *ptrTarget = (void *)(physTarget + HHDMoffset);
 
           memcpy(ptrTarget, ptrSource, PAGE_SIZE);
+
+          spinlockCntReadRelease(&WLOCK_PAGING);
           VirtualMapL(target, virt, physTarget, PF_RW | PF_USER);
+          spinlockCntReadAcquire(&WLOCK_PAGING);
         }
       }
     }
   }
+
+  spinlockCntReadRelease(&WLOCK_PAGING);
 }
