@@ -103,6 +103,10 @@ struct SpecialFile {
 
 MountPoint *firstMountPoint;
 
+#define SEEK_SET 0  // start + offset
+#define SEEK_CURR 1 // current + offset
+#define SEEK_END 2  // end + offset
+
 MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
                     uint8_t partition);
 bool        fsUnmount(MountPoint *mnt);
@@ -141,5 +145,15 @@ char *fsSanitize(char *prefix, char *filename);
 // vfs_stat.c
 bool fsStat(OpenFile *fd, stat *target);
 bool fsStatByFilename(void *task, char *filename, stat *target);
+
+// vfs_spec.c
+bool     fsSpecificClose(OpenFile *file);
+bool     fsSpecificOpen(char *filename, MountPoint *mnt, OpenFile *target);
+uint32_t fsSpecificRead(OpenFile *file, uint8_t *out, uint32_t limit);
+uint32_t fsSpecificWrite(OpenFile *file, uint8_t *in, uint32_t limit);
+bool     fsSpecificWriteSync(OpenFile *file);
+size_t   fsSpecificGetFilesize(OpenFile *file);
+bool     fsSpecialDuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan);
+int      fsSpecificSeek(OpenFile *file, int target, int offset, int whence);
 
 #endif

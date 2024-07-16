@@ -130,42 +130,6 @@ OpenFile *fsUserSpecialDummyGen(void *task, int fd, SpecialFile *special,
   return dummy;
 }
 
-bool fsCloseFsSpecific(OpenFile *file) {
-  if (file->mountPoint == MOUNT_POINT_SPECIAL)
-    return true;
-
-  bool res = false;
-  switch (file->mountPoint->filesystem) {
-  case FS_FATFS:
-    res = fat32Close(file->mountPoint, file);
-    break;
-  default:
-    debugf("[vfs] Tried to close with bad filesystem! id{%d}\n",
-           file->mountPoint->filesystem);
-    res = false;
-    break;
-  }
-
-  return res;
-}
-
-bool fsOpenFsSpecific(char *filename, MountPoint *mnt, OpenFile *target) {
-  bool res = false;
-  /*char *strippedFilename = (char *)((size_t)filename + strlength(mnt->prefix)
-     - 1); // -1 for putting start slash*/
-  switch (mnt->filesystem) {
-  case FS_FATFS:
-    res = fat32Open(mnt, target, filename);
-    break;
-  default:
-    debugf("[vfs] Tried to open with bad filesystem! id{%d}\n",
-           target->mountPoint->filesystem);
-    res = false;
-    break;
-  }
-  return res;
-}
-
 // TODO! flags! modes!
 // todo: openId in a bitmap or smth, per task/kernel
 
@@ -199,7 +163,7 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
   }
   target->mountPoint = mnt;
 
-  bool res = fsOpenFsSpecific(safeFilename, mnt, target);
+  bool res = fsSpecificOpen(safeFilename, mnt, target);
   free(safeFilename);
 
   if (!res) {
@@ -249,16 +213,9 @@ OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original, SpecialFile *special) {
       panic();
       return 0;
     }
-    switch (orphan->mountPoint->filesystem) {
-    case FS_FATFS:
-      orphan->dir = malloc(sizeof(FAT32OpenFd));
-      memcpy(orphan->dir, original->dir, sizeof(FAT32OpenFd));
-      break;
-    default:
-      debugf("[vfs] Tried to duplicateNode with bad filesystem! id{%d}\n",
-             orphan->mountPoint->filesystem);
+    if (!fsSpecialDuplicateNodeUnsafe(original, orphan)) {
+      free(orphan);
       return 0;
-      break;
     }
   }
 
@@ -379,7 +336,7 @@ int fsUserOpen(void *task, char *filename, int flags, int mode) {
 bool fsCloseGeneric(OpenFile *file, Task *task) {
   fsUnregisterNode(task, file);
 
-  bool res = fsCloseFsSpecific(file);
+  bool res = fsSpecificClose(file);
 
   free(file);
   return res;
@@ -402,101 +359,39 @@ int fsUserClose(void *task, int fd) {
 }
 
 uint32_t fsGetFilesize(OpenFile *file) {
-  switch (file->mountPoint->filesystem) {
-  case FS_FATFS:
-    return fat32GetFilesize(file);
-    break;
-  default:
-    debugf("[vfs] Tried to getFilesize with bad filesystem! id{%d}\n",
-           file->mountPoint->filesystem);
+  if (file->mountPoint == MOUNT_POINT_SPECIAL)
     return 0;
-    break;
-  }
-
-  return 0;
+  return fsSpecificGetFilesize(file);
 }
 
 uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit) {
   if (file->mountPoint == MOUNT_POINT_SPECIAL)
     return ((SpecialFile *)file->dir)->handlers->read(file, out, limit);
 
-  uint32_t ret = 0;
-  switch (file->mountPoint->filesystem) {
-  case FS_FATFS: {
-    ret = fat32Read(file->mountPoint, file, out, limit);
-    break;
-  }
-  default:
-    debugf("[vfs] Tried to read with bad filesystem! id{%d}\n",
-           file->mountPoint->filesystem);
-    ret = 0;
-    break;
-  }
-  return ret;
+  return fsSpecificRead(file, out, limit);
 }
 
 uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit) {
   if (file->mountPoint == MOUNT_POINT_SPECIAL)
     return ((SpecialFile *)file->dir)->handlers->write(file, in, limit);
 
-  if (1 == 1) // todo!
-    return 0;
-
-  uint32_t ret = 0;
-  switch (file->mountPoint->filesystem) {
-  case FS_FATFS: {
-    // unsigned int write = 0;
-    // bool         output = f_write(file->dir, in, limit, &write) == FR_OK;
-    // if (output)
-    //   ret = write;
-    break;
-  }
-  default:
-    debugf("[vfs] Tried to write with bad filesystem! id{%d}\n",
-           file->mountPoint->filesystem);
-    ret = 0;
-    break;
-  }
-  return ret;
+  return fsSpecificWrite(file, in, limit);
 }
 
 bool fsWriteSync(OpenFile *file) {
   if (file->mountPoint == MOUNT_POINT_SPECIAL)
     return true;
 
-  if (1 == 1) // todo!
-    return false;
-
-  bool ret = false;
-  switch (file->mountPoint->filesystem) {
-  case FS_FATFS:
-    // if (f_sync(file->dir) == FR_OK)
-    //   ret = true;
-    break;
-  default:
-    debugf("[vfs] Tried to writeSync with bad filesystem! id{%d}\n",
-           file->mountPoint->filesystem);
-    ret = false;
-    break;
-  }
-  return ret;
+  return fsSpecificWriteSync(file);
 }
 
 void fsReadFullFile(OpenFile *file, uint8_t *out) {
-  switch (file->mountPoint->filesystem) {
-  case FS_FATFS:
-    fsRead(file, out, fsGetFilesize(file));
-    break;
-  default:
-    debugf("[vfs] Tried to readFullFile with bad filesystem! id{%d}\n",
-           file->mountPoint->filesystem);
-    break;
-  }
+  if (file->mountPoint == MOUNT_POINT_SPECIAL)
+    return;
+
+  fsRead(file, out, fsGetFilesize(file));
 }
 
-#define SEEK_SET 0  // start + offset
-#define SEEK_CURR 1 // current + offset
-#define SEEK_END 2  // end + offset
 int fsUserSeek(void *task, uint32_t fd, int offset, int whence) {
   OpenFile *file = fsUserGetNode(task, fd);
   if (!file)
@@ -509,24 +404,7 @@ int fsUserSeek(void *task, uint32_t fd, int offset, int whence) {
   else if (whence == SEEK_END)
     target += fsGetFilesize(file);
 
-  bool ret = false;
-  switch (file->mountPoint->filesystem) {
-  case FS_FATFS:
-    // "hack" because openfile ptr is not used
-    if (whence == SEEK_CURR)
-      target += ((FAT32OpenFd *)file->dir)->ptr;
-    // debugf("moving to %d\n", target);
-    ret = fat32Seek(file->mountPoint, file, target);
-    break;
-  default:
-    debugf("[vfs] Tried to seek with bad filesystem! id{%d}\n",
-           file->mountPoint->filesystem);
-    ret = false;
-    break;
-  }
-  if (!ret)
-    return -1;
-  return target;
+  return fsSpecificSeek(file, target, offset, whence);
 }
 
 int fsGetdents64(void *task, unsigned int fd, void *start,
