@@ -107,11 +107,6 @@ MountPoint *firstMountPoint;
 #define SEEK_CURR 1 // current + offset
 #define SEEK_END 2  // end + offset
 
-MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
-                    uint8_t partition);
-bool        fsUnmount(MountPoint *mnt);
-MountPoint *fsDetermineMountPoint(char *filename);
-
 OpenFile *fsKernelOpen(char *filename, int flags, uint32_t mode);
 bool      fsKernelClose(OpenFile *file);
 
@@ -155,5 +150,11 @@ bool     fsSpecificWriteSync(OpenFile *file);
 size_t   fsSpecificGetFilesize(OpenFile *file);
 bool     fsSpecialDuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan);
 int      fsSpecificSeek(OpenFile *file, int target, int offset, int whence);
+
+// vfs_mount.c
+MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
+                    uint8_t partition);
+bool        fsUnmount(MountPoint *mnt);
+MountPoint *fsDetermineMountPoint(char *filename);
 
 #endif
