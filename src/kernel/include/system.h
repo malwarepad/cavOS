@@ -1,3 +1,4 @@
+#include "spinlock.h"
 #include "types.h"
 
 #ifndef SYSTEM_H
