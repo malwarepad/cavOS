@@ -234,7 +234,6 @@ static int syscallFcntl(int fd, int cmd, uint64_t arg) {
     (void)arg; // todo: not ignore arg
     return syscallDup(fd);
     break;
-  // todo: close on exec stuff
   case F_GETFL:
     return file->flags;
     break;
@@ -248,8 +247,9 @@ static int syscallFcntl(int fd, int cmd, uint64_t arg) {
       return targ;
 
     int res = syscallFcntl(targ, F_SETFD, FD_CLOEXEC);
-    if (res < 0)
-      return res;
+    (void)res; // todo: close on exec stuff
+    // if (res < 0)
+    //   return res;
 
     return targ;
   }

@@ -143,6 +143,10 @@ bool fsSpecialDuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan) {
   case FS_FATFS:
     orphan->dir = malloc(sizeof(FAT32OpenFd));
     memcpy(orphan->dir, original->dir, sizeof(FAT32OpenFd));
+
+    size_t len = strlength(original->dirname) + 1;
+    orphan->dirname = (char *)malloc(len);
+    memcpy(orphan->dirname, original->dirname, len);
     break;
   default:
     debugf("[vfs] Tried to duplicateNode with bad filesystem! id{%d}\n",
