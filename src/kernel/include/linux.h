@@ -987,4 +987,10 @@ struct statx {
 #define O_CLOEXEC 02000000 /* set close_on_exec */
 #endif
 
+/* Create a file descriptor with FD_CLOEXEC set. */
+#define F_DUPFD_CLOEXEC (1024 + 6)
+
+/* for F_[GET|SET]FL */
+#define FD_CLOEXEC 1 /* actually anything with low bit set goes */
+
 #endif

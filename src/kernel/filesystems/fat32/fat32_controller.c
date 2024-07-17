@@ -1,6 +1,7 @@
 #include <disk.h>
 #include <fat32.h>
 #include <malloc.h>
+#include <string.h>
 #include <system.h>
 #include <timer.h>
 #include <util.h>
@@ -68,6 +69,12 @@ bool fat32Open(MountPoint *mount, OpenFile *fd, char *filename) {
   dir->directoryCurr =
       FAT_COMB_HIGH_LOW(res.dirEntry.clusterhigh, res.dirEntry.clusterlow);
   memcpy(&dir->dirEnt, &res.dirEntry, sizeof(FAT32DirectoryEntry));
+
+  if (res.dirEntry.attrib & FAT_ATTRIB_DIRECTORY) {
+    size_t len = strlength(filename) + 1;
+    fd->dirname = (char *)malloc(len);
+    memcpy(fd->dirname, filename, len);
+  }
 
   return true;
 }
@@ -203,6 +210,10 @@ uint32_t fat32GetFilesize(OpenFile *fd) {
 }
 
 bool fat32Close(MountPoint *mount, OpenFile *fd) {
+  FAT32OpenFd *dir = FAT_DIR_PTR(fd->dir);
+  if (dir->dirEnt.attrib & FAT_ATTRIB_DIRECTORY)
+    free(fd->dirname);
+
   // :p
   free(fd->dir);
   return true;

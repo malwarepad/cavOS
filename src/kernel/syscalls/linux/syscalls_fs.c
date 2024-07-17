@@ -227,7 +227,7 @@ static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
 }
 
 #define SYSCALL_FCNTL 72
-static int syscallFcntl(uint32_t fd, uint32_t cmd, uint64_t arg) {
+static int syscallFcntl(int fd, int cmd, uint64_t arg) {
   OpenFile *file = fsUserGetNode(currentTask, fd);
   switch (cmd) {
   case F_DUPFD:
@@ -242,9 +242,20 @@ static int syscallFcntl(uint32_t fd, uint32_t cmd, uint64_t arg) {
     file->flags = arg;
     return 0;
     break;
+  case F_DUPFD_CLOEXEC: {
+    int targ = syscallDup(fd);
+    if (targ < 0)
+      return targ;
+
+    int res = syscallFcntl(targ, F_SETFD, FD_CLOEXEC);
+    if (res < 0)
+      return res;
+
+    return targ;
+  }
   default:
 #if DEBUG_SYSCALLS_STUB
-    debugf("[syscalls::fcntl] cmd{%d} not implemented!\n");
+    debugf("[syscalls::fcntl] cmd{%d} not implemented!\n", cmd);
 #endif
     return -1;
     break;
@@ -323,6 +334,30 @@ static int syscallSelect(int nfds, fd_set *readfds, fd_set *writefds,
   return syscallPselect6(nfds, readfds, writefds, exceptfds, 0, 0);
 }
 
+#define SYSCALL_OPENAT 257
+static int syscallOpenat(int dirfd, char *pathname, int flags, int mode) {
+  if (pathname[0] == '\0') { // by fd
+    return dirfd;
+  } else if (pathname[0] == '/') { // by absolute pathname
+    return syscallOpen(pathname, flags, mode);
+  } else if (pathname[0] != '/') {
+    if (dirfd == AT_FDCWD) { // relative to cwd
+      return syscallOpen(pathname, flags, mode);
+    } else {
+#if DEBUG_SYSCALLS_STUB
+      debugf("[syscalls::openat] todo: partial sanitization!");
+#endif
+      return -1;
+    }
+  } else {
+#if DEBUG_SYSCALLS_FAILS
+    debugf("[syscalls::openat] Unsupported!\n");
+#endif
+    return -1;
+  }
+  return -ENOSYS;
+}
+
 #define SYSCALL_STATX 332
 static int syscallStatx(int dirfd, char *pathname, int flags, uint32_t mask,
                         struct statx *buff) {
@@ -399,6 +434,7 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_WRITE, syscallWrite);
   registerSyscall(SYSCALL_READ, syscallRead);
   registerSyscall(SYSCALL_OPEN, syscallOpen);
+  registerSyscall(SYSCALL_OPENAT, syscallOpenat);
   registerSyscall(SYSCALL_CLOSE, syscallClose);
   registerSyscall(SYSCALL_LSEEK, syscallLseek);
   registerSyscall(SYSCALL_STAT, syscallStat);

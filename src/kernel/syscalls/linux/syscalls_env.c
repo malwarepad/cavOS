@@ -53,6 +53,16 @@ static int syscallChdir(char *newdir) {
   return ret;
 }
 
+#define SYSCALL_FCHDIR 81
+static int syscallFchdir(int fd) {
+  OpenFile *file = fsUserGetNode(currentTask, fd);
+  if (!file)
+    return -EBADF;
+  if (!file->dirname)
+    return -ENOTDIR;
+  return syscallChdir(file->dirname);
+}
+
 #define SYSCALL_GETUID 102
 static int syscallGetuid() {
   return 0; // root ;)
@@ -141,4 +151,5 @@ void syscallsRegEnv() {
   registerSyscall(SYSCALL_SET_TID_ADDR, syscallSetTidAddr);
   registerSyscall(SYSCALL_GET_TID, syscallGetTid);
   registerSyscall(SYSCALL_UNAME, syscallUname);
+  registerSyscall(SYSCALL_FCHDIR, syscallFchdir);
 }

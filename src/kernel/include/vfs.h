@@ -69,6 +69,8 @@ struct OpenFile {
   int flags;
   int mode;
 
+  char *dirname;
+
   size_t pointer;
   size_t tmp1;
 
