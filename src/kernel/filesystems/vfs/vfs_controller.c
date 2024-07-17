@@ -30,13 +30,6 @@ char     *prefix = "/";
 int       openId = 3;
 OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
   char *safeFilename = fsSanitize(task ? task->cwd : prefix, filename);
-  // debugf("opening %s\n", safeFilename);
-
-  SpecialFile *special = fsUserGetSpecialByFilename(task, safeFilename);
-  if (special) {
-    free(safeFilename);
-    return fsUserSpecialDummyGen(task, openId++, special, flags, mode);
-  }
 
   OpenFile *target = fsRegisterNode(task);
   target->id = openId++;
@@ -45,6 +38,16 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
 
   target->pointer = 0;
   target->tmp1 = 0;
+
+  SpecialFile *special = fsUserGetSpecialByFilename(task, safeFilename);
+  if (special) {
+    free(safeFilename);
+    // return fsUserSpecialDummyGen(task, openId++, special, flags, mode);
+
+    target->mountPoint = MOUNT_POINT_SPECIAL;
+    target->handlers = special->handlers;
+    return target;
+  }
 
   MountPoint *mnt = fsDetermineMountPoint(safeFilename);
   if (!mnt) {
@@ -55,6 +58,7 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
     return 0;
   }
   target->mountPoint = mnt;
+  target->handlers = &fsSpecific;
 
   bool res = fsSpecificOpen(safeFilename, mnt, target);
   free(safeFilename);
@@ -70,7 +74,7 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
 }
 
 // returns an ORPHAN!
-OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original, SpecialFile *special) {
+OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original) {
   OpenFile *orphan = (OpenFile *)malloc(sizeof(OpenFile));
   orphan->next = 0; // duh
 
@@ -78,7 +82,13 @@ OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original, SpecialFile *special) {
          (void *)((size_t)original + sizeof(original->next)),
          sizeof(OpenFile) - sizeof(orphan->next));
 
-  if (orphan->dir) {
+  if (original->handlers->duplicate &&
+      !original->handlers->duplicate(original, orphan)) {
+    free(orphan);
+    return 0;
+  }
+
+  /*if (orphan->dir) {
     if (orphan->mountPoint == MOUNT_POINT_SPECIAL) {
       if (special) {
         orphan->dir = special;
@@ -88,11 +98,11 @@ OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original, SpecialFile *special) {
       panic();
       return 0;
     }
-    if (!fsSpecialDuplicateNodeUnsafe(original, orphan)) {
+    if (!fsSpecificDuplicateNodeUnsafe(original, orphan)) {
       free(orphan);
       return 0;
     }
-  }
+  }*/
 
   return orphan;
 }
@@ -100,12 +110,7 @@ OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original, SpecialFile *special) {
 OpenFile *fsUserDuplicateNode(void *taskPtr, OpenFile *original) {
   Task *task = (Task *)taskPtr;
 
-  // special can be 0
-  SpecialFile *special = 0;
-  if (original->mountPoint == MOUNT_POINT_SPECIAL)
-    special = original->dir;
-
-  OpenFile *target = fsUserDuplicateNodeUnsafe(original, special);
+  OpenFile *target = fsUserDuplicateNodeUnsafe(original);
   target->id = openId++;
 
   LinkedListPushFrontUnsafe((void **)(&task->firstFile), target);
@@ -189,17 +194,11 @@ uint32_t fsGetFilesize(OpenFile *file) {
 }
 
 uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit) {
-  if (file->mountPoint == MOUNT_POINT_SPECIAL)
-    return ((SpecialFile *)file->dir)->handlers->read(file, out, limit);
-
-  return fsSpecificRead(file, out, limit);
+  return file->handlers->read(file, out, limit);
 }
 
 uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit) {
-  if (file->mountPoint == MOUNT_POINT_SPECIAL)
-    return ((SpecialFile *)file->dir)->handlers->write(file, in, limit);
-
-  return fsSpecificWrite(file, in, limit);
+  return file->handlers->write(file, in, limit);
 }
 
 bool fsWriteSync(OpenFile *file) {
@@ -218,7 +217,7 @@ void fsReadFullFile(OpenFile *file, uint8_t *out) {
 
 int fsUserSeek(void *task, uint32_t fd, int offset, int whence) {
   OpenFile *file = fsUserGetNode(task, fd);
-  if (!file)
+  if (!file || file->mountPoint == MOUNT_POINT_SPECIAL) // todo
     return -1;
   int target = offset;
   if (whence == SEEK_SET)

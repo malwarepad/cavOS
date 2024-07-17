@@ -48,7 +48,7 @@ bool fsSpecificOpen(char *filename, MountPoint *mnt, OpenFile *target) {
   return res;
 }
 
-uint32_t fsSpecificRead(OpenFile *file, uint8_t *out, uint32_t limit) {
+int fsSpecificRead(OpenFile *file, uint8_t *out, size_t limit) {
   uint32_t ret = 0;
   switch (file->mountPoint->filesystem) {
   case FS_FATFS: {
@@ -64,7 +64,7 @@ uint32_t fsSpecificRead(OpenFile *file, uint8_t *out, uint32_t limit) {
   return ret;
 }
 
-uint32_t fsSpecificWrite(OpenFile *file, uint8_t *in, uint32_t limit) {
+int fsSpecificWrite(OpenFile *file, uint8_t *in, size_t limit) {
   if (1 == 1) // todo!
     return 0;
 
@@ -138,7 +138,7 @@ int fsSpecificSeek(OpenFile *file, int target, int offset, int whence) {
 }
 
 // returns an ORPHAN!
-bool fsSpecialDuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan) {
+bool fsSpecificDuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan) {
   switch (orphan->mountPoint->filesystem) {
   case FS_FATFS:
     orphan->dir = malloc(sizeof(FAT32OpenFd));
@@ -156,3 +156,31 @@ bool fsSpecialDuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan) {
   }
   return true;
 }
+
+int fsSpecificStat(OpenFile *fd, stat *target) {
+  bool ret = false;
+  switch (fd->mountPoint->filesystem) {
+  case FS_FATFS: {
+    ret = fat32StatFd(fd->mountPoint->fsInfo, fd, target);
+    break;
+  }
+  default:
+    debugf("[vfs] Tried to stat with bad filesystem! id{%d}\n",
+           fd->mountPoint->filesystem);
+    break;
+  }
+
+  return ret ? 0 : -1;
+}
+
+int fbSpecificIoctl(OpenFile *fd, uint64_t request, void *arg) {
+  return -ENOTTY;
+}
+
+// todo: no 0s
+SpecialHandlers fsSpecific = {.duplicate = fsSpecificDuplicateNodeUnsafe,
+                              .ioctl = fbSpecificIoctl,
+                              .mmap = 0,
+                              .read = fsSpecificRead,
+                              .stat = fsSpecificStat,
+                              .write = fsSpecificWrite};

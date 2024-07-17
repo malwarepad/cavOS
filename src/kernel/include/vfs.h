@@ -62,6 +62,25 @@ struct MountPoint {
 // mount point for "special" files ;)
 #define MOUNT_POINT_SPECIAL ((MountPoint *)0x69)
 typedef struct OpenFile OpenFile;
+
+typedef struct SpecialFile SpecialFile;
+typedef int (*SpecialReadHandler)(OpenFile *fd, uint8_t *out, size_t limit);
+typedef int (*SpecialWriteHandler)(OpenFile *fd, uint8_t *in, size_t limit);
+typedef int (*SpecialIoctlHandler)(OpenFile *fd, uint64_t request, void *arg);
+typedef int (*SpecialStatHandler)(OpenFile *fd, stat *stat);
+typedef size_t (*SpecialMmapHandler)(size_t addr, size_t length, int prot,
+                                     int flags, OpenFile *fd, size_t pgoffset);
+typedef bool (*SpecialDuplicate)(OpenFile *original, OpenFile *orphan);
+
+typedef struct SpecialHandlers {
+  SpecialReadHandler  read;
+  SpecialWriteHandler write;
+  SpecialIoctlHandler ioctl;
+  SpecialStatHandler  stat;
+  SpecialMmapHandler  mmap;
+  SpecialDuplicate    duplicate;
+} SpecialHandlers;
+
 struct OpenFile {
   OpenFile *next;
 
@@ -74,25 +93,11 @@ struct OpenFile {
   size_t pointer;
   size_t tmp1;
 
+  SpecialHandlers *handlers;
+
   MountPoint *mountPoint;
   void       *dir;
 };
-
-typedef struct SpecialFile SpecialFile;
-typedef int (*SpecialReadHandler)(OpenFile *fd, uint8_t *out, size_t limit);
-typedef int (*SpecialWriteHandler)(OpenFile *fd, uint8_t *in, size_t limit);
-typedef int (*SpecialIoctlHandler)(OpenFile *fd, uint64_t request, void *arg);
-typedef int (*SpecialStatHandler)(OpenFile *fd, stat *stat);
-typedef size_t (*SpecialMmapHandler)(size_t addr, size_t length, int prot,
-                                     int flags, OpenFile *fd, size_t pgoffset);
-
-typedef struct SpecialHandlers {
-  SpecialReadHandler  read;
-  SpecialWriteHandler write;
-  SpecialIoctlHandler ioctl;
-  SpecialStatHandler  stat;
-  SpecialMmapHandler  mmap;
-} SpecialHandlers;
 
 struct SpecialFile {
   SpecialFile *next;
@@ -119,7 +124,7 @@ int fsUserSeek(void *task, uint32_t fd, int offset, int whence);
 OpenFile *fsUserGetNode(void *task, int fd);
 
 OpenFile *fsUserDuplicateNode(void *taskPtr, OpenFile *original);
-OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original, SpecialFile *special);
+OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original);
 
 uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit);
 uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit);
@@ -137,14 +142,14 @@ bool fsStat(OpenFile *fd, stat *target);
 bool fsStatByFilename(void *task, char *filename, stat *target);
 
 // vfs_spec.c
-bool     fsSpecificClose(OpenFile *file);
-bool     fsSpecificOpen(char *filename, MountPoint *mnt, OpenFile *target);
-uint32_t fsSpecificRead(OpenFile *file, uint8_t *out, uint32_t limit);
-uint32_t fsSpecificWrite(OpenFile *file, uint8_t *in, uint32_t limit);
-bool     fsSpecificWriteSync(OpenFile *file);
-size_t   fsSpecificGetFilesize(OpenFile *file);
-bool     fsSpecialDuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan);
-int      fsSpecificSeek(OpenFile *file, int target, int offset, int whence);
+bool   fsSpecificClose(OpenFile *file);
+bool   fsSpecificOpen(char *filename, MountPoint *mnt, OpenFile *target);
+int    fsSpecificRead(OpenFile *file, uint8_t *out, size_t limit);
+int    fsSpecificWrite(OpenFile *file, uint8_t *in, size_t limit);
+bool   fsSpecificWriteSync(OpenFile *file);
+size_t fsSpecificGetFilesize(OpenFile *file);
+bool   fsSpecificDuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan);
+int    fsSpecificSeek(OpenFile *file, int target, int offset, int whence);
 
 // vfs_mount.c
 MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
@@ -161,5 +166,7 @@ SpecialFile *fsUserDuplicateSpecialNodeUnsafe(SpecialFile *original);
 bool         fsUserCloseSpecial(void *task, SpecialFile *special);
 SpecialFile *fsUserGetSpecialByFilename(void *task, char *filename);
 SpecialFile *fsUserGetSpecialById(void *taskPtr, int fd);
+
+SpecialHandlers fsSpecific;
 
 #endif

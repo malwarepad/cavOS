@@ -7,22 +7,7 @@
 
 // todo: special files & timestamps
 bool fsStat(OpenFile *fd, stat *target) {
-  if (fd->mountPoint == MOUNT_POINT_SPECIAL && fd->dir)
-    return ((SpecialFile *)(fd->dir))->handlers->stat(fd, target) == 0;
-
-  bool ret = false;
-  switch (fd->mountPoint->filesystem) {
-  case FS_FATFS: {
-    ret = fat32StatFd(fd->mountPoint->fsInfo, fd, target);
-    break;
-  }
-  default:
-    debugf("[vfs] Tried to stat with bad filesystem! id{%d}\n",
-           fd->mountPoint->filesystem);
-    break;
-  }
-
-  return ret;
+  return fd->handlers->stat(fd, target) == 0;
 }
 
 bool fsStatByFilename(void *task, char *filename, stat *target) {

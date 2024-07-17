@@ -360,11 +360,7 @@ void taskFilesCopy(Task *original, Task *target) {
 
   OpenFile *realFile = original->firstFile;
   while (realFile) {
-    SpecialFile *special = 0;
-    if (realFile->mountPoint == MOUNT_POINT_SPECIAL)
-      special =
-          fsUserGetSpecialById(target, ((SpecialFile *)realFile->dir)->id);
-    OpenFile *targetFile = fsUserDuplicateNodeUnsafe(realFile, special);
+    OpenFile *targetFile = fsUserDuplicateNodeUnsafe(realFile);
     LinkedListPushFrontUnsafe((void **)(&target->firstFile), targetFile);
     realFile = realFile->next;
   }

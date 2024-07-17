@@ -109,4 +109,5 @@ SpecialHandlers stdio = {.read = readHandler,
                          .write = writeHandler,
                          .ioctl = ioctlHandler,
                          .mmap = mmapHandler,
-                         .stat = statHandler};
+                         .stat = statHandler,
+                         .duplicate = 0};

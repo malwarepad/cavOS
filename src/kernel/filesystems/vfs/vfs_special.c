@@ -26,7 +26,9 @@ OpenFile *fsUserSpecialDummyGen(void *task, int fd, SpecialFile *special,
   dummy->tmp1 = 0;
 
   dummy->mountPoint = (void *)MOUNT_POINT_SPECIAL;
-  dummy->dir = special;
+  dummy->dir = 0;
+
+  dummy->handlers = special->handlers;
 
   return dummy;
 }

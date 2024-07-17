@@ -108,9 +108,6 @@ static int syscallLstat(char *filename, stat *statbuf) {
 
 #define SYSCALL_LSEEK 8
 static int syscallLseek(uint32_t file, int offset, int whence) {
-  // todo!
-  if (file == 0 || file == 1)
-    return -1;
   return fsUserSeek(currentTask, file, offset, whence);
 }
 
@@ -127,11 +124,10 @@ static int syscallIoctl(int fd, unsigned long request, void *arg) {
     return -EBADF;
   }
 
-  SpecialFile *special = (SpecialFile *)browse->dir;
-  if (!special)
+  if (browse->mountPoint != MOUNT_POINT_SPECIAL)
     return -ENOTTY;
 
-  int ret = special->handlers->ioctl(browse, request, arg);
+  int ret = browse->handlers->ioctl(browse, request, arg);
 
 #if DEBUG_SYSCALLS_STUB
   if (ret < 0)
@@ -212,10 +208,7 @@ static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
     fsUserClose(currentTask, newFd);
 
   // OpenFile    *realFile = currentTask->firstFile;
-  SpecialFile *special = 0;
-  if (realFile->mountPoint == MOUNT_POINT_SPECIAL)
-    special = ((SpecialFile *)realFile->dir);
-  OpenFile *targetFile = fsUserDuplicateNodeUnsafe(realFile, special);
+  OpenFile *targetFile = fsUserDuplicateNodeUnsafe(realFile);
   LinkedListPushFrontUnsafe((void **)(&currentTask->firstFile), targetFile);
 
   targetFile->id = newFd;

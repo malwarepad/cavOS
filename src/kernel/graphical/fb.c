@@ -96,4 +96,5 @@ SpecialHandlers fb0 = {.read = fbUserIllegal,
                        .write = fbUserIllegal,
                        .ioctl = fbUserIoctl,
                        .mmap = fbUserMmap,
-                       .stat = fbUserStat};
+                       .stat = fbUserStat,
+                       .duplicate = 0};
