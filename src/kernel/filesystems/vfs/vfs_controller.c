@@ -16,9 +16,10 @@ OpenFile *fsRegisterNode(Task *task) {
 }
 
 bool fsUnregisterNode(Task *task, OpenFile *file) {
-  SpecialFile *special = fsUserGetSpecialById(task, file->id);
-  if (special)
-    fsUserCloseSpecial(task, special);
+  // wtf is this!
+  // SpecialFile *special = fsUserGetSpecialById(task, file->id);
+  // if (special)
+  //   fsUserCloseSpecial(task, special);
   return LinkedListUnregister((void **)&task->firstFile, file);
 }
 
