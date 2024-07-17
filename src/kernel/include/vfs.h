@@ -118,15 +118,8 @@ int fsUserSeek(void *task, uint32_t fd, int offset, int whence);
 
 OpenFile *fsUserGetNode(void *task, int fd);
 
-bool         fsUserOpenSpecial(char *filename, void *taskPtr, int fd,
-                               SpecialHandlers *specialHandlers);
-bool         fsUserCloseSpecial(void *task, SpecialFile *special);
-SpecialFile *fsUserGetSpecialByFilename(void *task, char *filename);
-SpecialFile *fsUserGetSpecialById(void *taskPtr, int fd);
-
 OpenFile *fsUserDuplicateNode(void *taskPtr, OpenFile *original);
 OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original, SpecialFile *special);
-SpecialFile *fsUserDuplicateSpecialNodeUnsafe(SpecialFile *original);
 
 uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit);
 uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit);
@@ -158,5 +151,15 @@ MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
                     uint8_t partition);
 bool        fsUnmount(MountPoint *mnt);
 MountPoint *fsDetermineMountPoint(char *filename);
+
+// vfs_special.c
+OpenFile    *fsUserSpecialDummyGen(void *task, int fd, SpecialFile *special,
+                                   int flags, int mode);
+bool         fsUserOpenSpecial(char *filename, void *taskPtr, int fd,
+                               SpecialHandlers *specialHandlers);
+SpecialFile *fsUserDuplicateSpecialNodeUnsafe(SpecialFile *original);
+bool         fsUserCloseSpecial(void *task, SpecialFile *special);
+SpecialFile *fsUserGetSpecialByFilename(void *task, char *filename);
+SpecialFile *fsUserGetSpecialById(void *taskPtr, int fd);
 
 #endif
