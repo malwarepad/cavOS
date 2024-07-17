@@ -211,7 +211,7 @@ uint32_t fat32GetFilesize(OpenFile *fd) {
 
 bool fat32Close(MountPoint *mount, OpenFile *fd) {
   FAT32OpenFd *dir = FAT_DIR_PTR(fd->dir);
-  if (dir->dirEnt.attrib & FAT_ATTRIB_DIRECTORY)
+  if (dir->dirEnt.attrib & FAT_ATTRIB_DIRECTORY && fd->dirname)
     free(fd->dirname);
 
   // :p
