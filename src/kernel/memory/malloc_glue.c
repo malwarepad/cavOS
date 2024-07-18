@@ -51,6 +51,6 @@ int RELEASE_LOCK(Spinlock *lock) {
 }
 
 int INITIAL_LOCK(Spinlock *lock) {
-  memset(&malloc_global_mutex, 0, sizeof(MLOCK_T));
+  RELEASE_LOCK(lock);
   return 0;
 }
