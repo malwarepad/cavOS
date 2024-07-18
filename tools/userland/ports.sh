@@ -28,3 +28,13 @@ fi
 if [ ! -f "$USR_PATHNAME/bin/ls" ]; then
 	build_package_autotools https://ftp.gnu.org/gnu/coreutils/coreutils-9.5.tar.xz "$USR_PATHNAME" build-aux/config.sub
 fi
+
+# GNU findutils (find, etc)
+if [ ! -f "$USR_PATHNAME/bin/find" ]; then
+	build_package_autotools https://ftp.gnu.org/gnu/findutils/findutils-4.10.0.tar.xz "$USR_PATHNAME" build-aux/config.sub
+fi
+
+# GNU grep
+if [ ! -f "$USR_PATHNAME/bin/grep" ]; then
+	build_package_autotools https://ftp.gnu.org/gnu/grep/grep-3.11.tar.xz "$USR_PATHNAME" build-aux/config.sub
+fi

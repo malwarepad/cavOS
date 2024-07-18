@@ -153,6 +153,21 @@ void taskKill(uint32_t id, uint16_t ret) {
   task->state = TASK_STATE_DEAD;
   task->ret = ret;
 
+  // close any left open files
+  OpenFile *file = task->firstFile;
+  while (file) {
+    int id = file->id;
+    file = file->next;
+    fsUserClose(task, id);
+  }
+
+  SpecialFile *special = task->firstSpecialFile;
+  while (special) {
+    SpecialFile *next = special->next;
+    fsUserCloseSpecial(task, special);
+    special = next;
+  }
+
   spinlockCntWriteAcquire(&TASK_LL_MODIFY);
   Task *browse = firstTask;
   while (browse) {

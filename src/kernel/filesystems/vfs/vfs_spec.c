@@ -180,7 +180,9 @@ int fbSpecificIoctl(OpenFile *fd, uint64_t request, void *arg) {
 }
 
 // todo: no 0s
-SpecialHandlers fsSpecific = {.duplicate = fsSpecificDuplicateNodeUnsafe,
+SpecialHandlers fsSpecific = {.open = 0,
+                              .close = fsSpecificClose,
+                              .duplicate = fsSpecificDuplicateNodeUnsafe,
                               .ioctl = fbSpecificIoctl,
                               .mmap = 0,
                               .read = fsSpecificRead,

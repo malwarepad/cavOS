@@ -71,6 +71,8 @@ typedef int (*SpecialStatHandler)(OpenFile *fd, stat *stat);
 typedef size_t (*SpecialMmapHandler)(size_t addr, size_t length, int prot,
                                      int flags, OpenFile *fd, size_t pgoffset);
 typedef bool (*SpecialDuplicate)(OpenFile *original, OpenFile *orphan);
+typedef bool (*SpecialOpen)(OpenFile *fd);
+typedef bool (*SpecialClose)(OpenFile *fd);
 
 typedef struct SpecialHandlers {
   SpecialReadHandler  read;
@@ -78,7 +80,10 @@ typedef struct SpecialHandlers {
   SpecialIoctlHandler ioctl;
   SpecialStatHandler  stat;
   SpecialMmapHandler  mmap;
-  SpecialDuplicate    duplicate;
+
+  SpecialDuplicate duplicate;
+  SpecialOpen      open;
+  SpecialClose     close;
 } SpecialHandlers;
 
 struct OpenFile {

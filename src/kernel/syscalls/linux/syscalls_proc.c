@@ -9,6 +9,9 @@
 
 // process lifetime system calls (send help)
 
+#define SYSCALL_PIPE 22
+static int syscallPipe(int *fds) { return pipeOpen(fds); }
+
 #define SYSCALL_FORK 57
 static int syscallFork() {
   return taskFork(currentTask->syscallRegs, currentTask->syscallRsp);
@@ -140,6 +143,7 @@ static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
 static void syscallExitGroup(int return_code) { syscallExitTask(return_code); }
 
 void syscallsRegProc() {
+  registerSyscall(SYSCALL_PIPE, syscallPipe);
   registerSyscall(SYSCALL_EXIT_TASK, syscallExitTask);
   registerSyscall(SYSCALL_FORK, syscallFork);
   registerSyscall(SYSCALL_WAIT4, syscallWait4);

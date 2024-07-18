@@ -49,4 +49,11 @@ size_t mmapHandler(size_t addr, size_t length, int prot, int flags,
 /* Defined in io.c */
 extern SpecialHandlers stdio;
 
+/* Unix pipe() (defined in pipe.c) */
+SpecialHandlers pipeReadEnd;
+SpecialHandlers pipeWriteEnd;
+
+bool pipeCloseEnd(OpenFile *readFd);
+int  pipeOpen(int *fds);
+
 #endif

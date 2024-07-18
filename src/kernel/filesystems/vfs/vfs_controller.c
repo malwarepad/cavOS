@@ -54,6 +54,9 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
 
     target->mountPoint = MOUNT_POINT_SPECIAL;
     target->handlers = special->handlers;
+
+    if (target->handlers->open)
+      target->handlers->open(target);
     return target;
   }
 
@@ -78,6 +81,8 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
     return 0;
   }
 
+  if (target->handlers->open)
+    target->handlers->open(target);
   return target;
 }
 
@@ -121,9 +126,9 @@ OpenFile *fsUserDuplicateNode(void *taskPtr, OpenFile *original) {
   OpenFile *target = fsUserDuplicateNodeUnsafe(original);
   target->id = openId++;
 
-  spinlockCntReadAcquire(&task->WLOCK_FILES);
+  spinlockCntWriteAcquire(&task->WLOCK_FILES);
   LinkedListPushFrontUnsafe((void **)(&task->firstFile), target);
-  spinlockCntReadRelease(&task->WLOCK_FILES);
+  spinlockCntWriteRelease(&task->WLOCK_FILES);
 
   return target;
 }
@@ -170,8 +175,7 @@ int fsUserOpen(void *task, char *filename, int flags, int mode) {
 bool fsCloseGeneric(OpenFile *file, Task *task) {
   fsUnregisterNode(task, file);
 
-  bool res = fsSpecificClose(file);
-
+  bool res = file->handlers->close ? file->handlers->close(file) : true;
   free(file);
   return res;
 }

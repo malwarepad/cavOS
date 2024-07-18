@@ -92,7 +92,9 @@ int fbUserStat(OpenFile *fd, stat *target) {
   return 0;
 }
 
-SpecialHandlers fb0 = {.read = fbUserIllegal,
+SpecialHandlers fb0 = {.open = 0,
+                       .close = 0,
+                       .read = fbUserIllegal,
                        .write = fbUserIllegal,
                        .ioctl = fbUserIoctl,
                        .mmap = fbUserMmap,

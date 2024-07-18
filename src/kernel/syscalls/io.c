@@ -105,7 +105,9 @@ int statHandler(OpenFile *fd, stat *target) {
   return 0;
 }
 
-SpecialHandlers stdio = {.read = readHandler,
+SpecialHandlers stdio = {.open = 0,
+                         .close = 0,
+                         .read = readHandler,
                          .write = writeHandler,
                          .ioctl = ioctlHandler,
                          .mmap = mmapHandler,
