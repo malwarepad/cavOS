@@ -12,7 +12,11 @@
 // Copyright (C) 2024 Panagiotis
 
 OpenFile *fsRegisterNode(Task *task) {
-  return LinkedListAllocate((void **)&task->firstFile, sizeof(OpenFile));
+  spinlockCntWriteAcquire(&task->WLOCK_FILES);
+  OpenFile *ret =
+      LinkedListAllocate((void **)&task->firstFile, sizeof(OpenFile));
+  spinlockCntWriteRelease(&task->WLOCK_FILES);
+  return ret;
 }
 
 bool fsUnregisterNode(Task *task, OpenFile *file) {
@@ -20,7 +24,11 @@ bool fsUnregisterNode(Task *task, OpenFile *file) {
   // SpecialFile *special = fsUserGetSpecialById(task, file->id);
   // if (special)
   //   fsUserCloseSpecial(task, special);
-  return LinkedListUnregister((void **)&task->firstFile, file);
+
+  spinlockCntWriteAcquire(&task->WLOCK_FILES);
+  bool ret = LinkedListUnregister((void **)&task->firstFile, file);
+  spinlockCntWriteRelease(&task->WLOCK_FILES);
+  return ret;
 }
 
 // TODO! flags! modes!
@@ -113,13 +121,16 @@ OpenFile *fsUserDuplicateNode(void *taskPtr, OpenFile *original) {
   OpenFile *target = fsUserDuplicateNodeUnsafe(original);
   target->id = openId++;
 
+  spinlockCntReadAcquire(&task->WLOCK_FILES);
   LinkedListPushFrontUnsafe((void **)(&task->firstFile), target);
+  spinlockCntReadRelease(&task->WLOCK_FILES);
 
   return target;
 }
 
 OpenFile *fsUserGetNode(void *task, int fd) {
-  Task     *target = (Task *)task;
+  Task *target = (Task *)task;
+  spinlockCntReadAcquire(&target->WLOCK_FILES);
   OpenFile *browse = target->firstFile;
   while (browse) {
     if (browse->id == fd)
@@ -127,17 +138,11 @@ OpenFile *fsUserGetNode(void *task, int fd) {
 
     browse = browse->next;
   }
+  spinlockCntReadRelease(&target->WLOCK_FILES);
 
   if (!browse) {
     // might be a special file then
-    SpecialFile *special = target->firstSpecialFile;
-
-    while (special) {
-      if (special->id == fd)
-        break;
-
-      special = special->next;
-    }
+    SpecialFile *special = fsUserGetSpecialById(task, fd);
 
     if (!special)
       return 0;

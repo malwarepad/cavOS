@@ -10,7 +10,7 @@ void spinlockWait(Spinlock *lock) {
 
 void spinlockAcquire(Spinlock *lock) {
   while (atomic_flag_test_and_set_explicit(lock, memory_order_acquire))
-    ;
+    asm volatile("pause");
 }
 
 void spinlockRelease(Spinlock *lock) {
@@ -23,7 +23,7 @@ void spinlockRelease(Spinlock *lock) {
 
 void spinlockCntReadAcquire(SpinlockCnt *lock) {
   while (lock->cnt < 0)
-    ;
+    asm volatile("pause");
   lock->cnt++;
 }
 
@@ -38,7 +38,7 @@ void spinlockCntReadRelease(SpinlockCnt *lock) {
 
 void spinlockCntWriteAcquire(SpinlockCnt *lock) {
   while (lock->cnt != 0)
-    ;
+    asm volatile("pause");
   lock->cnt = -1;
 }
 

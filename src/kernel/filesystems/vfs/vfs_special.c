@@ -37,8 +37,10 @@ bool fsUserOpenSpecial(char *filename, void *taskPtr, int fd,
                        SpecialHandlers *specialHandlers) {
   Task *task = (Task *)taskPtr;
 
+  spinlockCntWriteAcquire(&task->WLOCK_SPECIAL);
   SpecialFile *target = (SpecialFile *)LinkedListAllocate(
       (void **)(&task->firstSpecialFile), sizeof(SpecialFile));
+  spinlockCntWriteRelease(&task->WLOCK_SPECIAL);
 
   size_t filenameLen = strlength(filename) + 1; // null terminated
   void  *filenameBuff = malloc(filenameLen);
@@ -69,13 +71,17 @@ SpecialFile *fsUserDuplicateSpecialNodeUnsafe(SpecialFile *original) {
 
 bool fsUserCloseSpecial(void *task, SpecialFile *special) {
   Task *target = (Task *)task;
-  return LinkedListRemove((void **)&target->firstSpecialFile, special);
+  spinlockCntWriteAcquire(&target->WLOCK_SPECIAL);
+  bool ret = LinkedListRemove((void **)&target->firstSpecialFile, special);
+  spinlockCntWriteRelease(&target->WLOCK_SPECIAL);
+  return ret;
 }
 
 SpecialFile *fsUserGetSpecialByFilename(void *task, char *filename) {
   Task *target = (Task *)task;
   if (!target || !target->firstSpecialFile)
     return 0;
+  spinlockCntReadAcquire(&target->WLOCK_SPECIAL);
   SpecialFile *browse = target->firstSpecialFile;
   while (browse) {
     size_t len1 = strlength(filename);
@@ -85,6 +91,7 @@ SpecialFile *fsUserGetSpecialByFilename(void *task, char *filename) {
       break;
     browse = browse->next;
   }
+  spinlockCntReadRelease(&target->WLOCK_SPECIAL);
 
   return browse;
 }
@@ -93,11 +100,13 @@ SpecialFile *fsUserGetSpecialById(void *taskPtr, int fd) {
   Task *task = (Task *)taskPtr;
   if (!task || !task->firstSpecialFile)
     return 0;
+  spinlockCntReadAcquire(&task->WLOCK_SPECIAL);
   SpecialFile *browse = task->firstSpecialFile;
   while (browse) {
     if (browse->id == fd)
       break;
     browse = browse->next;
   }
+  spinlockCntReadRelease(&task->WLOCK_SPECIAL);
   return browse;
 }
