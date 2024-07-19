@@ -8,6 +8,15 @@ disk.vmdk
 
 # Libraries
 target/usr/include/ncursesw
+target/usr/etc/profile.d
+
+# Chroot stuff
+target/dev/shm
+target/run
+target/sys
+target/proc
+target/dev/pts
+target/dev
 
 # Misc (on the target system)
 target/usr/share

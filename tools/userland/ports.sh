@@ -43,3 +43,51 @@ fi
 if [ ! -f "$USR_PATHNAME/bin/grep" ]; then
 	build_package_autotools https://ftp.gnu.org/gnu/grep/grep-3.11.tar.xz "$USR_PATHNAME" build-aux/config.sub
 fi
+
+# GNU diffutils (diff)
+if [ ! -f "$USR_PATHNAME/bin/diff" ]; then
+	build_package_autotools https://ftp.gnu.org/gnu/diffutils/diffutils-3.10.tar.xz "$USR_PATHNAME" build-aux/config.sub
+fi
+
+# File (doesn't like relative paths for some reason)
+if [ ! -f "$USR_PATHNAME/bin/file" ]; then
+	USR_PATHNAME_FIXED=$(readlink -e "$USR_PATHNAME")
+	DESTDIR_FIXED=$(readlink -e "$USR_PATHNAME/../")
+	build_package_autotools https://astron.com/pub/file/file-5.41.tar.gz "$USR_PATHNAME_FIXED" config.sub "--prefix /usr" "" "DESTDIR=$DESTDIR_FIXED"
+fi
+
+# GNU Gawk
+if [ ! -f "$USR_PATHNAME/bin/gawk" ]; then
+	build_package_autotools https://ftp.gnu.org/gnu/gawk/gawk-5.3.0.tar.xz "$USR_PATHNAME" build-aux/config.sub
+fi
+
+# GNU gzip
+if [ ! -f "$USR_PATHNAME/bin/gzip" ]; then
+	build_package_autotools https://ftp.gnu.org/gnu/gzip/gzip-1.13.tar.xz "$USR_PATHNAME" build-aux/config.sub
+fi
+
+# GNUmake (I love make (sometimes (lie)))
+if [ ! -f "$USR_PATHNAME/bin/make" ]; then
+	build_package_autotools https://ftp.gnu.org/gnu/make/make-4.4.1.tar.gz "$USR_PATHNAME" build-aux/config.sub "--without-guile"
+fi
+
+# GNU patch
+if [ ! -f "$USR_PATHNAME/bin/patch" ]; then
+	build_package_autotools https://ftp.gnu.org/gnu/patch/patch-2.7.6.tar.xz "$USR_PATHNAME" build-aux/config.sub "" "$PATCH_PATHNAME/patch.diff"
+fi
+
+# GNU sed (I actually like this one)
+if [ ! -f "$USR_PATHNAME/bin/sed" ]; then
+	build_package_autotools https://ftp.gnu.org/gnu/sed/sed-4.9.tar.xz "$USR_PATHNAME" build-aux/config.sub
+fi
+
+# GNU tar
+if [ ! -f "$USR_PATHNAME/bin/tar" ]; then
+	build_package_autotools https://ftp.gnu.org/gnu/tar/tar-1.35.tar.xz "$USR_PATHNAME" build-aux/config.sub
+fi
+
+# xz-utils (scary, SCARY!)
+if [ ! -f "$USR_PATHNAME/bin/xz" ]; then
+	build_package_autotools https://github.com/tukaani-project/xz/releases/download/v5.4.6/xz-5.4.6.tar.xz "$USR_PATHNAME" build-aux/config.sub
+	rm -f "$USR_PATHNAME/lib/liblzma.la"
+fi
