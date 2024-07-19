@@ -45,7 +45,7 @@ Important to mention these goals may never be satisfied, take a very long time t
 - Userspace
   - [x] Toolchain: cavOS-specific
   - [x] Libraries: musl(libC)
-  - [ ] Linking: Dynamic
+  - [x] Linking: Dynamic
   - [ ] System calls: signals, sockets, filesystem, etc...
 - Interfaces
   - [x] Kernel: Embedded shell
@@ -54,7 +54,7 @@ Important to mention these goals may never be satisfied, take a very long time t
   - [ ] Desires: Cool fetch, some damn IRC client
 - Graphics
   - [x] Framebuffer: Use in kernel
-  - [ ] Framebuffer: Pass to userspace
+  - [x] Framebuffer: Pass to userspace
   - [ ] Xorg or smth? idk (seriously)
 
 ## Compiling
