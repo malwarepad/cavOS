@@ -7,9 +7,9 @@ size_t fat32ClusterToLBA(FAT32 *fat, uint32_t cluster) {
 }
 
 // todo: count forbidden chars (although not *really* needed)
-#define IS_UPPERCASE(c) ((c) >= 'A' && (c) <= 'Z')
-int fat32IsShortFilenamePossible(char *filename) {
-  size_t len = strlength(filename);
+#define IS_UPPERCASE(c)                                                        \
+  (((c) >= 'A' && (c) <= 'Z') || ((c) >= '0' && (c) <= '9'))
+int fat32IsShortFilenamePossible(char *filename, size_t len) {
   if (len > (8 + 1 + 3))
     return -1;
 

@@ -12,7 +12,7 @@ FAT32TraverseResult fat32Traverse(FAT32 *fat, uint32_t initDirectory,
   uint32_t directory = initDirectory;
 
   // just in case mfs.fat didn't need to make an LFN
-  int shortDot = fat32IsShortFilenamePossible(search);
+  int shortDot = fat32IsShortFilenamePossible(search, searchLength);
 
   uint8_t lfnName[LFN_MAX_TOTAL_CHARS] = {0};
   int     lfnLast = -1;
@@ -60,7 +60,7 @@ FAT32TraverseResult fat32Traverse(FAT32 *fat, uint32_t initDirectory,
 
           lfnLast = -1;
         } else if (shortDot >= 0) {
-          if (!memcmp(dir->name, search, shortDot) &&
+          if (!memcmp(dir->name, search, shortDot ? shortDot : searchLength) &&
               (!shortDot || !memcmp(dir->ext, search + shortDot + 1,
                                     searchLength - shortDot - 1)))
             found = true;

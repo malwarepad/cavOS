@@ -133,7 +133,7 @@ bool     fat32Close(MountPoint *mount, OpenFile *fd);
 
 // fat32_util.c
 size_t        fat32ClusterToLBA(FAT32 *fat, uint32_t cluster);
-int           fat32IsShortFilenamePossible(char *filename);
+int           fat32IsShortFilenamePossible(char *filename, size_t len);
 void          fat32LFNmemcpy(uint8_t *lfnName, FAT32LFN *lfn, int index);
 unsigned long fat32UnixTime(unsigned short fat_date, unsigned short fat_time);
 
