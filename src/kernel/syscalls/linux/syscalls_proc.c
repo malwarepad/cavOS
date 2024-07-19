@@ -132,9 +132,8 @@ static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
       *wstatus = (ret & 0xff) << 8;
 
 #if DEBUG_SYSCALLS_EXTRA
-    debugf("[syscall::wait4] ret{%d}\n", output);
+    debugf("[syscall::wait4] ret{%d} ret{%d}\n", output, ret);
 #endif
-    debugf("WAIT4 ENDED WITH pid{%d} ret{%d}", output, ret);
     return output;
   } else {
 #if DEBUG_SYSCALLS_STUB
