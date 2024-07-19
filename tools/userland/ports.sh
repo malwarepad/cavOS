@@ -34,6 +34,11 @@ if [ ! -f "$USR_PATHNAME/bin/find" ]; then
 	build_package_autotools https://ftp.gnu.org/gnu/findutils/findutils-4.10.0.tar.xz "$USR_PATHNAME" build-aux/config.sub
 fi
 
+# GNU M4
+if [ ! -f "$USR_PATHNAME/bin/m4" ]; then
+	build_package_autotools https://ftp.gnu.org/gnu/m4/m4-1.4.19.tar.xz "$USR_PATHNAME" build-aux/config.sub
+fi
+
 # GNU grep
 if [ ! -f "$USR_PATHNAME/bin/grep" ]; then
 	build_package_autotools https://ftp.gnu.org/gnu/grep/grep-3.11.tar.xz "$USR_PATHNAME" build-aux/config.sub

@@ -351,6 +351,30 @@ static int syscallOpenat(int dirfd, char *pathname, int flags, int mode) {
   return -ENOSYS;
 }
 
+#define SYSCALL_FACCESSAT 269
+static int syscallFaccessat(int dirfd, char *pathname, int mode) {
+  if (pathname[0] == '\0') { // by fd
+    return 0;
+  } else if (pathname[0] == '/') { // by absolute pathname
+    return syscallAccess(pathname, mode);
+  } else if (pathname[0] != '/') {
+    if (dirfd == AT_FDCWD) { // relative to cwd
+      return syscallAccess(pathname, mode);
+    } else {
+#if DEBUG_SYSCALLS_STUB
+      debugf("[syscalls::access] todo: partial sanitization!");
+#endif
+      return -1;
+    }
+  } else {
+#if DEBUG_SYSCALLS_FAILS
+    debugf("[syscalls::access] Unsupported!\n");
+#endif
+    return -1;
+  }
+  return -ENOSYS;
+}
+
 #define SYSCALL_STATX 332
 static int syscallStatx(int dirfd, char *pathname, int flags, uint32_t mask,
                         struct statx *buff) {
@@ -440,6 +464,7 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_DUP2, syscallDup2);
   registerSyscall(SYSCALL_DUP, syscallDup);
   registerSyscall(SYSCALL_ACCESS, syscallAccess);
+  registerSyscall(SYSCALL_FACCESSAT, syscallFaccessat);
   registerSyscall(SYSCALL_GETDENTS64, syscallGetdents64);
   registerSyscall(SYSCALL_PSELECT6, syscallPselect6);
   registerSyscall(SYSCALL_SELECT, syscallSelect);

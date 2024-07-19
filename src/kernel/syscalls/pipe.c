@@ -105,7 +105,7 @@ int pipeRead(OpenFile *fd, uint8_t *out, size_t limit) {
 
   // if there are no more write items, don't hang
   while (pipe->writeFds != 0 && !pipe->assigned) {
-    debugf("write{%d} curr{%d}\n", pipe->writeFds, currentTask->id);
+    // debugf("write{%d} curr{%d}\n", pipe->writeFds, currentTask->id);
     asm volatile("pause");
   }
 
