@@ -21,7 +21,7 @@ fi
 
 # GNU Bash (statically compiled)
 if [ ! -f "$USR_PATHNAME/bin/bash" ]; then
-	build_package_autotools https://ftp.gnu.org/gnu/bash/bash-5.2.tar.gz "$USR_PATHNAME" support/config.sub "host_alias=x86_64-cavos --without-bash-malloc --enable-static-link" "$PATCH_PATHNAME/bash.diff" "" yes
+	build_package_autotools https://ftp.gnu.org/gnu/bash/bash-5.2.tar.gz "$USR_PATHNAME" support/config.sub "host_alias=x86_64-cavos --without-bash-malloc --enable-static-link" "$PATCH_PATHNAME/bash.diff" "" "autoconf -f"
 fi
 
 # GNU Coreutils (ls, pwd, whoami, etc)
@@ -91,3 +91,16 @@ if [ ! -f "$USR_PATHNAME/bin/xz" ]; then
 	build_package_autotools https://github.com/tukaani-project/xz/releases/download/v5.4.6/xz-5.4.6.tar.xz "$USR_PATHNAME" build-aux/config.sub
 	rm -f "$USR_PATHNAME/lib/liblzma.la"
 fi
+
+# GNU binutils (we're close!)
+if [ ! -f "$USR_PATHNAME/bin/readelf" ]; then
+	export PATH=$HOME/opt/autotools_gcc/bin:$PATH
+	build_package_autotools https://ftp.gnu.org/gnu/binutils/binutils-2.38.tar.gz "$USR_PATHNAME" config.sub '--target=x86_64-cavos --prefix=/usr --enable-shared --disable-werror --enable-64-bit-bfd' "$PATCH_PATHNAME/binutils.diff" "DESTDIR=$USR_PATHNAME/../" "cd ld && automake && cd .."
+fi
+
+# GCC (for real this time, this is not a cross compiler)
+#if [ ! -f "$USR_PATHNAME/bin/gcc" ]; then
+#	export PATH=$HOME/opt/autotools_gcc/bin:$PATH
+#	build_package_autotools https://ftp.gnu.org/gnu/gcc/gcc-11.4.0/gcc-11.4.0.tar.gz "$USR_PATHNAME" config.sub '--host=x86_64-cavos --target=x86_64-cavos --prefix=/usr --enable-shared --disable-werror --enable-languages=c,c++' "$PATCH_PATHNAME/gcc.diff" "DESTDIR=$USR_PATHNAME/../" "cd libstdc++-v3 && autoconf && cd .. && ./contrib/download_prerequisites && sed -i 's/\-gnu\* | \-bsd\*/\-cavos\*/g' ./gmp/configfsf.sub && sed -i 's/\-gnu\* | \-bsd\*/\-cavos\*/g' ./mpfr/config.sub && sed -i 's/\-gnu\* | \-bsd\*/\-cavos\*/g' ./mpc/config.sub && sed -i 's/\-gnu\* | \-bsd\*/\-cavos\*/g' ./isl/config.sub"
+#fi
+# ^ is buggy, takes a lot of space and is DEFINITELY not needed (atl not yet) ^

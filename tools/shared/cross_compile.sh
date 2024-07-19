@@ -20,7 +20,7 @@ build_package_autotools() {
 	extra_parameters=$4
 	optional_patchname=$5
 	extra_install_parameters=$6
-	autoconf_extra=$7
+	before_build=$7
 
 	# Download and extract the tarball
 	wget -nc "$uri"
@@ -36,8 +36,8 @@ build_package_autotools() {
 	fi
 
 	# Just in case it's needed
-	if [ -n "$autoconf_extra" ]; then
-		autoconf -f
+	if [ -n "$before_build" ]; then
+		eval "$before_build"
 	fi
 
 	# Use a separate directory for compiling (good practice)
