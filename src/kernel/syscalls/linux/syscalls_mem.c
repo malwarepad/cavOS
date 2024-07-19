@@ -45,11 +45,7 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
     if (!file || file->mountPoint != MOUNT_POINT_SPECIAL)
       return -1;
 
-    SpecialFile *special = (SpecialFile *)file->dir;
-    if (!special)
-      return -1;
-
-    return special->handlers->mmap(addr, length, prot, flags, file, pgoffset);
+    return file->handlers->mmap(addr, length, prot, flags, file, pgoffset);
   }
 
 #if DEBUG_SYSCALLS_STUB

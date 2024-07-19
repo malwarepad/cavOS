@@ -108,6 +108,15 @@ static int syscallGetppid() {
     return KERNEL_TASK_ID;
 }
 
+#define SYSCALL_GETGROUPS 115
+static int syscallGetgroups(int gidsetsize, uint32_t *gids) {
+  if (!gidsetsize)
+    return 1;
+
+  gids[0] = 0;
+  return 1;
+}
+
 #define SYSCALL_GETPGID 121
 static int syscallGetpgid() { return currentTask->pgid; }
 
@@ -152,4 +161,5 @@ void syscallsRegEnv() {
   registerSyscall(SYSCALL_GET_TID, syscallGetTid);
   registerSyscall(SYSCALL_UNAME, syscallUname);
   registerSyscall(SYSCALL_FCHDIR, syscallFchdir);
+  registerSyscall(SYSCALL_GETGROUPS, syscallGetgroups);
 }
