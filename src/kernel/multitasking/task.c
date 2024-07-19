@@ -151,6 +151,12 @@ void taskKill(uint32_t id, uint16_t ret) {
   if (!task)
     return;
 
+  // Notify that poor parent... they must've been searching all over the place!
+  if (task->parent && !task->noInformParent) {
+    task->parent->lastChildKilled.pid = task->id;
+    task->parent->lastChildKilled.ret = task->ret;
+  }
+
   // close any left open files
   OpenFile *file = task->firstFile;
   while (file) {
@@ -234,11 +240,6 @@ void taskKillCleanup(Task *task) {
 
   // PageDirectoryFree(task->pagedir); // left for sched
 
-  if (task->parent && !task->noInformParent) {
-    task->parent->lastChildKilled.pid = task->id;
-    task->parent->lastChildKilled.ret = task->ret;
-  }
-
   return;
   // todo: this is horrible... below stuff causes a lot of corruption
 
@@ -255,12 +256,6 @@ void taskKillCleanup(Task *task) {
     SpecialFile *next = special->next;
     fsUserCloseSpecial(task, special);
     special = next;
-  }
-
-  // Notify that poor parent... they must've been searching all over the place!
-  if (task->parent && !task->noInformParent) {
-    task->parent->lastChildKilled.pid = task->id;
-    task->parent->lastChildKilled.ret = task->ret;
   }
 
   PageDirectoryFree(task->pagedir);

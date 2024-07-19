@@ -84,6 +84,7 @@ struct Task {
   __attribute__((aligned(16))) uint8_t fpuenv[512];
 
   // Yes... As absurd as it sounds!
+  bool       wait4;
   bool       noInformParent;
   KilledInfo lastChildKilled;
   uint16_t   ret;
@@ -91,6 +92,8 @@ struct Task {
   Task *parent;
   Task *next;
 };
+
+SpinlockCnt TASK_LL_MODIFY;
 
 Task *firstTask;
 Task *currentTask;

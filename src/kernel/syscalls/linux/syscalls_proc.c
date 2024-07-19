@@ -100,20 +100,25 @@ static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
 
   if (pid == -1) {
     if (!currentTask->lastChildKilled.pid) {
-      int   amnt = 0;
+      int amnt = 0;
+
+      spinlockCntReadAcquire(&TASK_LL_MODIFY);
       Task *browse = firstTask;
       while (browse) {
-        if (browse->parent == currentTask)
+        if (browse->state == TASK_STATE_READY && browse->parent == currentTask)
           amnt++;
         browse = browse->next;
       }
+      spinlockCntReadRelease(&TASK_LL_MODIFY);
 
       if (!amnt)
-        return -ECHILD;
+        return -1;
       // currentTask->lastChildKilled.pid = 0;
 
+      currentTask->wait4 = true;
       while (!currentTask->lastChildKilled.pid) {
       }
+      currentTask->wait4 = false;
     }
 
     int output = currentTask->lastChildKilled.pid;
@@ -129,6 +134,7 @@ static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
 #if DEBUG_SYSCALLS_EXTRA
     debugf("[syscall::wait4] ret{%d}\n", output);
 #endif
+    debugf("WAIT4 ENDED WITH pid{%d} ret{%d}", output, ret);
     return output;
   } else {
 #if DEBUG_SYSCALLS_STUB
