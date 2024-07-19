@@ -150,8 +150,6 @@ void taskKill(uint32_t id, uint16_t ret) {
   Task *task = taskGet(id);
   if (!task)
     return;
-  task->state = TASK_STATE_DEAD;
-  task->ret = ret;
 
   // close any left open files
   OpenFile *file = task->firstFile;
@@ -178,6 +176,9 @@ void taskKill(uint32_t id, uint16_t ret) {
   spinlockCntWriteRelease(&TASK_LL_MODIFY);
 
   browse->next = task->next;
+
+  task->state = TASK_STATE_DEAD;
+  task->ret = ret;
 
   if (currentTask == task) {
     // we're most likely in a syscall context, so...
