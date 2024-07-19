@@ -53,7 +53,7 @@ fi
 if [ ! -f "$USR_PATHNAME/bin/file" ]; then
 	USR_PATHNAME_FIXED=$(readlink -e "$USR_PATHNAME")
 	DESTDIR_FIXED=$(readlink -e "$USR_PATHNAME/../")
-	build_package_autotools https://astron.com/pub/file/file-5.41.tar.gz "$USR_PATHNAME_FIXED" config.sub "--prefix /usr" "" "DESTDIR=$DESTDIR_FIXED"
+	build_package_autotools https://astron.com/pub/file/file-5.45.tar.gz "$USR_PATHNAME_FIXED" config.sub "--prefix /usr" "" "DESTDIR=$DESTDIR_FIXED" "mkdir build && cd build && ../configure --disable-bzlib --disable-libseccomp --disable-xzlib --disable-zlib && make -j$(nproc) && cd .."
 fi
 
 # GNU Gawk
