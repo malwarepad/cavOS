@@ -32,12 +32,11 @@ bool fsSpecificClose(OpenFile *file) {
 }
 
 bool fsSpecificOpen(char *filename, MountPoint *mnt, OpenFile *target) {
-  bool res = false;
-  /*char *strippedFilename = (char *)((size_t)filename + strlength(mnt->prefix)
-     - 1); // -1 for putting start slash*/
+  bool  res = false;
+  char *strippedFilename = fsStripMountpoint(filename, mnt);
   switch (mnt->filesystem) {
   case FS_FATFS:
-    res = fat32Open(mnt, target, filename);
+    res = fat32Open(mnt, target, strippedFilename);
     break;
   default:
     debugf("[vfs] Tried to open with bad filesystem! id{%d}\n",

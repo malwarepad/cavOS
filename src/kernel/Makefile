@@ -59,6 +59,10 @@ disk:all
 	chmod +x $(TOOLS)/kernel/make_disk.sh
 	$(TOOLS)/kernel/make_disk.sh $(TARGET) $(MOUNTPOINT) $(TARGET_IMG) || (chmod +x $(TOOLS)/kernel/cleanup.sh && $(TOOLS)/kernel/cleanup.sh $(MOUNTPOINT))
 
+disk_dirty:all
+	chmod +x $(TOOLS)/kernel/make_disk.sh
+	$(TOOLS)/kernel/make_disk.sh $(TARGET) $(MOUNTPOINT) $(TARGET_IMG) yes || (chmod +x $(TOOLS)/kernel/cleanup.sh && $(TOOLS)/kernel/cleanup.sh $(MOUNTPOINT))
+
 vmware:disk
 	qemu-img convert $(TARGET_IMG) -O vmdk $(TARGET_VMWARE)
 
@@ -70,7 +74,7 @@ clean:
 # rm -f $(TARGET)/obj/*.o
 	find . -name '*.o' -delete
 	rm -r -f $(TARGET)/kernel.bin
-	rm -f $(TARGET_IMG) $(TARGET_VMWARE) $(TARGET_ISO)
+#	rm -f $(TARGET_IMG) $(TARGET_VMWARE) $(TARGET_ISO)
 
 qemu:
 	qemu-system-x86_64 -d guest_errors -serial stdio -drive file=$(TARGET_IMG),format=raw,id=disk,if=none -device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 -m 1g -netdev user,id=mynet0 -net nic,model=rtl8139,netdev=mynet0
@@ -80,5 +84,3 @@ qemu_dbg:
 
 qemu_iso:
 	qemu-system-x86_64 -d guest_errors -serial stdio -drive file=$(TARGET_ISO),format=raw -m 1g -netdev user,id=mynet0 -net nic,model=rtl8139,netdev=mynet0
-
-dev:clean disk qemu_dbg

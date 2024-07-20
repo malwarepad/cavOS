@@ -63,7 +63,8 @@ void _start(void) {
   initiateNetworking();
   initiatePCI();
   firstMountPoint = 0;
-  fsMount("/", CONNECTOR_AHCI, 0, 0);
+  fsMount("/", CONNECTOR_AHCI, 0, 1);
+  fsMount("/boot/", CONNECTOR_AHCI, 0, 0);
 
   // any filesystem operations depend on currentTask
   initiateTasks();

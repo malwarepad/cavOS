@@ -140,6 +140,7 @@ int      fsGetdents64(void *task, unsigned int fd, void *start,
 uint32_t fsGetFilesize(OpenFile *file);
 
 // vfs_sanitize.c
+char *fsStripMountpoint(const char *filename, MountPoint *mnt);
 char *fsSanitize(char *prefix, char *filename);
 
 // vfs_stat.c

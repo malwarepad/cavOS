@@ -40,12 +40,15 @@ limine:
 	@$(MAKE) -C src/bootloader all
 
 # Primary (disk creation)
-disk: verifytools limine musl ports target/usr/share/hwdata/pci.ids
+disk_prepare: verifytools limine musl ports target/usr/share/hwdata/pci.ids
 # @$(MAKE) -C src/libs/system
 	@$(MAKE) -C src/software/test
 	@$(MAKE) -C src/software/badtest
 	@$(MAKE) -C src/software/drawimg
+disk: disk_prepare
 	@$(MAKE) -C src/kernel disk
+disk_dirty: disk_prepare
+	@$(MAKE) -C src/kernel disk_dirty
 
 # Verify our toolchain is.. there!
 TOOLCHAIN_GCC_VERSION := $(shell ~/opt/cross/bin/x86_64-cavos-gcc --version 2>/dev/null)
@@ -81,4 +84,4 @@ vmware:
 # Development tools
 ringhome:
 	cmd.exe /c C:/Users/Panagiotis/ring.bat
-dev: clean disk ringhome
+dev: clean disk_dirty qemu_dbg

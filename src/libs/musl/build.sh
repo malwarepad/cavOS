@@ -50,7 +50,8 @@ cp -r "$PREFIX/lib" "$PREFIX/include" "$SCRIPTPATH/../../../target/usr/"
 # mv "$SCRIPTPATH/../../../target/usr/lib/libc.so" "$SCRIPTPATH/../../../target/usr/lib/libc.1.so"
 
 # crt0 fixup
-ln -sf "$SCRIPTPATH/../../../target/usr/lib/crt1.o" "$SCRIPTPATH/../../../target/usr/lib/crt0.o"
+rm -f "$SCRIPTPATH/../../../target/usr/lib/crt0.o"
+cp "$SCRIPTPATH/../../../target/usr/lib/crt1.o" "$SCRIPTPATH/../../../target/usr/lib/crt0.o"
 
 # required for proper dynamic linking
 mkdir -p "$SCRIPTPATH/../../../target/lib/"

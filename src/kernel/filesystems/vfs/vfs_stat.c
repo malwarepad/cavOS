@@ -21,9 +21,10 @@ bool fsStatByFilename(void *task, char *filename, stat *target) {
 
   MountPoint *mnt = fsDetermineMountPoint(safeFilename);
   bool        ret = false;
+  char       *strippedFilename = fsStripMountpoint(safeFilename, mnt);
   switch (mnt->filesystem) {
   case FS_FATFS: {
-    ret = fat32Stat(mnt->fsInfo, safeFilename, target);
+    ret = fat32Stat(mnt->fsInfo, strippedFilename, target);
     break;
   }
   default:

@@ -90,10 +90,11 @@ MountPoint *fsDetermineMountPoint(char *filename) {
 
   MountPoint *browse = firstMountPoint;
   while (browse) {
-    if (strlength(browse->prefix) > largestLen &&
-        memcmp(filename, browse->prefix, strlength(browse->prefix)) == 0) {
+    size_t len = strlength(browse->prefix) - 1; // without trailing /
+    if (len >= largestLen && memcmp(filename, browse->prefix, len) == 0 &&
+        (filename[len] == '/' || filename[len] == '\0')) {
       largestAddr = browse;
-      largestLen = strlength(browse->prefix);
+      largestLen = len;
     }
     browse = browse->next;
   }

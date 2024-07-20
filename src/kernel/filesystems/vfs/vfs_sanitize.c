@@ -7,6 +7,17 @@
 // Generic file path/name sanitization
 // Copyright (C) 2024 Panagiotis
 
+char  root[] = "/";
+char *fsStripMountpoint(const char *filename, MountPoint *mnt) {
+  char *out = (char *)((size_t)filename + strlength(mnt->prefix) -
+                       1); // -1 for putting start slash;
+
+  if (out[0] != '\0')
+    return out;
+  else
+    return root;
+}
+
 void fsSanitizeCopySafe(char *filename, char *safeFilename) {
   int i, j;
   for (i = 0, j = 0; filename[i] != '\0'; i++) {

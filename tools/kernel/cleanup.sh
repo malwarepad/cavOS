@@ -7,6 +7,8 @@ if [ -z "$1" ]; then
 	exit 1
 fi
 
-sudo umount "${1}"
+sudo umount -l "${1}"
+sudo umount -l "${1}/boot"
 sudo losetup -d /dev/loop101
 sudo losetup -d /dev/loop102
+sudo losetup -d /dev/loop103
