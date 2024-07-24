@@ -19,6 +19,7 @@ target/sys
 target/proc
 target/dev/pts
 target/dev
+target/bin
 
 # Misc (on the target system)
 target/usr/share

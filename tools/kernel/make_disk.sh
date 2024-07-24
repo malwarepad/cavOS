@@ -9,13 +9,19 @@ if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
 fi
 # NOTE: $4 -> quick kernel copy
 
+SCRIPT=$(realpath "$0")
+SCRIPTPATH=$(dirname "$SCRIPT")
+
+if [ ! -f "$1/bin" ]; then
+	cd "$1"
+	ln -s usr/bin bin
+	cd "$SCRIPTPATH"
+fi
+
 if test -f /dev/loop101 || test -f /dev/loop102 || test -f /dev/loop103; then
 	echo "Loopback devices designated for cavOS are already assigned to something! (/dev/loop101, /dev/loop102, /dev/loop103)"
 	exit 1
 fi
-
-SCRIPT=$(realpath "$0")
-SCRIPTPATH=$(dirname "$SCRIPT")
 
 LIMINE_DIR="${SCRIPTPATH}/../../src/bootloader/limine/"
 LIMINE_EXEC="${LIMINE_DIR}/limine"
