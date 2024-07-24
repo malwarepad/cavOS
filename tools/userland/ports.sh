@@ -99,8 +99,23 @@ if [ ! -f "$USR_PATHNAME/bin/readelf" ]; then
 fi
 
 # GCC (for real this time, this is not a cross compiler)
-#if [ ! -f "$USR_PATHNAME/bin/gcc" ]; then
-#	export PATH=$HOME/opt/autotools_gcc/bin:$PATH
-#	build_package_autotools https://ftp.gnu.org/gnu/gcc/gcc-11.4.0/gcc-11.4.0.tar.gz "$USR_PATHNAME" config.sub '--host=x86_64-cavos --target=x86_64-cavos --prefix=/usr --enable-shared --disable-werror --enable-languages=c,c++' "$PATCH_PATHNAME/gcc.diff" "DESTDIR=$USR_PATHNAME/../" "cd libstdc++-v3 && autoconf && cd .. && ./contrib/download_prerequisites && sed -i 's/\-gnu\* | \-bsd\*/\-cavos\*/g' ./gmp/configfsf.sub && sed -i 's/\-gnu\* | \-bsd\*/\-cavos\*/g' ./mpfr/config.sub && sed -i 's/\-gnu\* | \-bsd\*/\-cavos\*/g' ./mpc/config.sub && sed -i 's/\-gnu\* | \-bsd\*/\-cavos\*/g' ./isl/config.sub"
-#fi
-# ^ is buggy, takes a lot of space and is DEFINITELY not needed (atl not yet) ^
+if [ ! -f "$USR_PATHNAME/bin/gcc" ]; then
+	export PATH=$HOME/opt/autotools_gcc/bin:$PATH
+	build_package_autotools https://ftp.gnu.org/gnu/gcc/gcc-11.4.0/gcc-11.4.0.tar.gz "$USR_PATHNAME" config.sub '--host=x86_64-cavos --target=x86_64-cavos --prefix=/usr --enable-shared --disable-werror --enable-languages=c,c++' "$PATCH_PATHNAME/gcc.diff" "DESTDIR=$USR_PATHNAME/../" "cd libstdc++-v3 && autoconf && cd .. && ./contrib/download_prerequisites && sed -i 's/\-gnu\* | \-bsd\*/\-cavos\*/g' ./gmp/configfsf.sub && sed -i 's/\-gnu\* | \-bsd\*/\-cavos\*/g' ./mpfr/config.sub && sed -i 's/\-gnu\* | \-bsd\*/\-cavos\*/g' ./mpc/config.sub && sed -i 's/\-gnu\* | \-bsd\*/\-cavos\*/g' ./isl/config.sub"
+fi
+
+# By this point, we have all compiler tools we need inside the target system...
+# Hence, we can begin to use it for targetted compilations, instead of cross-compilations like so:
+
+source "${SCRIPTPATH}/../shared/chroot.sh"
+chroot_establish
+cd "$USR_PATHNAME/../"
+
+# The netwide assembler (nasm)
+if [ ! -f "$USR_PATHNAME/bin/nasm" ]; then
+	wget -nc https://www.nasm.us/pub/nasm/releasebuilds/2.15.05/nasm-2.15.05.tar.xz
+	tar xpvf nasm-2.15.05.tar.xz
+	sudo chroot "$TARGET_DIR/" /usr/bin/bash -c "cd /nasm-2.15.05 && ./configure --prefix=/usr && make -j$(nproc) && make install && cd / && rm -rf /nasm-2.15.05 /nasm-2.15.05.tar.xz"
+fi
+
+chroot_drop

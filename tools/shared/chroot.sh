@@ -37,4 +37,5 @@ chroot_drop() {
 }
 
 # chroot_establish
+# sudo chroot "$TARGET_DIR/" /usr/bin/bash
 # chroot_drop
