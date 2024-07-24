@@ -12,7 +12,7 @@ fi
 SCRIPT=$(realpath "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 
-if [ ! -f "$1/bin" ]; then
+if [ ! -d "$1/bin" ]; then
 	cd "$1"
 	ln -s usr/bin bin
 	cd "$SCRIPTPATH"
