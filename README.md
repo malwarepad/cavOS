@@ -29,6 +29,12 @@ Important to mention these goals may never be satisfied, take a very long time t
   - [x] Interrupts: ISR, IRQ, GDT
   - [x] Ring3: Scheduling, ELF64, SSE, paging, `systemcall`
   - [x] Generic: RTC
+- Filesystems
+  - [x] VFS: Mountpoints, special files
+  - [x] FAT32: Read
+  - [x] Ext2: Read
+  - [ ] FAT32: Write
+  - [ ] Ext2: Write
 - Device drivers
   - [x] Storage: AHCI
   - [x] Networking: RTL8139, RTL8169

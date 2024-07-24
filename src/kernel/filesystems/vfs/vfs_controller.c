@@ -1,4 +1,5 @@
 #include <disk.h>
+#include <ext2.h>
 #include <fat32.h>
 #include <linked_list.h>
 #include <malloc.h>
@@ -245,5 +246,18 @@ int fsGetdents64(void *task, unsigned int fd, void *start,
   OpenFile *file = fsUserGetNode(task, fd);
   if (!file)
     return -EBADF;
-  return fat32Getdents64(file, start, hardlimit);
+  int ret = -1;
+  switch (file->mountPoint->filesystem) {
+  case FS_FATFS:
+    ret = fat32Getdents64(file, start, hardlimit);
+    break;
+  case FS_EXT2:
+    ret = ext2Getdents64(file, start, hardlimit);
+    break;
+  default:
+    debugf("[vfs] Tried to getdents64 with bad filesystem! id{%d}\n",
+           file->mountPoint->filesystem);
+    break;
+  }
+  return ret;
 }

@@ -43,10 +43,10 @@ sudo losetup /dev/loop103 "${3}" -o 136314880 # 128 MB
 
 if [ -z "$4" ]; then
 	sudo mkdosfs -F32 -f 2 /dev/loop102
-	sudo mkdosfs -F32 -f 2 /dev/loop103
-	# sudo mkfs.ext2 /dev/loop102
+	# sudo mkdosfs -F32 -f 2 /dev/loop103
+	sudo mke2fs -L "cavOS" /dev/loop103
 	sudo fatlabel /dev/loop102 LIMINE
-	sudo fatlabel /dev/loop103 CAVOS
+	# sudo fatlabel /dev/loop103 CAVOS
 fi
 
 sudo mkdir -p "${2}"

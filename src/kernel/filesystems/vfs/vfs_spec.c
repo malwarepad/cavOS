@@ -1,4 +1,5 @@
 #include <disk.h>
+#include <ext2.h>
 #include <fat32.h>
 #include <linked_list.h>
 #include <malloc.h>
@@ -21,6 +22,9 @@ bool fsSpecificClose(OpenFile *file) {
   case FS_FATFS:
     res = fat32Close(file->mountPoint, file);
     break;
+  case FS_EXT2:
+    res = ext2Close(file->mountPoint, file);
+    break;
   default:
     debugf("[vfs] Tried to close with bad filesystem! id{%d}\n",
            file->mountPoint->filesystem);
@@ -38,6 +42,9 @@ bool fsSpecificOpen(char *filename, MountPoint *mnt, OpenFile *target) {
   case FS_FATFS:
     res = fat32Open(mnt, target, strippedFilename);
     break;
+  case FS_EXT2:
+    res = ext2Open(mnt, target, strippedFilename);
+    break;
   default:
     debugf("[vfs] Tried to open with bad filesystem! id{%d}\n",
            target->mountPoint->filesystem);
@@ -50,10 +57,12 @@ bool fsSpecificOpen(char *filename, MountPoint *mnt, OpenFile *target) {
 int fsSpecificRead(OpenFile *file, uint8_t *out, size_t limit) {
   uint32_t ret = 0;
   switch (file->mountPoint->filesystem) {
-  case FS_FATFS: {
+  case FS_FATFS:
     ret = fat32Read(file->mountPoint, file, out, limit);
     break;
-  }
+  case FS_EXT2:
+    ret = ext2Read(file->mountPoint, file, out, limit);
+    break;
   default:
     debugf("[vfs] Tried to read with bad filesystem! id{%d}\n",
            file->mountPoint->filesystem);
@@ -105,6 +114,9 @@ size_t fsSpecificGetFilesize(OpenFile *file) {
   case FS_FATFS:
     return fat32GetFilesize(file);
     break;
+  case FS_EXT2:
+    return ext2GetFilesize(file);
+    break;
   default:
     debugf("[vfs] Tried to getFilesize with bad filesystem! id{%d}\n",
            file->mountPoint->filesystem);
@@ -124,6 +136,12 @@ int fsSpecificSeek(OpenFile *file, int target, int offset, int whence) {
       target += ((FAT32OpenFd *)file->dir)->ptr;
     // debugf("moving to %d\n", target);
     ret = fat32Seek(file->mountPoint, file, target);
+    break;
+  case FS_EXT2:
+    // "hack" because openfile ptr is not used
+    if (whence == SEEK_CURR)
+      target += ((Ext2OpenFd *)file->dir)->ptr;
+    ret = ext2Seek(file->mountPoint, file, target);
     break;
   default:
     debugf("[vfs] Tried to seek with bad filesystem! id{%d}\n",
@@ -149,6 +167,30 @@ bool fsSpecificDuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan) {
       memcpy(orphan->dirname, original->dirname, len);
     }
     break;
+  case FS_EXT2:
+    orphan->dir = malloc(sizeof(Ext2OpenFd));
+    memcpy(orphan->dir, original->dir, sizeof(Ext2OpenFd));
+
+    Ext2       *ext2 = EXT2_PTR(orphan->mountPoint->fsInfo);
+    Ext2OpenFd *dir = EXT2_DIR_PTR(orphan->dir);
+    Ext2OpenFd *dirOriginal = EXT2_DIR_PTR(original->dir);
+
+    if (dir->lookup.tmp1) {
+      dir->lookup.tmp1 = malloc(ext2->blockSize);
+      memcpy(dir->lookup.tmp1, dirOriginal->lookup.tmp1, ext2->blockSize);
+    }
+
+    if (dir->lookup.tmp2) {
+      dir->lookup.tmp2 = malloc(ext2->blockSize);
+      memcpy(dir->lookup.tmp2, dirOriginal->lookup.tmp2, ext2->blockSize);
+    }
+
+    if (original->dirname) {
+      size_t len = strlength(original->dirname) + 1;
+      orphan->dirname = (char *)malloc(len);
+      memcpy(orphan->dirname, original->dirname, len);
+    }
+    break;
   default:
     debugf("[vfs] Tried to duplicateNode with bad filesystem! id{%d}\n",
            orphan->mountPoint->filesystem);
@@ -161,10 +203,12 @@ bool fsSpecificDuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan) {
 int fsSpecificStat(OpenFile *fd, stat *target) {
   bool ret = false;
   switch (fd->mountPoint->filesystem) {
-  case FS_FATFS: {
+  case FS_FATFS:
     ret = fat32StatFd(fd->mountPoint->fsInfo, fd, target);
     break;
-  }
+  case FS_EXT2:
+    ret = ext2StatFd(fd->mountPoint->fsInfo, fd, target);
+    break;
   default:
     debugf("[vfs] Tried to stat with bad filesystem! id{%d}\n",
            fd->mountPoint->filesystem);

@@ -1,4 +1,5 @@
 #include <disk.h>
+#include <ext2.h>
 #include <fat32.h>
 #include <linked_list.h>
 #include <malloc.h>
@@ -40,6 +41,8 @@ bool isFat(mbr_partition *mbr) {
   return ret;
 }
 
+bool isExt2(mbr_partition *mbr) { return mbr->type == 0x83; }
+
 // prefix MUST end with '/': /mnt/handle/
 MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
                     uint8_t partition) {
@@ -66,6 +69,9 @@ MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
     if (isFat(&mount->mbr)) {
       mount->filesystem = FS_FATFS;
       ret = fat32Mount(mount);
+    } else if (isExt2(&mount->mbr)) {
+      mount->filesystem = FS_EXT2;
+      ret = ext2Mount(mount);
     }
     break;
   default:

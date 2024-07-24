@@ -10,6 +10,8 @@
 #define inrand(minimum_number, max_number)                                     \
   (rand() % (max_number + 1 - minimum_number) + minimum_number)
 
+#define COMBINE_64(higher, lower)                                              \
+  (((uint64_t)(higher) << 32) | (uint64_t)(lower))
 #define SPLIT_64_HIGHER(value) ((value) >> 32)
 #define SPLIT_64_LOWER(value) ((value) & 0xFFFFFFFF)
 
