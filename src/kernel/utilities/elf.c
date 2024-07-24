@@ -229,12 +229,13 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
   stackGenerateUser(target, argc, argv, envc, envv, out, filesize, elf_ehdr);
   free(out);
 
-  fsUserOpenSpecial("/dev/stdin", target, 0, &stdio);
-  fsUserOpenSpecial("/dev/stdout", target, 1, &stdio);
-  fsUserOpenSpecial("/dev/stderr", target, 2, &stdio);
+  void **a = (void **)(&target->firstSpecialFile);
+  fsUserOpenSpecial(a, "/dev/stdin", target, 0, &stdio);
+  fsUserOpenSpecial(a, "/dev/stdout", target, 1, &stdio);
+  fsUserOpenSpecial(a, "/dev/stderr", target, 2, &stdio);
 
-  fsUserOpenSpecial("/dev/fb0", target, -1, &fb0);
-  fsUserOpenSpecial("/dev/tty", target, -1, &stdio);
+  fsUserOpenSpecial(a, "/dev/fb0", target, -1, &fb0);
+  fsUserOpenSpecial(a, "/dev/tty", target, -1, &stdio);
 
   // Align it, just in case...
   taskAdjustHeap(target, DivRoundUp(target->heap_end, 0x1000) * 0x1000,

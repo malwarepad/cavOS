@@ -2,6 +2,7 @@
 #include <console.h>
 #include <disk.h>
 #include <elf.h>
+#include <fakefs.h>
 #include <fastSyscall.h>
 #include <fb.h>
 #include <gdt.h>
@@ -78,6 +79,7 @@ void _start(void) {
   initiateSyscalls();
 
   initiateSSE();
+  initiateFakefs();
   // initiateTasks();
 
   testingInit();

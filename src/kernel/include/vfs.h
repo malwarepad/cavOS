@@ -115,6 +115,9 @@ struct SpecialFile {
 
 MountPoint *firstMountPoint;
 
+// "global" special files
+SpecialFile *firstGlobalSpecial;
+
 #define SEEK_SET 0  // start + offset
 #define SEEK_CURR 1 // current + offset
 #define SEEK_END 2  // end + offset
@@ -164,10 +167,10 @@ bool        fsUnmount(MountPoint *mnt);
 MountPoint *fsDetermineMountPoint(char *filename);
 
 // vfs_special.c
-OpenFile    *fsUserSpecialDummyGen(void *task, int fd, SpecialFile *special,
-                                   int flags, int mode);
-bool         fsUserOpenSpecial(char *filename, void *taskPtr, int fd,
-                               SpecialHandlers *specialHandlers);
+OpenFile *fsUserSpecialDummyGen(void *task, int fd, SpecialFile *special,
+                                int flags, int mode);
+bool      fsUserOpenSpecial(void **firstSpecial, char *filename, void *taskPtr,
+                            int fd, SpecialHandlers *specialHandlers);
 SpecialFile *fsUserDuplicateSpecialNodeUnsafe(SpecialFile *original);
 bool         fsUserCloseSpecial(void *task, SpecialFile *special);
 SpecialFile *fsUserGetSpecialByFilename(void *task, char *filename);

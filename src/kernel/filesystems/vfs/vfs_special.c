@@ -33,13 +33,13 @@ OpenFile *fsUserSpecialDummyGen(void *task, int fd, SpecialFile *special,
   return dummy;
 }
 
-bool fsUserOpenSpecial(char *filename, void *taskPtr, int fd,
-                       SpecialHandlers *specialHandlers) {
+bool fsUserOpenSpecial(void **firstSpecial, char *filename, void *taskPtr,
+                       int fd, SpecialHandlers *specialHandlers) {
   Task *task = (Task *)taskPtr;
 
   spinlockCntWriteAcquire(&task->WLOCK_SPECIAL);
   SpecialFile *target = (SpecialFile *)LinkedListAllocate(
-      (void **)(&task->firstSpecialFile), sizeof(SpecialFile));
+      (void **)(firstSpecial), sizeof(SpecialFile));
   spinlockCntWriteRelease(&task->WLOCK_SPECIAL);
 
   size_t filenameLen = strlength(filename) + 1; // null terminated
@@ -77,12 +77,13 @@ bool fsUserCloseSpecial(void *task, SpecialFile *special) {
   return ret;
 }
 
-SpecialFile *fsUserGetSpecialByFilename(void *task, char *filename) {
+SpecialFile *fsUserSearchSpecialList(SpecialFile *firstSpecial, void *task,
+                                     char *filename) {
   Task *target = (Task *)task;
-  if (!target || !target->firstSpecialFile)
+  if (!target || !firstSpecial)
     return 0;
   spinlockCntReadAcquire(&target->WLOCK_SPECIAL);
-  SpecialFile *browse = target->firstSpecialFile;
+  SpecialFile *browse = firstSpecial;
   while (browse) {
     size_t len1 = strlength(filename);
     size_t len2 = strlength(browse->filename);
@@ -94,6 +95,17 @@ SpecialFile *fsUserGetSpecialByFilename(void *task, char *filename) {
   spinlockCntReadRelease(&target->WLOCK_SPECIAL);
 
   return browse;
+}
+
+SpecialFile *fsUserGetSpecialByFilename(void *task, char *filename) {
+  SpecialFile *conventional =
+      fsUserSearchSpecialList(currentTask->firstSpecialFile, task, filename);
+  if (conventional)
+    return conventional;
+
+  SpecialFile *global =
+      fsUserSearchSpecialList(firstGlobalSpecial, task, filename);
+  return global; // can return 0
 }
 
 SpecialFile *fsUserGetSpecialById(void *taskPtr, int fd) {
