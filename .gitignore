@@ -1,6 +1,7 @@
 # Binaries
 target/boot/*.bin
 target/usr/bin/*
+target/usr/sbin
 target/usr/lib
 target/lib
 disk.img
