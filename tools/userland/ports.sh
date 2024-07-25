@@ -13,6 +13,13 @@ PATCH_PATHNAME="${SCRIPTPATH}/../../patches"
 # build_package_autotools($uri, $install_dir, $config_sub_path, $extra_parameters, $optional_patchname, $extra_install_parameters, $autoconf_extra)
 source "${SCRIPTPATH}/../shared/cross_compile.sh"
 
+# Some important stuff...
+if [ ! -d "$USR_PATHNAME/../bin" ]; then
+	cd "$USR_PATHNAME/../"
+	ln -s usr/bin bin
+fi
+cd "$USR_PATHNAME/../../"
+
 # GNU ncurses (useful library)
 if [ ! -f "$USR_PATHNAME/bin/clear" ]; then
 	build_package_autotools https://ftp.gnu.org/gnu/ncurses/ncurses-6.5.tar.gz "/usr" config.sub "--with-build-sysroot='$USR_PATHNAME' --with-sysroot=/" "" "DESTDIR='$USR_PATHNAME/../'"
@@ -111,11 +118,36 @@ source "${SCRIPTPATH}/../shared/chroot.sh"
 chroot_establish
 cd "$USR_PATHNAME/../"
 
+# Make sure we use GNU bash for our /bin/sh
+if [ ! -f "$USR_PATHNAME/bin/sh" ]; then
+	sudo chroot "$TARGET_DIR/" /usr/bin/bash -c "ln -s bash /usr/bin/sh"
+fi
+
 # The netwide assembler (nasm)
 if [ ! -f "$USR_PATHNAME/bin/nasm" ]; then
 	wget -nc https://www.nasm.us/pub/nasm/releasebuilds/2.15.05/nasm-2.15.05.tar.xz
 	tar xpvf nasm-2.15.05.tar.xz
 	sudo chroot "$TARGET_DIR/" /usr/bin/bash -c "cd /nasm-2.15.05 && ./configure --prefix=/usr && make -j$(nproc) && make install && cd / && rm -rf /nasm-2.15.05 /nasm-2.15.05.tar.xz"
+fi
+
+# Linux headers (needed for a lot of software)
+if [ ! -f "$USR_PATHNAME/include/asm/byteorder.h" ]; then
+	wget -nc https://www.kernel.org/pub/linux/kernel/v6.x/linux-6.6.41.tar.xz
+	tar xpvf linux-6.6.41.tar.xz
+	cd linux-6.6.41
+	make mrproper
+	make headers
+	find usr/include -type f ! -name '*.h' -delete
+	cp -r usr/include/* "$USR_PATHNAME/include/"
+	cd ..
+	rm -rf linux-6.6.41 linux-6.6.41.tar.xz
+fi
+
+# PCI utilities (lspci, update-pciids, etc)
+if [ ! -f "$USR_PATHNAME/sbin/lspci" ]; then
+	wget -nc https://www.kernel.org/pub/software/utils/pciutils/pciutils-3.7.0.tar.xz
+	tar xpvf pciutils-3.7.0.tar.xz
+	sudo chroot "$TARGET_DIR/" /usr/bin/bash -c "cd /pciutils-3.7.0 && make PREFIX=/usr SHAREDIR=/usr/share/hwdata -j$(nproc) && make PREFIX=/usr SHAREDIR=/usr/share/hwdata install install-lib && cd / && rm -rf /pciutils-3.7.0 /pciutils-3.7.0.tar.xz"
 fi
 
 chroot_drop

@@ -10,8 +10,19 @@ SCRIPTPATH=$(dirname "$SCRIPT")
 
 TARGET_DIR="$SCRIPTPATH/../../target/"
 
+chroot_drop() {
+	sudo umount -l "$TARGET_DIR/dev/shm" || true
+	sudo umount -l "$TARGET_DIR/run" || true
+	sudo umount -l "$TARGET_DIR/sys" || true
+	sudo umount -l "$TARGET_DIR/proc" || true
+	sudo umount -l "$TARGET_DIR/dev/pts" || true
+	sudo umount -l "$TARGET_DIR/dev" || true
+}
+
 chroot_establish() {
-	mkdir -p "$TARGET_DIR/"{dev,proc,sys,run}
+	chroot_drop
+
+	mkdir -p "$TARGET_DIR/"{dev,proc,sys,run,tmp}
 	sudo mount --bind /dev "$TARGET_DIR/dev"
 	sudo mount -t devpts devpts -o gid=5,mode=0620 "$TARGET_DIR/dev/pts"
 	sudo mount -t proc proc "$TARGET_DIR/proc"
@@ -25,15 +36,6 @@ chroot_establish() {
 
 	# sudo chroot "$TARGET_DIR/" /usr/bin/bash -c "ls files
 	# cat files/ab.txt"
-}
-
-chroot_drop() {
-	sudo umount -l "$TARGET_DIR/dev/shm"
-	sudo umount -l "$TARGET_DIR/run"
-	sudo umount -l "$TARGET_DIR/sys"
-	sudo umount -l "$TARGET_DIR/proc"
-	sudo umount -l "$TARGET_DIR/dev/pts"
-	sudo umount -l "$TARGET_DIR/dev"
 }
 
 # chroot_establish

@@ -14,10 +14,13 @@
 Having a good time is my drive for this project + I learn a lot of cool low level stuff alongside that! 
 
 ## Kernel status
-The cavOS kernel is a monolithic x86_64 one written in relatively simple C with a few bits of Intel assembly here and there. It uses the Limine bootloader and leverages the FAT32 filesystem for booting. I try to keep the code structure clean and fairly easy to understand, while avoiding too much abstraction.
+The cavOS kernel is a monolithic x86_64 one written in relatively simple C with a few bits of Intel assembly here and there. It uses the Limine bootloader and leverages the FAT32 filesystem for booting along with Ext2 for the root partition. I try to keep the code structure clean and fairly easy to understand, while avoiding too much abstraction. Hence, code quality and clarity are sometimes prioritized over performance gains.
 
 ## Userspace status
 Userspace is my primary focus at the time being, with the kernel being *quite* stable. I'm trying to make this OS as close to Linux as I can, while adding my own stuff on top of it. This is visible with the system calls that are exactly like Linux's. That isn't random, I want cavOS to be as binary compatible with it as possible!
+
+## Is this a Linux distribution?
+No! The cavOS kernel does not share source code or headers with Linux. The Linux source code *is* pulled during userspace assembly, but only because some third party (ported) programs depend on [it's headers](https://wiki.gentoo.org/wiki/Linux-headers). Even then, no actual code is shared.
 
 ## Goals
 
