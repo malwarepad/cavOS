@@ -1,26 +1,15 @@
-diff --git a/config.sub b/config.sub
-index 6467c95..13976f2 100755
---- a/config.sub
-+++ b/config.sub
-@@ -1368,7 +1368,7 @@ case $os in
- 	# The portable systems comes first.
- 	# Each alternative MUST END IN A *, to match a version number.
- 	# -sysv* is not here because it comes later, after sysvr4.
--	-gnu* | -bsd* | -mach* | -minix* | -genix* | -ultrix* | -irix* \
-+	-gnu* | -cavos* | -bsd* | -mach* | -minix* | -genix* | -ultrix* | -irix* \
- 	      | -*vms* | -sco* | -esix* | -isc* | -aix* | -cnk* | -sunos | -sunos[34]*\
- 	      | -hpux* | -unos* | -osf* | -luna* | -dgux* | -auroraux* | -solaris* \
- 	      | -sym* | -kopensolaris* | -plan9* \
-diff --git a/glib/config.sub b/glib/config.sub
-index 6467c95..13976f2 100755
---- a/glib/config.sub
-+++ b/glib/config.sub
-@@ -1368,7 +1368,7 @@ case $os in
- 	# The portable systems comes first.
- 	# Each alternative MUST END IN A *, to match a version number.
- 	# -sysv* is not here because it comes later, after sysvr4.
--	-gnu* | -bsd* | -mach* | -minix* | -genix* | -ultrix* | -irix* \
-+	-gnu* | -cavos* | -bsd* | -mach* | -minix* | -genix* | -ultrix* | -irix* \
- 	      | -*vms* | -sco* | -esix* | -isc* | -aix* | -cnk* | -sunos | -sunos[34]*\
- 	      | -hpux* | -unos* | -osf* | -luna* | -dgux* | -auroraux* | -solaris* \
- 	      | -sym* | -kopensolaris* | -plan9* \
+diff --git a/glib/glib/giounix.c b/glib/glib/giounix.c
+index 517e36b..794c4e5 100644
+--- a/glib/glib/giounix.c
++++ b/glib/glib/giounix.c
+@@ -187,8 +187,8 @@ g_io_unix_read (GIOChannel *channel,
+   GIOUnixChannel *unix_channel = (GIOUnixChannel *)channel;
+   gssize result;
+ 
+-  if (count > SSIZE_MAX) /* At least according to the Debian manpage for read */
+-    count = SSIZE_MAX;
++  if (count > LONG_MAX) /* At least according to the Debian manpage for read */
++    count = LONG_MAX;
+ 
+  retry:
+   result = read (unix_channel->fd, buf, count);

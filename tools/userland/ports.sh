@@ -150,4 +150,23 @@ if [ ! -f "$USR_PATHNAME/sbin/lspci" ]; then
 	sudo chroot "$TARGET_DIR/" /usr/bin/bash -c "cd /pciutils-3.7.0 && make PREFIX=/usr SHAREDIR=/usr/share/hwdata -j$(nproc) && make PREFIX=/usr SHAREDIR=/usr/share/hwdata install install-lib && cd / && rm -rf /pciutils-3.7.0 /pciutils-3.7.0.tar.xz"
 fi
 
+# pkg-config
+if [ ! -f "$USR_PATHNAME/bin/pkg-config" ]; then
+	wget -nc http://pkgconfig.freedesktop.org/releases/pkg-config-0.29.2.tar.gz
+	tar xpvf pkg-config-0.29.2.tar.gz
+	cd pkg-config-0.29.2
+	patch -p1 <../../patches/pkg-config.diff
+	cd ..
+	sudo chroot "$TARGET_DIR/" /usr/bin/bash -c "cd /pkg-config-0.29.2 && ./configure --prefix=/usr --with-internal-glib --disable-host-tool && make -j$(nproc) && make install && cd / && rm -rf /pkg-config-0.29.2 /pkg-config-0.29.2.tar.gz"
+fi
+
+# Vim (fuck nano)
+if [ ! -f "$USR_PATHNAME/bin/vim" ]; then
+	wget -nc https://github.com/vim/vim/archive/v9.1.0041/vim-9.1.0041.tar.gz
+	tar xpvf vim-9.1.0041.tar.gz
+	echo '#define SYS_VIMRC_FILE  "/etc/vimrc"' >>vim-9.1.0041/src/feature.h
+	echo '#define SYS_GVIMRC_FILE "/etc/gvimrc"' >>vim-9.1.0041/src/feature.h
+	sudo chroot "$TARGET_DIR/" /usr/bin/bash -c "cd /vim-9.1.0041 && ./configure --prefix=/usr --with-tlib=ncursesw && make -j$(nproc) && make install && cd / && rm -rf /vim-9.1.0041 /vim-9.1.0041.tar.gz"
+fi
+
 chroot_drop
