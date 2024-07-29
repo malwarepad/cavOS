@@ -21,7 +21,7 @@ extern uint32_t framebufferPitch;
 void drawRect(int x, int y, int w, int h, int r, int g, int b);
 void drawLine(int x1, int y1, int x2, int y2, int r, int g, int b);
 
-extern SpecialHandlers fb0;
+extern VfsHandlers fb0;
 
 /* Linux... oh, linux */
 #define FBIOGET_VSCREENINFO 0x4600

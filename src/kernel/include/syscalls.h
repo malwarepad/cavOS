@@ -47,11 +47,11 @@ size_t mmapHandler(size_t addr, size_t length, int prot, int flags,
                    OpenFile *fd, size_t pgoffset);
 
 /* Defined in io.c */
-extern SpecialHandlers stdio;
+extern VfsHandlers stdio;
 
 /* Unix pipe() (defined in pipe.c) */
-SpecialHandlers pipeReadEnd;
-SpecialHandlers pipeWriteEnd;
+VfsHandlers pipeReadEnd;
+VfsHandlers pipeWriteEnd;
 
 bool pipeCloseEnd(OpenFile *readFd);
 int  pipeOpen(int *fds);

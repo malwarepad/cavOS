@@ -205,19 +205,21 @@ int pipeBadIoctl() { return -ENOTTY; }
 
 size_t pipeBadMmap() { return -1; }
 
-SpecialHandlers pipeReadEnd = {.open = 0,
-                               .close = pipeCloseEnd,
-                               .duplicate = pipeDuplicate,
-                               .ioctl = pipeBadIoctl,
-                               .mmap = pipeBadMmap,
-                               .stat = pipeStat,
-                               .read = pipeRead,
-                               .write = pipeBadWrite};
-SpecialHandlers pipeWriteEnd = {.open = 0,
-                                .close = pipeCloseEnd,
-                                .duplicate = pipeDuplicate,
-                                .ioctl = pipeBadIoctl,
-                                .mmap = pipeBadMmap,
-                                .stat = pipeStat,
-                                .read = pipeBadRead,
-                                .write = pipeWrite};
+VfsHandlers pipeReadEnd = {.open = 0,
+                           .close = pipeCloseEnd,
+                           .duplicate = pipeDuplicate,
+                           .ioctl = pipeBadIoctl,
+                           .mmap = pipeBadMmap,
+                           .stat = pipeStat,
+                           .read = pipeRead,
+                           .write = pipeBadWrite,
+                           .getdents64 = 0};
+VfsHandlers pipeWriteEnd = {.open = 0,
+                            .close = pipeCloseEnd,
+                            .duplicate = pipeDuplicate,
+                            .ioctl = pipeBadIoctl,
+                            .mmap = pipeBadMmap,
+                            .stat = pipeStat,
+                            .read = pipeBadRead,
+                            .write = pipeWrite,
+                            .getdents64 = 0};

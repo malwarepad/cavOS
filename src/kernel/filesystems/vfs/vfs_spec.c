@@ -222,12 +222,32 @@ int fbSpecificIoctl(OpenFile *fd, uint64_t request, void *arg) {
   return -ENOTTY;
 }
 
+int fsSpecificGetdents64(OpenFile *file, void *task,
+                         struct linux_dirent64 *dirp, unsigned int count) {
+  // todo, special files, directories, etc
+  int ret = -1;
+  switch (file->mountPoint->filesystem) {
+  case FS_FATFS:
+    ret = fat32Getdents64(file, dirp, count);
+    break;
+  case FS_EXT2:
+    ret = ext2Getdents64(file, dirp, count);
+    break;
+  default:
+    debugf("[vfs] Tried to getdents64 with bad filesystem! id{%d}\n",
+           file->mountPoint->filesystem);
+    break;
+  }
+  return ret;
+}
+
 // todo: no 0s
-SpecialHandlers fsSpecific = {.open = 0,
-                              .close = fsSpecificClose,
-                              .duplicate = fsSpecificDuplicateNodeUnsafe,
-                              .ioctl = fbSpecificIoctl,
-                              .mmap = 0,
-                              .read = fsSpecificRead,
-                              .stat = fsSpecificStat,
-                              .write = fsSpecificWrite};
+VfsHandlers fsSpecific = {.open = 0,
+                          .close = fsSpecificClose,
+                          .duplicate = fsSpecificDuplicateNodeUnsafe,
+                          .ioctl = fbSpecificIoctl,
+                          .mmap = 0,
+                          .read = fsSpecificRead,
+                          .stat = fsSpecificStat,
+                          .write = fsSpecificWrite,
+                          .getdents64 = fsSpecificGetdents64};

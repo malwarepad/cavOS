@@ -34,7 +34,7 @@ OpenFile *fsUserSpecialDummyGen(void *task, int fd, SpecialFile *special,
 }
 
 bool fsUserOpenSpecial(void **firstSpecial, char *filename, void *taskPtr,
-                       int fd, SpecialHandlers *specialHandlers) {
+                       int fd, VfsHandlers *specialHandlers) {
   Task *task = (Task *)taskPtr;
 
   spinlockCntWriteAcquire(&task->WLOCK_SPECIAL);

@@ -4,7 +4,7 @@
 #ifndef NULL_H
 #define NULL_H
 
-SpecialHandlers handleNull;
+VfsHandlers handleNull;
 
 void initiateFakefs();
 

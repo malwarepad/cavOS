@@ -8,6 +8,10 @@
 
 // todo: special files & timestamps
 bool fsStat(OpenFile *fd, stat *target) {
+  if (!fd->handlers->stat) {
+    debugf("[vfs] Lacks stat handler fd{%d}!\n", fd->id);
+    panic();
+  }
   return fd->handlers->stat(fd, target) == 0;
 }
 

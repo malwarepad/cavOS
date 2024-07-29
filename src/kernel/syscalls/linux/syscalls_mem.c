@@ -45,6 +45,8 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
     if (!file || file->mountPoint != MOUNT_POINT_SPECIAL)
       return -1;
 
+    if (!file->handlers->mmap)
+      return -1;
     return file->handlers->mmap(addr, length, prot, flags, file, pgoffset);
   }
 

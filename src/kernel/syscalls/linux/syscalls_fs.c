@@ -124,7 +124,7 @@ static int syscallIoctl(int fd, unsigned long request, void *arg) {
     return -EBADF;
   }
 
-  if (browse->mountPoint != MOUNT_POINT_SPECIAL)
+  if (browse->mountPoint != MOUNT_POINT_SPECIAL || !browse->handlers->ioctl)
     return -ENOTTY;
 
   int ret = browse->handlers->ioctl(browse, request, arg);
@@ -263,7 +263,16 @@ static int syscallReadlink(char *path, char *buf, int size) {
 #define SYSCALL_GETDENTS64 217
 static int syscallGetdents64(unsigned int fd, struct linux_dirent64 *dirp,
                              unsigned int count) {
-  return fsGetdents64(currentTask, fd, dirp, count);
+  OpenFile *browse = fsUserGetNode(currentTask, fd);
+  if (!browse) {
+#if DEBUG_SYSCALLS_FAILS
+    debugf("[syscalls::getdents64] FAIL! Couldn't find file! fd{%d}\n", fd);
+#endif
+    return -EBADF;
+  }
+  if (!browse->handlers->getdents64)
+    return -ENOTDIR;
+  return browse->handlers->getdents64(browse, currentTask, dirp, count);
 }
 
 #define FD_SETSIZE 1024

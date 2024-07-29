@@ -71,20 +71,24 @@ typedef int (*SpecialStatHandler)(OpenFile *fd, stat *stat);
 typedef size_t (*SpecialMmapHandler)(size_t addr, size_t length, int prot,
                                      int flags, OpenFile *fd, size_t pgoffset);
 typedef bool (*SpecialDuplicate)(OpenFile *original, OpenFile *orphan);
+typedef int (*SpecialGetdents64)(OpenFile *fd, void *task,
+                                 struct linux_dirent64 *dirp,
+                                 unsigned int           count);
 typedef bool (*SpecialOpen)(OpenFile *fd);
 typedef bool (*SpecialClose)(OpenFile *fd);
 
-typedef struct SpecialHandlers {
+typedef struct VfsHandlers {
   SpecialReadHandler  read;
   SpecialWriteHandler write;
   SpecialIoctlHandler ioctl;
   SpecialStatHandler  stat;
   SpecialMmapHandler  mmap;
+  SpecialGetdents64   getdents64;
 
   SpecialDuplicate duplicate;
   SpecialOpen      open;
   SpecialClose     close;
-} SpecialHandlers;
+} VfsHandlers;
 
 struct OpenFile {
   OpenFile *next;
@@ -98,7 +102,7 @@ struct OpenFile {
   size_t pointer;
   size_t tmp1;
 
-  SpecialHandlers *handlers;
+  VfsHandlers *handlers;
 
   MountPoint *mountPoint;
   void       *dir;
@@ -110,7 +114,7 @@ struct SpecialFile {
   int   id;
   char *filename;
 
-  SpecialHandlers *handlers;
+  VfsHandlers *handlers;
 };
 
 MountPoint *firstMountPoint;
@@ -138,8 +142,6 @@ uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit);
 uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit);
 bool     fsWriteSync(OpenFile *file);
 void     fsReadFullFile(OpenFile *file, uint8_t *out);
-int      fsGetdents64(void *task, unsigned int fd, void *start,
-                      unsigned int hardlimit);
 int      fsReadlink(void *task, char *path, char *buf, int size);
 uint32_t fsGetFilesize(OpenFile *file);
 
@@ -172,12 +174,12 @@ MountPoint *fsDetermineMountPoint(char *filename);
 OpenFile *fsUserSpecialDummyGen(void *task, int fd, SpecialFile *special,
                                 int flags, int mode);
 bool      fsUserOpenSpecial(void **firstSpecial, char *filename, void *taskPtr,
-                            int fd, SpecialHandlers *specialHandlers);
+                            int fd, VfsHandlers *specialHandlers);
 SpecialFile *fsUserDuplicateSpecialNodeUnsafe(SpecialFile *original);
 bool         fsUserCloseSpecial(void *task, SpecialFile *special);
 SpecialFile *fsUserGetSpecialByFilename(void *task, char *filename);
 SpecialFile *fsUserGetSpecialById(void *taskPtr, int fd);
 
-SpecialHandlers fsSpecific;
+VfsHandlers fsSpecific;
 
 #endif

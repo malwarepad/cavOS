@@ -92,11 +92,12 @@ int fbUserStat(OpenFile *fd, stat *target) {
   return 0;
 }
 
-SpecialHandlers fb0 = {.open = 0,
-                       .close = 0,
-                       .read = fbUserIllegal,
-                       .write = fbUserIllegal,
-                       .ioctl = fbUserIoctl,
-                       .mmap = fbUserMmap,
-                       .stat = fbUserStat,
-                       .duplicate = 0};
+VfsHandlers fb0 = {.open = 0,
+                   .close = 0,
+                   .read = fbUserIllegal,
+                   .write = fbUserIllegal,
+                   .ioctl = fbUserIoctl,
+                   .mmap = fbUserMmap,
+                   .stat = fbUserStat,
+                   .duplicate = 0,
+                   .getdents64 = 0};

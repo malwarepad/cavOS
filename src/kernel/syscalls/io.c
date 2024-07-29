@@ -105,11 +105,12 @@ int statHandler(OpenFile *fd, stat *target) {
   return 0;
 }
 
-SpecialHandlers stdio = {.open = 0,
-                         .close = 0,
-                         .read = readHandler,
-                         .write = writeHandler,
-                         .ioctl = ioctlHandler,
-                         .mmap = mmapHandler,
-                         .stat = statHandler,
-                         .duplicate = 0};
+VfsHandlers stdio = {.open = 0,
+                     .close = 0,
+                     .read = readHandler,
+                     .write = writeHandler,
+                     .ioctl = ioctlHandler,
+                     .mmap = mmapHandler,
+                     .stat = statHandler,
+                     .duplicate = 0,
+                     .getdents64 = 0};

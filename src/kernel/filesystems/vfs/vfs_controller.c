@@ -204,10 +204,14 @@ uint32_t fsGetFilesize(OpenFile *file) {
 }
 
 uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit) {
+  if (!file->handlers->read)
+    return -EBADF;
   return file->handlers->read(file, out, limit);
 }
 
 uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit) {
+  if (!file->handlers->write)
+    return -EBADF;
   return file->handlers->write(file, in, limit);
 }
 
@@ -259,27 +263,5 @@ int fsReadlink(void *task, char *path, char *buf, int size) {
   }
 
   free(safeFilename);
-  return ret;
-}
-
-int fsGetdents64(void *task, unsigned int fd, void *start,
-                 unsigned int hardlimit) {
-  // todo, special files, directories, etc
-  OpenFile *file = fsUserGetNode(task, fd);
-  if (!file)
-    return -EBADF;
-  int ret = -1;
-  switch (file->mountPoint->filesystem) {
-  case FS_FATFS:
-    ret = fat32Getdents64(file, start, hardlimit);
-    break;
-  case FS_EXT2:
-    ret = ext2Getdents64(file, start, hardlimit);
-    break;
-  default:
-    debugf("[vfs] Tried to getdents64 with bad filesystem! id{%d}\n",
-           file->mountPoint->filesystem);
-    break;
-  }
   return ret;
 }

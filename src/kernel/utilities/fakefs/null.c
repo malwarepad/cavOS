@@ -31,9 +31,10 @@ size_t nullMmap() {
   return (size_t)-1;
 }
 
-SpecialHandlers handleNull = {.read = nullRead,
-                              .write = nullWrite,
-                              .stat = nullStat,
-                              .duplicate = nullDuplicate,
-                              .ioctl = nullIoctl,
-                              .mmap = nullMmap};
+VfsHandlers handleNull = {.read = nullRead,
+                          .write = nullWrite,
+                          .stat = nullStat,
+                          .duplicate = nullDuplicate,
+                          .ioctl = nullIoctl,
+                          .mmap = nullMmap,
+                          .getdents64 = 0};
