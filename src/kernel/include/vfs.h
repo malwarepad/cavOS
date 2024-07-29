@@ -149,6 +149,7 @@ char *fsSanitize(char *prefix, char *filename);
 // vfs_stat.c
 bool fsStat(OpenFile *fd, stat *target);
 bool fsStatByFilename(void *task, char *filename, stat *target);
+bool fsLstatByFilename(void *task, char *filename, stat *target);
 
 // vfs_spec.c
 bool   fsSpecificClose(OpenFile *file);

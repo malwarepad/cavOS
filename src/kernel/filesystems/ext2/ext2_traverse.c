@@ -70,7 +70,8 @@ cleanup:
   return ret;
 }
 
-uint32_t ext2TraversePath(Ext2 *ext2, char *path, size_t initInode) {
+uint32_t ext2TraversePath(Ext2 *ext2, char *path, size_t initInode,
+                          bool follow) {
   uint32_t curr = initInode;
   size_t   len = strlength(path);
 
@@ -92,7 +93,7 @@ uint32_t ext2TraversePath(Ext2 *ext2, char *path, size_t initInode) {
         return curr;
 
       Ext2Inode *inode = ext2InodeFetch(ext2, curr);
-      if ((inode->permission & 0xF000) == EXT2_S_IFLNK) {
+      if ((inode->permission & 0xF000) == EXT2_S_IFLNK && (!last || follow)) {
         if (inode->size > 60) {
           debugf("[ext2::symlink] Todo!\n", inode->size);
           free(inode);
@@ -104,10 +105,10 @@ uint32_t ext2TraversePath(Ext2 *ext2, char *path, size_t initInode) {
           start = (char *)((size_t)inode->blocks - 1);
           start[0] = '/';
           start[inode->size + 1] = 0;
-          curr = ext2TraversePath(ext2, start, prev); // recursion
+          curr = ext2TraversePath(ext2, start, prev, true); // recursion
         } else {
           start[inode->size] = 0;
-          curr = ext2TraversePath(ext2, start, EXT2_ROOT_INODE);
+          curr = ext2TraversePath(ext2, start, EXT2_ROOT_INODE, true);
         }
       }
       free(inode);

@@ -774,6 +774,8 @@ struct statx {
           openat should use the current                                        \
           working directory. */
 
+#define AT_SYMLINK_NOFOLLOW 0x100 /* Do not follow symbolic links.  */
+
 // include/asm-generic/errno-base.h
 #define EPERM 1    /* Operation not permitted */
 #define ENOENT 2   /* No such file or directory */

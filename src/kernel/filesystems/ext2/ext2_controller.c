@@ -101,7 +101,7 @@ error:
 bool ext2Open(MountPoint *mount, OpenFile *fd, char *filename) {
   Ext2 *ext2 = EXT2_PTR(mount->fsInfo);
 
-  uint32_t inode = ext2TraversePath(ext2, filename, EXT2_ROOT_INODE);
+  uint32_t inode = ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, true);
   if (!inode)
     return false;
 
@@ -244,13 +244,16 @@ void ext2StatInternal(Ext2Inode *inode, uint32_t inodeNum,
   target->st_rdev = 0;
   target->st_blksize = 0x1000; // todo: honesty :")
 
+  target->st_size = COMBINE_64(inode->size_high, inode->size);
   if ((inode->permission & 0xF000) == 0x4000) {
     target->st_size = 0x1000;
 
     target->st_mode &= ~S_IFREG; // mark as dir
     target->st_mode |= S_IFDIR;
-  } else
-    target->st_size = COMBINE_64(inode->size_high, inode->size);
+  } else if ((inode->permission & 0xF000) == 0xA000) {
+    target->st_mode &= ~S_IFREG; // mark as symlink
+    target->st_mode |= S_IFLNK;
+  }
 
   target->st_blocks =
       (DivRoundUp(target->st_size, target->st_blksize) * target->st_blksize) /
@@ -262,7 +265,19 @@ void ext2StatInternal(Ext2Inode *inode, uint32_t inodeNum,
 }
 
 bool ext2Stat(Ext2 *ext2, char *filename, struct stat *target) {
-  uint32_t inodeNum = ext2TraversePath(ext2, filename, EXT2_ROOT_INODE);
+  uint32_t inodeNum = ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, true);
+  if (!inodeNum)
+    return false;
+  Ext2Inode *inode = ext2InodeFetch(ext2, inodeNum);
+
+  ext2StatInternal(inode, inodeNum, target);
+
+  free(inode);
+  return true;
+}
+
+bool ext2Lstat(Ext2 *ext2, char *filename, struct stat *target) {
+  uint32_t inodeNum = ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, false);
   if (!inodeNum)
     return false;
   Ext2Inode *inode = ext2InodeFetch(ext2, inodeNum);

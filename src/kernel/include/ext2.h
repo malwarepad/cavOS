@@ -195,6 +195,7 @@ bool   ext2Open(MountPoint *mount, OpenFile *fd, char *filename);
 bool   ext2Close(MountPoint *mount, OpenFile *fd);
 int    ext2Read(MountPoint *mount, OpenFile *fd, uint8_t *buff, int limit);
 bool   ext2Stat(Ext2 *ext2, char *filename, struct stat *target);
+bool   ext2Lstat(Ext2 *ext2, char *filename, struct stat *target);
 bool   ext2StatFd(Ext2 *ext2, OpenFile *fd, struct stat *target);
 bool   ext2Seek(MountPoint *mount, OpenFile *fd, uint32_t target);
 size_t ext2GetFilesize(OpenFile *fd);
@@ -215,7 +216,8 @@ uint32_t *ext2BlockChain(Ext2 *ext2, Ext2OpenFd *fd, size_t curr,
 Ext2Inode *ext2InodeFetch(Ext2 *ext2, size_t inode);
 uint32_t   ext2Traverse(Ext2 *ext2, size_t initInode, char *search,
                         size_t searchLength);
-uint32_t   ext2TraversePath(Ext2 *ext2, char *path, size_t initInode);
+uint32_t   ext2TraversePath(Ext2 *ext2, char *path, size_t initInode,
+                            bool follow);
 
 // ext2_dirs.c
 int ext2Getdents64(OpenFile *file, void *start, unsigned int hardlimit);

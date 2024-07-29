@@ -94,7 +94,7 @@ static int syscallFstat(int fd, stat *statbuf) {
 
 #define SYSCALL_LSTAT 6
 static int syscallLstat(char *filename, stat *statbuf) {
-  bool ret = fsStatByFilename(currentTask, filename, statbuf);
+  bool ret = fsLstatByFilename(currentTask, filename, statbuf);
   if (!ret) {
 #if DEBUG_SYSCALLS_FAILS
     debugf("[syscalls::lstat] FAIL! Couldn't stat() file! filename{%d}\n",
@@ -385,14 +385,22 @@ static int syscallStatx(int dirfd, char *pathname, int flags, uint32_t mask,
       return -EBADF;
   } else if (pathname[0] == '/') { // by absolute pathname
     char *safeFilename = fsSanitize(currentTask->cwd, pathname);
-    bool  ret = fsStatByFilename(currentTask, safeFilename, &simple);
+    bool  ret = false;
+    if (flags & AT_SYMLINK_NOFOLLOW)
+      ret = fsLstatByFilename(currentTask, safeFilename, &simple);
+    else
+      ret = fsStatByFilename(currentTask, safeFilename, &simple);
     free(safeFilename);
     if (!ret)
       return -1;
   } else if (pathname[0] != '/') {
     if (dirfd == AT_FDCWD) { // relative to cwd
       char *safeFilename = fsSanitize(currentTask->cwd, pathname);
-      bool  ret = fsStatByFilename(currentTask, safeFilename, &simple);
+      bool  ret = false;
+      if (flags & AT_SYMLINK_NOFOLLOW)
+        ret = fsLstatByFilename(currentTask, safeFilename, &simple);
+      else
+        ret = fsStatByFilename(currentTask, safeFilename, &simple);
       free(safeFilename);
       if (!ret)
         return -1;
@@ -411,7 +419,7 @@ static int syscallStatx(int dirfd, char *pathname, int flags, uint32_t mask,
 
   memset(buff, 0, sizeof(struct statx));
 
-  buff->stx_mask = STATX_BASIC_STATS | STATX_BTIME;
+  buff->stx_mask = mask;
   buff->stx_blksize = simple.st_blksize;
   buff->stx_attributes = 0; // naw
   buff->stx_nlink = simple.st_nlink;
