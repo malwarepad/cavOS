@@ -100,7 +100,8 @@ void handleTaskFault(AsmPassedInterrupt *regs) {
   if (regs->interrupt == 14) {
     uint64_t err_pos;
     asm volatile("movq %%cr2, %0" : "=r"(err_pos));
-    debugf("[isr] Page fault occured at: %lx\n", err_pos);
+    debugf("[isr] Page fault occured at cr2{%lx} rip{%lx}\n", err_pos,
+           regs->rip);
   }
   debugf("[isr::task] [%c] Killing task{%d} because of %s!\n",
          currentTask->kernel_task ? '-' : 'u', currentTask->id,
@@ -180,7 +181,8 @@ void handle_interrupt(uint64_t rsp) {
     if (cpu->interrupt == 14) {
       uint64_t err_pos;
       asm volatile("movq %%cr2, %0" : "=r"(err_pos));
-      debugf("[isr] Page fault occured at: %lx\n", err_pos);
+      debugf("[isr] Page fault occured at cr2{%lx} rip{%lx}\n", err_pos,
+             cpu->rip);
     }
     debugf(format, exceptions[cpu->interrupt]);
     // if (framebuffer == KERNEL_GFX)
