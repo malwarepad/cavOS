@@ -20,6 +20,11 @@ Compiling cavOS will work on all Linux distributions, but I've only **done testi
 - **Fedora:** `sudo dnf install -y nasm gcc xorriso parted dosfstools make bison flex gmp-devel libmpc-devel mpfr-devel texinfo autoconf automake patch gcc-c++ isl-devel`
 - **Arch:** `sudo pacman -S --noconfirm nasm xorriso gcc parted dosfstools base-devel gmp libmpc mpfr`
 
+## Special Arch Linux Instructions:
+Warning: this may break some dependencies, so I would suggest 
+For some reason you must download autoconf-2.69-6. Download: [https://archive.archlinux.org/packages/a/autoconf/](https://archive.archlinux.org/packages/a/autoconf/autoconf-2.69-6-any.pkg.tar.xz).
+Then you will need automake-1.15.1-1. Download: [https://archive.org/download/archlinux_pkg_automake/automake-1.15.1-1-any.pkg.tar.xz](https://archive.org/download/archlinux_pkg_automake/automake-1.15.1-1-any.pkg.tar.xz).
+
 If everything else fails, you got [distrobox](https://github.com/89luca89/distrobox).
 
 ## Dependencies: Microsoft Windows
