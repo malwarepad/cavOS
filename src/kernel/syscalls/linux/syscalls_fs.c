@@ -84,7 +84,7 @@ static int syscallFstat(int fd, stat *statbuf) {
   bool ret = fsStat(file, statbuf);
   if (!ret) {
 #if DEBUG_SYSCALLS_FAILS
-    debugf("[syscalls::fstat] FAIL! Couldn't stat() file! fd{%d}\n", fd);
+    debugf("[syscalls::fstat] FAIL! Couldn't fstat() file! fd{%d}\n", fd);
 #endif
     return -1;
   }
@@ -97,7 +97,7 @@ static int syscallLstat(char *filename, stat *statbuf) {
   bool ret = fsLstatByFilename(currentTask, filename, statbuf);
   if (!ret) {
 #if DEBUG_SYSCALLS_FAILS
-    debugf("[syscalls::lstat] FAIL! Couldn't stat() file! filename{%d}\n",
+    debugf("[syscalls::lstat] FAIL! Couldn't lstat() file! filename{%d}\n",
            filename);
 #endif
     return -1;
