@@ -255,6 +255,11 @@ static int syscallFcntl(int fd, int cmd, uint64_t arg) {
   }
 }
 
+#define SYSCALL_READLINK 89
+static int syscallReadlink(char *path, char *buf, int size) {
+  return fsReadlink(currentTask, path, buf, size);
+}
+
 #define SYSCALL_GETDENTS64 217
 static int syscallGetdents64(unsigned int fd, struct linux_dirent64 *dirp,
                              unsigned int count) {
@@ -478,5 +483,6 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_SELECT, syscallSelect);
   registerSyscall(SYSCALL_FCNTL, syscallFcntl);
   registerSyscall(SYSCALL_STATX, syscallStatx);
+  registerSyscall(SYSCALL_READLINK, syscallReadlink);
   // registerSyscall(SYSCALL_FACCESSAT2, syscallFaccessat2);
 }

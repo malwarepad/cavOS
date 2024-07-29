@@ -95,7 +95,7 @@ uint32_t ext2TraversePath(Ext2 *ext2, char *path, size_t initInode,
       Ext2Inode *inode = ext2InodeFetch(ext2, curr);
       if ((inode->permission & 0xF000) == EXT2_S_IFLNK && (!last || follow)) {
         if (inode->size > 60) {
-          debugf("[ext2::symlink] Todo!\n", inode->size);
+          debugf("[ext2::traverse::symlink] Todo! size{%d}\n", inode->size);
           free(inode);
           return 0;
         }

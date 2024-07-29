@@ -140,6 +140,7 @@ bool     fsWriteSync(OpenFile *file);
 void     fsReadFullFile(OpenFile *file, uint8_t *out);
 int      fsGetdents64(void *task, unsigned int fd, void *start,
                       unsigned int hardlimit);
+int      fsReadlink(void *task, char *path, char *buf, int size);
 uint32_t fsGetFilesize(OpenFile *file);
 
 // vfs_sanitize.c

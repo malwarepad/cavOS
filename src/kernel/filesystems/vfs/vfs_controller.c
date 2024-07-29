@@ -240,6 +240,28 @@ int fsUserSeek(void *task, uint32_t fd, int offset, int whence) {
   return fsSpecificSeek(file, target, offset, whence);
 }
 
+int fsReadlink(void *task, char *path, char *buf, int size) {
+  Task       *target = task;
+  char       *safeFilename = fsSanitize(target->cwd, path);
+  MountPoint *mnt = fsDetermineMountPoint(safeFilename);
+  int         ret = -1;
+  switch (mnt->filesystem) {
+  case FS_FATFS:
+    ret = -EINVAL;
+    break;
+  case FS_EXT2:
+    ret = ext2Readlink((Ext2 *)(mnt->fsInfo), safeFilename, buf, size);
+    break;
+  default:
+    debugf("[vfs] Tried to readLink() with bad filesystem! id{%d}\n",
+           mnt->filesystem);
+    break;
+  }
+
+  free(safeFilename);
+  return ret;
+}
+
 int fsGetdents64(void *task, unsigned int fd, void *start,
                  unsigned int hardlimit) {
   // todo, special files, directories, etc

@@ -199,6 +199,7 @@ bool   ext2Lstat(Ext2 *ext2, char *filename, struct stat *target);
 bool   ext2StatFd(Ext2 *ext2, OpenFile *fd, struct stat *target);
 bool   ext2Seek(MountPoint *mount, OpenFile *fd, uint32_t target);
 size_t ext2GetFilesize(OpenFile *fd);
+int    ext2Readlink(Ext2 *ext2, char *path, char *buf, int size);
 
 // ext2_util.c
 void ext2BlkIdBitmapFetch(Ext2 *ext2, uint8_t *tmp, size_t group);

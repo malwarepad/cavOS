@@ -294,6 +294,43 @@ bool ext2StatFd(Ext2 *ext2, OpenFile *fd, struct stat *target) {
   return true;
 }
 
+int ext2Readlink(Ext2 *ext2, char *path, char *buf, int size) {
+  if (size < 0)
+    return -EINVAL;
+  else if (!size)
+    return 0;
+
+  uint32_t inodeNum = ext2TraversePath(ext2, path, EXT2_ROOT_INODE, false);
+  if (!inodeNum)
+    return -ENOENT;
+
+  int ret = -1;
+
+  Ext2Inode *inode = ext2InodeFetch(ext2, inodeNum);
+  if ((inode->permission & 0xF000) != 0xA000) {
+    ret = -EINVAL;
+    goto cleanup;
+  }
+
+  if (inode->size > 60) {
+    debugf("[ext2::symlink] Todo! size{%d}\n", inode->size);
+    ret = -1;
+    goto cleanup;
+  }
+
+  char *start = (char *)inode->blocks;
+  int   toCopy = inode->size;
+  if (toCopy > size)
+    toCopy = size;
+
+  memcpy(buf, start, toCopy);
+  ret = toCopy;
+
+cleanup:
+  free(inode);
+  return ret;
+}
+
 bool ext2Close(MountPoint *mount, OpenFile *fd) {
   Ext2OpenFd *dir = EXT2_DIR_PTR(fd->dir);
 
