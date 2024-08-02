@@ -1,3 +1,4 @@
+#include <dents.h>
 #include <fat32.h>
 #include <malloc.h>
 #include <string.h>
@@ -14,7 +15,7 @@ int fat32Getdents64(OpenFile *file, void *start, unsigned int hardlimit) {
   if (!fatDir->directoryCurr)
     return 0;
 
-  int64_t allocatedlimit = 0;
+  int allocatedlimit = 0;
 
   int bytesPerCluster = LBA_TO_OFFSET(fat->bootsec.sectors_per_cluster);
 
@@ -72,29 +73,26 @@ int fat32Getdents64(OpenFile *file, void *start, unsigned int hardlimit) {
           lfnLen = fat32SFNtoNormal(lfnName, dir);
         }
 
-        size_t strlen = lfnLen + 1;
-
-        size_t reclen = 23 + strlen;
-        if ((allocatedlimit + reclen + 2) > hardlimit)
-          goto cleanup; // todo: error code special
-
-        dirp->d_ino = FAT_INODE_GEN(fatDir->directoryCurr, i / 32);
-        dirp->d_off = rand(); // xd
-        dirp->d_reclen = reclen;
+        unsigned char type = 0;
         if (dir->attrib & FAT_ATTRIB_DIRECTORY)
-          dirp->d_type = CDT_DIR;
+          type = CDT_DIR;
         else
-          dirp->d_type = CDT_REG;
-        memcpy(dirp->d_name, lfnName, strlen);
-        // debugf("%s\n", dirp->d_name);
+          type = CDT_REG;
 
-        allocatedlimit += reclen;
+        DENTS_RES res = dentsAdd(
+            start, &dirp, &allocatedlimit, hardlimit, (void *)lfnName, lfnLen,
+            FAT_INODE_GEN(fatDir->directoryCurr, i / 32), type);
+
+        if (res == DENTS_NO_SPACE) {
+          allocatedlimit = -EINVAL;
+          goto cleanup;
+        } else if (res == DENTS_RETURN)
+          goto cleanup;
 
         memset(lfnName, 0, LFN_MAX_TOTAL_CHARS); // for good measure
 
         // traverse...
         // debugf("%ld\n", dirp->d_reclen);
-        dirp = (struct linux_dirent64 *)((size_t)dirp + dirp->d_reclen);
       }
       fatDir->ptr += sizeof(FAT32DirectoryEntry);
     }

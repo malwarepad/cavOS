@@ -1,3 +1,4 @@
+#include <dents.h>
 #include <ext2.h>
 #include <malloc.h>
 #include <system.h>
@@ -11,7 +12,7 @@ int ext2Getdents64(OpenFile *file, void *start, unsigned int hardlimit) {
   if ((edir->inode.permission & 0xF000) != EXT2_S_IFDIR)
     return -ENOTDIR;
 
-  int64_t    allocatedlimit = 0;
+  int        allocatedlimit = 0;
   Ext2Inode *ino = &edir->inode;
   uint8_t   *names = (uint8_t *)malloc(ext2->blockSize);
 
@@ -32,23 +33,25 @@ int ext2Getdents64(OpenFile *file, void *start, unsigned int hardlimit) {
     while (((size_t)dir - (size_t)names) < ext2->blockSize) {
       if (++dirsAvailable >= COMBINE_64(ino->size_high, ino->size))
         break;
-      size_t reclen = 23 + dir->filenameLength + 1;
-      if ((allocatedlimit + reclen + 2) > hardlimit)
-        goto cleanup; // todo: error code special
-      dirp->d_ino = dir->inode;
-      dirp->d_off = rand(); // xd
-      if (dir->type == 2)
-        dirp->d_type = CDT_DIR;
-      else if (dir->type == 7)
-        dirp->d_type = CDT_LNK;
-      else
-        dirp->d_type = CDT_REG;
-      memcpy(dirp->d_name, dir->filename, dir->filenameLength);
-      dirp->d_name[dir->filenameLength] = '\0';
-      dirp->d_reclen = reclen;
 
-      allocatedlimit += reclen;
-      dirp = (struct linux_dirent64 *)((size_t)dirp + dirp->d_reclen);
+      unsigned char type = 0;
+      if (dir->type == 2)
+        type = CDT_DIR;
+      else if (dir->type == 7)
+        type = CDT_LNK;
+      else
+        type = CDT_REG;
+
+      DENTS_RES res =
+          dentsAdd(start, &dirp, &allocatedlimit, hardlimit, dir->filename,
+                   dir->filenameLength, dir->inode, type);
+
+      if (res == DENTS_NO_SPACE) {
+        allocatedlimit = -EINVAL;
+        goto cleanup;
+      } else if (res == DENTS_RETURN)
+        goto cleanup;
+
       edir->ptr += dir->size;
       dir = (void *)((size_t)dir + dir->size);
     }
