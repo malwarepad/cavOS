@@ -22,6 +22,9 @@ target/dev/pts
 target/dev
 target/bin
 
+# Limine repository
+src/bootloader/limine
+
 # Misc (on the target system)
 target/usr/share
 
