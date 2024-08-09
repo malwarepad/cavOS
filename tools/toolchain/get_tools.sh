@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-# Know where we at :p
+# script_env
 SCRIPT=$(realpath "$0")
-export SCRIPTPATH=$(dirname "$SCRIPT")
+SCRIPTPATH=$(dirname "$SCRIPT")
 cd "${SCRIPTPATH}"
 
 targets=("i386-cavos" "x86_64-cavos")

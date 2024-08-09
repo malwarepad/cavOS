@@ -2,6 +2,11 @@
 set -x # show cmds
 set -e # fail globally
 
+# script_env
+SCRIPT=$(realpath "$0")
+SCRIPTPATH=$(dirname "$SCRIPT")
+cd "${SCRIPTPATH}"
+
 export PREFIX="$HOME/opt/cross"
 #export TARGET=x86_64-cavos
 export SYSROOT="$SCRIPTPATH/../../target"
@@ -11,8 +16,8 @@ mkdir -p "$PREFIX"
 
 # Ensure autotools
 if ! test -f "$HOME/opt/autotools_gcc/bin/automake"; then
-	chmod +x get_autotools.sh
-	./get_autotools.sh "1.15.1" "2.69" "$HOME/opt/autotools_gcc"
+	#chmod +x get_autotools.sh
+	bash get_autotools.sh "1.15.1" "2.69" "$HOME/opt/autotools_gcc"
 fi
 export PATH=$HOME/opt/autotools_gcc/bin:$PATH
 
@@ -63,8 +68,8 @@ make install-target-libgcc
 # Only build libc for x86_64, since user-land is 64-bit only for now
 if [ "$TARGET" = "x86_64-cavos" ]; then
 	# Building musl alone is essential before libstdc++ is built & installed
-	chmod +x "${SCRIPTPATH}/../../src/libs/musl/build.sh"
-	"${SCRIPTPATH}/../../src/libs/musl/build.sh" --noreplace
+	#chmod +x "${SCRIPTPATH}/../../src/libs/musl/build.sh"
+	bash "${SCRIPTPATH}/../../src/libs/musl/build.sh" --noreplace
 
 	make all-target-libstdc++-v3 -j$(nproc)
 	make install-target-libstdc++-v3
