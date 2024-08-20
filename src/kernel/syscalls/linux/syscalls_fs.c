@@ -8,6 +8,8 @@
 
 #define SYSCALL_READ 0
 static int syscallRead(int fd, char *str, uint32_t count) {
+  if (!count)
+    return 0;
   OpenFile *browse = fsUserGetNode(currentTask, fd);
   if (!browse) {
 #if DEBUG_SYSCALLS_FAILS
@@ -21,6 +23,8 @@ static int syscallRead(int fd, char *str, uint32_t count) {
 
 #define SYSCALL_WRITE 1
 static int syscallWrite(int fd, char *str, uint32_t count) {
+  if (!count)
+    return 0;
   OpenFile *browse = fsUserGetNode(currentTask, fd);
   if (!browse) {
 #if DEBUG_SYSCALLS_FAILS
