@@ -1,10 +1,10 @@
 #include <isr.h>
+#include <rtc.h>
 #include <schedule.h>
 #include <system.h>
 #include <timer.h>
 
 void initiateTimer(uint32_t reload_value) {
-  timerTicks = 0;
   timerFrequency = TIMER_ACCURANCY / reload_value;
 
   outportb(0x43, 0x36);
@@ -14,6 +14,12 @@ void initiateTimer(uint32_t reload_value) {
 
   outportb(0x40, l);
   outportb(0x40, h);
+
+  RTC rtc = {0};
+  readFromCMOS(&rtc);
+  timerTicks = 0;
+
+  timerBootUnix = rtcToUnix(&rtc);
   debugf("[timer] Ready to fire: frequency{%dMHz}\n", timerFrequency);
 }
 

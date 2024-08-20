@@ -13,13 +13,14 @@
 #define SYSCALL_CLOCK_GETTIME 228
 static int syscallClockGettime(int which, timespec *spec) {
   switch (which) {
-  case CLOCK_REALTIME:
-    spec->tv_sec = timerTicks / 1000;
+  case CLOCK_REALTIME: {
+    spec->tv_sec = timerBootUnix + timerTicks / 1000;
     size_t remainingInMs = timerTicks - (spec->tv_sec * 1000);
     spec->tv_nsec = remainingInMs * 1000000;
     // todo: accurancy
     return 0;
     break;
+  }
   default:
 #if DEBUG_SYSCALLS_STUB
     debugf("[syscalls::gettime] UNIMPLEMENTED! which{%d} timespec{%lx}!\n",

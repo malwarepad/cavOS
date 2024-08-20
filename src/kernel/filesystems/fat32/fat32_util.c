@@ -1,4 +1,5 @@
 #include <fat32.h>
+#include <rtc.h>
 #include <string.h>
 #include <util.h>
 
@@ -75,16 +76,11 @@ int fat32SFNtoNormal(uint8_t *target, FAT32DirectoryEntry *dirent) {
 #define SECONDS_FROM_1970_TO_1980                                              \
   (315532800) // Number of seconds from 1970 to 1980
 
-// Check if a year is a leap year
-int is_leap_year(int year) {
-  return (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0));
-}
-
 // Get the number of days in a given month of a given year
 int days_in_month(int year, int month) {
   static const int days_per_month[] = {31, 28, 31, 30, 31, 30,
                                        31, 31, 30, 31, 30, 31};
-  if (month == 2 && is_leap_year(year)) {
+  if (month == 2 && isLeapYear(year)) {
     return 29;
   } else {
     return days_per_month[month - 1];
@@ -95,7 +91,7 @@ int days_in_month(int year, int month) {
 int days_since_1980(int year, int month, int day) {
   int days = 0;
   for (int y = 1980; y < year; y++) {
-    days += is_leap_year(y) ? 366 : 365;
+    days += isLeapYear(y) ? 366 : 365;
   }
   for (int m = 1; m < month; m++) {
     days += days_in_month(year, m);

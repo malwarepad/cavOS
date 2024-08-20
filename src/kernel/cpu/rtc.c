@@ -118,3 +118,43 @@ int readFromCMOS(RTC *rtc) {
 
   return 1;
 }
+
+// RTC to unix time stuff
+bool isLeapYear(int year) {
+  return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+}
+
+int daysInMonth[2][12] = {{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
+                          {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}};
+
+uint64_t rtcToUnix(RTC *rtc) {
+  uint64_t seconds = 0;
+  int      leap;
+
+  // Adjust year and month for Unix time (starting from 1970)
+  int year = rtc->year;
+  int month = rtc->month - 1; // Month is 0-based in this logic
+  int day = rtc->day - 1;     // Day is 1-based in the RTC structure
+
+  // Add seconds for each full year since 1970
+  for (int y = 1970; y < year; y++) {
+    leap = isLeapYear(y);
+    seconds += (365 + leap) * 86400; // Add days * 86400 seconds in a day
+  }
+
+  // Add seconds for each full month of the current year
+  leap = isLeapYear(year);
+  for (int m = 0; m < month; m++) {
+    seconds += daysInMonth[leap][m] * 86400;
+  }
+
+  // Add seconds for the days of the current month
+  seconds += day * 86400;
+
+  // Add the hours, minutes, and seconds of the current day
+  seconds += rtc->hour * 3600;
+  seconds += rtc->minute * 60;
+  seconds += rtc->second;
+
+  return seconds;
+}

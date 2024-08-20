@@ -12,6 +12,8 @@ typedef struct {
   unsigned int  year;
 } RTC;
 
-int readFromCMOS(RTC *rtc);
+int      readFromCMOS(RTC *rtc);
+uint64_t rtcToUnix(RTC *rtc);
+bool     isLeapYear(int year);
 
 #endif

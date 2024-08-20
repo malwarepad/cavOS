@@ -7,6 +7,7 @@
 
 uint32_t timerFrequency;
 uint64_t timerTicks;
+uint64_t timerBootUnix;
 
 void initiateTimer(uint32_t reload_value);
 void timerTick(uint64_t rsp);
