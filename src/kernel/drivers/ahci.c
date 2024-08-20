@@ -116,18 +116,18 @@ HBA_CMD_TBL *ahciSetUpCmdTable(ahci *ahciPtr, HBA_CMD_HEADER *cmdheader,
 
 void ahciSetUpPRDT(HBA_CMD_HEADER *cmdheader, HBA_CMD_TBL *cmdtbl,
                    uint16_t *buff, uint32_t *count) {
-  // 8K bytes (16 sectors) per PRDT
+  // 4 MiB (16 sectors) per PRDT
   int i = 0;
   for (i = 0; i < cmdheader->prdtl - 1; i++) {
     size_t targPhys = VirtualToPhysical((size_t)buff);
     cmdtbl->prdt_entry[i].dba = SPLIT_64_LOWER(targPhys);
     cmdtbl->prdt_entry[i].dbau = SPLIT_64_HIGHER(targPhys);
     cmdtbl->prdt_entry[i].dbc =
-        8 * 1024 - 1; // 8K bytes (this value should always be set to 1 less
-                      // than the actual value)
+        4194304 - 1; // 4 MiB (this value should always be set to 1 less
+                     // than the actual value)
     cmdtbl->prdt_entry[i].i = 1;
-    buff += 4 * 1024; // 4K words
-    *count -= 16;     // 16 sectors
+    buff += 4194304 / 2;     // appropriate words
+    *count -= 4194304 / 512; // appropriate sectors
   }
   size_t targPhys = VirtualToPhysical((size_t)buff);
   // Last entry

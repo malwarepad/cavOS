@@ -543,7 +543,7 @@ typedef struct tagHBA_CMD_TBL {
   prdt_entry[1]; // Physical region descriptor table entries, 0 ~ 65535
 } HBA_CMD_TBL;
 
-#define AHCI_CALC_PRDT(sectors) ((uint16_t)((sectors - 1) >> 4) + 1)
+#define AHCI_CALC_PRDT(sectors) (DivRoundUp((sectors) * 512, 4194304))
 
 typedef enum {
   FIS_TYPE_REG_H2D = 0x27,   // Register FIS - host to device

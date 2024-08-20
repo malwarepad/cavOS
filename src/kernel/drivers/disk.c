@@ -60,8 +60,8 @@ void diskBytes(uint8_t *target_address, uint32_t LBA, uint32_t sector_count,
 
 void getDiskBytes(uint8_t *target_address, uint32_t LBA, size_t sector_count) {
   // calculated by: (bytesPerPRDT * PRDTamnt) / SECTOR_SIZE
-  //                (    8192     *    32   ) /     512
-  int max = 512;
+  //                (    4MiB     *     8   ) /     512
+  int max = 65536;
 
   size_t chunks = sector_count / max;
   size_t remainder = sector_count % max;
