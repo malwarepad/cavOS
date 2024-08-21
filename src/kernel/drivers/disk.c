@@ -1,6 +1,7 @@
 #include <ahci.h>
 #include <disk.h>
 #include <malloc.h>
+#include <system.h>
 #include <util.h>
 
 // Multiple disk handler
@@ -58,7 +59,10 @@ void diskBytes(uint8_t *target_address, uint32_t LBA, uint32_t sector_count,
              target_address);
 }
 
+// todo: allow concurrent stuff
+Spinlock LOCK_AHCI = ATOMIC_FLAG_INIT;
 void getDiskBytes(uint8_t *target_address, uint32_t LBA, size_t sector_count) {
+  spinlockAcquire(&LOCK_AHCI);
   // calculated by: (bytesPerPRDT * PRDTamnt) / SECTOR_SIZE
   //                (    4MiB     *     8   ) /     512
   int max = 65536;
@@ -73,6 +77,8 @@ void getDiskBytes(uint8_t *target_address, uint32_t LBA, size_t sector_count) {
   if (remainder)
     diskBytes(target_address + chunks * max * SECTOR_SIZE, LBA + chunks * max,
               remainder, false);
+
+  spinlockRelease(&LOCK_AHCI);
 
   // for (int i = 0; i < sector_count; i++)
   //   diskBytes(target_address + i * 512, LBA + i, 1, false);
