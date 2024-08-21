@@ -453,6 +453,10 @@ int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
   // yk
   target->parent = currentTask;
 
+  // fpu stuff
+  memcpy(target->fpuenv, currentTask->fpuenv, 512);
+  target->mxcsr = currentTask->mxcsr;
+
   taskCreateFinish(target);
 
   return target->id;
