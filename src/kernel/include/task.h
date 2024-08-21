@@ -82,6 +82,7 @@ struct Task {
   SpecialFile *firstSpecialFile;
 
   __attribute__((aligned(16))) uint8_t fpuenv[512];
+  uint32_t                             mxcsr;
 
   // Yes... As absurd as it sounds!
   bool       wait4;

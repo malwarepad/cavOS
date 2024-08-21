@@ -66,8 +66,15 @@ void schedule(uint64_t rsp) {
   // ChangePageDirectoryUnsafe(next->pagedir);
 
   // Save & load appropriate FPU state
-  asm volatile(" fxsave %0 " ::"m"(old->fpuenv));
-  asm volatile(" fxrstor %0 " ::"m"(next->fpuenv));
+  if (!old->kernel_task) {
+    asm volatile(" fxsave %0 " ::"m"(old->fpuenv));
+    asm("stmxcsr (%%rax)" : : "a"(&old->mxcsr));
+  }
+
+  if (!next->kernel_task) {
+    asm volatile(" fxrstor %0 " ::"m"(next->fpuenv));
+    asm("ldmxcsr (%%rax)" : : "a"(&next->mxcsr));
+  }
 
   // Cleanup any old tasks left dead (not needed!)
   // if (old->state == TASK_STATE_DEAD)
