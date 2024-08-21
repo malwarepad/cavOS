@@ -63,7 +63,7 @@ disk_dirty:all
 	chmod +x $(TOOLS)/kernel/make_disk.sh
 	$(TOOLS)/kernel/make_disk.sh $(TARGET) $(MOUNTPOINT) $(TARGET_IMG) yes || (chmod +x $(TOOLS)/kernel/cleanup.sh && $(TOOLS)/kernel/cleanup.sh $(MOUNTPOINT))
 
-vmware:disk
+vmware:
 	qemu-img convert $(TARGET_IMG) -O vmdk $(TARGET_VMWARE)
 
 tools:
