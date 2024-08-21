@@ -162,12 +162,21 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint32_t envc,
   ChangePageDirectory(oldPagedir);
 }
 
+void taskKernelReturn() {
+  taskKill(currentTask->id, 0);
+  while (1) {
+  }
+}
+
 void stackGenerateKernel(Task *target, uint64_t parameter) {
   void *oldPagedir = GetPageDirectory();
   ChangePageDirectory(target->pagedir);
 
   stackGenerateMutual(target);
   target->registers.rdi = parameter;
+
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t,
+                (uint64_t)taskKernelReturn);
 
   ChangePageDirectory(oldPagedir);
 }
