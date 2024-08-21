@@ -111,6 +111,22 @@ if [ ! -f "$USR_PATHNAME/bin/gcc" ]; then
 	build_package_autotools https://ftp.gnu.org/gnu/gcc/gcc-11.4.0/gcc-11.4.0.tar.gz "$USR_PATHNAME" config.sub '--host=x86_64-cavos --target=x86_64-cavos --prefix=/usr --enable-shared --disable-werror --enable-languages=c,c++' "$PATCH_PATHNAME/gcc.diff" "DESTDIR=$USR_PATHNAME/../" "cd libstdc++-v3 && autoconf && cd .. && ./contrib/download_prerequisites && sed -i 's/\-gnu\* | \-bsd\*/\-cavos\*/g' ./gmp/configfsf.sub && sed -i 's/\-gnu\* | \-bsd\*/\-cavos\*/g' ./mpfr/config.sub && sed -i 's/\-gnu\* | \-bsd\*/\-cavos\*/g' ./mpc/config.sub && sed -i 's/\-gnu\* | \-bsd\*/\-cavos\*/g' ./isl/config.sub"
 fi
 
+# Tzdata (pre-installed because we don't have Glibc's zic)
+if [ ! -f "$USR_PATHNAME/share/zoneinfo/Europe/Amsterdam" ]; then
+	mkdir timezonestuff
+	cd timezonestuff
+
+	wget http://ftp.us.debian.org/debian/pool/main/t/tzdata/tzdata_2024a-4_all.deb
+	ar x tzdata_2024a-4_all.deb
+	tar -xvf data.tar.xz
+
+	mkdir -p "$USR_PATHNAME/share/zoneinfo/"
+	cp -r usr/share/zoneinfo/* "$USR_PATHNAME/share/zoneinfo/"
+
+	cd ..
+	rm -rf timezonestuff
+fi
+
 # By this point, we have all compiler tools we need inside the target system...
 # Hence, we can begin to use it for targetted compilations, instead of cross-compilations like so:
 
