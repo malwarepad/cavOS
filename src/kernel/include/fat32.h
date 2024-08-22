@@ -153,11 +153,14 @@ FAT32TraverseResult fat32TraversePath(FAT32 *fat, char *path,
                                       uint32_t directoryStarting);
 
 // fat32_stat.c
-bool fat32Stat(FAT32 *fat, char *filename, struct stat *target);
+bool fat32Stat(MountPoint *mnt, char *filename, struct stat *target);
 bool fat32StatFd(FAT32 *fat, OpenFile *fd, struct stat *target);
 
 // fat32_dirs.c
 int fat32Getdents64(OpenFile *file, void *start, unsigned int hardlimit);
 int fat32SFNtoNormal(uint8_t *target, FAT32DirectoryEntry *dirent);
+
+// finale
+VfsHandlers fat32Handlers;
 
 #endif

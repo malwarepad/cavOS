@@ -229,13 +229,31 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
   stackGenerateUser(target, argc, argv, envc, envv, out, filesize, elf_ehdr);
   free(out);
 
-  void **a = (void **)(&target->firstSpecialFile);
-  fsUserOpenSpecial(a, "/dev/stdin", target, 0, &stdio);
-  fsUserOpenSpecial(a, "/dev/stdout", target, 1, &stdio);
-  fsUserOpenSpecial(a, "/dev/stderr", target, 2, &stdio);
+  // void **a = (void **)(&target->firstSpecialFile);
+  // fsUserOpenSpecial(a, "/dev/stdin", target, 0, &stdio);
+  // fsUserOpenSpecial(a, "/dev/stdout", target, 1, &stdio);
+  // fsUserOpenSpecial(a, "/dev/stderr", target, 2, &stdio);
 
-  fsUserOpenSpecial(a, "/dev/fb0", target, -1, &fb0);
-  fsUserOpenSpecial(a, "/dev/tty", target, -1, &stdio);
+  // fsUserOpenSpecial(a, "/dev/fb0", target, -1, &fb0);
+  // fsUserOpenSpecial(a, "/dev/tty", target, -1, &stdio);
+
+  int stdin = fsUserOpen(target, "/dev/stdin", 0, 0);
+  int stdout = fsUserOpen(target, "/dev/stdout", 0, 0);
+  int stderr = fsUserOpen(target, "/dev/stderr", 0, 0);
+
+  if (stdin < 0 || stdout < 0 || stderr < 0) {
+    debugf("[elf] Couldn't establish basic IO!\n");
+    panic();
+  }
+
+  OpenFile *fdStdin = fsUserGetNode(target, stdin);
+  OpenFile *fdStdout = fsUserGetNode(target, stdout);
+  OpenFile *fdStderr = fsUserGetNode(target, stderr);
+
+  fdStdin->id = 0;
+  fdStdout->id = 1;
+  fdStderr->id = 2;
+  // todo fixup all of the ^
 
   // Align it, just in case...
   taskAdjustHeap(target, DivRoundUp(target->heap_end, 0x1000) * 0x1000,

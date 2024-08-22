@@ -13,10 +13,9 @@
 // "am I even real?" - mp 2024
 // Copyright (C) 2024 Panagiotis
 
-bool fsSpecificClose(OpenFile *file) {
-  if (file->mountPoint == MOUNT_POINT_SPECIAL)
-    return true;
+// todo: get rid of all of this
 
+bool fsSpecificClose(OpenFile *file) {
   bool res = false;
   switch (file->mountPoint->filesystem) {
   case FS_FATFS:
@@ -35,15 +34,16 @@ bool fsSpecificClose(OpenFile *file) {
   return res;
 }
 
-bool fsSpecificOpen(char *filename, MountPoint *mnt, OpenFile *target) {
-  bool  res = false;
-  char *strippedFilename = fsStripMountpoint(filename, mnt);
+bool fsSpecificOpen(char *filename, OpenFile *target) {
+  MountPoint *mnt = target->mountPoint;
+  bool        res = false;
+  // char       *strippedFilename = fsStripMountpoint(filename, mnt);
   switch (mnt->filesystem) {
   case FS_FATFS:
-    res = fat32Open(mnt, target, strippedFilename);
+    res = fat32Open(mnt, target, filename);
     break;
   case FS_EXT2:
-    res = ext2Open(mnt, target, strippedFilename);
+    res = ext2Open(mnt, target, filename);
     break;
   default:
     debugf("[vfs] Tried to open with bad filesystem! id{%d}\n",
@@ -218,7 +218,7 @@ int fsSpecificStat(OpenFile *fd, stat *target) {
   return ret ? 0 : -1;
 }
 
-int fbSpecificIoctl(OpenFile *fd, uint64_t request, void *arg) {
+int fsSpecificIoctl(OpenFile *fd, uint64_t request, void *arg) {
   return -ENOTTY;
 }
 
@@ -240,14 +240,3 @@ int fsSpecificGetdents64(OpenFile *file, void *task,
   }
   return ret;
 }
-
-// todo: no 0s
-VfsHandlers fsSpecific = {.open = 0,
-                          .close = fsSpecificClose,
-                          .duplicate = fsSpecificDuplicateNodeUnsafe,
-                          .ioctl = fbSpecificIoctl,
-                          .mmap = 0,
-                          .read = fsSpecificRead,
-                          .stat = fsSpecificStat,
-                          .write = fsSpecificWrite,
-                          .getdents64 = fsSpecificGetdents64};

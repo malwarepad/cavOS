@@ -42,7 +42,7 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
     return base;
   } else if (fd != -1) {
     OpenFile *file = fsUserGetNode(currentTask, fd);
-    if (!file || file->mountPoint != MOUNT_POINT_SPECIAL)
+    if (!file)
       return -1;
 
     if (!file->handlers->mmap)

@@ -118,7 +118,7 @@ static int syscallLseek(uint32_t file, int offset, int whence) {
 #define SYSCALL_IOCTL 16
 static int syscallIoctl(int fd, unsigned long request, void *arg) {
   OpenFile *browse = fsUserGetNode(currentTask, fd);
-  if (!browse || browse->mountPoint != MOUNT_POINT_SPECIAL) {
+  if (!browse) {
 #if DEBUG_SYSCALLS_FAILS
     debugf(
         "[syscalls::ioctl] FAIL! Tried to manipulate non-special file! fd{%d} "
@@ -128,7 +128,7 @@ static int syscallIoctl(int fd, unsigned long request, void *arg) {
     return -EBADF;
   }
 
-  if (browse->mountPoint != MOUNT_POINT_SPECIAL || !browse->handlers->ioctl)
+  if (!browse->handlers->ioctl)
     return -ENOTTY;
 
   int ret = browse->handlers->ioctl(browse, request, arg);

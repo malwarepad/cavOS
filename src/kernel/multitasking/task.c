@@ -169,13 +169,6 @@ void taskKill(uint32_t id, uint16_t ret) {
     fsUserClose(task, id);
   }
 
-  SpecialFile *special = task->firstSpecialFile;
-  while (special) {
-    SpecialFile *next = special->next;
-    fsUserCloseSpecial(task, special);
-    special = next;
-  }
-
   spinlockCntWriteAcquire(&TASK_LL_MODIFY);
   Task *browse = firstTask;
   while (browse) {
@@ -253,13 +246,6 @@ void taskKillCleanup(Task *task) {
     int id = file->id;
     file = file->next;
     fsUserClose(task, id);
-  }
-
-  SpecialFile *special = task->firstSpecialFile;
-  while (special) {
-    SpecialFile *next = special->next;
-    fsUserCloseSpecial(task, special);
-    special = next;
   }
 
   PageDirectoryFree(task->pagedir);
@@ -350,13 +336,7 @@ int taskChangeCwd(char *newdir) {
 }
 
 void taskFilesEmpty(Task *task) {
-  SpecialFile *specialFile = task->firstSpecialFile;
-  OpenFile    *realFile = task->firstFile;
-  while (specialFile) {
-    SpecialFile *next = specialFile->next;
-    fsUserCloseSpecial(task, specialFile);
-    specialFile = next;
-  }
+  OpenFile *realFile = task->firstFile;
   while (realFile) {
     OpenFile *next = realFile->next;
     fsUserClose(task, realFile->id);
@@ -365,14 +345,6 @@ void taskFilesEmpty(Task *task) {
 }
 
 void taskFilesCopy(Task *original, Task *target) {
-  SpecialFile *specialFile = original->firstSpecialFile;
-  while (specialFile) {
-    SpecialFile *targetSpecial = fsUserDuplicateSpecialNodeUnsafe(specialFile);
-    LinkedListPushFrontUnsafe((void **)(&target->firstSpecialFile),
-                              targetSpecial);
-    specialFile = specialFile->next;
-  }
-
   OpenFile *realFile = original->firstFile;
   while (realFile) {
     OpenFile *targetFile = fsUserDuplicateNodeUnsafe(realFile);

@@ -7,6 +7,11 @@
 #include <util.h>
 
 bool ext2Mount(MountPoint *mount) {
+  // assign handlers
+  mount->handlers = &ext2Handlers;
+  mount->stat = ext2Stat;
+  mount->lstat = ext2Lstat;
+
   // assign fsInfo
   mount->fsInfo = malloc(sizeof(Ext2));
   memset(mount->fsInfo, 0, sizeof(Ext2));
@@ -264,7 +269,8 @@ void ext2StatInternal(Ext2Inode *inode, uint32_t inodeNum,
   target->st_ctime = inode->ctime;
 }
 
-bool ext2Stat(Ext2 *ext2, char *filename, struct stat *target) {
+bool ext2Stat(MountPoint *mnt, char *filename, struct stat *target) {
+  Ext2    *ext2 = EXT2_PTR(mnt->fsInfo);
   uint32_t inodeNum = ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, true);
   if (!inodeNum)
     return false;
@@ -276,7 +282,8 @@ bool ext2Stat(Ext2 *ext2, char *filename, struct stat *target) {
   return true;
 }
 
-bool ext2Lstat(Ext2 *ext2, char *filename, struct stat *target) {
+bool ext2Lstat(MountPoint *mnt, char *filename, struct stat *target) {
+  Ext2    *ext2 = EXT2_PTR(mnt->fsInfo);
   uint32_t inodeNum = ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, false);
   if (!inodeNum)
     return false;
@@ -339,3 +346,14 @@ bool ext2Close(MountPoint *mount, OpenFile *fd) {
   free(fd->dir);
   return true;
 }
+
+// todo!
+VfsHandlers ext2Handlers = {.open = fsSpecificOpen,
+                            .close = fsSpecificClose,
+                            .duplicate = fsSpecificDuplicateNodeUnsafe,
+                            .ioctl = fsSpecificIoctl,
+                            .mmap = 0,
+                            .read = fsSpecificRead,
+                            .stat = fsSpecificStat,
+                            .write = fsSpecificWrite,
+                            .getdents64 = fsSpecificGetdents64};

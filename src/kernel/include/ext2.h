@@ -194,8 +194,8 @@ bool   ext2Mount(MountPoint *mount);
 bool   ext2Open(MountPoint *mount, OpenFile *fd, char *filename);
 bool   ext2Close(MountPoint *mount, OpenFile *fd);
 int    ext2Read(MountPoint *mount, OpenFile *fd, uint8_t *buff, int limit);
-bool   ext2Stat(Ext2 *ext2, char *filename, struct stat *target);
-bool   ext2Lstat(Ext2 *ext2, char *filename, struct stat *target);
+bool   ext2Stat(MountPoint *mnt, char *filename, struct stat *target);
+bool   ext2Lstat(MountPoint *mnt, char *filename, struct stat *target);
 bool   ext2StatFd(Ext2 *ext2, OpenFile *fd, struct stat *target);
 bool   ext2Seek(MountPoint *mount, OpenFile *fd, uint32_t target);
 size_t ext2GetFilesize(OpenFile *fd);
@@ -222,5 +222,8 @@ uint32_t   ext2TraversePath(Ext2 *ext2, char *path, size_t initInode,
 
 // ext2_dirs.c
 int ext2Getdents64(OpenFile *file, void *start, unsigned int hardlimit);
+
+// finale
+VfsHandlers ext2Handlers;
 
 #endif

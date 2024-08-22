@@ -5,8 +5,8 @@
 #ifndef FS_CONTROLLER_H
 #define FS_CONTROLLER_H
 
-typedef enum FS { FS_FATFS, FS_EXT2 } FS;
-typedef enum CONNECTOR { CONNECTOR_AHCI } CONNECTOR;
+typedef enum FS { FS_FATFS, FS_EXT2, FS_DEV } FS;
+typedef enum CONNECTOR { CONNECTOR_AHCI, CONNECTOR_DEV } CONNECTOR;
 
 // Accordingly to fatfs
 #define FS_MODE_READ 0x01
@@ -43,27 +43,8 @@ typedef enum CONNECTOR { CONNECTOR_AHCI } CONNECTOR;
 #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
 #define O_NDELAY O_NONBLOCK
 
-typedef struct MountPoint MountPoint;
-struct MountPoint {
-  MountPoint *next;
-
-  char *prefix;
-
-  uint32_t  disk;
-  uint8_t   partition; // mbr allows for 4 partitions / disk
-  CONNECTOR connector;
-
-  FS filesystem;
-
-  mbr_partition mbr;
-  void         *fsInfo;
-};
-
-// mount point for "special" files ;)
-#define MOUNT_POINT_SPECIAL ((MountPoint *)0x69)
 typedef struct OpenFile OpenFile;
 
-typedef struct SpecialFile SpecialFile;
 typedef int (*SpecialReadHandler)(OpenFile *fd, uint8_t *out, size_t limit);
 typedef int (*SpecialWriteHandler)(OpenFile *fd, uint8_t *in, size_t limit);
 typedef int (*SpecialIoctlHandler)(OpenFile *fd, uint64_t request, void *arg);
@@ -74,7 +55,7 @@ typedef bool (*SpecialDuplicate)(OpenFile *original, OpenFile *orphan);
 typedef int (*SpecialGetdents64)(OpenFile *fd, void *task,
                                  struct linux_dirent64 *dirp,
                                  unsigned int           count);
-typedef bool (*SpecialOpen)(OpenFile *fd);
+typedef bool (*SpecialOpen)(char *filename, OpenFile *fd);
 typedef bool (*SpecialClose)(OpenFile *fd);
 
 typedef struct VfsHandlers {
@@ -89,6 +70,29 @@ typedef struct VfsHandlers {
   SpecialOpen      open;
   SpecialClose     close;
 } VfsHandlers;
+
+typedef struct MountPoint MountPoint;
+
+typedef bool (*MntStat)(MountPoint *mnt, char *filename, struct stat *target);
+typedef bool (*MntLstat)(MountPoint *mnt, char *filename, struct stat *target);
+struct MountPoint {
+  MountPoint *next;
+
+  char *prefix;
+
+  uint32_t  disk;
+  uint8_t   partition; // mbr allows for 4 partitions / disk
+  CONNECTOR connector;
+
+  FS filesystem;
+
+  VfsHandlers *handlers;
+  MntStat      stat;
+  MntLstat     lstat;
+
+  mbr_partition mbr;
+  void         *fsInfo;
+};
 
 struct OpenFile {
   OpenFile *next;
@@ -108,19 +112,7 @@ struct OpenFile {
   void       *dir;
 };
 
-struct SpecialFile {
-  SpecialFile *next;
-
-  int   id;
-  char *filename;
-
-  VfsHandlers *handlers;
-};
-
 MountPoint *firstMountPoint;
-
-// "global" special files
-SpecialFile *firstGlobalSpecial;
 
 #define SEEK_SET 0  // start + offset
 #define SEEK_CURR 1 // current + offset
@@ -156,30 +148,22 @@ bool fsLstatByFilename(void *task, char *filename, stat *target);
 
 // vfs_spec.c
 bool   fsSpecificClose(OpenFile *file);
-bool   fsSpecificOpen(char *filename, MountPoint *mnt, OpenFile *target);
+bool   fsSpecificOpen(char *filename, OpenFile *target);
 int    fsSpecificRead(OpenFile *file, uint8_t *out, size_t limit);
 int    fsSpecificWrite(OpenFile *file, uint8_t *in, size_t limit);
 bool   fsSpecificWriteSync(OpenFile *file);
 size_t fsSpecificGetFilesize(OpenFile *file);
 bool   fsSpecificDuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan);
 int    fsSpecificSeek(OpenFile *file, int target, int offset, int whence);
+int    fsSpecificIoctl(OpenFile *fd, uint64_t request, void *arg);
+int    fsSpecificStat(OpenFile *fd, stat *target);
+int    fsSpecificGetdents64(OpenFile *file, void *task,
+                            struct linux_dirent64 *dirp, unsigned int count);
 
 // vfs_mount.c
 MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
                     uint8_t partition);
 bool        fsUnmount(MountPoint *mnt);
 MountPoint *fsDetermineMountPoint(char *filename);
-
-// vfs_special.c
-OpenFile *fsUserSpecialDummyGen(void *task, int fd, SpecialFile *special,
-                                int flags, int mode);
-bool      fsUserOpenSpecial(void **firstSpecial, char *filename, void *taskPtr,
-                            int fd, VfsHandlers *specialHandlers);
-SpecialFile *fsUserDuplicateSpecialNodeUnsafe(SpecialFile *original);
-bool         fsUserCloseSpecial(void *task, SpecialFile *special);
-SpecialFile *fsUserGetSpecialByFilename(void *task, char *filename);
-SpecialFile *fsUserGetSpecialById(void *taskPtr, int fd);
-
-VfsHandlers fsSpecific;
 
 #endif

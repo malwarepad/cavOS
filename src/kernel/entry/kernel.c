@@ -66,6 +66,7 @@ void _start(void) {
   firstMountPoint = 0;
   fsMount("/", CONNECTOR_AHCI, 0, 1);
   fsMount("/boot/", CONNECTOR_AHCI, 0, 0);
+  fsMount("/dev/", CONNECTOR_DEV, 0, 0);
 
   // any filesystem operations depend on currentTask
   initiateTasks();
@@ -79,7 +80,6 @@ void _start(void) {
   initiateSyscalls();
 
   initiateSSE();
-  initiateFakefs();
   // initiateTasks();
 
   testingInit();

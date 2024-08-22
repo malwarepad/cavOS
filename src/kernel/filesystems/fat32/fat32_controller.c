@@ -11,6 +11,11 @@
 // also, optimization is REALLY needed!
 
 bool fat32Mount(MountPoint *mount) {
+  // assign handlers
+  mount->handlers = &fat32Handlers;
+  mount->stat = fat32Stat;
+  mount->lstat = fat32Stat; // fat doesn't support symlinks
+
   // assign fsInfo
   mount->fsInfo = malloc(sizeof(FAT32));
   memset(mount->fsInfo, 0, sizeof(FAT32));
@@ -218,3 +223,14 @@ bool fat32Close(MountPoint *mount, OpenFile *fd) {
   free(fd->dir);
   return true;
 }
+
+// todo!
+VfsHandlers fat32Handlers = {.open = fsSpecificOpen,
+                             .close = fsSpecificClose,
+                             .duplicate = fsSpecificDuplicateNodeUnsafe,
+                             .ioctl = fsSpecificIoctl,
+                             .mmap = 0,
+                             .read = fsSpecificRead,
+                             .stat = fsSpecificStat,
+                             .write = fsSpecificWrite,
+                             .getdents64 = fsSpecificGetdents64};

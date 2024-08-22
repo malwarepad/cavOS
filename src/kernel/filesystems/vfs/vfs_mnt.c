@@ -1,3 +1,4 @@
+#include <dev.h>
 #include <disk.h>
 #include <ext2.h>
 #include <fat32.h>
@@ -73,6 +74,10 @@ MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
       mount->filesystem = FS_EXT2;
       ret = ext2Mount(mount);
     }
+    break;
+  case CONNECTOR_DEV:
+    mount->filesystem = FS_DEV;
+    ret = devMount(mount);
     break;
   default:
     debugf("[vfs] Tried to mount with bad connector! id{%d}\n", connector);

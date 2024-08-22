@@ -21,11 +21,6 @@ OpenFile *fsRegisterNode(Task *task) {
 }
 
 bool fsUnregisterNode(Task *task, OpenFile *file) {
-  // wtf is this!
-  // SpecialFile *special = fsUserGetSpecialById(task, file->id);
-  // if (special)
-  //   fsUserCloseSpecial(task, special);
-
   spinlockCntWriteAcquire(&task->WLOCK_FILES);
   bool ret = LinkedListUnregister((void **)&task->firstFile, file);
   spinlockCntWriteRelease(&task->WLOCK_FILES);
@@ -48,19 +43,6 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
   target->pointer = 0;
   target->tmp1 = 0;
 
-  SpecialFile *special = fsUserGetSpecialByFilename(task, safeFilename);
-  if (special) {
-    free(safeFilename);
-    // return fsUserSpecialDummyGen(task, openId++, special, flags, mode);
-
-    target->mountPoint = MOUNT_POINT_SPECIAL;
-    target->handlers = special->handlers;
-
-    if (target->handlers->open)
-      target->handlers->open(target);
-    return target;
-  }
-
   MountPoint *mnt = fsDetermineMountPoint(safeFilename);
   if (!mnt) {
     // no mountpoint for this
@@ -70,20 +52,20 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
     return 0;
   }
   target->mountPoint = mnt;
-  target->handlers = &fsSpecific;
+  target->handlers = mnt->handlers;
 
-  bool res = fsSpecificOpen(safeFilename, mnt, target);
-  free(safeFilename);
-
-  if (!res) {
-    // failed to open
-    fsUnregisterNode(task, target);
-    free(target);
-    return 0;
+  char *strippedFilename = fsStripMountpoint(safeFilename, mnt);
+  // check for open handler
+  if (target->handlers->open) {
+    if (!target->handlers->open(strippedFilename, target)) {
+      // failed to open
+      fsUnregisterNode(task, target);
+      free(target);
+      free(safeFilename);
+      return 0;
+    }
+    free(safeFilename);
   }
-
-  if (target->handlers->open)
-    target->handlers->open(target);
   return target;
 }
 
@@ -101,22 +83,6 @@ OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original) {
     free(orphan);
     return 0;
   }
-
-  /*if (orphan->dir) {
-    if (orphan->mountPoint == MOUNT_POINT_SPECIAL) {
-      if (special) {
-        orphan->dir = special;
-        return orphan;
-      }
-
-      panic();
-      return 0;
-    }
-    if (!fsSpecificDuplicateNodeUnsafe(original, orphan)) {
-      free(orphan);
-      return 0;
-    }
-  }*/
 
   return orphan;
 }
@@ -145,16 +111,6 @@ OpenFile *fsUserGetNode(void *task, int fd) {
     browse = browse->next;
   }
   spinlockCntReadRelease(&target->WLOCK_FILES);
-
-  if (!browse) {
-    // might be a special file then
-    SpecialFile *special = fsUserGetSpecialById(task, fd);
-
-    if (!special)
-      return 0;
-
-    return fsUserSpecialDummyGen(target, fd, special, O_RDWR, 0);
-  }
 
   return browse;
 }
@@ -197,11 +153,8 @@ int fsUserClose(void *task, int fd) {
     return -1;
 }
 
-uint32_t fsGetFilesize(OpenFile *file) {
-  if (file->mountPoint == MOUNT_POINT_SPECIAL)
-    return 0;
-  return fsSpecificGetFilesize(file);
-}
+// todo: remove this bs
+uint32_t fsGetFilesize(OpenFile *file) { return fsSpecificGetFilesize(file); }
 
 uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit) {
   if (!file->handlers->read)
@@ -215,23 +168,15 @@ uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit) {
   return file->handlers->write(file, in, limit);
 }
 
-bool fsWriteSync(OpenFile *file) {
-  if (file->mountPoint == MOUNT_POINT_SPECIAL)
-    return true;
-
-  return fsSpecificWriteSync(file);
-}
+bool fsWriteSync(OpenFile *file) { return fsSpecificWriteSync(file); }
 
 void fsReadFullFile(OpenFile *file, uint8_t *out) {
-  if (file->mountPoint == MOUNT_POINT_SPECIAL)
-    return;
-
   fsRead(file, out, fsGetFilesize(file));
 }
 
 int fsUserSeek(void *task, uint32_t fd, int offset, int whence) {
   OpenFile *file = fsUserGetNode(task, fd);
-  if (!file || file->mountPoint == MOUNT_POINT_SPECIAL) // todo
+  if (!file) // todo "special"
     return -1;
   int target = offset;
   if (whence == SEEK_SET)

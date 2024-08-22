@@ -78,9 +78,6 @@ struct Task {
   SpinlockCnt WLOCK_FILES;
   OpenFile   *firstFile;
 
-  SpinlockCnt  WLOCK_SPECIAL;
-  SpecialFile *firstSpecialFile;
-
   __attribute__((aligned(16))) uint8_t fpuenv[512];
   uint32_t                             mxcsr;
 

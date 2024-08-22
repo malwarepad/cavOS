@@ -6,6 +6,39 @@
 
 VfsHandlers handleNull;
 
-void initiateFakefs();
+typedef struct FakefsFile {
+  struct FakefsFile *next;
+  struct FakefsFile *inner;
+
+  char *filename;
+  int   filenameLength;
+
+  uint16_t filetype;
+  uint64_t inode;
+
+  char *symlink;
+  int   symlinkLength;
+
+  int size;
+
+  VfsHandlers *handlers;
+} FakefsFile;
+
+typedef struct Fakefs {
+  FakefsFile *firstFile;
+  uint64_t    lastInode;
+} Fakefs;
+
+typedef struct FakefsOverlay {
+  Fakefs *fakefs;
+} FakefsOverlay;
+
+FakefsFile *fakefsAddFile(Fakefs *fakefs, FakefsFile **under, char *filename,
+                          char *symlink, uint16_t filetype,
+                          VfsHandlers *handlers);
+bool        fakefsStat(MountPoint *mnt, char *filename, struct stat *target);
+bool        fakefsLstat(MountPoint *mnt, char *filename, struct stat *target);
+
+VfsHandlers fakefsHandlers;
 
 #endif

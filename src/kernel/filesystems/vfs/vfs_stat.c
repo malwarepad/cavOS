@@ -18,28 +18,16 @@ bool fsStat(OpenFile *fd, stat *target) {
 bool fsStatByFilename(void *task, char *filename, stat *target) {
   char *safeFilename = fsSanitize(((Task *)task)->cwd, filename);
 
-  SpecialFile *special = fsUserGetSpecialByFilename(task, safeFilename);
-  if (special) {
-    free(safeFilename);
-    return special->handlers->stat(0, target) == 0;
-  }
-
   MountPoint *mnt = fsDetermineMountPoint(safeFilename);
   bool        ret = false;
   char       *strippedFilename = fsStripMountpoint(safeFilename, mnt);
-  switch (mnt->filesystem) {
-  case FS_FATFS:
-    ret = fat32Stat(mnt->fsInfo, strippedFilename, target);
-    break;
-  case FS_EXT2:
-    ret = ext2Stat(mnt->fsInfo, strippedFilename, target);
-    break;
-  default:
-    debugf("[vfs] Tried to stat with bad filesystem! id{%d}\n",
-           mnt->filesystem);
-    break;
-  }
 
+  if (!mnt->stat)
+    goto cleanup;
+
+  ret = mnt->stat(mnt, strippedFilename, target);
+
+cleanup:
   free(safeFilename);
   return ret;
 }
@@ -47,29 +35,16 @@ bool fsStatByFilename(void *task, char *filename, stat *target) {
 bool fsLstatByFilename(void *task, char *filename, stat *target) {
   char *safeFilename = fsSanitize(((Task *)task)->cwd, filename);
 
-  SpecialFile *special = fsUserGetSpecialByFilename(task, safeFilename);
-  if (special) {
-    free(safeFilename);
-    return special->handlers->stat(0, target) == 0;
-  }
-
   MountPoint *mnt = fsDetermineMountPoint(safeFilename);
   bool        ret = false;
   char       *strippedFilename = fsStripMountpoint(safeFilename, mnt);
-  switch (mnt->filesystem) {
-  case FS_FATFS:
-    // fat32 doesn't support symbolic links anyways
-    ret = fat32Stat(mnt->fsInfo, strippedFilename, target);
-    break;
-  case FS_EXT2:
-    ret = ext2Lstat(mnt->fsInfo, strippedFilename, target);
-    break;
-  default:
-    debugf("[vfs] Tried to stat with bad filesystem! id{%d}\n",
-           mnt->filesystem);
-    break;
-  }
 
+  if (!mnt->lstat)
+    goto cleanup;
+
+  ret = mnt->lstat(mnt, strippedFilename, target);
+
+cleanup:
   free(safeFilename);
   return ret;
 }
