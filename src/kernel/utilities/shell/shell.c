@@ -68,6 +68,7 @@ void help() {
   printf("\n= draw           : Tests framebuffer by drawing a rectangle =");
   printf("\n= proctest       : Tests multitasking support               =");
   printf("\n= exec           : Runs a cavOS binary of your choice       =");
+  printf("\n= bash           : GNU Bash, your portal to userspace!      =");
   printf("\n=============================================================\n");
   printf("\n========================= FILESYSTEM ========================");
   printf("\n= readfile       : Read a file's contents                   =");
