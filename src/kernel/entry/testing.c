@@ -36,8 +36,9 @@ void testingInit() {
   // weirdTests();
   // elfExecute("/usr/bin/busybox", 2, argv);
   // while (1) {
-  // Task *task = elfExecute(argv[0], sizeof(argv) / sizeof(argv[0]), argv,
-  // true); while (taskGetState(task->id))
+  // Task *task =
+  //     elfExecute(argv[0], sizeof(argv) / sizeof(argv[0]), argv, 0, 0, true);
+  // while (taskGetState(task->id))
   //   ;
   // }
 }
