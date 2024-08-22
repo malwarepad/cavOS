@@ -226,6 +226,8 @@ static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
 #define SYSCALL_FCNTL 72
 static int syscallFcntl(int fd, int cmd, uint64_t arg) {
   OpenFile *file = fsUserGetNode(currentTask, fd);
+  if (!file)
+    return -EBADF;
   switch (cmd) {
   case F_GETFD:
     return file->closeOnExec;
