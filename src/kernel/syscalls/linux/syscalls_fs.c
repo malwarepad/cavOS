@@ -253,9 +253,8 @@ static int syscallFcntl(int fd, int cmd, uint64_t arg) {
       return targ;
 
     int res = syscallFcntl(targ, F_SETFD, FD_CLOEXEC);
-    (void)res; // todo: close on exec stuff
-    // if (res < 0)
-    //   return res;
+    if (res < 0)
+      return res;
 
     return targ;
   }
