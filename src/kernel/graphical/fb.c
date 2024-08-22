@@ -69,7 +69,7 @@ size_t fbUserMmap(size_t addr, size_t length, int prot, int flags, OpenFile *fd,
   size_t physStart = VirtualToPhysical((size_t)framebuffer);
   for (int i = 0; i < targPages; i++) {
     VirtualMap(0x100000000000 + i * PAGE_SIZE, physStart + i * PAGE_SIZE,
-               PF_RW | PF_USER);
+               PF_RW | PF_USER | PF_CACHE_WC);
   } // todo: get rid of hardcoded location!
   return 0x100000000000;
 }
