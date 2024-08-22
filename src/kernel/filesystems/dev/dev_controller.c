@@ -8,17 +8,17 @@
 Fakefs rootDev = {0};
 
 void devSetup() {
-  fakefsAddFile(&rootDev, &rootDev.firstFile, "stdin", 0,
+  fakefsAddFile(&rootDev, rootDev.rootFile, "stdin", 0,
                 S_IFCHR | S_IRUSR | S_IWUSR, &stdio);
-  fakefsAddFile(&rootDev, &rootDev.firstFile, "stdout", 0,
+  fakefsAddFile(&rootDev, rootDev.rootFile, "stdout", 0,
                 S_IFCHR | S_IRUSR | S_IWUSR, &stdio);
-  fakefsAddFile(&rootDev, &rootDev.firstFile, "stderr", 0,
+  fakefsAddFile(&rootDev, rootDev.rootFile, "stderr", 0,
                 S_IFCHR | S_IRUSR | S_IWUSR, &stdio);
-  fakefsAddFile(&rootDev, &rootDev.firstFile, "tty", 0,
+  fakefsAddFile(&rootDev, rootDev.rootFile, "tty", 0,
                 S_IFCHR | S_IRUSR | S_IWUSR, &stdio);
-  fakefsAddFile(&rootDev, &rootDev.firstFile, "fb0", 0,
+  fakefsAddFile(&rootDev, rootDev.rootFile, "fb0", 0,
                 S_IFCHR | S_IRUSR | S_IWUSR, &fb0);
-  fakefsAddFile(&rootDev, &rootDev.firstFile, "null", 0,
+  fakefsAddFile(&rootDev, rootDev.rootFile, "null", 0,
                 S_IFCHR | S_IRUSR | S_IWUSR, &handleNull);
 }
 
@@ -33,8 +33,10 @@ bool devMount(MountPoint *mount) {
   FakefsOverlay *dev = (FakefsOverlay *)mount->fsInfo;
 
   dev->fakefs = &rootDev;
-  if (!rootDev.firstFile)
+  if (!rootDev.rootFile) {
+    fakefsSetupRoot(&rootDev.rootFile);
     devSetup();
+  }
 
   return true;
 }

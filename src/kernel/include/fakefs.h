@@ -25,7 +25,7 @@ typedef struct FakefsFile {
 } FakefsFile;
 
 typedef struct Fakefs {
-  FakefsFile *firstFile;
+  FakefsFile *rootFile;
   uint64_t    lastInode;
 } Fakefs;
 
@@ -33,12 +33,14 @@ typedef struct FakefsOverlay {
   Fakefs *fakefs;
 } FakefsOverlay;
 
-FakefsFile *fakefsAddFile(Fakefs *fakefs, FakefsFile **under, char *filename,
+void        fakefsSetupRoot(FakefsFile **ptr);
+FakefsFile *fakefsAddFile(Fakefs *fakefs, FakefsFile *under, char *filename,
                           char *symlink, uint16_t filetype,
                           VfsHandlers *handlers);
 bool        fakefsStat(MountPoint *mnt, char *filename, struct stat *target);
 bool        fakefsLstat(MountPoint *mnt, char *filename, struct stat *target);
 
 VfsHandlers fakefsHandlers;
+VfsHandlers fakefsRootHandlers;
 
 #endif

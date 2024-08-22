@@ -1,13 +1,15 @@
+#include <dents.h>
 #include <fakefs.h>
 #include <linked_list.h>
+#include <malloc.h>
 #include <string.h>
 #include <task.h>
 
-FakefsFile *fakefsAddFile(Fakefs *fakefs, FakefsFile **under, char *filename,
+FakefsFile *fakefsAddFile(Fakefs *fakefs, FakefsFile *under, char *filename,
                           char *symlink, uint16_t filetype,
                           VfsHandlers *handlers) {
-  FakefsFile *file =
-      (FakefsFile *)LinkedListAllocate((void **)under, sizeof(FakefsFile));
+  FakefsFile *file = (FakefsFile *)LinkedListAllocate((void **)(&under->inner),
+                                                      sizeof(FakefsFile));
 
   file->filename = filename;
   file->filenameLength = strlength(filename);
@@ -37,23 +39,27 @@ FakefsFile *fakefsTraverse(FakefsFile *start, char *search,
   return browse;
 }
 
-FakefsFile fakefsRoot = {.filename = "/",
-                         .filenameLength = 1,
-                         .next = 0,
-                         .inner = 0,
-                         .filetype = S_IFDIR | S_IRUSR | S_IWUSR | S_IXUSR,
-                         .symlink = 0,
-                         .symlinkLength = 0,
-                         .handlers = &fakefsHandlers,
-                         .size = 3620};
+void fakefsSetupRoot(FakefsFile **ptr) {
+  FakefsFile fakefsRoot = {.filename = "/",
+                           .filenameLength = 1,
+                           .next = 0,
+                           .inner = 0,
+                           .filetype = S_IFDIR | S_IRUSR | S_IWUSR | S_IXUSR,
+                           .symlink = 0,
+                           .symlinkLength = 0,
+                           .handlers = &fakefsRootHandlers,
+                           .size = 3620};
+
+  *ptr = (FakefsFile *)malloc(sizeof(FakefsFile));
+  memcpy(*ptr, &fakefsRoot, sizeof(FakefsFile));
+}
 
 FakefsFile *fakefsTraversePath(FakefsFile *start, char *path) {
-  FakefsFile *fakefs = start;
+  FakefsFile *fakefs = start->inner;
   size_t      len = strlength(path);
 
-  if (len == 1) { // meaning it's trying to open /
-    return &fakefsRoot;
-  }
+  if (len == 1) // meaning it's trying to open /
+    return start;
 
   int lastslash = 0;
   for (int i = 1; i < len; i++) { // 1 to skip /[...]
@@ -83,12 +89,19 @@ bool fakefsOpen(char *filename, OpenFile *target) {
   MountPoint    *mnt = target->mountPoint;
   FakefsOverlay *fakefs = (FakefsOverlay *)mnt->fsInfo;
 
-  FakefsFile *file = fakefsTraversePath(fakefs->fakefs->firstFile, filename);
+  FakefsFile *file = fakefsTraversePath(fakefs->fakefs->rootFile, filename);
   if (!file) {
     // debugf("! %s\n", filename);
     return false;
   }
   target->handlers = file->handlers;
+
+  if (file->filetype | S_IFDIR) {
+    // if it's a directory yk
+    int len = strlength(filename) + 1;
+    target->dirname = (char *)malloc(len);
+    memcpy(target->dirname, filename, len);
+  }
 
   if (file->handlers->open) {
     // if a specific open handler is in place
@@ -101,7 +114,7 @@ bool fakefsOpen(char *filename, OpenFile *target) {
 
 bool fakefsStat(MountPoint *mnt, char *filename, struct stat *target) {
   FakefsOverlay *fakefs = (FakefsOverlay *)mnt->fsInfo;
-  FakefsFile    *file = fakefsTraversePath(fakefs->fakefs->firstFile, filename);
+  FakefsFile    *file = fakefsTraversePath(fakefs->fakefs->rootFile, filename);
   if (!file)
     return false;
 
@@ -139,4 +152,47 @@ VfsHandlers fakefsHandlers = {.open = fakefsOpen,
                               .read = 0,
                               .stat = 0,
                               .write = 0,
-                              .getdents64 = 0}; // <- todo
+                              .getdents64 = 0};
+
+int fakefsGetDents64(OpenFile *fd, void *task, struct linux_dirent64 *start,
+                     unsigned int hardlimit) {
+  FakefsOverlay *fakefs = (FakefsOverlay *)fd->mountPoint->fsInfo;
+
+  FakefsFile *weAt = fakefsTraversePath(fakefs->fakefs->rootFile, fd->dirname);
+
+  if (!fd->tmp1)
+    fd->tmp1 = (size_t)weAt->inner;
+
+  struct linux_dirent64 *dirp = (struct linux_dirent64 *)start;
+  int                    allocatedlimit = 0;
+
+  while (fd->tmp1 != (size_t)(-1)) {
+    FakefsFile *current = (FakefsFile *)fd->tmp1;
+    DENTS_RES   res =
+        dentsAdd(start, &dirp, &allocatedlimit, hardlimit, current->filename,
+                 current->filenameLength, current->inode, 0); // todo: type
+
+    if (res == DENTS_NO_SPACE) {
+      allocatedlimit = -EINVAL;
+      goto cleanup;
+    } else if (res == DENTS_RETURN)
+      goto cleanup;
+
+    fd->tmp1 = (size_t)current->next;
+    if (!fd->tmp1)
+      fd->tmp1 = (size_t)(-1);
+  }
+
+cleanup:
+  return allocatedlimit;
+}
+
+VfsHandlers fakefsRootHandlers = {.open = 0,
+                                  .close = 0,
+                                  .duplicate = 0,
+                                  .ioctl = 0,
+                                  .mmap = 0,
+                                  .read = 0,
+                                  .stat = 0,
+                                  .write = 0,
+                                  .getdents64 = fakefsGetDents64};

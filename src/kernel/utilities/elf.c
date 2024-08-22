@@ -9,6 +9,7 @@
 #include <syscalls.h>
 #include <system.h>
 #include <task.h>
+#include <timer.h>
 #include <util.h>
 #include <vfs.h>
 
@@ -237,9 +238,9 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
   // fsUserOpenSpecial(a, "/dev/fb0", target, -1, &fb0);
   // fsUserOpenSpecial(a, "/dev/tty", target, -1, &stdio);
 
-  int stdin = fsUserOpen(target, "/dev/stdin", 0, 0);
-  int stdout = fsUserOpen(target, "/dev/stdout", 0, 0);
-  int stderr = fsUserOpen(target, "/dev/stderr", 0, 0);
+  int stdin = fsUserOpen(target, "/dev/stdin", O_RDWR, 0);
+  int stdout = fsUserOpen(target, "/dev/stdout", O_RDWR, 0);
+  int stderr = fsUserOpen(target, "/dev/stderr", O_RDWR, 0);
 
   if (stdin < 0 || stdout < 0 || stderr < 0) {
     debugf("[elf] Couldn't establish basic IO!\n");
