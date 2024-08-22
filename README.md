@@ -6,7 +6,7 @@
 [![GitHub contributors](https://img.shields.io/github/contributors/malwarepad/cavOS)](https://github.com/malwarepad/cavOS/graphs/contributors)
 [![GitHub commit activity (branch)](https://img.shields.io/github/commit-activity/m/malwarepad/cavOS)](https://github.com/malwarepad/cavOS/commits)
 
-![Preview of the OS](https://raw.malwarepad.com/cavos/images/preview.png)
+![Preview of the OS](https://raw.malwarepad.com/cavos/images/preview2.png)
 
 ## Why make your own OS in [insert year]?
 > **because I can.**
