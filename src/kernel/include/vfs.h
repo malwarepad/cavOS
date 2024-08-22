@@ -101,6 +101,8 @@ struct OpenFile {
   int flags;
   int mode;
 
+  bool closeOnExec;
+
   char *dirname;
 
   size_t pointer;

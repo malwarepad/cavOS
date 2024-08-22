@@ -54,6 +54,9 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
   target->mountPoint = mnt;
   target->handlers = mnt->handlers;
 
+  if (flags & O_CLOEXEC)
+    target->closeOnExec = true;
+
   char *strippedFilename = fsStripMountpoint(safeFilename, mnt);
   // check for open handler
   if (target->handlers->open) {

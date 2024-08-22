@@ -344,9 +344,13 @@ void taskFilesEmpty(Task *task) {
   }
 }
 
-void taskFilesCopy(Task *original, Task *target) {
+void taskFilesCopy(Task *original, Task *target, bool respectCOE) {
   OpenFile *realFile = original->firstFile;
   while (realFile) {
+    if (respectCOE && realFile->closeOnExec) {
+      realFile = realFile->next;
+      continue;
+    }
     OpenFile *targetFile = fsUserDuplicateNodeUnsafe(realFile);
     LinkedListPushFrontUnsafe((void **)(&target->firstFile), targetFile);
     realFile = realFile->next;
@@ -409,7 +413,7 @@ int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
   memcpy(newcwd, currentTask->cwd, cmwdLen);
   target->cwd = newcwd;
 
-  taskFilesCopy(currentTask, target);
+  taskFilesCopy(currentTask, target, false);
 
   // returns zero yk
   target->registers.rax = 0;

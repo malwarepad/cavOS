@@ -67,7 +67,7 @@ static int syscallExecve(char *filename, char **argv, char **envp) {
   memcpy(ret->cwd, currentTask->cwd, cwdLen);
 
   taskFilesEmpty(ret);
-  taskFilesCopy(currentTask, ret);
+  taskFilesCopy(currentTask, ret, true);
 
   taskCreateFinish(ret);
 

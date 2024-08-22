@@ -227,6 +227,13 @@ static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
 static int syscallFcntl(int fd, int cmd, uint64_t arg) {
   OpenFile *file = fsUserGetNode(currentTask, fd);
   switch (cmd) {
+  case F_GETFD:
+    return file->closeOnExec;
+    break;
+  case F_SETFD:
+    file->closeOnExec = !file->closeOnExec;
+    return 0;
+    break;
   case F_DUPFD:
     (void)arg; // todo: not ignore arg
     return syscallDup(fd);
