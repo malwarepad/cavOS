@@ -12,6 +12,7 @@
 #include <limine.h>
 #include <malloc.h>
 #include <md5.h>
+#include <mouse.h>
 #include <nic_controller.h>
 #include <paging.h>
 #include <pci.h>
@@ -58,6 +59,7 @@ void _start(void) {
   initiatePaging();
 
   initiateKb();
+  initiateMouse();
 
   debugf("\n====== REACHED SYSTEM ======\n");
   initiateTimer(1000);

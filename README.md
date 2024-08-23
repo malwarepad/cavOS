@@ -42,7 +42,7 @@ Important to mention these goals may never be satisfied, take a very long time t
   - [x] Storage: AHCI
   - [x] Networking: RTL8139, RTL8169
   - [x] Generic: PS/2 Keyboard, serial port
-  - [ ] Generic: Mouse
+  - [x] Generic: Mouse
 - Networking stack
   - [x] Layer3: IPv4, ARP, ICMP
   - [x] Layer4: UDP, TCP
