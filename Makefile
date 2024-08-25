@@ -25,9 +25,11 @@ relimine: cleanlimine limine
 	
 cleanlimine:
 	rm -rf src/bootloader/limine
+	rm -f src/bootloader/.version
 
 limine:
-	@$(MAKE) -C src/bootloader all
+	chmod +x src/bootloader/assert.sh
+	src/bootloader/assert.sh
 
 # Primary (disk creation)
 disk_prepare: verifytools limine musl ports

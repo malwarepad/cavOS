@@ -24,6 +24,7 @@ target/bin
 
 # Limine repository
 src/bootloader/limine
+src/bootloader/.version
 
 # Misc (on the target system)
 target/usr/share
