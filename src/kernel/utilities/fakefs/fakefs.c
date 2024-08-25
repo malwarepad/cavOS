@@ -25,6 +25,11 @@ FakefsFile *fakefsAddFile(Fakefs *fakefs, FakefsFile *under, char *filename,
   return file;
 }
 
+void fakefsAttachFile(FakefsFile *file, void *ptr, int size) {
+  file->extra = ptr;
+  file->size = size;
+}
+
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 FakefsFile *fakefsTraverse(FakefsFile *start, char *search,
                            size_t searchLength) {
@@ -109,15 +114,12 @@ bool fakefsOpen(char *filename, OpenFile *target) {
       return false;
   }
 
+  target->fakefs = file;
+
   return true;
 }
 
-bool fakefsStat(MountPoint *mnt, char *filename, struct stat *target) {
-  FakefsOverlay *fakefs = (FakefsOverlay *)mnt->fsInfo;
-  FakefsFile    *file = fakefsTraversePath(fakefs->fakefs->rootFile, filename);
-  if (!file)
-    return false;
-
+void fakefsStatGeneric(FakefsFile *file, struct stat *target) {
   target->st_dev = 69;          // haha
   target->st_ino = file->inode; // could work
   target->st_mode = file->filetype;
@@ -135,8 +137,23 @@ bool fakefsStat(MountPoint *mnt, char *filename, struct stat *target) {
   target->st_atime = 0;
   target->st_mtime = 0;
   target->st_ctime = 0;
+}
+
+bool fakefsStat(MountPoint *mnt, char *filename, struct stat *target) {
+  FakefsOverlay *fakefs = (FakefsOverlay *)mnt->fsInfo;
+  FakefsFile    *file = fakefsTraversePath(fakefs->fakefs->rootFile, filename);
+  if (!file)
+    return false;
+
+  fakefsStatGeneric(file, target);
 
   return true;
+}
+
+int fakefsFstat(OpenFile *fd, stat *target) {
+  FakefsFile *file = fd->fakefs;
+  fakefsStatGeneric(file, target);
+  return 0;
 }
 
 bool fakefsLstat(MountPoint *mnt, char *filename, struct stat *target) {
@@ -163,6 +180,9 @@ int fakefsGetDents64(OpenFile *fd, void *task, struct linux_dirent64 *start,
   if (!fd->tmp1)
     fd->tmp1 = (size_t)weAt->inner;
 
+  if (!fd->tmp1)
+    fd->tmp1 = (size_t)(-1); // in case it's empty
+
   struct linux_dirent64 *dirp = (struct linux_dirent64 *)start;
   int                    allocatedlimit = 0;
 
@@ -187,6 +207,29 @@ cleanup:
   return allocatedlimit;
 }
 
+// taking in mind that void *extra points to a null terminated string
+int fakefsSimpleRead(OpenFile *fd, uint8_t *out, size_t limit) {
+  FakefsFile *file = (FakefsFile *)fd->fakefs;
+  if (!file->extra) {
+    debugf("[vfs::fakefs] simple read failed! no extra! FATAL!\n");
+    panic();
+  }
+
+  char *in = (char *)((size_t)file->extra + fd->pointer);
+  int   cnt = 0;
+  for (int i = 0; i < limit; i++) {
+    if (!in[i])
+      goto cleanup;
+
+    out[i] = in[i];
+    fd->pointer++;
+    cnt++;
+  }
+
+cleanup:
+  return cnt;
+}
+
 VfsHandlers fakefsRootHandlers = {.open = 0,
                                   .close = 0,
                                   .duplicate = 0,
@@ -196,3 +239,11 @@ VfsHandlers fakefsRootHandlers = {.open = 0,
                                   .stat = 0,
                                   .write = 0,
                                   .getdents64 = fakefsGetDents64};
+
+VfsHandlers fakefsSimpleReadHandlers = {.read = fakefsSimpleRead,
+                                        .write = 0,
+                                        .stat = fakefsFstat,
+                                        .duplicate = 0,
+                                        .ioctl = 0,
+                                        .mmap = 0,
+                                        .getdents64 = 0};

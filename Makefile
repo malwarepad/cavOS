@@ -20,16 +20,6 @@ ports:
 	chmod +x tools/userland/ports.sh
 	tools/userland/ports.sh
 
-# PCI IDs
-repci_id: cleanpci_id target/usr/share/hwdata/pci.ids
-
-cleanpci_id:
-	rm -f target/usr/share/hwdata/pci.ids || true
-
-target/usr/share/hwdata/pci.ids:
-	mkdir -p target/usr/share/hwdata
-	wget --directory-prefix=target/usr/share/hwdata https://pci-ids.ucw.cz/v2.2/pci.ids
-
 # Limine
 relimine: cleanlimine limine
 	
@@ -40,7 +30,7 @@ limine:
 	@$(MAKE) -C src/bootloader all
 
 # Primary (disk creation)
-disk_prepare: verifytools limine musl ports target/usr/share/hwdata/pci.ids
+disk_prepare: verifytools limine musl ports
 # @$(MAKE) -C src/libs/system
 	@$(MAKE) -C src/software/test
 	@$(MAKE) -C src/software/badtest

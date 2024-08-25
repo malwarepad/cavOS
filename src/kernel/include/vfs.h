@@ -5,8 +5,12 @@
 #ifndef FS_CONTROLLER_H
 #define FS_CONTROLLER_H
 
-typedef enum FS { FS_FATFS, FS_EXT2, FS_DEV } FS;
-typedef enum CONNECTOR { CONNECTOR_AHCI, CONNECTOR_DEV } CONNECTOR;
+typedef enum FS { FS_FATFS, FS_EXT2, FS_DEV, FS_SYS } FS;
+typedef enum CONNECTOR {
+  CONNECTOR_AHCI,
+  CONNECTOR_DEV,
+  CONNECTOR_SYS
+} CONNECTOR;
 
 // Accordingly to fatfs
 #define FS_MODE_READ 0x01
@@ -112,6 +116,7 @@ struct OpenFile {
 
   MountPoint *mountPoint;
   void       *dir;
+  void       *fakefs;
 };
 
 MountPoint *firstMountPoint;

@@ -5,6 +5,7 @@
 #include <linked_list.h>
 #include <malloc.h>
 #include <string.h>
+#include <sys.h>
 #include <system.h>
 #include <task.h>
 #include <util.h>
@@ -78,6 +79,10 @@ MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
   case CONNECTOR_DEV:
     mount->filesystem = FS_DEV;
     ret = devMount(mount);
+    break;
+  case CONNECTOR_SYS:
+    mount->filesystem = FS_SYS;
+    ret = sysMount(mount);
     break;
   default:
     debugf("[vfs] Tried to mount with bad connector! id{%d}\n", connector);

@@ -16,13 +16,13 @@
 #include <nic_controller.h>
 #include <paging.h>
 #include <pci.h>
-#include <pci_id.h>
 #include <pmm.h>
 #include <psf.h>
 #include <rtc.h>
 #include <serial.h>
 #include <shell.h>
 #include <string.h>
+#include <sys.h>
 #include <syscalls.h>
 #include <system.h>
 #include <task.h>
@@ -69,14 +69,13 @@ void _start(void) {
   fsMount("/", CONNECTOR_AHCI, 0, 1);
   fsMount("/boot/", CONNECTOR_AHCI, 0, 0);
   fsMount("/dev/", CONNECTOR_DEV, 0, 0);
+  fsMount("/sys/", CONNECTOR_SYS, 0, 0);
 
   // any filesystem operations depend on currentTask
   initiateTasks();
 
   // just in case there's another font preference
   psfLoadFromFile(DEFAULT_FONT_PATH);
-
-  initiatePCI_ID();
 
   initiateSyscallInst();
   initiateSyscalls();

@@ -19,7 +19,8 @@ typedef struct FakefsFile {
   char *symlink;
   int   symlinkLength;
 
-  int size;
+  int   size;
+  void *extra;
 
   VfsHandlers *handlers;
 } FakefsFile;
@@ -37,10 +38,14 @@ void        fakefsSetupRoot(FakefsFile **ptr);
 FakefsFile *fakefsAddFile(Fakefs *fakefs, FakefsFile *under, char *filename,
                           char *symlink, uint16_t filetype,
                           VfsHandlers *handlers);
+void        fakefsAttachFile(FakefsFile *file, void *ptr, int size);
 bool        fakefsStat(MountPoint *mnt, char *filename, struct stat *target);
 bool        fakefsLstat(MountPoint *mnt, char *filename, struct stat *target);
+int         fakefsFstat(OpenFile *fd, stat *target);
+int         fakefsSimpleRead(OpenFile *fd, uint8_t *out, size_t limit);
 
 VfsHandlers fakefsHandlers;
 VfsHandlers fakefsRootHandlers;
+VfsHandlers fakefsSimpleReadHandlers;
 
 #endif

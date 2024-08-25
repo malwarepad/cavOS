@@ -152,6 +152,8 @@ void GetDevice(PCIdevice *device, uint8_t bus, uint8_t slot, uint8_t function);
 void GetGeneralDevice(PCIdevice *device, PCIgeneralDevice *out);
 void ConfigWriteDword(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset,
                       uint32_t conf);
+uint16_t ConfigReadWord(uint8_t bus, uint8_t slot, uint8_t func,
+                        uint8_t offset);
 
 PCI *lookupPCIdevice(PCIdevice *device);
 void setupPCIdeviceDriver(PCI *pci, PCI_DRIVER driver,
