@@ -20,6 +20,19 @@ if [ ! -d "$USR_PATHNAME/../bin" ]; then
 fi
 cd "$USR_PATHNAME/../../"
 
+# Make sure we use GNU bash for our /bin/sh
+if [ ! -f "$USR_PATHNAME/bin/sh" ]; then
+	ln -s bash "$USR_PATHNAME/bin/sh"
+fi
+
+# Make sure we are using the correct timezone
+HOST_TIMEZONE=$(readlink -f /etc/localtime)
+TARGET_TIMEZONE=$(readlink -f "$USR_PATHNAME/../etc/localtime" || echo definitely_not_lol)
+if [ "${HOST_TIMEZONE}" != "${TARGET_TIMEZONE}" ]; then
+	rm -f "$TARGET_TIMEZONE"
+	ln -s "$HOST_TIMEZONE" "$TARGET_TIMEZONE"
+fi
+
 # GNU ncurses (useful library)
 if [ ! -f "$USR_PATHNAME/bin/clear" ]; then
 	build_package_autotools https://ftp.gnu.org/gnu/ncurses/ncurses-6.5.tar.gz "/usr" config.sub "--with-build-sysroot='$USR_PATHNAME' --with-sysroot=/" "" "DESTDIR='$USR_PATHNAME/../'"
@@ -133,11 +146,6 @@ fi
 source "${SCRIPTPATH}/../shared/chroot.sh"
 chroot_establish
 cd "$USR_PATHNAME/../"
-
-# Make sure we use GNU bash for our /bin/sh
-if [ ! -f "$USR_PATHNAME/bin/sh" ]; then
-	sudo chroot "$TARGET_DIR/" /usr/bin/bash -c "ln -s bash /usr/bin/sh"
-fi
 
 # The netwide assembler (nasm)
 if [ ! -f "$USR_PATHNAME/bin/nasm" ]; then

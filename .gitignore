@@ -27,6 +27,7 @@ src/bootloader/limine
 src/bootloader/.version
 
 # Misc (on the target system)
+target/etc/localtime
 target/usr/share
 
 pci.ids
