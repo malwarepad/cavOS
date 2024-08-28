@@ -1,4 +1,5 @@
 #include <elf.h>
+#include <linked_list.h>
 #include <linux.h>
 #include <malloc.h>
 #include <string.h>
@@ -99,7 +100,8 @@ static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
   asm volatile("sti");
 
   if (pid == -1) {
-    if (!currentTask->lastChildKilled.pid) {
+    // if nothing is on the side, then ensure we have something to wait() for
+    if (!currentTask->childrenTerminatedAmnt) {
       int amnt = 0;
 
       spinlockCntReadAcquire(&TASK_LL_MODIFY);
@@ -112,21 +114,28 @@ static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
       spinlockCntReadRelease(&TASK_LL_MODIFY);
 
       if (!amnt)
-        return -1;
-      // currentTask->lastChildKilled.pid = 0;
-
-      currentTask->wait4 = true;
-      while (!currentTask->lastChildKilled.pid) {
-      }
-      currentTask->wait4 = false;
+        return -ECHILD;
     }
 
-    int output = currentTask->lastChildKilled.pid;
-    int ret = currentTask->lastChildKilled.ret;
+    // we got children, wait for any changes
+    // OR just continue :")
+    while (!currentTask->childrenTerminatedAmnt)
+      ;
 
-    // clean
-    currentTask->lastChildKilled.pid = 0;
-    currentTask->lastChildKilled.ret = 0;
+    spinlockAcquire(&currentTask->LOCK_CHILD_TERM);
+    if (!currentTask->firstChildTerminated) {
+      debugf("[syscalls::wait4] FATAL Just fatal!");
+      panic();
+    }
+
+    int output = currentTask->firstChildTerminated->pid;
+    int ret = currentTask->firstChildTerminated->ret;
+
+    // cleanup
+    LinkedListRemove((void **)(&currentTask->firstChildTerminated),
+                     currentTask->firstChildTerminated);
+    currentTask->childrenTerminatedAmnt--;
+    spinlockRelease(&currentTask->LOCK_CHILD_TERM);
 
     if (wstatus)
       *wstatus = (ret & 0xff) << 8;

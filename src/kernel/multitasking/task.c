@@ -157,8 +157,13 @@ void taskKill(uint32_t id, uint16_t ret) {
 
   // Notify that poor parent... they must've been searching all over the place!
   if (task->parent && !task->noInformParent) {
-    task->parent->lastChildKilled.pid = task->id;
-    task->parent->lastChildKilled.ret = task->ret;
+    spinlockAcquire(&task->parent->LOCK_CHILD_TERM);
+    KilledInfo *info = (KilledInfo *)LinkedListAllocate(
+        (void **)(&task->parent->firstChildTerminated), sizeof(KilledInfo));
+    info->pid = task->id;
+    info->ret = ret;
+    task->parent->childrenTerminatedAmnt++;
+    spinlockRelease(&task->parent->LOCK_CHILD_TERM);
   }
 
   // close any left open files
@@ -181,7 +186,6 @@ void taskKill(uint32_t id, uint16_t ret) {
   browse->next = task->next;
 
   task->state = TASK_STATE_DEAD;
-  task->ret = ret;
 
   if (currentTask == task) {
     // we're most likely in a syscall context, so...
@@ -300,18 +304,21 @@ uint8_t taskGetState(uint32_t id) {
   return browse->state;
 }
 
-int16_t taskGenerateId() {
-  spinlockCntReadAcquire(&TASK_LL_MODIFY);
-  Task    *browse = firstTask;
-  uint16_t max = 0;
-  while (browse) {
-    if (browse->id > max)
-      max = browse->id;
-    browse = browse->next;
-  }
+int taskIdCurr = 1;
 
-  spinlockCntReadRelease(&TASK_LL_MODIFY);
-  return max + 1;
+int16_t taskGenerateId() {
+  return taskIdCurr++;
+  // spinlockCntReadAcquire(&TASK_LL_MODIFY);
+  // Task    *browse = firstTask;
+  // uint16_t max = 0;
+  // while (browse) {
+  //   if (browse->id > max)
+  //     max = browse->id;
+  //   browse = browse->next;
+  // }
+
+  // spinlockCntReadRelease(&TASK_LL_MODIFY);
+  // return max + 1;
 }
 
 int taskChangeCwd(char *newdir) {

@@ -38,6 +38,8 @@ typedef struct termios {
 } termios;
 
 typedef struct KilledInfo {
+  struct KilledInfo *next;
+
   uint64_t pid;
   uint16_t ret;
 } KilledInfo;
@@ -81,11 +83,11 @@ struct Task {
   __attribute__((aligned(16))) uint8_t fpuenv[512];
   uint32_t                             mxcsr;
 
-  // Yes... As absurd as it sounds!
-  bool       wait4;
-  bool       noInformParent;
-  KilledInfo lastChildKilled;
-  uint16_t   ret;
+  bool noInformParent;
+
+  Spinlock    LOCK_CHILD_TERM;
+  KilledInfo *firstChildTerminated;
+  int         childrenTerminatedAmnt;
 
   Task *parent;
   Task *next;
