@@ -195,6 +195,7 @@ static int syscallDup(uint32_t fd) {
     return -1;
 
   OpenFile *new = fsUserDuplicateNode(currentTask, file);
+  new->closeOnExec = 0; // does not persist
 
   return new ? new->id : -1;
 }
@@ -213,6 +214,8 @@ static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
 
   // OpenFile    *realFile = currentTask->firstFile;
   OpenFile *targetFile = fsUserDuplicateNodeUnsafe(realFile);
+  targetFile->closeOnExec = 0; // does not persist
+
   LinkedListPushFrontUnsafe((void **)(&currentTask->firstFile), targetFile);
 
   targetFile->id = newFd;
