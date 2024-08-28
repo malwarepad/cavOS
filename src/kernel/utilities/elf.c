@@ -48,11 +48,10 @@ bool elf_check_file(Elf64_Ehdr *hdr) {
 void elfProcessLoad(Elf64_Phdr *elf_phdr, uint8_t *out, size_t base) {
   // Map the (current) program page
   uint64_t pagesRequired = DivRoundUp(elf_phdr->p_memsz, 0x1000) + 1;
-  // todo: fix BitmapAllocate() so it handles 1 block allocations quicker
-  size_t paddr = (size_t)BitmapAllocate(&physical, pagesRequired);
   for (int j = 0; j < pagesRequired; j++) {
     size_t vaddr = (elf_phdr->p_vaddr & ~0xFFF) + j * 0x1000;
-    VirtualMap(base + vaddr, paddr + j * PAGE_SIZE, PF_USER | PF_RW);
+    size_t paddr = (size_t)BitmapAllocatePageframe(&physical);
+    VirtualMap(base + vaddr, paddr, PF_USER | PF_RW);
   }
 
   // Copy the required info

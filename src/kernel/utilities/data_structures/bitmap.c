@@ -68,6 +68,10 @@ void BitmapDumpBlocks(DS_Bitmap *bitmap) {
 
 /* Marking large chunks of memory */
 void MarkBlocks(DS_Bitmap *bitmap, size_t start, size_t size, bool val) {
+  // optimization(1): bitmap.h
+  if (!val && start < bitmap->lastDeepFragmented)
+    bitmap->lastDeepFragmented = start;
+
   for (size_t i = start; i < start + size; i++) {
     BitmapSet(bitmap, i, val);
   }
@@ -91,14 +95,18 @@ void MarkRegion(DS_Bitmap *bitmap, void *basePtr, size_t sizeBytes,
 }
 
 size_t FindFreeRegion(DS_Bitmap *bitmap, size_t blocks) {
-  size_t currentRegionStart = 0;
+  size_t currentRegionStart = bitmap->lastDeepFragmented;
   size_t currentRegionSize = 0;
 
-  for (size_t i = 0; i < bitmap->BitmapSizeInBlocks; i++) {
+  for (size_t i = currentRegionStart; i < bitmap->BitmapSizeInBlocks; i++) {
     if (BitmapGet(bitmap, i)) {
       currentRegionSize = 0;
       currentRegionStart = i + 1;
     } else {
+      // optimization(1): bitmap.h
+      if (blocks == 1)
+        bitmap->lastDeepFragmented = currentRegionStart + 1;
+
       currentRegionSize++;
       if (currentRegionSize >= blocks)
         return currentRegionStart;
