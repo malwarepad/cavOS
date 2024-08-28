@@ -48,10 +48,11 @@ bool elf_check_file(Elf64_Ehdr *hdr) {
 void elfProcessLoad(Elf64_Phdr *elf_phdr, uint8_t *out, size_t base) {
   // Map the (current) program page
   uint64_t pagesRequired = DivRoundUp(elf_phdr->p_memsz, 0x1000) + 1;
+  // todo: fix BitmapAllocate() so it handles 1 block allocations quicker
+  size_t paddr = (size_t)BitmapAllocate(&physical, pagesRequired);
   for (int j = 0; j < pagesRequired; j++) {
     size_t vaddr = (elf_phdr->p_vaddr & ~0xFFF) + j * 0x1000;
-    size_t paddr = BitmapAllocatePageframe(&physical);
-    VirtualMap(base + vaddr, paddr, PF_USER | PF_RW);
+    VirtualMap(base + vaddr, paddr + j * PAGE_SIZE, PF_USER | PF_RW);
   }
 
   // Copy the required info
@@ -110,25 +111,13 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
     panic();
   }
 
-  Elf64_Phdr *tls = 0;
-  size_t      interpreterEntry = 0;
-  size_t      interpreterBase = 0x100000000000; // todo: not hardcode
+  size_t interpreterEntry = 0;
+  size_t interpreterBase = 0x100000000000; // todo: not hardcode
   // Loop through the multiple ELF32 program header tables
   for (int i = 0; i < elf_ehdr->e_phnum; i++) {
     Elf64_Phdr *elf_phdr = (Elf64_Phdr *)((size_t)out + elf_ehdr->e_phoff +
                                           i * elf_ehdr->e_phentsize);
-    if (elf_phdr->p_type == 7) {
-      if (tls) {
-        debugf("[elf] What devil-sent ELF binary has more than one TLS "
-               "section? %s\n",
-               filepath);
-        ChangePageDirectory(oldpagedir);
-        free(out);
-        return 0;
-      }
-      tls = elf_phdr;
-      continue;
-    } else if (elf_phdr->p_type == 3) {
+    if (elf_phdr->p_type == 3) {
       char     *interpreterFilename = (char *)(out + elf_phdr->p_offset);
       OpenFile *interpreter =
           fsKernelOpen(interpreterFilename, FS_MODE_READ, 0);

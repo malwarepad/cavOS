@@ -6,6 +6,7 @@
 #include <paging.h>
 #include <pmm.h>
 #include <string.h>
+#include <system.h>
 #include <timer.h>
 #include <util.h>
 #include <vmm.h>
@@ -75,17 +76,6 @@ bool ahciCmdIssue(HBA_PORT *port, int slot) {
     // in the PxIS port field as well (1 << 5)
     if ((port->ci & (1 << slot)) == 0)
       break;
-    if (port->is & HBA_PxIS_TFES) // Task file error
-    {
-      printf("[pci::ahci] Read disk error\n");
-      return false;
-    }
-  }
-
-  // Check again
-  if (port->is & HBA_PxIS_TFES) {
-    printf("[pci::ahci] Read disk error\n");
-    return false;
   }
 
   return true;
@@ -340,8 +330,19 @@ void ahciInterruptHandler(AsmPassedInterrupt *regs) {
     if (browse->driver == PCI_DRIVER_AHCI) {
       ahci *ahciPtr = browse->extra;
       // printf("[pci::ahci] Interrupt hit!\n");
-      ahciPtr->mem->is = ahciPtr->mem->is;
-      ahciPtr->mem->ports[0].is = ahciPtr->mem->ports[0].is;
+      for (int portNum = 0; portNum < 32; portNum++) {
+        if (!(ahciPtr->sata & (1 << portNum)))
+          continue;
+
+        HBA_PORT *port = &ahciPtr->mem->ports[portNum];
+        if (port->is & HBA_PxIS_TFES) {
+          // Task file error
+          printf("[pci::ahci] FATAL! Task file error!\n");
+          panic();
+        }
+        ahciPtr->mem->is = ahciPtr->mem->is;
+        ahciPtr->mem->ports[portNum].is = ahciPtr->mem->ports[portNum].is;
+      }
     }
 
     browse = browse->next;
