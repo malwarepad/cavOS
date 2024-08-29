@@ -166,8 +166,9 @@ int fsUserClose(void *task, int fd) {
     return -1;
 }
 
-// todo: remove this bs
-uint32_t fsGetFilesize(OpenFile *file) { return fsSpecificGetFilesize(file); }
+size_t fsGetFilesize(OpenFile *file) {
+  return file->handlers->getFilesize(file);
+}
 
 uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit) {
   if (!file->handlers->read)
@@ -180,8 +181,6 @@ uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit) {
     return -EBADF;
   return file->handlers->write(file, in, limit);
 }
-
-bool fsWriteSync(OpenFile *file) { return fsSpecificWriteSync(file); }
 
 void fsReadFullFile(OpenFile *file, uint8_t *out) {
   fsRead(file, out, fsGetFilesize(file));

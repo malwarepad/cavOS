@@ -51,19 +51,19 @@ typedef struct OpenFile OpenFile;
 
 typedef int (*SpecialReadHandler)(OpenFile *fd, uint8_t *out, size_t limit);
 typedef int (*SpecialWriteHandler)(OpenFile *fd, uint8_t *in, size_t limit);
-typedef int (*SpecialSeekHandler)(OpenFile *file, int target, int offset,
-                                  int whence);
+typedef size_t (*SpecialSeekHandler)(OpenFile *file, size_t target,
+                                     long int offset, int whence);
 typedef int (*SpecialIoctlHandler)(OpenFile *fd, uint64_t request, void *arg);
 typedef int (*SpecialStatHandler)(OpenFile *fd, stat *stat);
 typedef size_t (*SpecialMmapHandler)(size_t addr, size_t length, int prot,
                                      int flags, OpenFile *fd, size_t pgoffset);
 typedef bool (*SpecialDuplicate)(OpenFile *original, OpenFile *orphan);
-typedef int (*SpecialGetdents64)(OpenFile *fd, void *task,
-                                 struct linux_dirent64 *dirp,
-                                 unsigned int           count);
+typedef int (*SpecialGetdents64)(OpenFile *fd, struct linux_dirent64 *dirp,
+                                 unsigned int count);
 typedef bool (*SpecialOpen)(char *filename, OpenFile *fd,
                             char **symlinkResolve);
 typedef bool (*SpecialClose)(OpenFile *fd);
+typedef size_t (*SpecialGetFilesize)(OpenFile *fd);
 
 typedef struct VfsHandlers {
   SpecialReadHandler  read;
@@ -73,6 +73,7 @@ typedef struct VfsHandlers {
   SpecialStatHandler  stat;
   SpecialMmapHandler  mmap;
   SpecialGetdents64   getdents64;
+  SpecialGetFilesize  getFilesize;
 
   SpecialDuplicate duplicate;
   SpecialOpen      open;
@@ -145,10 +146,9 @@ OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original);
 
 uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit);
 uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit);
-bool     fsWriteSync(OpenFile *file);
 void     fsReadFullFile(OpenFile *file, uint8_t *out);
 int      fsReadlink(void *task, char *path, char *buf, int size);
-uint32_t fsGetFilesize(OpenFile *file);
+size_t   fsGetFilesize(OpenFile *file);
 
 // vfs_sanitize.c
 char *fsStripMountpoint(const char *filename, MountPoint *mnt);
@@ -158,20 +158,6 @@ char *fsSanitize(char *prefix, char *filename);
 bool fsStat(OpenFile *fd, stat *target);
 bool fsStatByFilename(void *task, char *filename, stat *target);
 bool fsLstatByFilename(void *task, char *filename, stat *target);
-
-// vfs_spec.c
-bool   fsSpecificClose(OpenFile *file);
-bool   fsSpecificOpen(char *filename, OpenFile *target, char **symlinkResolve);
-int    fsSpecificRead(OpenFile *file, uint8_t *out, size_t limit);
-int    fsSpecificWrite(OpenFile *file, uint8_t *in, size_t limit);
-bool   fsSpecificWriteSync(OpenFile *file);
-size_t fsSpecificGetFilesize(OpenFile *file);
-bool   fsSpecificDuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan);
-int    fsSpecificSeek(OpenFile *file, int target, int offset, int whence);
-int    fsSpecificIoctl(OpenFile *fd, uint64_t request, void *arg);
-int    fsSpecificStat(OpenFile *fd, stat *target);
-int    fsSpecificGetdents64(OpenFile *file, void *task,
-                            struct linux_dirent64 *dirp, unsigned int count);
 
 // vfs_mount.c
 MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,

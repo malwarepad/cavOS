@@ -191,16 +191,15 @@ typedef struct Ext2OpenFd {
 
 // ext2_controller.c
 bool   ext2Mount(MountPoint *mount);
-bool   ext2Open(MountPoint *mount, OpenFile *fd, char *filename,
-                char **symlinkResolve);
-bool   ext2Close(MountPoint *mount, OpenFile *fd);
-int    ext2Read(MountPoint *mount, OpenFile *fd, uint8_t *buff, int limit);
+bool   ext2Open(char *filename, OpenFile *fd, char **symlinkResolve);
+bool   ext2Close(OpenFile *fd);
+int    ext2Read(OpenFile *fd, uint8_t *buff, size_t limit);
 bool   ext2Stat(MountPoint *mnt, char *filename, struct stat *target,
                 char **symlinkResolve);
 bool   ext2Lstat(MountPoint *mnt, char *filename, struct stat *target,
                  char **symlinkResolve);
-bool   ext2StatFd(Ext2 *ext2, OpenFile *fd, struct stat *target);
-bool   ext2Seek(MountPoint *mount, OpenFile *fd, uint32_t target);
+int    ext2StatFd(OpenFile *fd, struct stat *target);
+size_t ext2Seek(OpenFile *fd, size_t target, long int offset, int whence);
 size_t ext2GetFilesize(OpenFile *fd);
 int    ext2Readlink(Ext2 *ext2, char *path, char *buf, int size,
                     char **symlinkResolve);
@@ -225,7 +224,8 @@ uint32_t ext2TraversePath(Ext2 *ext2, char *path, size_t initInode, bool follow,
                           char **symlinkResolve);
 
 // ext2_dirs.c
-int ext2Getdents64(OpenFile *file, void *start, unsigned int hardlimit);
+int ext2Getdents64(OpenFile *file, struct linux_dirent64 *start,
+                   unsigned int hardlimit);
 
 // finale
 VfsHandlers ext2Handlers;

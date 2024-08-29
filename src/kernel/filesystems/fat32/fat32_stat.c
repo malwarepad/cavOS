@@ -45,7 +45,7 @@ bool fat32Stat(MountPoint *mnt, char *filename, struct stat *target,
   return true;
 }
 
-bool fat32StatFd(FAT32 *fat, OpenFile *fd, struct stat *target) {
+int fat32StatFd(OpenFile *fd, struct stat *target) {
   FAT32OpenFd *dir = FAT_DIR_PTR(fd->dir);
 
   FAT32TraverseResult res = {.directory = dir->directoryStarting,

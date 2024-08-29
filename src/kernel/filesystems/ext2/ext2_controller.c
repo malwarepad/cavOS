@@ -103,9 +103,8 @@ error:
   return false;
 }
 
-bool ext2Open(MountPoint *mount, OpenFile *fd, char *filename,
-              char **symlinkResolve) {
-  Ext2 *ext2 = EXT2_PTR(mount->fsInfo);
+bool ext2Open(char *filename, OpenFile *fd, char **symlinkResolve) {
+  Ext2 *ext2 = EXT2_PTR(fd->mountPoint->fsInfo);
 
   uint32_t inode =
       ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, true, symlinkResolve);
@@ -136,8 +135,8 @@ bool ext2Open(MountPoint *mount, OpenFile *fd, char *filename,
   return true;
 }
 
-int ext2Read(MountPoint *mount, OpenFile *fd, uint8_t *buff, int limit) {
-  Ext2       *ext2 = EXT2_PTR(mount->fsInfo);
+int ext2Read(OpenFile *fd, uint8_t *buff, size_t limit) {
+  Ext2       *ext2 = EXT2_PTR(fd->mountPoint->fsInfo);
   Ext2OpenFd *dir = EXT2_DIR_PTR(fd->dir);
 
   size_t filesize = ext2GetFilesize(fd);
@@ -226,13 +225,18 @@ cleanup:
   return curr;
 }
 
-bool ext2Seek(MountPoint *mount, OpenFile *fd, uint32_t target) {
+size_t ext2Seek(OpenFile *fd, size_t target, long int offset, int whence) {
   Ext2OpenFd *dir = EXT2_DIR_PTR(fd->dir);
 
+  // "hack" because openfile ptr is not used
+  if (whence == SEEK_CURR)
+    target += dir->ptr;
+
   if (target > ext2GetFilesize(fd))
-    return false;
+    return -EINVAL;
   dir->ptr = target;
-  return true;
+
+  return dir->ptr;
 }
 
 size_t ext2GetFilesize(OpenFile *fd) {
@@ -301,10 +305,10 @@ bool ext2Lstat(MountPoint *mnt, char *filename, struct stat *target,
   return true;
 }
 
-bool ext2StatFd(Ext2 *ext2, OpenFile *fd, struct stat *target) {
+int ext2StatFd(OpenFile *fd, struct stat *target) {
   Ext2OpenFd *dir = EXT2_DIR_PTR(fd->dir);
   ext2StatInternal(&dir->inode, dir->inodeNum, target);
-  return true;
+  return 0;
 }
 
 int ext2Readlink(Ext2 *ext2, char *path, char *buf, int size,
@@ -346,7 +350,7 @@ cleanup:
   return ret;
 }
 
-bool ext2Close(MountPoint *mount, OpenFile *fd) {
+bool ext2Close(OpenFile *fd) {
   Ext2OpenFd *dir = EXT2_DIR_PTR(fd->dir);
 
   ext2BlockFetchCleanup(&dir->lookup);
@@ -355,14 +359,38 @@ bool ext2Close(MountPoint *mount, OpenFile *fd) {
   return true;
 }
 
-// todo!
-VfsHandlers ext2Handlers = {.open = fsSpecificOpen,
-                            .close = fsSpecificClose,
-                            .duplicate = fsSpecificDuplicateNodeUnsafe,
-                            .ioctl = fsSpecificIoctl,
-                            .mmap = 0,
-                            .read = fsSpecificRead,
-                            .stat = fsSpecificStat,
-                            .write = fsSpecificWrite,
-                            .getdents64 = fsSpecificGetdents64,
-                            .seek = fsSpecificSeek};
+bool ext2DuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan) {
+  orphan->dir = malloc(sizeof(Ext2OpenFd));
+  memcpy(orphan->dir, original->dir, sizeof(Ext2OpenFd));
+
+  Ext2       *ext2 = EXT2_PTR(orphan->mountPoint->fsInfo);
+  Ext2OpenFd *dir = EXT2_DIR_PTR(orphan->dir);
+  Ext2OpenFd *dirOriginal = EXT2_DIR_PTR(original->dir);
+
+  if (dir->lookup.tmp1) {
+    dir->lookup.tmp1 = malloc(ext2->blockSize);
+    memcpy(dir->lookup.tmp1, dirOriginal->lookup.tmp1, ext2->blockSize);
+  }
+
+  if (dir->lookup.tmp2) {
+    dir->lookup.tmp2 = malloc(ext2->blockSize);
+    memcpy(dir->lookup.tmp2, dirOriginal->lookup.tmp2, ext2->blockSize);
+  }
+
+  if (original->dirname) {
+    size_t len = strlength(original->dirname) + 1;
+    orphan->dirname = (char *)malloc(len);
+    memcpy(orphan->dirname, original->dirname, len);
+  }
+
+  return true;
+}
+
+VfsHandlers ext2Handlers = {.open = ext2Open,
+                            .close = ext2Close,
+                            .duplicate = ext2DuplicateNodeUnsafe,
+                            .read = ext2Read,
+                            .stat = ext2StatFd,
+                            .getdents64 = ext2Getdents64,
+                            .seek = ext2Seek,
+                            .getFilesize = ext2GetFilesize};

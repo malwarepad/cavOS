@@ -5,7 +5,8 @@
 #include <timer.h>
 #include <util.h>
 
-int ext2Getdents64(OpenFile *file, void *start, unsigned int hardlimit) {
+int ext2Getdents64(OpenFile *file, struct linux_dirent64 *start,
+                   unsigned int hardlimit) {
   Ext2       *ext2 = EXT2_PTR(file->mountPoint->fsInfo);
   Ext2OpenFd *edir = EXT2_DIR_PTR(file->dir);
 

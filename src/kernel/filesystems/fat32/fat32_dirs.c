@@ -5,7 +5,8 @@
 #include <system.h>
 #include <util.h>
 
-int fat32Getdents64(OpenFile *file, void *start, unsigned int hardlimit) {
+int fat32Getdents64(OpenFile *file, struct linux_dirent64 *start,
+                    unsigned int hardlimit) {
   FAT32       *fat = FAT_PTR(file->mountPoint->fsInfo);
   FAT32OpenFd *fatDir = FAT_DIR_PTR(file->dir);
 

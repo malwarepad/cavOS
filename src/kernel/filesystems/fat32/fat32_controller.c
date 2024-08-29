@@ -53,8 +53,8 @@ bool fat32Mount(MountPoint *mount) {
   return true;
 }
 
-bool fat32Open(MountPoint *mount, OpenFile *fd, char *filename) {
-  FAT32 *fat = FAT_PTR(mount->fsInfo);
+bool fat32Open(char *filename, OpenFile *fd, char **symlinkResolve) {
+  FAT32 *fat = FAT_PTR(fd->mountPoint->fsInfo);
 
   // first make sure it.. exists!
   FAT32TraverseResult res = fat32TraversePath(
@@ -84,8 +84,8 @@ bool fat32Open(MountPoint *mount, OpenFile *fd, char *filename) {
   return true;
 }
 
-int fat32Read(MountPoint *mount, OpenFile *fd, uint8_t *buff, int limit) {
-  FAT32       *fat = FAT_PTR(mount->fsInfo);
+int fat32Read(OpenFile *fd, uint8_t *buff, size_t limit) {
+  FAT32       *fat = FAT_PTR(fd->mountPoint->fsInfo);
   FAT32OpenFd *dir = FAT_DIR_PTR(fd->dir);
 
   if (dir->dirEnt.attrib & FAT_ATTRIB_DIRECTORY)
@@ -175,15 +175,19 @@ cleanup:
   return curr;
 }
 
-bool fat32Seek(MountPoint *mount, OpenFile *fd, uint32_t target) {
-  FAT32       *fat = FAT_PTR(mount->fsInfo);
+size_t fat32Seek(OpenFile *fd, size_t target, long int offset, int whence) {
+  FAT32       *fat = FAT_PTR(fd->mountPoint->fsInfo);
   FAT32OpenFd *dir = FAT_DIR_PTR(fd->dir);
 
+  // "hack" because openfile ptr is not used
+  if (whence == SEEK_CURR)
+    target += dir->ptr;
+
   if (dir->dirEnt.attrib & FAT_ATTRIB_DIRECTORY)
-    return 0;
+    return -EINVAL;
 
   if (target > dir->dirEnt.filesize)
-    return false;
+    return -EINVAL;
 
   int old = dir->ptr;
   if (old > target) {
@@ -199,13 +203,14 @@ bool fat32Seek(MountPoint *mount, OpenFile *fd, uint32_t target) {
   for (int i = 0; i < (toBeSkipped - alreadySkipped); i++) {
     dir->directoryCurr = fat32FATtraverse(fat, dir->directoryCurr);
     if (!dir->directoryCurr)
-      return false;
+      goto cleanup;
   }
 
-  return true;
+cleanup:
+  return dir->ptr;
 }
 
-uint32_t fat32GetFilesize(OpenFile *fd) {
+size_t fat32GetFilesize(OpenFile *fd) {
   FAT32OpenFd *dir = FAT_DIR_PTR(fd->dir);
 
   if (dir->dirEnt.attrib & FAT_ATTRIB_DIRECTORY)
@@ -214,7 +219,7 @@ uint32_t fat32GetFilesize(OpenFile *fd) {
   return dir->dirEnt.filesize;
 }
 
-bool fat32Close(MountPoint *mount, OpenFile *fd) {
+bool fat32Close(OpenFile *fd) {
   FAT32OpenFd *dir = FAT_DIR_PTR(fd->dir);
   if (dir->dirEnt.attrib & FAT_ATTRIB_DIRECTORY && fd->dirname)
     free(fd->dirname);
@@ -224,14 +229,24 @@ bool fat32Close(MountPoint *mount, OpenFile *fd) {
   return true;
 }
 
-// todo!
-VfsHandlers fat32Handlers = {.open = fsSpecificOpen,
-                             .close = fsSpecificClose,
-                             .duplicate = fsSpecificDuplicateNodeUnsafe,
-                             .ioctl = fsSpecificIoctl,
-                             .mmap = 0,
-                             .read = fsSpecificRead,
-                             .stat = fsSpecificStat,
-                             .write = fsSpecificWrite,
-                             .getdents64 = fsSpecificGetdents64,
-                             .seek = fsSpecificSeek};
+bool fat32DuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan) {
+  orphan->dir = malloc(sizeof(FAT32OpenFd));
+  memcpy(orphan->dir, original->dir, sizeof(FAT32OpenFd));
+
+  if (original->dirname) {
+    size_t len = strlength(original->dirname) + 1;
+    orphan->dirname = (char *)malloc(len);
+    memcpy(orphan->dirname, original->dirname, len);
+  }
+
+  return true;
+}
+
+VfsHandlers fat32Handlers = {.open = fat32Open,
+                             .close = fat32Close,
+                             .duplicate = fat32DuplicateNodeUnsafe,
+                             .read = fat32Read,
+                             .stat = fat32StatFd,
+                             .getdents64 = fat32Getdents64,
+                             .seek = fat32Seek,
+                             .getFilesize = fat32GetFilesize};

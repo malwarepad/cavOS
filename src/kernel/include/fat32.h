@@ -124,12 +124,12 @@ typedef struct FAT32OpenFd {
 } FAT32OpenFd;
 
 // fat32_controller.c
-bool     fat32Mount(MountPoint *mount);
-bool     fat32Open(MountPoint *mount, OpenFile *fd, char *filename);
-int      fat32Read(MountPoint *mount, OpenFile *fd, uint8_t *buff, int limit);
-bool     fat32Seek(MountPoint *mount, OpenFile *fd, uint32_t target);
-uint32_t fat32GetFilesize(OpenFile *fd);
-bool     fat32Close(MountPoint *mount, OpenFile *fd);
+bool   fat32Mount(MountPoint *mount);
+bool   fat32Open(char *filename, OpenFile *fd, char **symlinkResolve);
+int    fat32Read(OpenFile *fd, uint8_t *buff, size_t limit);
+size_t fat32Seek(OpenFile *fd, size_t target, long int offset, int whence);
+size_t fat32GetFilesize(OpenFile *fd);
+bool   fat32Close(OpenFile *fd);
 
 // fat32_util.c
 size_t        fat32ClusterToLBA(FAT32 *fat, uint32_t cluster);
@@ -155,10 +155,11 @@ FAT32TraverseResult fat32TraversePath(FAT32 *fat, char *path,
 // fat32_stat.c
 bool fat32Stat(MountPoint *mnt, char *filename, struct stat *target,
                char **symlinkResolve);
-bool fat32StatFd(FAT32 *fat, OpenFile *fd, struct stat *target);
+int  fat32StatFd(OpenFile *fd, struct stat *target);
 
 // fat32_dirs.c
-int fat32Getdents64(OpenFile *file, void *start, unsigned int hardlimit);
+int fat32Getdents64(OpenFile *file, struct linux_dirent64 *start,
+                    unsigned int hardlimit);
 int fat32SFNtoNormal(uint8_t *target, FAT32DirectoryEntry *dirent);
 
 // finale

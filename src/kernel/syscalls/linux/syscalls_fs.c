@@ -287,7 +287,7 @@ static int syscallGetdents64(unsigned int fd, struct linux_dirent64 *dirp,
   }
   if (!browse->handlers->getdents64)
     return -ENOTDIR;
-  return browse->handlers->getdents64(browse, currentTask, dirp, count);
+  return browse->handlers->getdents64(browse, dirp, count);
 }
 
 #define FD_SETSIZE 1024

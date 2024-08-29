@@ -173,7 +173,7 @@ VfsHandlers fakefsHandlers = {.open = fakefsOpen,
                               .write = 0,
                               .getdents64 = 0};
 
-int fakefsGetDents64(OpenFile *fd, void *task, struct linux_dirent64 *start,
+int fakefsGetDents64(OpenFile *fd, struct linux_dirent64 *start,
                      unsigned int hardlimit) {
   FakefsOverlay *fakefs = (FakefsOverlay *)fd->mountPoint->fsInfo;
 
@@ -232,7 +232,8 @@ cleanup:
   return cnt;
 }
 
-int fakefsSimpleSeek(OpenFile *file, int target, int offset, int whence) {
+size_t fakefsSimpleSeek(OpenFile *file, size_t target, long int offset,
+                        int whence) {
   // we're using the official ->pointer so no need to worry about much
   file->pointer = target;
   return 0;
