@@ -61,7 +61,8 @@ int ioctlHandler(OpenFile *fd, uint64_t request, void *arg) {
     break;
   }
   case TCSETS:
-  case TCSETSW: { // this drains(?), idek man
+  case TCSETSW:   // this drains(?), idek man
+  case TCSETSF: { // idek anymore man
     memcpy(&currentTask->term, arg, sizeof(termios));
     // debugf("setting %d %d\n", currentTask->term.c_lflag & ICANON,
     //        currentTask->term.c_lflag & ECHO);

@@ -25,6 +25,7 @@ extern VfsHandlers fb0;
 
 /* Linux... oh, linux */
 #define FBIOGET_VSCREENINFO 0x4600
+#define FBIOGET_FSCREENINFO 0x4602
 
 struct fb_bitfield {
   uint32_t offset;    /* beginning of bitfield	*/

@@ -37,6 +37,33 @@ int fbUserIllegal() {
 
 int fbUserIoctl(OpenFile *fd, uint64_t request, void *arg) {
   switch (request) {
+  // case FBIOGETCMAP: {
+  //   struct fb_cmap *cmap = arg;
+  //   cmap->start = 0;
+  //   cmap->len = 8;
+  //   for (int i = 0; i < 8; i++)
+  //     cmap->red[i] = (((2 * i) + 1) * (0xFFFF)) / 16;
+  //   memcpy(cmap->green, cmap->red, sizeof(uint16_t) * 8);
+  //   memcpy(cmap->blue, cmap->red, sizeof(uint16_t) * 8);
+  //   return 0;
+  // }
+  case FBIOGET_FSCREENINFO: {
+    struct fb_fix_screeninfo *fb = arg;
+    memcpy(fb->id, "BIOS", 5);
+    fb->smem_start = VirtualToPhysical((size_t)framebuffer);
+    fb->smem_len = framebufferWidth * framebufferHeight * 4;
+    fb->type = FB_TYPE_VGA_PLANES;
+    fb->type_aux = FB_TYPE_VGA_PLANES;
+    fb->visual = FB_VISUAL_TRUECOLOR;
+    fb->xpanstep = 0;
+    fb->ypanstep = 0;
+    fb->ywrapstep = 0;
+    fb->line_length = framebufferWidth * 4;
+    fb->mmio_start = VirtualToPhysical((size_t)framebuffer);
+    fb->mmio_len = framebufferWidth * framebufferHeight * 4;
+    fb->capabilities = 0;
+    return 0;
+  }
   case FBIOGET_VSCREENINFO: {
     struct fb_var_screeninfo *fb = arg;
     fb->xres = framebufferWidth;
@@ -45,7 +72,7 @@ int fbUserIoctl(OpenFile *fd, uint64_t request, void *arg) {
     fb->xres_virtual = framebufferWidth;
     fb->yres_virtual = framebufferHeight;
 
-    fb->bits_per_pixel = 0;
+    fb->bits_per_pixel = 32;
     fb->grayscale = 0;
     // fb->red = 0;
     // fb->green = 0;
@@ -65,6 +92,8 @@ int fbUserIoctl(OpenFile *fd, uint64_t request, void *arg) {
 
 size_t fbUserMmap(size_t addr, size_t length, int prot, int flags, OpenFile *fd,
                   size_t pgoffset) {
+  if (!length)
+    length = framebufferWidth * framebufferHeight * 4;
   size_t targPages = DivRoundUp(length, PAGE_SIZE);
   size_t physStart = VirtualToPhysical((size_t)framebuffer);
   for (int i = 0; i < targPages; i++) {

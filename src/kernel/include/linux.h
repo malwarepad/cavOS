@@ -278,6 +278,7 @@ struct sigaction {
 #define TCGETS 0x5401
 #define TCSETS 0x5402
 #define TCSETSW 0x5403
+#define TCSETSF 0x5404
 
 // /usr/include/bits/termios-c_cc.h
 #define VINTR 0
@@ -994,5 +995,46 @@ struct statx {
 
 /* for F_[GET|SET]FL */
 #define FD_CLOEXEC 1 /* actually anything with low bit set goes */
+
+// include/linux/fb.h
+#define FB_TYPE_PACKED_PIXELS 0      /* Packed Pixels	*/
+#define FB_TYPE_PLANES 1             /* Non interleaved planes */
+#define FB_TYPE_INTERLEAVED_PLANES 2 /* Interleaved planes	*/
+#define FB_TYPE_TEXT 3               /* Text/attributes	*/
+#define FB_TYPE_VGA_PLANES 4         /* EGA/VGA planes	*/
+#define FB_TYPE_FOURCC 5             /* Type identified by a V4L2 FOURCC */
+
+#define FB_VISUAL_MONO01 0             /* Monochr. 1=Black 0=White */
+#define FB_VISUAL_MONO10 1             /* Monochr. 1=White 0=Black */
+#define FB_VISUAL_TRUECOLOR 2          /* True color	*/
+#define FB_VISUAL_PSEUDOCOLOR 3        /* Pseudo color (like atari) */
+#define FB_VISUAL_DIRECTCOLOR 4        /* Direct color */
+#define FB_VISUAL_STATIC_PSEUDOCOLOR 5 /* Pseudo color readonly */
+#define FB_VISUAL_FOURCC 6             /* Visual identified by a V4L2 FOURCC */
+
+struct fb_fix_screeninfo {
+  char          id[16];      /* identification string eg "TT Builtin" */
+  unsigned long smem_start;  /* Start of frame buffer mem */
+                             /* (physical address) */
+  __u32         smem_len;    /* Length of frame buffer mem */
+  __u32         type;        /* see FB_TYPE_*		*/
+  __u32         type_aux;    /* Interleave for interleaved Planes */
+  __u32         visual;      /* see FB_VISUAL_*		*/
+  __u16         xpanstep;    /* zero if no hardware panning  */
+  __u16         ypanstep;    /* zero if no hardware panning  */
+  __u16         ywrapstep;   /* zero if no hardware ywrap    */
+  __u32         line_length; /* length of a line in bytes    */
+  unsigned long mmio_start;  /* Start of Memory Mapped I/O   */
+                             /* (physical address) */
+  __u32 mmio_len;            /* Length of Memory Mapped I/O  */
+  __u32 accel;               /* Indicate to driver which	*/
+                             /*  specific chip/card we have	*/
+  __u16 capabilities;        /* see FB_CAP_*			*/
+  __u16 reserved[2];         /* Reserved for future compatibility */
+};
+
+// assumed myself, pty
+#define TIOCSPTLCK 0x40045431
+#define TIOCGPTN 0xffffffff80045430
 
 #endif

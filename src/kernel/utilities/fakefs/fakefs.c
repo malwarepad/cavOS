@@ -35,6 +35,8 @@ FakefsFile *fakefsTraverse(FakefsFile *start, char *search,
                            size_t searchLength) {
   FakefsFile *browse = start;
   while (browse) {
+    if (browse->filename[0] == '*')
+      break;
     if (memcmp(search, browse->filename,
                MAX(browse->filenameLength, searchLength)) == 0)
       break;
