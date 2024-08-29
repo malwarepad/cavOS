@@ -73,7 +73,7 @@ static int syscallStat(char *filename, stat *statbuf) {
     debugf("[syscalls::stat] FAIL! Couldn't stat() file! filename{%s}\n",
            filename);
 #endif
-    return -1;
+    return -ENOENT;
   }
 
   return 0;
