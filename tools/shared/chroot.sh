@@ -39,5 +39,5 @@ chroot_establish() {
 }
 
 # chroot_establish
-# sudo chroot "$TARGET_DIR/" /usr/bin/bash
+# sudo chroot "$TARGET_DIR/" /usr/bin/env -i HISTFILE=/dev/null /bin/bash
 # chroot_drop
