@@ -105,6 +105,8 @@ int pipeRead(OpenFile *fd, uint8_t *out, size_t limit) {
 
   // if there are no more write items, don't hang
   while (pipe->writeFds != 0 && !pipe->assigned) {
+    if (fd->flags & O_NONBLOCK)
+      return -EWOULDBLOCK;
     // debugf("write{%d} curr{%d}\n", pipe->writeFds, currentTask->id);
     asm volatile("pause");
   }
@@ -128,8 +130,11 @@ int pipeRead(OpenFile *fd, uint8_t *out, size_t limit) {
 int pipeWriteInner(OpenFile *fd, uint8_t *in, size_t limit) {
   PipeSpecific *spec = (PipeSpecific *)fd->dir;
   PipeInfo     *pipe = spec->info;
-  while ((pipe->assigned + limit) > 65536)
+  while ((pipe->assigned + limit) > 65536) {
+    if (fd->flags & O_NONBLOCK)
+      return -EWOULDBLOCK;
     asm volatile("pause");
+  }
 
   spinlockAcquire(&pipe->LOCK);
   memcpy(&pipe->buf[pipe->assigned], in, limit);
