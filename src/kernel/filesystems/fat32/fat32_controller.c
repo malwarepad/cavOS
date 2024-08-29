@@ -233,4 +233,5 @@ VfsHandlers fat32Handlers = {.open = fsSpecificOpen,
                              .read = fsSpecificRead,
                              .stat = fsSpecificStat,
                              .write = fsSpecificWrite,
-                             .getdents64 = fsSpecificGetdents64};
+                             .getdents64 = fsSpecificGetdents64,
+                             .seek = fsSpecificSeek};

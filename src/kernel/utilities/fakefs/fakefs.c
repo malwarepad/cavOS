@@ -232,6 +232,12 @@ cleanup:
   return cnt;
 }
 
+int fakefsSimpleSeek(OpenFile *file, int target, int offset, int whence) {
+  // we're using the official ->pointer so no need to worry about much
+  file->pointer = target;
+  return 0;
+}
+
 VfsHandlers fakefsRootHandlers = {.open = 0,
                                   .close = 0,
                                   .duplicate = 0,
@@ -245,6 +251,7 @@ VfsHandlers fakefsRootHandlers = {.open = 0,
 VfsHandlers fakefsSimpleReadHandlers = {.read = fakefsSimpleRead,
                                         .write = 0,
                                         .stat = fakefsFstat,
+                                        .seek = fakefsSimpleSeek,
                                         .duplicate = 0,
                                         .ioctl = 0,
                                         .mmap = 0,

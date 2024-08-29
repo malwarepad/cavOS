@@ -51,6 +51,8 @@ typedef struct OpenFile OpenFile;
 
 typedef int (*SpecialReadHandler)(OpenFile *fd, uint8_t *out, size_t limit);
 typedef int (*SpecialWriteHandler)(OpenFile *fd, uint8_t *in, size_t limit);
+typedef int (*SpecialSeekHandler)(OpenFile *file, int target, int offset,
+                                  int whence);
 typedef int (*SpecialIoctlHandler)(OpenFile *fd, uint64_t request, void *arg);
 typedef int (*SpecialStatHandler)(OpenFile *fd, stat *stat);
 typedef size_t (*SpecialMmapHandler)(size_t addr, size_t length, int prot,
@@ -66,6 +68,7 @@ typedef bool (*SpecialClose)(OpenFile *fd);
 typedef struct VfsHandlers {
   SpecialReadHandler  read;
   SpecialWriteHandler write;
+  SpecialSeekHandler  seek;
   SpecialIoctlHandler ioctl;
   SpecialStatHandler  stat;
   SpecialMmapHandler  mmap;

@@ -199,7 +199,10 @@ int fsUserSeek(void *task, uint32_t fd, int offset, int whence) {
   else if (whence == SEEK_END)
     target += fsGetFilesize(file);
 
-  return fsSpecificSeek(file, target, offset, whence);
+  if (!file->handlers->seek)
+    return -ESPIPE;
+
+  return file->handlers->seek(file, target, offset, whence);
 }
 
 int fsReadlink(void *task, char *path, char *buf, int size) {
