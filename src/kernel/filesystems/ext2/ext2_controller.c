@@ -103,10 +103,12 @@ error:
   return false;
 }
 
-bool ext2Open(MountPoint *mount, OpenFile *fd, char *filename) {
+bool ext2Open(MountPoint *mount, OpenFile *fd, char *filename,
+              char **symlinkResolve) {
   Ext2 *ext2 = EXT2_PTR(mount->fsInfo);
 
-  uint32_t inode = ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, true);
+  uint32_t inode =
+      ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, true, symlinkResolve);
   if (!inode)
     return false;
 
@@ -269,9 +271,11 @@ void ext2StatInternal(Ext2Inode *inode, uint32_t inodeNum,
   target->st_ctime = inode->ctime;
 }
 
-bool ext2Stat(MountPoint *mnt, char *filename, struct stat *target) {
+bool ext2Stat(MountPoint *mnt, char *filename, struct stat *target,
+              char **symlinkResolve) {
   Ext2    *ext2 = EXT2_PTR(mnt->fsInfo);
-  uint32_t inodeNum = ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, true);
+  uint32_t inodeNum =
+      ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, true, symlinkResolve);
   if (!inodeNum)
     return false;
   Ext2Inode *inode = ext2InodeFetch(ext2, inodeNum);
@@ -282,9 +286,11 @@ bool ext2Stat(MountPoint *mnt, char *filename, struct stat *target) {
   return true;
 }
 
-bool ext2Lstat(MountPoint *mnt, char *filename, struct stat *target) {
+bool ext2Lstat(MountPoint *mnt, char *filename, struct stat *target,
+               char **symlinkResolve) {
   Ext2    *ext2 = EXT2_PTR(mnt->fsInfo);
-  uint32_t inodeNum = ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, false);
+  uint32_t inodeNum =
+      ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, false, symlinkResolve);
   if (!inodeNum)
     return false;
   Ext2Inode *inode = ext2InodeFetch(ext2, inodeNum);
@@ -301,13 +307,15 @@ bool ext2StatFd(Ext2 *ext2, OpenFile *fd, struct stat *target) {
   return true;
 }
 
-int ext2Readlink(Ext2 *ext2, char *path, char *buf, int size) {
+int ext2Readlink(Ext2 *ext2, char *path, char *buf, int size,
+                 char **symlinkResolve) {
   if (size < 0)
     return -EINVAL;
   else if (!size)
     return 0;
 
-  uint32_t inodeNum = ext2TraversePath(ext2, path, EXT2_ROOT_INODE, false);
+  uint32_t inodeNum =
+      ext2TraversePath(ext2, path, EXT2_ROOT_INODE, false, symlinkResolve);
   if (!inodeNum)
     return -ENOENT;
 

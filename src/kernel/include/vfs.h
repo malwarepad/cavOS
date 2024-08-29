@@ -59,7 +59,8 @@ typedef bool (*SpecialDuplicate)(OpenFile *original, OpenFile *orphan);
 typedef int (*SpecialGetdents64)(OpenFile *fd, void *task,
                                  struct linux_dirent64 *dirp,
                                  unsigned int           count);
-typedef bool (*SpecialOpen)(char *filename, OpenFile *fd);
+typedef bool (*SpecialOpen)(char *filename, OpenFile *fd,
+                            char **symlinkResolve);
 typedef bool (*SpecialClose)(OpenFile *fd);
 
 typedef struct VfsHandlers {
@@ -77,8 +78,10 @@ typedef struct VfsHandlers {
 
 typedef struct MountPoint MountPoint;
 
-typedef bool (*MntStat)(MountPoint *mnt, char *filename, struct stat *target);
-typedef bool (*MntLstat)(MountPoint *mnt, char *filename, struct stat *target);
+typedef bool (*MntStat)(MountPoint *mnt, char *filename, struct stat *target,
+                        char **symlinkResolve);
+typedef bool (*MntLstat)(MountPoint *mnt, char *filename, struct stat *target,
+                         char **symlinkResolve);
 struct MountPoint {
   MountPoint *next;
 
@@ -155,7 +158,7 @@ bool fsLstatByFilename(void *task, char *filename, stat *target);
 
 // vfs_spec.c
 bool   fsSpecificClose(OpenFile *file);
-bool   fsSpecificOpen(char *filename, OpenFile *target);
+bool   fsSpecificOpen(char *filename, OpenFile *target, char **symlinkResolve);
 int    fsSpecificRead(OpenFile *file, uint8_t *out, size_t limit);
 int    fsSpecificWrite(OpenFile *file, uint8_t *in, size_t limit);
 bool   fsSpecificWriteSync(OpenFile *file);
@@ -172,5 +175,6 @@ MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
                     uint8_t partition);
 bool        fsUnmount(MountPoint *mnt);
 MountPoint *fsDetermineMountPoint(char *filename);
+char       *fsResolveSymlink(MountPoint *mnt, char *symlink);
 
 #endif

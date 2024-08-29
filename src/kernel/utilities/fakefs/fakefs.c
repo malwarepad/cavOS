@@ -90,7 +90,7 @@ FakefsFile *fakefsTraversePath(FakefsFile *start, char *path) {
   return 0;
 }
 
-bool fakefsOpen(char *filename, OpenFile *target) {
+bool fakefsOpen(char *filename, OpenFile *target, char **symlinkResolve) {
   MountPoint    *mnt = target->mountPoint;
   FakefsOverlay *fakefs = (FakefsOverlay *)mnt->fsInfo;
 
@@ -110,7 +110,7 @@ bool fakefsOpen(char *filename, OpenFile *target) {
 
   if (file->handlers->open) {
     // if a specific open handler is in place
-    if (!file->handlers->open(filename, target))
+    if (!file->handlers->open(filename, target, symlinkResolve))
       return false;
   }
 
@@ -139,7 +139,8 @@ void fakefsStatGeneric(FakefsFile *file, struct stat *target) {
   target->st_ctime = 0;
 }
 
-bool fakefsStat(MountPoint *mnt, char *filename, struct stat *target) {
+bool fakefsStat(MountPoint *mnt, char *filename, struct stat *target,
+                char **symlinkResolve) {
   FakefsOverlay *fakefs = (FakefsOverlay *)mnt->fsInfo;
   FakefsFile    *file = fakefsTraversePath(fakefs->fakefs->rootFile, filename);
   if (!file)
@@ -156,9 +157,10 @@ int fakefsFstat(OpenFile *fd, stat *target) {
   return 0;
 }
 
-bool fakefsLstat(MountPoint *mnt, char *filename, struct stat *target) {
+bool fakefsLstat(MountPoint *mnt, char *filename, struct stat *target,
+                 char **symlinkResolve) {
   // todo (when we got actual symlinks lol)
-  return fakefsStat(mnt, filename, target);
+  return fakefsStat(mnt, filename, target, symlinkResolve);
 }
 
 VfsHandlers fakefsHandlers = {.open = fakefsOpen,

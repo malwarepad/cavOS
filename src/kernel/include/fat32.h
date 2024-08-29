@@ -153,7 +153,8 @@ FAT32TraverseResult fat32TraversePath(FAT32 *fat, char *path,
                                       uint32_t directoryStarting);
 
 // fat32_stat.c
-bool fat32Stat(MountPoint *mnt, char *filename, struct stat *target);
+bool fat32Stat(MountPoint *mnt, char *filename, struct stat *target,
+               char **symlinkResolve);
 bool fat32StatFd(FAT32 *fat, OpenFile *fd, struct stat *target);
 
 // fat32_dirs.c

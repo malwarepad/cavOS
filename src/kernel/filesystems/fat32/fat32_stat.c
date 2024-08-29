@@ -32,7 +32,8 @@ void fat32StatInternal(FAT32TraverseResult *res, struct stat *target) {
       fat32UnixTime(res->dirEntry.createdate, res->dirEntry.createtime);
 }
 
-bool fat32Stat(MountPoint *mnt, char *filename, struct stat *target) {
+bool fat32Stat(MountPoint *mnt, char *filename, struct stat *target,
+               char **symlinkResolve) {
   FAT32 *fat = FAT_PTR(mnt->fsInfo);
 
   FAT32TraverseResult res = fat32TraversePath(

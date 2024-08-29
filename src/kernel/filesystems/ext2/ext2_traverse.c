@@ -70,8 +70,8 @@ cleanup:
   return ret;
 }
 
-uint32_t ext2TraversePath(Ext2 *ext2, char *path, size_t initInode,
-                          bool follow) {
+uint32_t ext2TraversePath(Ext2 *ext2, char *path, size_t initInode, bool follow,
+                          char **symlinkResolve) {
   uint32_t curr = initInode;
   size_t   len = strlength(path);
 
@@ -87,7 +87,6 @@ uint32_t ext2TraversePath(Ext2 *ext2, char *path, size_t initInode,
       if (last) // no need to remove trailing /
         length += 1;
 
-      uint32_t prev = curr;
       curr = ext2Traverse(ext2, curr, path + lastslash + 1, length);
       if (!curr)
         return curr;
@@ -100,16 +99,21 @@ uint32_t ext2TraversePath(Ext2 *ext2, char *path, size_t initInode,
           return 0;
         }
         char *start = (char *)inode->blocks;
+        char *symlinkTarget =
+            (char *)calloc(len + 60 + 2, 1); // extra just in case
+        *symlinkResolve = symlinkTarget;
+
         if (start[0] != '/') {
-          // overriding but we won't need it anyways
-          start = (char *)((size_t)inode->blocks - 1);
-          start[0] = '/';
-          start[inode->size + 1] = 0;
-          curr = ext2TraversePath(ext2, start, prev, true); // recursion
+          memcpy(symlinkTarget, path, lastslash + 1);
+          memcpy(&symlinkTarget[lastslash + 1], start, inode->size);
+          memcpy(&symlinkTarget[lastslash + 1 + inode->size],
+                 &path[lastslash + 1 + length], len - (lastslash + 1 + length));
         } else {
-          start[inode->size] = 0;
-          curr = ext2TraversePath(ext2, start, EXT2_ROOT_INODE, true);
+          symlinkTarget[0] = '!';
+          memcpy(&symlinkTarget[1], start, inode->size);
         }
+        free(inode);
+        return false;
       }
       free(inode);
 

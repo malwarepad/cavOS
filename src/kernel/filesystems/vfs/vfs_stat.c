@@ -25,10 +25,19 @@ bool fsStatByFilename(void *task, char *filename, stat *target) {
   if (!mnt->stat)
     goto cleanup;
 
-  ret = mnt->stat(mnt, strippedFilename, target);
+  char *symlink = 0;
+  ret = mnt->stat(mnt, strippedFilename, target, &symlink);
 
 cleanup:
   free(safeFilename);
+
+  if (!ret && symlink) {
+    char *symlinkResolved = fsResolveSymlink(mnt, symlink);
+    free(symlink);
+    bool ret = fsStatByFilename(task, symlinkResolved, target);
+    free(symlinkResolved);
+    return ret;
+  }
   return ret;
 }
 
@@ -42,9 +51,18 @@ bool fsLstatByFilename(void *task, char *filename, stat *target) {
   if (!mnt->lstat)
     goto cleanup;
 
-  ret = mnt->lstat(mnt, strippedFilename, target);
+  char *symlink = 0;
+  ret = mnt->lstat(mnt, strippedFilename, target, &symlink);
 
 cleanup:
   free(safeFilename);
+
+  if (!ret && symlink) {
+    char *symlinkResolved = fsResolveSymlink(mnt, symlink);
+    free(symlink);
+    bool ret = fsLstatByFilename(task, symlinkResolved, target);
+    free(symlinkResolved);
+    return ret;
+  }
   return ret;
 }

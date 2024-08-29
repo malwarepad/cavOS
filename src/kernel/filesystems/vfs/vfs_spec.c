@@ -34,7 +34,7 @@ bool fsSpecificClose(OpenFile *file) {
   return res;
 }
 
-bool fsSpecificOpen(char *filename, OpenFile *target) {
+bool fsSpecificOpen(char *filename, OpenFile *target, char **symlinkResolve) {
   MountPoint *mnt = target->mountPoint;
   bool        res = false;
   // char       *strippedFilename = fsStripMountpoint(filename, mnt);
@@ -43,7 +43,7 @@ bool fsSpecificOpen(char *filename, OpenFile *target) {
     res = fat32Open(mnt, target, filename);
     break;
   case FS_EXT2:
-    res = ext2Open(mnt, target, filename);
+    res = ext2Open(mnt, target, filename, symlinkResolve);
     break;
   default:
     debugf("[vfs] Tried to open with bad filesystem! id{%d}\n",

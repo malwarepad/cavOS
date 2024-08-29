@@ -39,8 +39,10 @@ FakefsFile *fakefsAddFile(Fakefs *fakefs, FakefsFile *under, char *filename,
                           char *symlink, uint16_t filetype,
                           VfsHandlers *handlers);
 void        fakefsAttachFile(FakefsFile *file, void *ptr, int size);
-bool        fakefsStat(MountPoint *mnt, char *filename, struct stat *target);
-bool        fakefsLstat(MountPoint *mnt, char *filename, struct stat *target);
+bool        fakefsStat(MountPoint *mnt, char *filename, struct stat *target,
+                       char **symlinkResolve);
+bool        fakefsLstat(MountPoint *mnt, char *filename, struct stat *target,
+                        char **symlinkResolve);
 int         fakefsFstat(OpenFile *fd, stat *target);
 int         fakefsSimpleRead(OpenFile *fd, uint8_t *out, size_t limit);
 

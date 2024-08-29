@@ -191,15 +191,19 @@ typedef struct Ext2OpenFd {
 
 // ext2_controller.c
 bool   ext2Mount(MountPoint *mount);
-bool   ext2Open(MountPoint *mount, OpenFile *fd, char *filename);
+bool   ext2Open(MountPoint *mount, OpenFile *fd, char *filename,
+                char **symlinkResolve);
 bool   ext2Close(MountPoint *mount, OpenFile *fd);
 int    ext2Read(MountPoint *mount, OpenFile *fd, uint8_t *buff, int limit);
-bool   ext2Stat(MountPoint *mnt, char *filename, struct stat *target);
-bool   ext2Lstat(MountPoint *mnt, char *filename, struct stat *target);
+bool   ext2Stat(MountPoint *mnt, char *filename, struct stat *target,
+                char **symlinkResolve);
+bool   ext2Lstat(MountPoint *mnt, char *filename, struct stat *target,
+                 char **symlinkResolve);
 bool   ext2StatFd(Ext2 *ext2, OpenFile *fd, struct stat *target);
 bool   ext2Seek(MountPoint *mount, OpenFile *fd, uint32_t target);
 size_t ext2GetFilesize(OpenFile *fd);
-int    ext2Readlink(Ext2 *ext2, char *path, char *buf, int size);
+int    ext2Readlink(Ext2 *ext2, char *path, char *buf, int size,
+                    char **symlinkResolve);
 
 // ext2_util.c
 void ext2BlkIdBitmapFetch(Ext2 *ext2, uint8_t *tmp, size_t group);
@@ -217,8 +221,8 @@ uint32_t *ext2BlockChain(Ext2 *ext2, Ext2OpenFd *fd, size_t curr,
 Ext2Inode *ext2InodeFetch(Ext2 *ext2, size_t inode);
 uint32_t   ext2Traverse(Ext2 *ext2, size_t initInode, char *search,
                         size_t searchLength);
-uint32_t   ext2TraversePath(Ext2 *ext2, char *path, size_t initInode,
-                            bool follow);
+uint32_t ext2TraversePath(Ext2 *ext2, char *path, size_t initInode, bool follow,
+                          char **symlinkResolve);
 
 // ext2_dirs.c
 int ext2Getdents64(OpenFile *file, void *start, unsigned int hardlimit);

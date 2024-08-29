@@ -60,11 +60,21 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
   char *strippedFilename = fsStripMountpoint(safeFilename, mnt);
   // check for open handler
   if (target->handlers->open) {
-    if (!target->handlers->open(strippedFilename, target)) {
+    char *symlink = 0;
+    if (!target->handlers->open(strippedFilename, target, &symlink)) {
       // failed to open
       fsUnregisterNode(task, target);
       free(target);
       free(safeFilename);
+
+      if (symlink) {
+        // we came across a symbolic link
+        char *symlinkResolved = fsResolveSymlink(mnt, symlink);
+        free(symlink);
+        OpenFile *res = fsOpenGeneric(symlinkResolved, task, flags, mode);
+        free(symlinkResolved);
+        return res;
+      }
       return 0;
     }
     free(safeFilename);
@@ -197,12 +207,15 @@ int fsReadlink(void *task, char *path, char *buf, int size) {
   char       *safeFilename = fsSanitize(target->cwd, path);
   MountPoint *mnt = fsDetermineMountPoint(safeFilename);
   int         ret = -1;
+
+  char *symlink = 0;
   switch (mnt->filesystem) {
   case FS_FATFS:
     ret = -EINVAL;
     break;
   case FS_EXT2:
-    ret = ext2Readlink((Ext2 *)(mnt->fsInfo), safeFilename, buf, size);
+    ret =
+        ext2Readlink((Ext2 *)(mnt->fsInfo), safeFilename, buf, size, &symlink);
     break;
   default:
     debugf("[vfs] Tried to readLink() with bad filesystem! id{%d}\n",
@@ -211,5 +224,12 @@ int fsReadlink(void *task, char *path, char *buf, int size) {
   }
 
   free(safeFilename);
+
+  if (symlink) {
+    char *symlinkResolved = fsResolveSymlink(mnt, symlink);
+    free(symlink);
+    ret = fsReadlink(task, symlinkResolved, buf, size);
+    free(symlinkResolved);
+  }
   return ret;
 }

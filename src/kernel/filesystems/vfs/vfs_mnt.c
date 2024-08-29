@@ -117,3 +117,25 @@ MountPoint *fsDetermineMountPoint(char *filename) {
 
   return largestAddr;
 }
+
+// make SURE to free both! also returns non-safe filename, obviously
+char *fsResolveSymlink(MountPoint *mnt, char *symlink) {
+  int symlinkLength = strlength(symlink);
+  int prefixLength = strlength(mnt->prefix) - 1; // remove slash
+
+  char *ret = 0;
+  if (symlink[0] == '/') {
+    // needs prefixing
+    ret = malloc(prefixLength + symlinkLength + 1);
+    memcpy(ret, mnt->prefix, prefixLength);
+    memcpy(&ret[prefixLength], symlink, symlinkLength);
+    ret[prefixLength + symlinkLength] = '\0';
+  } else if (symlink[0] == '!') {
+    // doesn't need prefixing
+    ret = malloc(symlinkLength + 1);
+    memcpy(ret, &symlink[1], symlinkLength);
+    ret[symlinkLength] = '\0';
+  }
+
+  return ret;
+}
