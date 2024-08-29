@@ -246,10 +246,13 @@ static int syscallFcntl(int fd, int cmd, uint64_t arg) {
   case F_GETFL:
     return file->flags;
     break;
-  case F_SETFL:
-    file->flags = arg;
+  case F_SETFL: {
+    int validFlags = O_APPEND | FASYNC | O_DIRECT | O_NOATIME | O_NONBLOCK;
+    file->flags &= ~validFlags;
+    file->flags |= arg & validFlags;
     return 0;
     break;
+  }
   case F_DUPFD_CLOEXEC: {
     int targ = syscallDup(fd);
     if (targ < 0)
