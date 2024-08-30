@@ -97,8 +97,9 @@ HBA_CMD_HEADER *ahciSetUpCmdHeader(ahci *ahciPtr, uint32_t portId,
 }
 
 HBA_CMD_TBL *ahciSetUpCmdTable(ahci *ahciPtr, HBA_CMD_HEADER *cmdheader,
-                               uint32_t portId) {
-  HBA_CMD_TBL *cmdtbl = (HBA_CMD_TBL *)ahciPtr->ctbaVirt[portId];
+                               uint32_t portId, uint32_t cmdTableId) {
+  HBA_CMD_TBL *cmdtbl =
+      (HBA_CMD_TBL *)((size_t)ahciPtr->ctbaVirt[portId] + cmdTableId * 256);
   memset(cmdtbl, 0,
          sizeof(HBA_CMD_TBL) + (cmdheader->prdtl - 1) * sizeof(HBA_PRDT_ENTRY));
   return cmdtbl;
@@ -257,7 +258,7 @@ bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
 
   HBA_CMD_HEADER *cmdheader =
       ahciSetUpCmdHeader(ahciPtr, portId, slot, AHCI_CALC_PRDT(count), false);
-  HBA_CMD_TBL *cmdtbl = ahciSetUpCmdTable(ahciPtr, cmdheader, portId);
+  HBA_CMD_TBL *cmdtbl = ahciSetUpCmdTable(ahciPtr, cmdheader, portId, slot);
 
   // todo: look this up
   uint32_t countSec = count;
@@ -296,7 +297,7 @@ bool ahciWrite(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
 
   HBA_CMD_HEADER *cmdheader =
       ahciSetUpCmdHeader(ahciPtr, portId, slot, AHCI_CALC_PRDT(count), true);
-  HBA_CMD_TBL *cmdtbl = ahciSetUpCmdTable(ahciPtr, cmdheader, portId);
+  HBA_CMD_TBL *cmdtbl = ahciSetUpCmdTable(ahciPtr, cmdheader, portId, slot);
 
   ahciSetUpPRDT(cmdheader, cmdtbl, (uint16_t *)buff, &count);
 
