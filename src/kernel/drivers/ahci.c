@@ -67,7 +67,7 @@ int ahciCmdFind(HBA_PORT *port) {
   return -1;
 }
 
-bool ahciCmdIssue(HBA_PORT *port, int slot) {
+force_inline bool ahciCmdIssue(HBA_PORT *port, int slot) {
   port->ci = 1 << slot; // Issue command
 
   // Wait for completion
@@ -83,9 +83,9 @@ bool ahciCmdIssue(HBA_PORT *port, int slot) {
 
 /* Set up AHCI parts for reading/writing: */
 
-HBA_CMD_HEADER *ahciSetUpCmdHeader(ahci *ahciPtr, uint32_t portId,
-                                   uint32_t cmdslot, uint32_t prdt,
-                                   bool write) {
+force_inline HBA_CMD_HEADER *ahciSetUpCmdHeader(ahci *ahciPtr, uint32_t portId,
+                                                uint32_t cmdslot, uint32_t prdt,
+                                                bool write) {
   HBA_CMD_HEADER *cmdheader = (HBA_CMD_HEADER *)ahciPtr->clbVirt[portId];
   cmdheader =
       (HBA_CMD_HEADER *)((size_t)cmdheader + cmdslot * sizeof(HBA_CMD_HEADER));
@@ -96,8 +96,10 @@ HBA_CMD_HEADER *ahciSetUpCmdHeader(ahci *ahciPtr, uint32_t portId,
   return cmdheader;
 }
 
-HBA_CMD_TBL *ahciSetUpCmdTable(ahci *ahciPtr, HBA_CMD_HEADER *cmdheader,
-                               uint32_t portId, uint32_t cmdTableId) {
+force_inline HBA_CMD_TBL *ahciSetUpCmdTable(ahci           *ahciPtr,
+                                            HBA_CMD_HEADER *cmdheader,
+                                            uint32_t        portId,
+                                            uint32_t        cmdTableId) {
   HBA_CMD_TBL *cmdtbl =
       (HBA_CMD_TBL *)((size_t)ahciPtr->ctbaVirt[portId] + cmdTableId * 256);
   memset(cmdtbl, 0,
@@ -105,8 +107,8 @@ HBA_CMD_TBL *ahciSetUpCmdTable(ahci *ahciPtr, HBA_CMD_HEADER *cmdheader,
   return cmdtbl;
 }
 
-void ahciSetUpPRDT(HBA_CMD_HEADER *cmdheader, HBA_CMD_TBL *cmdtbl,
-                   uint16_t *buff, uint32_t *count) {
+force_inline void ahciSetUpPRDT(HBA_CMD_HEADER *cmdheader, HBA_CMD_TBL *cmdtbl,
+                                uint16_t *buff, uint32_t *count) {
   // 4 MiB (16 sectors) per PRDT
   int i = 0;
   for (i = 0; i < cmdheader->prdtl - 1; i++) {
@@ -235,7 +237,7 @@ void ahciPortProbe(ahci *ahciPtr, HBA_MEM *abar) {
 }
 
 // Await for port to stop being "busy" and send results
-bool ahciPortReady(HBA_PORT *port) {
+force_inline bool ahciPortReady(HBA_PORT *port) {
   int spin = 0;
   while ((port->tfd & (ATA_DEV_BUSY | ATA_DEV_DRQ)) && spin < 1000000)
     spin++;
