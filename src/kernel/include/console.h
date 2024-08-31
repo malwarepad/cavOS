@@ -17,6 +17,8 @@ extern int textcolor[];
 void initiateConsole();
 void drawCharacter(int charnum);
 
+bool cursorHidden;
+
 // Internal variables
 void     changeBg(int r, int g, int b);
 void     changeTextColor(int r, int g, int b);

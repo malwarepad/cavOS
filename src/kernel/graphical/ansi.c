@@ -18,14 +18,20 @@ ANSIcolors ansiColors[] = {
     {{85, 255, 85}},  {{255, 255, 85}}, {{85, 85, 255}}, {{255, 85, 255}},
     {{85, 255, 255}}, {{255, 255, 255}}};
 
-bool    asciiEscaping = false;  // 0x1B // \033
-bool    asciiInside = false;    //  [   // 0x5B
-int64_t asciiChar1 = 0;         // any  // any
-bool    asciiFirstDone = false; // any  // any
-int64_t asciiChar2 = 0;         // any  // any
+bool    asciiQuestionmark = true; //  ?
+bool    asciiEscaping = false;    // 0x1B // \033
+bool    asciiInside = false;      //  [   // 0x5B
+int64_t asciiChar1 = 0;           // any  // any
+bool    asciiFirstDone = false;   // any  // any
+int64_t asciiChar2 = 0;           // any  // any
 
 // true = done with
 bool asciiProcess(int charnum) {
+  if (!asciiFirstDone && charnum == '?') {
+    asciiQuestionmark = true;
+    return false;
+  }
+
   bool validNumber = IS_VALID_NUMBER(charnum);
   if (validNumber) {
     int target = charnum - '0';
@@ -47,6 +53,18 @@ bool asciiProcess(int charnum) {
 
   // end it all (asciiWaitingChar != 0xff && validAsciiChar)
   switch (charnum) {
+  case 'l':
+    if (asciiChar1 == 25 && asciiQuestionmark) {
+      eraseBull();
+      cursorHidden = true;
+    }
+    break;
+  case 'h':
+    if (asciiChar1 == 25 && asciiQuestionmark) {
+      cursorHidden = false;
+      updateBull();
+    }
+    break;
   case 'm':
     if (!asciiChar1 && !asciiChar2) {
       changeBg(0, 0, 0);
@@ -62,8 +80,18 @@ bool asciiProcess(int charnum) {
                                       colors->rgb[2]);
     break;
   case 'H':
-    width = 0;
-    height = 0;
+    if (!asciiChar1)
+      asciiChar1 = 1;
+    if (!asciiChar2)
+      asciiChar2 = 1;
+    height = (asciiChar1 - 1) * TTY_CHARACTER_HEIGHT;
+    width = (asciiChar2 - 1) * TTY_CHARACTER_WIDTH;
+    break;
+
+  case 'C':
+    if (!asciiChar1)
+      asciiChar1 = 1;
+    width += (asciiChar1 - 1) * TTY_CHARACTER_WIDTH;
     break;
 
   case 'J':
@@ -91,6 +119,7 @@ bool asciiProcess(int charnum) {
     }
     break;
   default:
+    // debugf("%c\n", charnum);
     break;
   }
 
@@ -100,6 +129,7 @@ bool asciiProcess(int charnum) {
 void ansiReset() {
   asciiEscaping = false;
   asciiInside = false;
+  asciiQuestionmark = false;
 
   asciiFirstDone = false;
 

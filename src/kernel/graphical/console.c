@@ -56,12 +56,18 @@ bool scrollConsole(bool check) {
   return true;
 }
 
+bool cursorHidden = false;
+
 void eraseBull() {
+  if (cursorHidden)
+    return;
   drawRect(width, height, CHAR_WIDTH, CHAR_HEIGHT, bg_color[0], bg_color[1],
            bg_color[2]);
 }
 
 void updateBull() {
+  if (cursorHidden)
+    return;
   if (width >= framebufferWidth) {
     bool neededScrolling = scrollConsole(true);
     if (!neededScrolling)
@@ -133,10 +139,16 @@ void drawCharacter(int charnum) {
     width += CHAR_WIDTH;
     break;
   case '\n':
-    drawCharacter(-1);
+    // drawCharacter(-1);
     eraseBull();
     width = 0;
     height += CHAR_HEIGHT;
+    break;
+  case 0xd:
+    eraseBull();
+    width = 0;
+    break;
+  case 0xf: // todo: alternative character sets
     break;
   case '\b':
     eraseBull();
