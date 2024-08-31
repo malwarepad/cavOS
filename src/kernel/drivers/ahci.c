@@ -55,20 +55,39 @@ void ahciCmdStop(HBA_PORT *port) {
 
 /* Command port operations: */
 
-int ahciCmdFind(HBA_PORT *port) {
-  // If not set in SACT and CI, the slot is free
-  uint32_t slots = (port->sact | port->ci);
-  for (int i = 0; i < 32; i++) {
-    if ((slots & 1) == 0)
-      return i;
-    slots >>= 1;
+Spinlock LOCK_AHCI_CMD_FIND = ATOMIC_FLAG_INIT;
+int      ahciCmdFind(ahci *ahciPtr, HBA_PORT *port) {
+  spinlockAcquire(&LOCK_AHCI_CMD_FIND);
+
+  int ret = -1;
+
+  // Don't let the waiting get out of hand
+  uint64_t start = timerTicks;
+  while (ret == -1 && timerTicks <= (start + 500)) {
+    // If not set in SACT and CI, the slot is free
+    uint32_t slots = (port->sact | port->ci);
+    for (int i = 0; i < 32; i++) {
+      if ((slots & 1) == 0 && !(ahciPtr->cmdSlotsPreping & (1 << i))) {
+        ret = i;
+        break;
+      }
+      slots >>= 1;
+    }
   }
-  printf("Cannot find free command list entry\n");
-  return -1;
+
+  if (ret == -1)
+    printf("Cannot find free command list entry\n");
+  else
+    ahciPtr->cmdSlotsPreping |= (1 << ret);
+  spinlockRelease(&LOCK_AHCI_CMD_FIND);
+  return ret;
 }
 
-force_inline bool ahciCmdIssue(HBA_PORT *port, int slot) {
+force_inline bool ahciCmdIssue(ahci *ahciPtr, HBA_PORT *port, int slot) {
   port->ci = 1 << slot; // Issue command
+
+  // Done "preparing"
+  ahciPtr->cmdSlotsPreping &= ~(1 << slot);
 
   // Wait for completion
   while (1) {
@@ -238,14 +257,13 @@ void ahciPortProbe(ahci *ahciPtr, HBA_MEM *abar) {
 
 // Await for port to stop being "busy" and send results
 force_inline bool ahciPortReady(HBA_PORT *port) {
-  int spin = 0;
-  while ((port->tfd & (ATA_DEV_BUSY | ATA_DEV_DRQ)) && spin < 1000000)
-    spin++;
-
-  if (spin == 1000000) {
-    printf("[pci::ahci] Port is hung ATA_DEV_BUSY{%d} ATA_DEV_DRQ{%d}\n",
-           port->tfd & ATA_DEV_BUSY, port->tfd & ATA_DEV_DRQ);
-    return false;
+  uint64_t start = timerTicks;
+  while ((port->tfd & (ATA_DEV_BUSY | ATA_DEV_DRQ))) {
+    if (timerTicks >= (start + 1000)) {
+      printf("[pci::ahci] Port is hung ATA_DEV_BUSY{%d} ATA_DEV_DRQ{%d}\n",
+             port->tfd & ATA_DEV_BUSY, port->tfd & ATA_DEV_DRQ);
+      return false;
+    }
   }
 
   return true;
@@ -254,7 +272,8 @@ force_inline bool ahciPortReady(HBA_PORT *port) {
 bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
               uint32_t starth, uint32_t count, uint8_t *buff) {
   port->is = (uint32_t)-1; // Clear pending interrupt bits
-  int slot = ahciCmdFind(port);
+  int slot = ahciCmdFind(ahciPtr, port);
+  // debugf("%d ", slot);
   if (slot == -1)
     return false;
 
@@ -287,13 +306,13 @@ bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
   if (!ahciPortReady(port))
     return false;
 
-  return ahciCmdIssue(port, slot);
+  return ahciCmdIssue(ahciPtr, port, slot);
 }
 
 bool ahciWrite(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
                uint32_t starth, uint32_t count, uint8_t *buff) {
   port->is = (uint32_t)-1; // Clear pending interrupt bits
-  int slot = ahciCmdFind(port);
+  int slot = ahciCmdFind(ahciPtr, port);
   if (slot == -1)
     return false;
 
@@ -324,7 +343,7 @@ bool ahciWrite(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
   if (!ahciPortReady(port))
     return false;
 
-  return ahciCmdIssue(port, slot);
+  return ahciCmdIssue(ahciPtr, port, slot);
 }
 
 void ahciInterruptHandler(AsmPassedInterrupt *regs) {

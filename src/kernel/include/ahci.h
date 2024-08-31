@@ -561,7 +561,8 @@ typedef struct ahci ahci;
 struct ahci {
   void              *clbVirt[32];
   void              *ctbaVirt[32];
-  uint32_t           sata; // bitmap (32 ports -> 32 bits)
+  uint32_t           sata;            // bitmap (32 ports -> 32 bits)
+  uint32_t           cmdSlotsPreping; // bitmap (32 cmdslots -> 32 bits)
   const AHCI_DEVICE *bsdInfo;
   HBA_MEM           *mem;
 };
