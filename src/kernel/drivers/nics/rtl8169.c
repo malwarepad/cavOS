@@ -58,7 +58,7 @@ void interruptHandlerRTL8169(AsmPassedInterrupt *regs) {
       uint64_t phys = ((uint64_t)high << 32) | low;
       uint64_t virt = phys + bootloader.hhdmOffset;
 
-      handlePacket(selectedNIC, (void *)virt, buffSize - 4);
+      netQueueAdd(selectedNIC, (uint8_t *)virt, buffSize - 4);
 
       info->RxDescriptors[i].command |= RTL8169_OWN;
     }

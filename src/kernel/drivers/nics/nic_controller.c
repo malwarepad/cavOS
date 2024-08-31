@@ -1,6 +1,7 @@
 #include <arp.h>
 #include <dhcp.h>
 #include <ipv4.h>
+#include <kernel_helper.h>
 #include <linked_list.h>
 #include <malloc.h>
 #include <ne2k.h>
@@ -101,4 +102,27 @@ void handlePacket(NIC *nic, void *packet, uint32_t size) {
            switch_endian_16(header->ethertype));
     break;
   }
+}
+
+// outside stuff
+
+QueuePacket netQueue[QUEUE_MAX];
+int         netQueueCurr;
+
+void netQueueAdd(NIC *nic, uint8_t *packet, uint16_t packetLength) {
+  QueuePacket *item = &netQueue[netQueueCurr];
+
+  if (item->exists) {
+    item->exists = false;
+    debugf("[netqueue] Old %d length packet dropped!\n", item->packetLength);
+  }
+
+  item->exists = true;
+  item->nic = nic;
+  memcpy(item->buff, packet, packetLength);
+  item->packetLength = packetLength;
+  item->exists = true;
+
+  if (++netQueueCurr >= QUEUE_MAX)
+    netQueueCurr = 0;
 }

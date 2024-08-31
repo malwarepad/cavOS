@@ -9,6 +9,7 @@
 #include <idt.h>
 #include <isr.h>
 #include <kb.h>
+#include <kernel_helper.h>
 #include <limine.h>
 #include <malloc.h>
 #include <md5.h>
@@ -63,6 +64,9 @@ void _start(void) {
 
   debugf("\n====== REACHED SYSTEM ======\n");
   initiateTimer(1000);
+  // any filesystem operations depend on currentTask
+  initiateTasks();
+  initiateKernelThreads();
   initiateNetworking();
   initiatePCI();
   firstMountPoint = 0;
@@ -70,9 +74,6 @@ void _start(void) {
   fsMount("/boot/", CONNECTOR_AHCI, 0, 0);
   fsMount("/dev/", CONNECTOR_DEV, 0, 0);
   fsMount("/sys/", CONNECTOR_SYS, 0, 0);
-
-  // any filesystem operations depend on currentTask
-  initiateTasks();
 
   // just in case there's another font preference
   psfLoadFromFile(DEFAULT_FONT_PATH);

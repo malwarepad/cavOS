@@ -226,11 +226,7 @@ void receiveRTL8139(NIC *nic) {
     // we don't need the packet's pointer & length
     buffer += 2;
 
-    void *packet = malloc(packetLength);
-    memcpy(packet, buffer, packetLength);
-
-    handlePacket(nic, packet, packetLength - 4); // remove control bit
-    free(packet);
+    netQueueAdd(nic, (uint8_t *)buffer, packetLength - 4); // remove control bit
 
     // to be removed:
     // debugf("WE GOT A PACKET!\n");

@@ -129,4 +129,22 @@ void sendPacket(NIC *nic, uint8_t *destination_mac, void *data, uint32_t size,
                 uint16_t protocol);
 void handlePacket(NIC *nic, void *packet, uint32_t size);
 
+// outside stuff
+
+#define PACKET_MAX 1600
+#define QUEUE_MAX 32
+typedef struct QueuePacket {
+  bool exists;
+
+  NIC *nic;
+
+  uint8_t  buff[PACKET_MAX];
+  uint16_t packetLength;
+} QueuePacket;
+
+QueuePacket netQueue[QUEUE_MAX];
+int         netQueueCurr;
+
+void netQueueAdd(NIC *nic, uint8_t *packet, uint16_t packetLength);
+
 #endif
