@@ -8,6 +8,9 @@
 #define low_16(address) (uint16_t)((address) & 0xFFFF)
 #define high_16(address) (uint16_t)(((address) >> 16) & 0xFFFF)
 
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+
 #define force_inline inline __attribute__((always_inline))
 
 #define PRINTF_ALIAS_STANDARD_FUNCTION_NAMES_SOFT 1

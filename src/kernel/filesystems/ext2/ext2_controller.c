@@ -135,7 +135,7 @@ bool ext2Open(char *filename, OpenFile *fd, char **symlinkResolve) {
   return true;
 }
 
-int ext2Read(OpenFile *fd, uint8_t *buff, size_t limit) {
+int ext2Read(OpenFile *fd, uint8_t *buff, size_t naiveLimit) {
   Ext2       *ext2 = EXT2_PTR(fd->mountPoint->fsInfo);
   Ext2OpenFd *dir = EXT2_DIR_PTR(fd->dir);
 
@@ -143,12 +143,16 @@ int ext2Read(OpenFile *fd, uint8_t *buff, size_t limit) {
   if (dir->ptr >= filesize)
     return 0;
 
+  size_t limit = naiveLimit;
+  if (limit > (filesize - dir->ptr))
+    limit = filesize - dir->ptr;
+
   size_t    blocksRequired = DivRoundUp(limit, ext2->blockSize);
   uint32_t *blocks =
       ext2BlockChain(ext2, dir, dir->ptr / ext2->blockSize, blocksRequired);
-  uint8_t *bytes = (uint8_t *)malloc(ext2->blockSize);
 
-  int curr = 0; // will be used to return
+  uint8_t *tmp = (uint8_t *)malloc((blocksRequired + 1) * ext2->blockSize);
+  int      currBlock = 0;
 
   // optimization: we can use consecutive sectors to make our life easier
   int consecStart = -1;
@@ -174,42 +178,18 @@ int ext2Read(OpenFile *fd, uint8_t *buff, size_t limit) {
         continue;
     }
 
-    uint32_t offsetStarting = dir->ptr % ext2->blockSize; // remainder
     if (consecEnd) {
       // optimized consecutive cluster reading
-      int      needed = consecEnd - consecStart + 1;
-      uint8_t *optimizedBytes = malloc(needed * ext2->blockSize);
-      getDiskBytes(optimizedBytes, BLOCK_TO_LBA(ext2, 0, blocks[consecStart]),
+      int needed = consecEnd - consecStart + 1;
+      getDiskBytes(&tmp[currBlock * ext2->blockSize],
+                   BLOCK_TO_LBA(ext2, 0, blocks[consecStart]),
                    (needed * ext2->blockSize) / SECTOR_SIZE);
-
-      for (uint32_t i = offsetStarting; i < (needed * ext2->blockSize); i++) {
-        if (curr >= limit || dir->ptr >= filesize) {
-          free(optimizedBytes);
-          goto cleanup;
-        }
-
-        if (buff)
-          buff[curr] = optimizedBytes[i];
-
-        dir->ptr++;
-        curr++;
-      }
-
-      free(optimizedBytes);
+      currBlock += needed;
     } else {
-      getDiskBytes(bytes, BLOCK_TO_LBA(ext2, 0, blocks[i]),
+      getDiskBytes(&tmp[currBlock * ext2->blockSize],
+                   BLOCK_TO_LBA(ext2, 0, blocks[i]),
                    ext2->blockSize / SECTOR_SIZE);
-
-      for (uint32_t i = offsetStarting; i < ext2->blockSize; i++) {
-        if (curr >= limit || dir->ptr >= filesize)
-          goto cleanup;
-
-        if (buff)
-          buff[curr] = bytes[i];
-
-        dir->ptr++;
-        curr++;
-      }
+      currBlock++;
     }
 
     // traverse
@@ -217,12 +197,23 @@ int ext2Read(OpenFile *fd, uint8_t *buff, size_t limit) {
     consecEnd = 0;
   }
 
-cleanup:
-  free(bytes);
+  // actually fill the buffer
+  uint32_t offsetStarting = dir->ptr % ext2->blockSize; // remainder
+  size_t   headtoCopy = MIN(ext2->blockSize - offsetStarting, limit);
+  memcpy(buff, &tmp[offsetStarting], headtoCopy);
+  if (limit > headtoCopy) {
+    memcpy(&buff[headtoCopy], &tmp[ext2->blockSize], limit - headtoCopy);
+  }
+
+  dir->ptr += limit; // set pointer
+
+  // cleanup
   free(blocks);
+  free(tmp);
+
   // debugf("[fd:%d id:%d] read %d bytes\n", fd->id, currentTask->id, curr);
   // debugf("%d / %d\n", dir->ptr, dir->inode.size);
-  return curr;
+  return limit;
 }
 
 size_t ext2Seek(OpenFile *fd, size_t target, long int offset, int whence) {

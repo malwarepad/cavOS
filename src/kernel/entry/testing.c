@@ -90,7 +90,9 @@ void weirdTests() {
     targB = md->b;
     targC = md->c;
     targD = md->d;
-    debugf("%02x%02x%02x%02x\n", md->a, md->b, md->c, md->d);
+    debugf("%02x%02x%02x%02x\n", switch_endian_32(md->a),
+           switch_endian_32(md->b), switch_endian_32(md->c),
+           switch_endian_32(md->d));
 
     // for (int i = 0; i < filesize; i++) {
     //   printf("%02X ", out[i]);

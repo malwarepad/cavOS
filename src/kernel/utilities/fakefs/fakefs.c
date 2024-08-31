@@ -30,7 +30,6 @@ void fakefsAttachFile(FakefsFile *file, void *ptr, int size) {
   file->size = size;
 }
 
-#define MAX(a, b) (((a) > (b)) ? (a) : (b))
 FakefsFile *fakefsTraverse(FakefsFile *start, char *search,
                            size_t searchLength) {
   FakefsFile *browse = start;
