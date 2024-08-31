@@ -11,8 +11,6 @@ uint16_t mbr_partition_indexes[] = {MBR_PARTITION_1, MBR_PARTITION_2,
                                     MBR_PARTITION_3, MBR_PARTITION_4};
 
 bool openDisk(uint32_t disk, uint8_t partition, mbr_partition *out) {
-  disk = disk; // future plans
-
   uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
   getDiskBytes(rawArr, 0x0, 1);
   // *out = *(mbr_partition *)(&rawArr[mbr_partition_indexes[partition]]);
