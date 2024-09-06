@@ -61,7 +61,9 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
   // check for open handler
   if (target->handlers->open) {
     char *symlink = 0;
-    if (!target->handlers->open(strippedFilename, target, &symlink)) {
+    int   ret =
+        target->handlers->open(strippedFilename, flags, mode, target, &symlink);
+    if (ret < 0) {
       // failed to open
       fsUnregisterNode(task, target);
       free(target);
@@ -75,7 +77,7 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
         free(symlinkResolved);
         return res;
       }
-      return 0;
+      return (OpenFile *)((size_t)(-ret));
     }
     free(safeFilename);
   }
@@ -129,15 +131,26 @@ OpenFile *fsUserGetNode(void *task, int fd) {
 }
 
 OpenFile *fsKernelOpen(char *filename, int flags, uint32_t mode) {
-  Task *target = taskGet(KERNEL_TASK_ID);
-  return fsOpenGeneric(filename, target, flags, mode);
+  Task     *target = taskGet(KERNEL_TASK_ID);
+  OpenFile *ret = fsOpenGeneric(filename, target, flags, mode);
+  if ((size_t)(ret) < 1024)
+    return 0;
+  return ret;
 }
 
 int fsUserOpen(void *task, char *filename, int flags, int mode) {
-  // todo: modes & flags
+  if (flags & FASYNC) {
+    debugf("[syscalls::fs] FATAL! Tried to open %s with O_ASYNC!\n", filename);
+    return -ENOSYS;
+  }
+  if (flags & O_NOFOLLOW) {
+    debugf("[syscalls::fs] TODO! Tried to open %s with O_NOFOLLOW!\n",
+           filename);
+    return -ENOSYS;
+  }
   OpenFile *file = fsOpenGeneric(filename, (Task *)task, flags, mode);
-  if (!file)
-    return -ENOENT;
+  if ((size_t)(file) < 1024)
+    return -((size_t)file);
 
   return file->id;
 }
@@ -177,6 +190,8 @@ uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit) {
 }
 
 uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit) {
+  if (!(file->flags & O_RDWR) && !(file->flags & O_WRONLY))
+    return -EBADF;
   if (!file->handlers->write)
     return -EBADF;
   return file->handlers->write(file, in, limit);

@@ -125,7 +125,8 @@ typedef struct FAT32OpenFd {
 
 // fat32_controller.c
 bool   fat32Mount(MountPoint *mount);
-bool   fat32Open(char *filename, OpenFile *fd, char **symlinkResolve);
+int    fat32Open(char *filename, int flags, int mode, OpenFile *fd,
+                 char **symlinkResolve);
 int    fat32Read(OpenFile *fd, uint8_t *buff, size_t limit);
 size_t fat32Seek(OpenFile *fd, size_t target, long int offset, int whence);
 size_t fat32GetFilesize(OpenFile *fd);

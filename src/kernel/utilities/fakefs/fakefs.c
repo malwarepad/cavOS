@@ -91,14 +91,15 @@ FakefsFile *fakefsTraversePath(FakefsFile *start, char *path) {
   return 0;
 }
 
-bool fakefsOpen(char *filename, OpenFile *target, char **symlinkResolve) {
+int fakefsOpen(char *filename, int flags, int mode, OpenFile *target,
+               char **symlinkResolve) {
   MountPoint    *mnt = target->mountPoint;
   FakefsOverlay *fakefs = (FakefsOverlay *)mnt->fsInfo;
 
   FakefsFile *file = fakefsTraversePath(fakefs->fakefs->rootFile, filename);
   if (!file) {
     // debugf("! %s\n", filename);
-    return false;
+    return -ENOENT;
   }
   target->handlers = file->handlers;
 
@@ -111,13 +112,15 @@ bool fakefsOpen(char *filename, OpenFile *target, char **symlinkResolve) {
 
   if (file->handlers->open) {
     // if a specific open handler is in place
-    if (!file->handlers->open(filename, target, symlinkResolve))
-      return false;
+    int ret =
+        file->handlers->open(filename, flags, mode, target, symlinkResolve);
+    if (ret < 0)
+      return ret;
   }
 
   target->fakefs = file;
 
-  return true;
+  return 0;
 }
 
 void fakefsStatGeneric(FakefsFile *file, struct stat *target) {

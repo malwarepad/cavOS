@@ -103,13 +103,22 @@ error:
   return false;
 }
 
-bool ext2Open(char *filename, OpenFile *fd, char **symlinkResolve) {
+int ext2Open(char *filename, int flags, int mode, OpenFile *fd,
+             char **symlinkResolve) {
   Ext2 *ext2 = EXT2_PTR(fd->mountPoint->fsInfo);
 
   uint32_t inode =
       ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, true, symlinkResolve);
+
+  if (!inode && *symlinkResolve)
+    return -ENOENT;
+
+  // todo! (mind symlink order later, this is just a hack)
+  if (flags & O_CREAT || flags & O_WRONLY || flags & O_RDWR)
+    return -EROFS;
+
   if (!inode)
-    return false;
+    return -ENOENT;
 
   Ext2OpenFd *dir = (Ext2OpenFd *)malloc(sizeof(Ext2OpenFd));
   memset(dir, 0, sizeof(Ext2OpenFd));
@@ -132,7 +141,7 @@ bool ext2Open(char *filename, OpenFile *fd, char **symlinkResolve) {
   dir->ptr = 0;
 
   free(inodeFetched);
-  return true;
+  return 0;
 }
 
 int ext2Read(OpenFile *fd, uint8_t *buff, size_t naiveLimit) {

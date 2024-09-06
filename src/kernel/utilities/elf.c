@@ -67,7 +67,7 @@ void elfProcessLoad(Elf64_Phdr *elf_phdr, uint8_t *out, size_t base) {
 Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
                  char **envv, bool startup) {
   // Open & read executable file
-  OpenFile *dir = fsKernelOpen(filepath, FS_MODE_READ, 0);
+  OpenFile *dir = fsKernelOpen(filepath, O_RDONLY, 0);
   if (!dir) {
     debugf("[elf] Could not open %s\n", filepath);
     return 0;
@@ -118,8 +118,7 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
                                           i * elf_ehdr->e_phentsize);
     if (elf_phdr->p_type == 3) {
       char     *interpreterFilename = (char *)(out + elf_phdr->p_offset);
-      OpenFile *interpreter =
-          fsKernelOpen(interpreterFilename, FS_MODE_READ, 0);
+      OpenFile *interpreter = fsKernelOpen(interpreterFilename, O_RDONLY, 0);
       if (!interpreter) {
         debugf("[elf] Interpreter path{%s} could not be found!\n");
         panic();

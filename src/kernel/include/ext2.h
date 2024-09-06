@@ -191,7 +191,8 @@ typedef struct Ext2OpenFd {
 
 // ext2_controller.c
 bool   ext2Mount(MountPoint *mount);
-bool   ext2Open(char *filename, OpenFile *fd, char **symlinkResolve);
+int    ext2Open(char *filename, int flags, int mode, OpenFile *fd,
+                char **symlinkResolve);
 bool   ext2Close(OpenFile *fd);
 int    ext2Read(OpenFile *fd, uint8_t *buff, size_t limit);
 bool   ext2Stat(MountPoint *mnt, char *filename, struct stat *target,
