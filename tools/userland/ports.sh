@@ -22,6 +22,7 @@ cd "$USR_PATHNAME/../../"
 
 # Make sure we use GNU bash for our /bin/sh
 if [ ! -f "$USR_PATHNAME/bin/sh" ]; then
+	mkdir -p "$USR_PATHNAME/bin"
 	ln -s bash "$USR_PATHNAME/bin/sh"
 fi
 
