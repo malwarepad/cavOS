@@ -91,6 +91,12 @@ bool ext2Mount(MountPoint *mount) {
   getDiskBytes((void *)ext2->bgdts, ext2->offsetBGDT,
                DivRoundUp(ext2->blockSize, SECTOR_SIZE));
 
+  // set up counting spinlocks for the BGDTs
+  // remember to zero them, just in case
+  int bgdtLockSize = sizeof(Spinlock) * ext2->blockGroups;
+  ext2->LOCKS_BLOCK_BITMAP = (Spinlock *)malloc(bgdtLockSize);
+  memset(ext2->LOCKS_BLOCK_BITMAP, 0, bgdtLockSize);
+
   ext2->inodeSize = ext2->superblock.extended.inode_size;
   ext2->inodeSizeRounded =
       DivRoundUp(ext2->inodeSize, SECTOR_SIZE) * SECTOR_SIZE;
@@ -257,8 +263,6 @@ void ext2StatInternal(Ext2Inode *inode, uint32_t inodeNum,
 
   target->st_size = COMBINE_64(inode->size_high, inode->size);
   if ((inode->permission & 0xF000) == 0x4000) {
-    target->st_size = 0x1000;
-
     target->st_mode &= ~S_IFREG; // mark as dir
     target->st_mode |= S_IFDIR;
   } else if ((inode->permission & 0xF000) == 0xA000) {

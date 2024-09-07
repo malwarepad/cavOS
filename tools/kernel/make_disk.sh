@@ -32,7 +32,7 @@ if [ ! -f "${LIMINE_EXEC}" ]; then
 fi
 
 SIZE_IN_BYTES=$(du -sb "$1" | cut -f1)
-SIZE_IN_BLOCKS=$((($SIZE_IN_BYTES / 512) * 2))
+SIZE_IN_BLOCKS=$((($SIZE_IN_BYTES / 512) * 2 + 500000))
 
 if [ -z "$4" ]; then
 	dd if=/dev/zero of="${3}" bs=512 count=$SIZE_IN_BLOCKS
@@ -50,7 +50,7 @@ sudo losetup /dev/loop103 "${3}" -o 136314880 # 128 MB
 if [ -z "$4" ]; then
 	sudo mkdosfs -F32 -f 2 /dev/loop102 || sudo mkfs.fat -F32 -f 2 /dev/loop102
 	# sudo mkdosfs -F32 -f 2 /dev/loop103
-	sudo mke2fs -L "cavOS" /dev/loop103
+	sudo mke2fs -L "cavOS" -O ^dir_index /dev/loop103 "$(((($SIZE_IN_BLOCKS - 350000) * 512) / 1024))"
 	sudo fatlabel /dev/loop102 LIMINE
 	# sudo fatlabel /dev/loop103 CAVOS
 fi

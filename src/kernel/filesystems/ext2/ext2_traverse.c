@@ -29,6 +29,29 @@ Ext2Inode *ext2InodeFetch(Ext2 *ext2, size_t inode) {
   return ret;
 }
 
+// IMPORTANT! Remember to manually set the lock **before** calling
+void ext2InodeModifyM(Ext2 *ext2, size_t inode, Ext2Inode *target) {
+  uint32_t group = INODE_TO_BLOCK_GROUP(ext2, inode);
+  uint32_t index = INODE_TO_INDEX(ext2, inode);
+
+  size_t leftovers = index * ext2->inodeSize;
+  size_t leftoversLba = leftovers / SECTOR_SIZE;
+  size_t leftoversRem = leftovers % SECTOR_SIZE;
+
+  // large enough just in case
+  size_t len = DivRoundUp(ext2->inodeSize * 4, SECTOR_SIZE) * SECTOR_SIZE;
+  size_t lba =
+      BLOCK_TO_LBA(ext2, 0, ext2->bgdts[group].inode_table) + leftoversLba;
+
+  uint8_t *buf = (uint8_t *)malloc(len);
+  getDiskBytes(buf, lba, len / SECTOR_SIZE);
+  Ext2Inode *tmp = (Ext2Inode *)(buf + leftoversRem);
+  memcpy(tmp, target, sizeof(Ext2Inode));
+  setDiskBytes(buf, lba, len / SECTOR_SIZE);
+
+  free(buf);
+}
+
 uint32_t ext2Traverse(Ext2 *ext2, size_t initInode, char *search,
                       size_t searchLength) {
   uint32_t   ret = 0;
@@ -40,8 +63,8 @@ uint32_t ext2Traverse(Ext2 *ext2, size_t initInode, char *search,
 
   ext2BlockFetchInit(ext2, &control);
 
-  int dirsAvailable = 0;
-  while (true) {
+  int blocksContained = DivRoundUp(ino->size, ext2->blockSize);
+  for (int i = 0; i < blocksContained; i++) {
     size_t block = ext2BlockFetch(ext2, ino, &control, blockNum);
     blockNum++;
     if (!block)
@@ -52,8 +75,8 @@ uint32_t ext2Traverse(Ext2 *ext2, size_t initInode, char *search,
                  ext2->blockSize / SECTOR_SIZE);
 
     while (((size_t)dir - (size_t)names) < ext2->blockSize) {
-      if (++dirsAvailable >= COMBINE_64(ino->size_high, ino->size))
-        break;
+      if (!dir->inode)
+        continue;
       if (dir->filenameLength == searchLength &&
           memcmp(dir->filename, search, searchLength) == 0) {
         ret = dir->inode;

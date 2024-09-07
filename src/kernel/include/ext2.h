@@ -1,3 +1,4 @@
+#include "system.h"
 #include "types.h"
 #include "vfs.h"
 
@@ -131,6 +132,10 @@ typedef struct Ext2Directory {
   char     filename[0];
 } Ext2Directory;
 
+#define EXT2_MAX_CONSEC_DIRALLOC 32
+#define EXT2_MAX_CONSEC_BLOCK 32
+#define EXT2_MAX_CONSEC_INODE 32
+
 typedef struct Ext2 {
   // various offsets
   size_t offsetBase;
@@ -150,6 +155,25 @@ typedef struct Ext2 {
   // max block size is 8KiB and bgdts are forced to be 1 block long soooooo
   Ext2BlockGroup *bgdts; // regular old array
   Ext2Superblock  superblock;
+
+  // special locks for ext2Dir(De)Allocate
+  uint32_t dirOperations[EXT2_MAX_CONSEC_DIRALLOC];
+  Spinlock LOCK_DIRALLOC_GLOBAL;
+
+  // special locks for ext2Blocks*
+  uint32_t blockOperations[EXT2_MAX_CONSEC_BLOCK];
+  Spinlock LOCK_BLOCK_GLOBAL;
+
+  // special locks for ext2Inode*
+  uint32_t inodeOperations[EXT2_MAX_CONSEC_INODE];
+  Spinlock LOCK_BLOCK_INODE;
+
+  // regular Spinlock[] array for every bgdt item
+  Spinlock *LOCKS_BLOCK_BITMAP;
+
+  // bgdt & superblock global write locks
+  Spinlock LOCK_BGDT_WRITE;
+  Spinlock LOCK_SUPERBLOCK_WRITE;
 } Ext2;
 
 typedef struct Ext2LookupControl {
@@ -206,27 +230,40 @@ int    ext2Readlink(Ext2 *ext2, char *path, char *buf, int size,
                     char **symlinkResolve);
 
 // ext2_util.c
-void ext2BlkIdBitmapFetch(Ext2 *ext2, uint8_t *tmp, size_t group);
-bool ext2BlkIdBitmapGet(Ext2 *ext2, uint8_t *tmp, size_t index);
-
 void ext2BlockFetchInit(Ext2 *ext2, Ext2LookupControl *control);
 void ext2BlockFetchCleanup(Ext2LookupControl *control);
+
+int ext2DirLock(uint32_t *opArr, Spinlock *lock, int constant,
+                uint32_t inodeNum);
 
 uint32_t  ext2BlockFetch(Ext2 *ext2, Ext2Inode *ino, Ext2LookupControl *control,
                          size_t curr);
 uint32_t *ext2BlockChain(Ext2 *ext2, Ext2OpenFd *fd, size_t curr,
                          size_t blocks);
 
+void     ext2BlockAssign(Ext2 *ext2, Ext2Inode *ino, uint32_t inodeNum,
+                         Ext2LookupControl *control, size_t curr, uint32_t val);
+uint32_t ext2BlockFind(Ext2 *ext2, int groupSuggestion, uint32_t amnt);
+uint32_t ext2BlockFindL(Ext2 *ext2, int group, uint32_t amnt);
+
 // ext2_traverse.c
 Ext2Inode *ext2InodeFetch(Ext2 *ext2, size_t inode);
-uint32_t   ext2Traverse(Ext2 *ext2, size_t initInode, char *search,
-                        size_t searchLength);
+void       ext2InodeModifyM(Ext2 *ext2, size_t inode, Ext2Inode *target);
+
+uint32_t ext2Traverse(Ext2 *ext2, size_t initInode, char *search,
+                      size_t searchLength);
 uint32_t ext2TraversePath(Ext2 *ext2, char *path, size_t initInode, bool follow,
                           char **symlinkResolve);
 
 // ext2_dirs.c
-int ext2Getdents64(OpenFile *file, struct linux_dirent64 *start,
-                   unsigned int hardlimit);
+bool ext2DirAllocate(Ext2 *ext2, uint32_t inodeNum, Ext2Inode *parentDirInode,
+                     char *filename, uint8_t filenameLen, uint8_t type,
+                     uint32_t inode);
+int  ext2Getdents64(OpenFile *file, struct linux_dirent64 *start,
+                    unsigned int hardlimit);
+
+void ext2BgdtPushM(Ext2 *ext2);
+void ext2SuperblockPushM(Ext2 *ext2);
 
 // finale
 VfsHandlers ext2Handlers;
