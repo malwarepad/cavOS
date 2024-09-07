@@ -250,25 +250,26 @@ size_t ext2GetFilesize(OpenFile *fd) {
   return COMBINE_64(dir->inode.size_high, dir->inode.size);
 }
 
-void ext2StatInternal(Ext2Inode *inode, uint32_t inodeNum,
+void ext2StatInternal(Ext2 *ext2, Ext2Inode *inode, uint32_t inodeNum,
                       struct stat *target) {
   target->st_dev = 69; // todo
   target->st_ino = inodeNum;
-  target->st_mode = S_IFREG | S_IRUSR | S_IWUSR | S_IXUSR;
+  // target->st_mode = S_IFREG | S_IRUSR | S_IWUSR | S_IXUSR; // lie
+  target->st_mode = inode->permission;
   target->st_nlink = inode->hard_links;
   target->st_uid = 0;
   target->st_gid = 0;
   target->st_rdev = 0;
-  target->st_blksize = 0x1000; // todo: honesty :")
+  target->st_blksize = ext2->blockSize;
 
   target->st_size = COMBINE_64(inode->size_high, inode->size);
-  if ((inode->permission & 0xF000) == 0x4000) {
-    target->st_mode &= ~S_IFREG; // mark as dir
+  /*if ((inode->permission & 0xF000) == 0x4000) { // lies
+    target->st_mode &= ~S_IFREG;                // mark as dir
     target->st_mode |= S_IFDIR;
   } else if ((inode->permission & 0xF000) == 0xA000) {
     target->st_mode &= ~S_IFREG; // mark as symlink
     target->st_mode |= S_IFLNK;
-  }
+  }*/
 
   target->st_blocks =
       (DivRoundUp(target->st_size, target->st_blksize) * target->st_blksize) /
@@ -288,7 +289,7 @@ bool ext2Stat(MountPoint *mnt, char *filename, struct stat *target,
     return false;
   Ext2Inode *inode = ext2InodeFetch(ext2, inodeNum);
 
-  ext2StatInternal(inode, inodeNum, target);
+  ext2StatInternal(ext2, inode, inodeNum, target);
 
   free(inode);
   return true;
@@ -303,15 +304,16 @@ bool ext2Lstat(MountPoint *mnt, char *filename, struct stat *target,
     return false;
   Ext2Inode *inode = ext2InodeFetch(ext2, inodeNum);
 
-  ext2StatInternal(inode, inodeNum, target);
+  ext2StatInternal(ext2, inode, inodeNum, target);
 
   free(inode);
   return true;
 }
 
 int ext2StatFd(OpenFile *fd, struct stat *target) {
+  Ext2       *ext2 = EXT2_PTR(fd->mountPoint->fsInfo);
   Ext2OpenFd *dir = EXT2_DIR_PTR(fd->dir);
-  ext2StatInternal(&dir->inode, dir->inodeNum, target);
+  ext2StatInternal(ext2, &dir->inode, dir->inodeNum, target);
   return 0;
 }
 
