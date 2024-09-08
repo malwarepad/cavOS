@@ -273,9 +273,22 @@ static int syscallFcntl(int fd, int cmd, uint64_t arg) {
   }
 }
 
+#define SYSCALL_MKDIR 83
+static int syscallMkdir(char *path, uint32_t mode) {
+  mode &= ~(currentTask->umask);
+  return fsMkdir(currentTask, path, mode);
+}
+
 #define SYSCALL_READLINK 89
 static int syscallReadlink(char *path, char *buf, int size) {
   return fsReadlink(currentTask, path, buf, size);
+}
+
+#define SYSCALL_UMASK 95
+static int syscallUmask(uint32_t mask) {
+  int old = currentTask->umask;
+  currentTask->umask = mask & 0777;
+  return old;
 }
 
 #define SYSCALL_GETDENTS64 217
@@ -497,6 +510,8 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_STAT, syscallStat);
   registerSyscall(SYSCALL_FSTAT, syscallFstat);
   registerSyscall(SYSCALL_LSTAT, syscallLstat);
+  registerSyscall(SYSCALL_MKDIR, syscallMkdir);
+  registerSyscall(SYSCALL_UMASK, syscallUmask);
 
   registerSyscall(SYSCALL_IOCTL, syscallIoctl);
   registerSyscall(SYSCALL_READV, syscallReadV);

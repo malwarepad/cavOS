@@ -250,3 +250,29 @@ int fsReadlink(void *task, char *path, char *buf, int size) {
   }
   return ret;
 }
+
+int fsMkdir(void *task, char *path, uint32_t mode) {
+  Task       *target = (Task *)task;
+  char       *safeFilename = fsSanitize(target->cwd, path);
+  MountPoint *mnt = fsDetermineMountPoint(safeFilename);
+
+  int ret = 0;
+
+  char *symlink = 0;
+  if (mnt->mkdir) {
+    ret = mnt->mkdir(mnt, safeFilename, mode, &symlink);
+  } else {
+    ret = -EROFS;
+  }
+
+  free(safeFilename);
+
+  if (symlink) {
+    char *symlinkResolved = fsResolveSymlink(mnt, symlink);
+    free(symlink);
+    ret = fsMkdir(task, symlinkResolved, mode);
+    free(symlinkResolved);
+  }
+
+  return ret;
+}

@@ -86,6 +86,10 @@ typedef bool (*MntStat)(MountPoint *mnt, char *filename, struct stat *target,
                         char **symlinkResolve);
 typedef bool (*MntLstat)(MountPoint *mnt, char *filename, struct stat *target,
                          char **symlinkResolve);
+
+typedef int (*MntMkdir)(MountPoint *mnt, char *path, uint32_t mode,
+                        char **symlinkResolve);
+
 struct MountPoint {
   MountPoint *next;
 
@@ -100,6 +104,7 @@ struct MountPoint {
   VfsHandlers *handlers;
   MntStat      stat;
   MntLstat     lstat;
+  MntMkdir     mkdir;
 
   mbr_partition mbr;
   void         *fsInfo;
@@ -148,6 +153,7 @@ uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit);
 uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit);
 void     fsReadFullFile(OpenFile *file, uint8_t *out);
 int      fsReadlink(void *task, char *path, char *buf, int size);
+int      fsMkdir(void *task, char *path, uint32_t mode);
 size_t   fsGetFilesize(OpenFile *file);
 
 // vfs_sanitize.c

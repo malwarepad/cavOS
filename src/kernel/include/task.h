@@ -75,7 +75,8 @@ struct Task {
   termios  term;
   uint32_t tmpRecV;
 
-  char *cwd;
+  char    *cwd;
+  uint32_t umask;
 
   SpinlockCnt WLOCK_FILES;
   OpenFile   *firstFile;

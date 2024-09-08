@@ -170,6 +170,7 @@ typedef struct Ext2 {
 
   // regular Spinlock[] array for every bgdt item
   Spinlock *LOCKS_BLOCK_BITMAP;
+  Spinlock *LOCKS_INODE_BITMAP;
 
   // bgdt & superblock global write locks
   Spinlock LOCK_BGDT_WRITE;
@@ -229,6 +230,10 @@ size_t ext2GetFilesize(OpenFile *fd);
 int    ext2Readlink(Ext2 *ext2, char *path, char *buf, int size,
                     char **symlinkResolve);
 
+// ext2_create.c
+int ext2Mkdir(MountPoint *mnt, char *dirname, uint32_t mode,
+              char **symlinkResolve);
+
 // ext2_util.c
 void ext2BlockFetchInit(Ext2 *ext2, Ext2LookupControl *control);
 void ext2BlockFetchCleanup(Ext2LookupControl *control);
@@ -247,13 +252,17 @@ uint32_t ext2BlockFind(Ext2 *ext2, int groupSuggestion, uint32_t amnt);
 uint32_t ext2BlockFindL(Ext2 *ext2, int group, uint32_t amnt);
 
 // ext2_traverse.c
-Ext2Inode *ext2InodeFetch(Ext2 *ext2, size_t inode);
-void       ext2InodeModifyM(Ext2 *ext2, size_t inode, Ext2Inode *target);
-
 uint32_t ext2Traverse(Ext2 *ext2, size_t initInode, char *search,
                       size_t searchLength);
 uint32_t ext2TraversePath(Ext2 *ext2, char *path, size_t initInode, bool follow,
                           char **symlinkResolve);
+
+// ext2_inode.c
+Ext2Inode *ext2InodeFetch(Ext2 *ext2, size_t inode);
+void       ext2InodeModifyM(Ext2 *ext2, size_t inode, Ext2Inode *target);
+
+uint32_t ext2InodeFindL(Ext2 *ext2, int group);
+uint32_t ext2InodeFind(Ext2 *ext2, int groupSuggestion);
 
 // ext2_dirs.c
 bool ext2DirAllocate(Ext2 *ext2, uint32_t inodeNum, Ext2Inode *parentDirInode,

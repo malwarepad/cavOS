@@ -12,6 +12,8 @@ bool ext2Mount(MountPoint *mount) {
   mount->stat = ext2Stat;
   mount->lstat = ext2Lstat;
 
+  mount->mkdir = ext2Mkdir;
+
   // assign fsInfo
   mount->fsInfo = malloc(sizeof(Ext2));
   memset(mount->fsInfo, 0, sizeof(Ext2));
@@ -96,6 +98,9 @@ bool ext2Mount(MountPoint *mount) {
   int bgdtLockSize = sizeof(Spinlock) * ext2->blockGroups;
   ext2->LOCKS_BLOCK_BITMAP = (Spinlock *)malloc(bgdtLockSize);
   memset(ext2->LOCKS_BLOCK_BITMAP, 0, bgdtLockSize);
+
+  ext2->LOCKS_INODE_BITMAP = (Spinlock *)malloc(bgdtLockSize);
+  memset(ext2->LOCKS_INODE_BITMAP, 0, bgdtLockSize);
 
   ext2->inodeSize = ext2->superblock.extended.inode_size;
   ext2->inodeSizeRounded =

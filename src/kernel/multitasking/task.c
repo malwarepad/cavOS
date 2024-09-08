@@ -96,6 +96,8 @@ Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
   target->mmap_start = USER_MMAP_START;
   target->mmap_end = USER_MMAP_START;
 
+  target->umask = S_IWGRP | S_IWOTH;
+
   memset(target->fpuenv, 0, 512);
   ((uint16_t *)target->fpuenv)[0] = 0x37f;
   target->mxcsr = 0x1f80;
@@ -419,6 +421,7 @@ int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
   char  *newcwd = (char *)malloc(cmwdLen);
   memcpy(newcwd, currentTask->cwd, cmwdLen);
   target->cwd = newcwd;
+  target->umask = currentTask->umask;
 
   taskFilesCopy(currentTask, target, false);
 

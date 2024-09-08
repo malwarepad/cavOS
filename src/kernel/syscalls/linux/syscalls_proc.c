@@ -66,6 +66,7 @@ static int syscallExecve(char *filename, char **argv, char **envp) {
   size_t cwdLen = strlength(currentTask->cwd) + 1;
   ret->cwd = malloc(cwdLen);
   memcpy(ret->cwd, currentTask->cwd, cwdLen);
+  ret->umask = currentTask->umask;
 
   taskFilesEmpty(ret);
   taskFilesCopy(currentTask, ret, true);

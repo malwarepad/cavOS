@@ -5,53 +5,6 @@
 #include <timer.h>
 #include <util.h>
 
-Ext2Inode *ext2InodeFetch(Ext2 *ext2, size_t inode) {
-  uint32_t group = INODE_TO_BLOCK_GROUP(ext2, inode);
-  uint32_t index = INODE_TO_INDEX(ext2, inode);
-
-  size_t leftovers = index * ext2->inodeSize;
-  size_t leftoversLba = leftovers / SECTOR_SIZE;
-  size_t leftoversRem = leftovers % SECTOR_SIZE;
-
-  // large enough just in case
-  size_t len = DivRoundUp(ext2->inodeSize * 4, SECTOR_SIZE) * SECTOR_SIZE;
-  size_t lba =
-      BLOCK_TO_LBA(ext2, 0, ext2->bgdts[group].inode_table) + leftoversLba;
-
-  uint8_t *buf = (uint8_t *)malloc(len);
-  getDiskBytes(buf, lba, len / SECTOR_SIZE);
-  Ext2Inode *tmp = (Ext2Inode *)(buf + leftoversRem);
-
-  Ext2Inode *ret = (Ext2Inode *)malloc(ext2->inodeSize);
-  memcpy(ret, tmp, ext2->inodeSize);
-
-  free(buf);
-  return ret;
-}
-
-// IMPORTANT! Remember to manually set the lock **before** calling
-void ext2InodeModifyM(Ext2 *ext2, size_t inode, Ext2Inode *target) {
-  uint32_t group = INODE_TO_BLOCK_GROUP(ext2, inode);
-  uint32_t index = INODE_TO_INDEX(ext2, inode);
-
-  size_t leftovers = index * ext2->inodeSize;
-  size_t leftoversLba = leftovers / SECTOR_SIZE;
-  size_t leftoversRem = leftovers % SECTOR_SIZE;
-
-  // large enough just in case
-  size_t len = DivRoundUp(ext2->inodeSize * 4, SECTOR_SIZE) * SECTOR_SIZE;
-  size_t lba =
-      BLOCK_TO_LBA(ext2, 0, ext2->bgdts[group].inode_table) + leftoversLba;
-
-  uint8_t *buf = (uint8_t *)malloc(len);
-  getDiskBytes(buf, lba, len / SECTOR_SIZE);
-  Ext2Inode *tmp = (Ext2Inode *)(buf + leftoversRem);
-  memcpy(tmp, target, sizeof(Ext2Inode));
-  setDiskBytes(buf, lba, len / SECTOR_SIZE);
-
-  free(buf);
-}
-
 uint32_t ext2Traverse(Ext2 *ext2, size_t initInode, char *search,
                       size_t searchLength) {
   uint32_t   ret = 0;
