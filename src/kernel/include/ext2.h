@@ -233,6 +233,8 @@ int    ext2Readlink(Ext2 *ext2, char *path, char *buf, int size,
 // ext2_create.c
 int ext2Mkdir(MountPoint *mnt, char *dirname, uint32_t mode,
               char **symlinkResolve);
+int ext2Touch(MountPoint *mnt, char *filename, uint32_t mode,
+              char **symlinkResolve);
 
 // ext2_util.c
 void ext2BlockFetchInit(Ext2 *ext2, Ext2LookupControl *control);

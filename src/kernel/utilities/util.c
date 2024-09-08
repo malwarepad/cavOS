@@ -5,35 +5,11 @@
 
 #define LONG_MASK (sizeof(unsigned long) - 1)
 void memset(void *_dst, int val, size_t len) {
-  unsigned char *dst = _dst;
-  unsigned long *ldst;
-  unsigned long  lval =
-      (val & 0xFF) *
-      (-1ul /
-       255); // the multiplier becomes 0x0101... of the same length as long
-
-  if (len >= 16) // optimize only if it's worth it (limit is a guess)
-  {
-    while ((uintptr_t)dst & LONG_MASK) {
-      *dst++ = val;
-      len--;
-    }
-    ldst = (void *)dst;
-    while (len > sizeof(long)) {
-      *ldst++ = lval;
-      len -= sizeof(long);
-    }
-    dst = (void *)ldst;
-  }
-  while (len--)
-    *dst++ = val;
+  asm volatile("rep stosb" : : "D"(_dst), "a"(val), "c"(len) : "memory");
 }
 
 void *memcpy(void *restrict dstptr, const void *restrict srcptr, size_t size) {
-  unsigned char       *dst = (unsigned char *)dstptr;
-  const unsigned char *src = (const unsigned char *)srcptr;
-  for (size_t i = 0; i < size; i++)
-    dst[i] = src[i];
+  asm volatile("rep movsb" : : "S"(srcptr), "D"(dstptr), "c"(size) : "memory");
   return dstptr;
 }
 
