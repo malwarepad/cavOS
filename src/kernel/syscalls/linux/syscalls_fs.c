@@ -426,6 +426,8 @@ static int syscallStatx(int dirfd, char *pathname, int flags, uint32_t mask,
   struct stat simple = {0};
   if (pathname[0] == '\0') { // by fd
     OpenFile *file = fsUserGetNode(currentTask, dirfd);
+    if (!file)
+      return -ENOENT;
     if (!fsStat(file, &simple))
       return -EBADF;
   } else if (pathname[0] == '/') { // by absolute pathname
