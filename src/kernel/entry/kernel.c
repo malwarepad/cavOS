@@ -94,6 +94,7 @@ void _start(void) {
   printf("==      Copyright MalwarePad 2024      ==\n");
   printf("=========================================\n\n");
 
+  run("/usr/bin/bash", true);
   launch_shell(0);
   panic();
 }

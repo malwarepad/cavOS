@@ -3,5 +3,6 @@
 #include "types.h"
 
 void launch_shell(int n);
+bool run(char *binary, bool wait);
 
 #endif

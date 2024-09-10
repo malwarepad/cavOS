@@ -124,6 +124,22 @@ void echo(char *ch) {
   printf("\n%s\n", str);
 }
 
+bool run(char *binary, bool wait) {
+  char *argv[] = {binary};
+  Task *task = elfExecute(binary, 1, argv, 0, 0, true);
+
+  bool ret = !!task;
+
+  if (task && wait) {
+    task->parent = currentTask;
+    currentTask->state = TASK_STATE_WAITING_CHILD;
+    while (taskGetState(task->id))
+      ;
+  }
+
+  return ret;
+}
+
 void launch_shell(int n) {
   debugf("[shell] Kernel-land shell launched: n{%d}\n", n);
   char *ch = (char *)malloc(200);
@@ -234,10 +250,7 @@ void launch_shell(int n) {
                mac[3], mac[4], mac[5]);
     } else if (strEql(ch, "bash")) {
       printf("\n");
-      char *argv[] = {"/usr/bin/bash"};
-      Task *task = elfExecute("/usr/bin/bash", 1, argv, 0, 0, true);
-      while (taskGetState(task->id))
-        ;
+      run("/usr/bin/bash", true);
     } else if (strEql(ch, "ping")) {
       uint8_t ip[4];
       uint8_t mac[6];
@@ -312,19 +325,13 @@ void launch_shell(int n) {
       readStr(filepath);
       printf("\n");
 
-      size_t *argv = malloc(sizeof(size_t) * 5);
-      argv[0] = (size_t)filepath;
-      Task *task = elfExecute(filepath, 1, (char **)argv, 0, 0, true);
-      if (!task) {
+      bool ret = run(filepath, true);
+      if (!ret) {
         printf("Failure executing %s!\n", filepath);
         continue;
       }
 
-      while (taskGetState(task->id)) {
-      }
-
       free(filepath);
-      free(argv);
     } else if (strEql(ch, "tasks")) {
       printf("\n");
       Task *browse = firstTask;
@@ -346,9 +353,8 @@ void launch_shell(int n) {
       }
     } else if (strEql(ch, "proctest")) {
       printf("\n");
-      char *argv[] = {"/usr/bin/testing"};
       for (int i = 0; i < 4; i++)
-        elfExecute(argv[0], 1, argv, 0, 0, true);
+        run("/usr/bin/testing", false);
     } else if (strEql(ch, "cwm")) {
       printf("\n%s\n",
              "After taking some time off the project, I realized I was "

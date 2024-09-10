@@ -165,6 +165,8 @@ void taskKill(uint32_t id, uint16_t ret) {
     info->pid = task->id;
     info->ret = ret;
     task->parent->childrenTerminatedAmnt++;
+    if (task->parent->state == TASK_STATE_WAITING_CHILD)
+      task->parent->state = TASK_STATE_READY;
     spinlockRelease(&task->parent->LOCK_CHILD_TERM);
   }
 
@@ -448,6 +450,11 @@ int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
   return target->id;
 }
 
+void kernelDummyEntry() {
+  while (true)
+    dummyTask->state = TASK_STATE_DUMMY;
+}
+
 void initiateTasks() {
   firstTask = (Task *)malloc(sizeof(Task));
   memset(firstTask, 0, sizeof(Task));
@@ -471,4 +478,8 @@ void initiateTasks() {
   tasksInitiated = true;
 
   // task 0 represents the execution we're in right now
+
+  // create a dummy task in case the scheduler has nothing to do
+  dummyTask = taskCreateKernel((uint64_t)kernelDummyEntry, 0);
+  dummyTask->state = TASK_STATE_DUMMY;
 }

@@ -25,6 +25,8 @@ typedef enum TASK_STATE {
   TASK_STATE_IDLE = 2,
   TASK_STATE_WAITING_INPUT = 3,
   TASK_STATE_CREATED = 4, // just made by taskCreate()
+  TASK_STATE_WAITING_CHILD = 5,
+  TASK_STATE_DUMMY = 69,
 } TASK_STATE;
 
 #define NCCS 32
@@ -98,6 +100,8 @@ SpinlockCnt TASK_LL_MODIFY;
 
 Task *firstTask;
 Task *currentTask;
+
+Task *dummyTask;
 
 bool tasksInitiated;
 

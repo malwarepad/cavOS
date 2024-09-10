@@ -120,8 +120,13 @@ static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
 
     // we got children, wait for any changes
     // OR just continue :")
-    while (!currentTask->childrenTerminatedAmnt)
-      ;
+    if (!currentTask->childrenTerminatedAmnt) {
+      currentTask->state = TASK_STATE_WAITING_CHILD;
+      while (currentTask->state == TASK_STATE_WAITING_CHILD)
+        ;
+    }
+    // while (!currentTask->childrenTerminatedAmnt)
+    //   ;
 
     spinlockAcquire(&currentTask->LOCK_CHILD_TERM);
     if (!currentTask->firstChildTerminated) {
