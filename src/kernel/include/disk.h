@@ -28,6 +28,6 @@ bool validateMbr(uint8_t *mbrSector);
 
 void getDiskBytes(uint8_t *target_address, uint32_t LBA, size_t sector_count);
 void setDiskBytes(const uint8_t *target_address, uint32_t LBA,
-                  uint8_t sector_count);
+                  size_t sector_count);
 
 #endif

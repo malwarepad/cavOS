@@ -135,6 +135,7 @@ typedef struct Ext2Directory {
 #define EXT2_MAX_CONSEC_DIRALLOC 32
 #define EXT2_MAX_CONSEC_BLOCK 32
 #define EXT2_MAX_CONSEC_INODE 32
+#define EXT2_MAX_CONSEC_WRITE 32
 
 typedef struct Ext2 {
   // various offsets
@@ -167,6 +168,10 @@ typedef struct Ext2 {
   // special locks for ext2Inode*
   uint32_t inodeOperations[EXT2_MAX_CONSEC_INODE];
   Spinlock LOCK_BLOCK_INODE;
+
+  // special locks for any file writing
+  uint32_t writeOperations[EXT2_MAX_CONSEC_INODE];
+  Spinlock LOCK_WRITES;
 
   // regular Spinlock[] array for every bgdt item
   Spinlock *LOCKS_BLOCK_BITMAP;

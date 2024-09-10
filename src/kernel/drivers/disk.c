@@ -58,7 +58,8 @@ void diskBytes(uint8_t *target_address, uint32_t LBA, uint32_t sector_count,
 }
 
 // todo: allow concurrent stuff
-void getDiskBytes(uint8_t *target_address, uint32_t LBA, size_t sector_count) {
+force_inline void diskBytesMax(uint8_t *target_address, uint32_t LBA,
+                               size_t sector_count, bool write) {
   // calculated by: (bytesPerPRDT * PRDTamnt) / SECTOR_SIZE
   //                (    4MiB     *     8   ) /     512
   int max = 65536;
@@ -68,11 +69,11 @@ void getDiskBytes(uint8_t *target_address, uint32_t LBA, size_t sector_count) {
   if (chunks)
     for (size_t i = 0; i < chunks; i++)
       diskBytes(target_address + i * max * SECTOR_SIZE, LBA + i * max, max,
-                false);
+                write);
 
   if (remainder)
     diskBytes(target_address + chunks * max * SECTOR_SIZE, LBA + chunks * max,
-              remainder, false);
+              remainder, write);
 
   // for (int i = 0; i < sector_count; i++)
   //   diskBytes(target_address + i * 512, LBA + i, 1, false);
@@ -80,9 +81,13 @@ void getDiskBytes(uint8_t *target_address, uint32_t LBA, size_t sector_count) {
   // diskBytes(target_address, LBA, sector_count, false);
 }
 
+void getDiskBytes(uint8_t *target_address, uint32_t LBA, size_t sector_count) {
+  return diskBytesMax(target_address, LBA, sector_count, false);
+}
+
 void setDiskBytes(const uint8_t *target_address, uint32_t LBA,
-                  uint8_t sector_count) {
+                  size_t sector_count) {
   // bad solution but idc, my code is safe
   uint8_t *rw_target_address = (uint8_t *)((size_t)target_address);
-  diskBytes(rw_target_address, LBA, sector_count, true);
+  return diskBytesMax(rw_target_address, LBA, sector_count, true);
 }

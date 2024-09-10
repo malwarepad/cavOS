@@ -124,17 +124,49 @@ int ext2Open(char *filename, int flags, int mode, OpenFile *fd,
   if (!inode && *symlinkResolve)
     return -ENOENT;
 
-  // todo! (mind symlink order later, this is just a hack)
-  if (flags & O_CREAT || flags & O_WRONLY || flags & O_RDWR)
-    return -EROFS;
+  if (inode && flags & O_EXCL && flags & O_CREAT)
+    return -EEXIST;
 
-  if (!inode)
-    return -ENOENT;
+  if (!inode) {
+    if (flags & O_CREAT) {
+      // create this thing
+      int ret = ext2Touch(fd->mountPoint, filename, mode, symlinkResolve);
+      // debugf("creation: %d\n", ret);
+      if (ret < 0)
+        return ret;
+
+      // created successfully
+      inode = ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, true,
+                               symlinkResolve);
+    } else
+      return -ENOENT;
+  }
+
+  Ext2Inode *inodeFetched = ext2InodeFetch(ext2, inode);
+  if (flags & O_DIRECTORY && !(inodeFetched->permission & S_IFDIR)) {
+    free(inodeFetched);
+    return -ENOTDIR;
+  }
+
+  if (flags & O_TRUNC) {
+    int lockAt = ext2DirLock(ext2->writeOperations, &ext2->LOCK_WRITES,
+                             EXT2_MAX_CONSEC_WRITE, inode);
+    inodeFetched->size = 0;
+    inodeFetched->size_high = 0;
+    inodeFetched->num_sectors = 0;
+
+    // push
+    int lockAtInode =
+        ext2DirLock(ext2->inodeOperations, &ext2->LOCK_BLOCK_INODE,
+                    EXT2_MAX_CONSEC_INODE, inode);
+    ext2InodeModifyM(ext2, inode, inodeFetched);
+    ext2->inodeOperations[lockAtInode] = 0;
+
+    ext2->writeOperations[lockAt] = 0;
+  }
 
   Ext2OpenFd *dir = (Ext2OpenFd *)malloc(sizeof(Ext2OpenFd));
   memset(dir, 0, sizeof(Ext2OpenFd));
-
-  Ext2Inode *inodeFetched = ext2InodeFetch(ext2, inode);
   fd->dir = dir;
 
   dir->inodeNum = inode;
@@ -230,6 +262,136 @@ int ext2Read(OpenFile *fd, uint8_t *buff, size_t naiveLimit) {
   // cleanup
   free(blocks);
   free(tmp);
+
+  // debugf("[fd:%d id:%d] read %d bytes\n", fd->id, currentTask->id, curr);
+  // debugf("%d / %d\n", dir->ptr, dir->inode.size);
+  return limit;
+}
+
+int ext2Write(OpenFile *fd, uint8_t *buff, size_t limit) {
+  Ext2       *ext2 = EXT2_PTR(fd->mountPoint->fsInfo);
+  Ext2OpenFd *dir = EXT2_DIR_PTR(fd->dir);
+
+  int lockAt = ext2DirLock(ext2->writeOperations, &ext2->LOCK_WRITES,
+                           EXT2_MAX_CONSEC_WRITE, dir->inodeNum);
+
+  size_t appendCursor = (size_t)(-1);
+  if (fd->flags & O_APPEND) {
+    appendCursor = dir->ptr;
+    dir->ptr = COMBINE_64(dir->inode.size_high, dir->inode.size);
+  }
+
+  int ptrIgnoredBlocks = dir->ptr / ext2->blockSize;
+  int ptrIgnoredBytes = dir->ptr % ext2->blockSize;
+
+  size_t    blocksRequired = DivRoundUp(limit, ext2->blockSize);
+  uint32_t *blocks =
+      ext2BlockChain(ext2, dir, ptrIgnoredBlocks, blocksRequired);
+  uint32_t group = INODE_TO_BLOCK_GROUP(ext2, dir->inodeNum);
+
+  int startsAt = -1;
+  for (int i = 0; i < blocksRequired; i++) {
+    if (!blocks[i]) {
+      startsAt = i;
+      break;
+    }
+  }
+
+  if (startsAt != -1) {
+    Ext2LookupControl control = {0};
+    ext2BlockFetchInit(ext2, &control);
+
+    int needed = blocksRequired - startsAt;
+
+    uint32_t freeBlocks = ext2BlockFind(ext2, group, needed);
+    for (int i = 0; i < needed; i++) {
+      ext2BlockAssign(ext2, &dir->inode, dir->inodeNum, &control,
+                      ptrIgnoredBlocks + startsAt + i, freeBlocks + i);
+      blocks[startsAt + i] = freeBlocks + i;
+    }
+
+    ext2BlockFetchCleanup(&control);
+  }
+
+  uint8_t *tmp = (uint8_t *)calloc(blocksRequired * ext2->blockSize, 1);
+  if (ptrIgnoredBlocks > 0) {
+    // our first block will have junk data in the start!
+    getDiskBytes(&tmp[0], BLOCK_TO_LBA(ext2, 0, blocks[0]),
+                 ext2->blockSize / SECTOR_SIZE);
+  }
+  if (((dir->ptr + limit) % ext2->blockSize) != 0) {
+    // the last block will have junk data at the end!
+    getDiskBytes(&tmp[(blocksRequired - 1) * ext2->blockSize],
+                 BLOCK_TO_LBA(ext2, 0, blocks[blocksRequired - 1]),
+                 ext2->blockSize / SECTOR_SIZE);
+  }
+  memcpy(&tmp[ptrIgnoredBytes], buff, limit);
+
+  int currBlock = 0;
+
+  // optimization: we can use consecutive sectors to make our life easier
+  int consecStart = -1;
+  int consecEnd = 0;
+
+  // +1 for starting
+  for (int i = 0; i < blocksRequired; i++) {
+    if (!blocks[i])
+      break;
+    bool last = i == (blocksRequired - 1);
+    if (consecStart < 0) {
+      // nothing consecutive yet
+      if (!last && blocks[i + 1] == (blocks[i] + 1)) {
+        // consec starts here
+        consecStart = i;
+        continue;
+      }
+    } else {
+      // we are in a consecutive that started since consecStart
+      if (last || blocks[i + 1] != (blocks[i] + 1))
+        consecEnd = i; // either last or the end
+      else             // otherwise, we good
+        continue;
+    }
+
+    if (consecEnd) {
+      // optimized consecutive cluster reading
+      int needed = consecEnd - consecStart + 1;
+      setDiskBytes(&tmp[currBlock * ext2->blockSize],
+                   BLOCK_TO_LBA(ext2, 0, blocks[consecStart]),
+                   (needed * ext2->blockSize) / SECTOR_SIZE);
+      currBlock += needed;
+    } else {
+      setDiskBytes(&tmp[currBlock * ext2->blockSize],
+                   BLOCK_TO_LBA(ext2, 0, blocks[i]),
+                   ext2->blockSize / SECTOR_SIZE);
+      currBlock++;
+    }
+
+    // traverse
+    consecStart = -1;
+    consecEnd = 0;
+  }
+
+  dir->ptr += limit; // set pointer
+
+  if (dir->ptr > dir->inode.size) {
+    // update size
+    int lockAt = ext2DirLock(ext2->inodeOperations, &ext2->LOCK_BLOCK_INODE,
+                             EXT2_MAX_CONSEC_INODE, dir->inodeNum);
+    dir->inode.size = dir->ptr;
+    dir->inode.num_sectors = DivRoundUp(dir->ptr, SECTOR_SIZE) * SECTOR_SIZE;
+    ext2InodeModifyM(ext2, dir->inodeNum, &dir->inode);
+    ext2->inodeOperations[lockAt] = 0;
+  }
+
+  // cleanup
+  free(blocks);
+  free(tmp);
+
+  if (fd->flags & O_APPEND)
+    dir->ptr = appendCursor;
+
+  ext2->writeOperations[lockAt] = 0;
 
   // debugf("[fd:%d id:%d] read %d bytes\n", fd->id, currentTask->id, curr);
   // debugf("%d / %d\n", dir->ptr, dir->inode.size);
@@ -398,6 +560,7 @@ bool ext2DuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan) {
 }
 
 VfsHandlers ext2Handlers = {.open = ext2Open,
+                            .write = ext2Write,
                             .close = ext2Close,
                             .duplicate = ext2DuplicateNodeUnsafe,
                             .read = ext2Read,
