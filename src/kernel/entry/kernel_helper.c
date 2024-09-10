@@ -9,19 +9,24 @@
 // adhering to spinlocks (in contrast with interrupts)
 // Copyright (C) 2024 Panagiotis
 
-void netHelperEntry() {
-  while (true) {
-    for (int i = 0; i < QUEUE_MAX; i++) {
-      if (!netQueue[i].exists)
-        continue;
+Task *netHelperTask = 0;
 
-      handlePacket(netQueue[i].nic, netQueue[i].buff, netQueue[i].packetLength);
-      netQueue[i].exists = false;
-    }
+void netHelperEntry() {
+  for (int i = 0; i < QUEUE_MAX; i++) {
+    if (!netQueue[i].exists)
+      continue;
+
+    handlePacket(netQueue[i].nic, netQueue[i].buff, netQueue[i].packetLength);
+    netQueue[i].exists = false;
   }
+
+  // todo whatever this black magic is, it needs to go
+  netHelperTask->state = TASK_STATE_IDLE;
+  while (1)
+    asm volatile("pause");
 }
 
 void initiateKernelThreads() {
   // a
-  taskCreateKernel((size_t)netHelperEntry, 0);
+  netHelperTask = taskCreateKernel((size_t)netHelperEntry, 0);
 }

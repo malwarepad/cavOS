@@ -125,4 +125,11 @@ void netQueueAdd(NIC *nic, uint8_t *packet, uint16_t packetLength) {
 
   if (++netQueueCurr >= QUEUE_MAX)
     netQueueCurr = 0;
+
+  // direct the task
+  // todo whatever this black magic is, it needs to go
+  if (netHelperTask->state != TASK_STATE_READY) {
+    netHelperTask->registers.rip = (uint64_t)netHelperEntry;
+    netHelperTask->state = TASK_STATE_READY;
+  }
 }

@@ -26,14 +26,15 @@ void schedule(uint64_t rsp) {
   Task               *next = currentTask->next;
   if (!next)
     next = firstTask;
-  else {
-    int fullRun = 0;
-    while (next->state != TASK_STATE_READY && fullRun < 2) {
-      next = next->next;
-      if (!next) {
-        next = firstTask;
-        fullRun++;
-      }
+
+  int fullRun = 0;
+  while (next->state != TASK_STATE_READY) {
+    next = next->next;
+    if (!next) {
+      fullRun++;
+      if (fullRun > 2)
+        break;
+      next = firstTask;
     }
   }
 
