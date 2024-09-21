@@ -60,6 +60,7 @@ struct Task {
   uint64_t           whileSyscallRsp;
 
   bool systemCallInProgress;
+  bool schedPageFault;
 
   AsmPassedInterrupt *syscallRegs;
   uint64_t            syscallRsp;

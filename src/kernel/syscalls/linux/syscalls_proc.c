@@ -122,8 +122,7 @@ static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
     // OR just continue :")
     if (!currentTask->childrenTerminatedAmnt) {
       currentTask->state = TASK_STATE_WAITING_CHILD;
-      while (currentTask->state == TASK_STATE_WAITING_CHILD)
-        ;
+      handControl();
     }
     // while (!currentTask->childrenTerminatedAmnt)
     //   ;

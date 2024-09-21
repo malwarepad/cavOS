@@ -169,6 +169,19 @@ void handle_interrupt(uint64_t rsp) {
     }
     }
   } else if (cpu->interrupt >= 0 && cpu->interrupt <= 31) { // ISR
+    // To drop the current execution and give control to the scheduler, set this
+    // variable and generate a page fault onto the magic address
+    if (currentTask->schedPageFault && cpu->interrupt == 14) {
+      uint64_t errorLocation = 0;
+      asm volatile("movq %%cr2, %0" : "=r"(errorLocation));
+      if (errorLocation == SCHED_PAGE_FAULT_MAGIC_ADDRESS) {
+        currentTask->schedPageFault = false;
+        cpu->rip++;
+        schedule((uint64_t)cpu);
+        return;
+      }
+    }
+
     if (currentTask->systemCallInProgress)
       debugf("[isr] Happened from system call!\n");
 

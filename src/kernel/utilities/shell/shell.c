@@ -133,8 +133,9 @@ bool run(char *binary, bool wait) {
   if (task && wait) {
     task->parent = currentTask;
     currentTask->state = TASK_STATE_WAITING_CHILD;
-    while (currentTask->state == TASK_STATE_WAITING_CHILD)
-      ;
+    handControl();
+    // while (currentTask->state == TASK_STATE_WAITING_CHILD)
+    //   ;
   }
 
   return ret;

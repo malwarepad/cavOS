@@ -114,6 +114,14 @@ bool checkInterrupts() {
   return flags & (1 << 9);
 }
 
+#include <paging.h>
+#include <task.h>
+void handControl() {
+  currentTask->schedPageFault = true;
+  volatile uint8_t _drop = *(uint8_t *)(SCHED_PAGE_FAULT_MAGIC_ADDRESS);
+  (void)(_drop);
+}
+
 // Endianness
 uint16_t switch_endian_16(uint16_t val) { return (val << 8) | (val >> 8); }
 

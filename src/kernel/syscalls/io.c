@@ -16,8 +16,9 @@ int readHandler(OpenFile *fd, uint8_t *in, size_t limit) {
   // start reading
   kbTaskRead(currentTask->id, (char *)in, limit, true);
   asm volatile("sti"); // leave this task/execution (awaiting return)
-  while (currentTask->state == TASK_STATE_WAITING_INPUT) {
-  }
+  handControl();
+  // while (currentTask->state == TASK_STATE_WAITING_INPUT) {
+  // }
   if (currentTask->term.c_lflag & ICANON)
     printf("\n"); // you technically pressed enter, didn't you?
 

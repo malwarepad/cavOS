@@ -57,6 +57,9 @@
 #define PAGE_SIZE_LARGE 0x200000
 #define PAGE_SIZE_HUGE 0x40000000
 
+// Dummy pagefault system (see system.h)
+#define SCHED_PAGE_FAULT_MAGIC_ADDRESS 0x5FFFFFFFF000
+
 // Processes' heap & stack locations
 #define USER_MMAP_START 0x700000000000
 #define USER_HEAP_START 0x600000000000
