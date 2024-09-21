@@ -133,7 +133,7 @@ bool run(char *binary, bool wait) {
   if (task && wait) {
     task->parent = currentTask;
     currentTask->state = TASK_STATE_WAITING_CHILD;
-    while (taskGetState(task->id))
+    while (currentTask->state == TASK_STATE_WAITING_CHILD)
       ;
   }
 

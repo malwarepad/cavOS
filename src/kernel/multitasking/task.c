@@ -300,14 +300,6 @@ Task *taskGet(uint32_t id) {
   return browse;
 }
 
-uint8_t taskGetState(uint32_t id) {
-  Task *browse = taskGet(id);
-  if (!browse)
-    return 0;
-
-  return browse->state;
-}
-
 int taskIdCurr = 1;
 
 int16_t taskGenerateId() {
