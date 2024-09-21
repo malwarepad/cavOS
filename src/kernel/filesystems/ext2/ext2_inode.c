@@ -127,5 +127,6 @@ cleanup:
   }
 
   spinlockRelease(&ext2->LOCKS_INODE_BITMAP[group]);
-  return ret ? (group * ext2->superblock.inodes_per_group + ret) : 0;
+  // +1 necessary because inodes start at inode number 1
+  return ret ? (group * ext2->superblock.inodes_per_group + ret + 1) : 0;
 }
