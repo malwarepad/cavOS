@@ -90,7 +90,7 @@ static int syscallFstat(int fd, stat *statbuf) {
 #if DEBUG_SYSCALLS_FAILS
     debugf("[syscalls::fstat] FAIL! Couldn't fstat() file! fd{%d}\n", fd);
 #endif
-    return -1;
+    return -ENOENT;
   }
 
   return 0;
@@ -104,7 +104,7 @@ static int syscallLstat(char *filename, stat *statbuf) {
     debugf("[syscalls::lstat] FAIL! Couldn't lstat() file! filename{%d}\n",
            filename);
 #endif
-    return -1;
+    return -ENOENT;
   }
 
   return 0;
@@ -439,7 +439,7 @@ static int syscallStatx(int dirfd, char *pathname, int flags, uint32_t mask,
       ret = fsStatByFilename(currentTask, safeFilename, &simple);
     free(safeFilename);
     if (!ret)
-      return -1;
+      return -ENOENT;
   } else if (pathname[0] != '/') {
     if (dirfd == AT_FDCWD) { // relative to cwd
       char *safeFilename = fsSanitize(currentTask->cwd, pathname);
@@ -450,7 +450,7 @@ static int syscallStatx(int dirfd, char *pathname, int flags, uint32_t mask,
         ret = fsStatByFilename(currentTask, safeFilename, &simple);
       free(safeFilename);
       if (!ret)
-        return -1;
+        return -ENOENT;
     } else {
 #if DEBUG_SYSCALLS_STUB
       debugf("[syscalls::statx] todo: partial sanitization!");
