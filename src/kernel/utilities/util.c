@@ -5,11 +5,17 @@
 
 #define LONG_MASK (sizeof(unsigned long) - 1)
 void memset(void *_dst, int val, size_t len) {
-  asm volatile("rep stosb" : : "D"(_dst), "a"(val), "c"(len) : "memory");
+  asm volatile("pushf; cld; rep stosb; popf"
+               :
+               : "D"(_dst), "a"(val), "c"(len)
+               : "memory");
 }
 
 void *memcpy(void *restrict dstptr, const void *restrict srcptr, size_t size) {
-  asm volatile("rep movsb" : : "S"(srcptr), "D"(dstptr), "c"(size) : "memory");
+  asm volatile("pushf; cld; rep movsb; popf"
+               :
+               : "S"(srcptr), "D"(dstptr), "c"(size)
+               : "memory");
   return dstptr;
 }
 
