@@ -5,6 +5,8 @@
 #include <syscalls.h>
 #include <task.h>
 
+#include <malloc.h>
+
 // Manages /dev/std* files and the like
 // Copyright (C) 2024 Panagiotis
 
@@ -13,17 +15,21 @@ int readHandler(OpenFile *fd, uint8_t *in, size_t limit) {
   // while (kbIsOccupied()) {
   // } done in kbTaskRead()
 
+  // assign new buffer
+  uint8_t *kernelBuff = malloc(limit);
+
   // start reading
-  kbTaskRead(currentTask->id, (char *)in, limit, true);
+  kbTaskRead(currentTask->id, (char *)kernelBuff, limit, true);
   asm volatile("sti"); // leave this task/execution (awaiting return)
-  handControl();
-  // while (currentTask->state == TASK_STATE_WAITING_INPUT) {
-  // }
+  while (currentTask->state == TASK_STATE_WAITING_INPUT) {
+    handControl();
+  }
   if (currentTask->term.c_lflag & ICANON)
     printf("\n"); // you technically pressed enter, didn't you?
 
   // finalise
   uint32_t fr = currentTask->tmpRecV;
+  memcpy(in, kernelBuff, fr);
   if (currentTask->term.c_lflag & ICANON && fr < limit)
     in[fr++] = '\n';
   // only add newline if we can!

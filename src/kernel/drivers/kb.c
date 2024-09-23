@@ -175,10 +175,7 @@ void kbIrq() {
   if (!kbBuff || !out || !tasksInitiated)
     return;
 
-  void *pagedirOld = GetPageDirectory();
   Task *task = taskGet(kbTaskId);
-  if (task)
-    ChangePageDirectory(task->pagedir);
 
   switch (out) {
   case CHARACTER_ENTER:
@@ -200,9 +197,6 @@ void kbIrq() {
     kbChar(task, out);
     break;
   }
-
-  if (task)
-    ChangePageDirectory(pagedirOld);
 }
 
 bool kbIsOccupied() { return !!kbBuff; }
