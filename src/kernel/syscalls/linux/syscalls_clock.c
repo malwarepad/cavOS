@@ -21,6 +21,11 @@ static int syscallClockGettime(int which, timespec *spec) {
     return 0;
     break;
   }
+  case CLOCK_MONOTONIC: {
+    // todo
+    return syscallClockGettime(CLOCK_REALTIME, spec);
+    break;
+  }
   default:
 #if DEBUG_SYSCALLS_STUB
     debugf("[syscalls::gettime] UNIMPLEMENTED! which{%d} timespec{%lx}!\n",

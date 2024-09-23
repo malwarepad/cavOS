@@ -58,8 +58,8 @@ void psfPutC(char c, uint32_t x, uint32_t y, uint32_t r, uint32_t g,
     for (int j = 0; j < 8; j++) {
       if (targ[i] & (1 << (8 - j))) // NOT little endian
         drawPixel(x + j, y + i, r, g, b);
-      // else
-      //   drawPixel(x + j, y + i, bg_color[0], bg_color[1], bg_color[2]);
+      else
+        drawPixel(x + j, y + i, bg_color[0], bg_color[1], bg_color[2]);
     }
   }
 }

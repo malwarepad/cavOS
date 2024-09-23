@@ -94,6 +94,12 @@ bool asciiProcess(int charnum) {
     width += (asciiChar1 - 1) * TTY_CHARACTER_WIDTH;
     break;
 
+  case 'd':
+    if (!asciiChar1)
+      asciiChar1 = 1;
+    height = (asciiChar1 - 1) * TTY_CHARACTER_HEIGHT;
+    break;
+
   case 'J':
     switch (asciiChar1) {
     case 0: { // no
