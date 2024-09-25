@@ -19,6 +19,9 @@ static volatile struct limine_hhdm_request limineHHDMreq = {
 static volatile struct limine_memmap_request limineMMreq = {
     .id = LIMINE_MEMMAP_REQUEST, .revision = 0};
 
+// static volatile struct limine_smp_request limineSmpReq = {
+//     .id = LIMINE_SMP_REQUEST, .revision = 0};
+
 void initialiseBootloaderParser() {
   // Paging mode
   struct limine_paging_mode_response *liminePagingres =
@@ -50,4 +53,11 @@ void initialiseBootloaderParser() {
     if (entry->type != LIMINE_MEMMAP_RESERVED)
       bootloader.mmTotal += entry->length;
   }
+
+  // SMP
+  // struct limine_smp_response *smp_response = limineSmpReq.response;
+
+  // for (int i = 0; i < smp_response->cpu_count; i++) {
+  //   struct limine_smp_info *entry = smp_response->cpus[i];
+  // }
 }
