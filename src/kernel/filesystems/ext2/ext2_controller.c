@@ -313,7 +313,7 @@ int ext2Write(OpenFile *fd, uint8_t *buff, size_t limit) {
     ext2BlockFetchCleanup(&control);
   }
 
-  uint8_t *tmp = (uint8_t *)calloc(blocksRequired * ext2->blockSize, 1);
+  uint8_t *tmp = (uint8_t *)calloc((blocksRequired + 1) * ext2->blockSize, 1);
   if (ptrIgnoredBlocks > 0) {
     // our first block will have junk data in the start!
     getDiskBytes(&tmp[0], BLOCK_TO_LBA(ext2, 0, blocks[0]),
@@ -405,8 +405,27 @@ size_t ext2Seek(OpenFile *fd, size_t target, long int offset, int whence) {
   if (whence == SEEK_CURR)
     target += dir->ptr;
 
-  if (target > ext2GetFilesize(fd))
-    return -EINVAL;
+  size_t filesize = ext2GetFilesize(fd);
+  if (target > filesize) {
+    if (!(fd->flags & O_RDWR) && !(fd->flags & O_WRONLY))
+      return -EINVAL;
+
+    size_t   remainder = target - filesize;
+    uint8_t *bytePlacement = calloc(remainder, 1);
+
+    // todo: optimize direct resolution of HHDM memory instead of allocating
+    // todo: space for it again in ext2Write()
+    /*debugf("filesize{%d} remainder{%d} ptr{%d} target{%d}\n", filesize,
+           remainder, dir->ptr, target);*/
+    dir->ptr = filesize;
+    int written = ext2Write(fd, bytePlacement, remainder);
+    if (written != remainder) {
+      debugf("[ext2::seek] FAILED! Write not in sync!!\n");
+      panic();
+    }
+
+    free(bytePlacement);
+  }
   dir->ptr = target;
 
   return dir->ptr;
