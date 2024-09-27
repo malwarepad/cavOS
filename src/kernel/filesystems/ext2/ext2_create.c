@@ -38,6 +38,9 @@ int ext2Mkdir(MountPoint *mnt, char *dirname, uint32_t mode,
   char *name = &dirname[lastSlash + 1];
   int   nameLen = strlength(name);
 
+  if (!nameLen) // going for /
+    return -EEXIST;
+
   Ext2Inode *inodeContents = ext2InodeFetch(ext2, inode);
   if (!(inodeContents->permission & S_IFDIR)) {
     ret = -ENOTDIR;
@@ -124,6 +127,9 @@ int ext2Touch(MountPoint *mnt, char *filename, uint32_t mode,
   // various checks
   char *name = &filename[lastSlash + 1];
   int   nameLen = strlength(name);
+
+  if (!nameLen) // going for /
+    return -EISDIR;
 
   Ext2Inode *inodeContents = ext2InodeFetch(ext2, inode);
   if (!(inodeContents->permission & S_IFDIR)) {
