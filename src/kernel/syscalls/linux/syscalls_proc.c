@@ -13,9 +13,54 @@
 #define SYSCALL_PIPE 22
 static int syscallPipe(int *fds) { return pipeOpen(fds); }
 
+#define SYSCALL_PIPE2 293
+static int syscallPipe2(int *fds, int flags) {
+  if (flags && flags != O_CLOEXEC) {
+    debugf("[syscalls::pipe2] FAILING! Unimplemented flags! %x\n", flags);
+    return -ENOSYS;
+  }
+
+  int out = pipeOpen(fds);
+  if (out < 0)
+    goto cleanup;
+
+  if (flags) {
+    // since basically the only one we support atm is the close-on-exec flag xd
+    OpenFile *fd0 = fsUserGetNode(currentTask, fds[0]);
+    OpenFile *fd1 = fsUserGetNode(currentTask, fds[1]);
+
+    if (!fd0 || !fd1) {
+      debugf("[syscalls::pipe2] Bad sync!\n");
+      panic();
+    }
+
+    fd0->closeOnExec = true;
+    fd1->closeOnExec = true;
+  }
+
+cleanup:
+  return out;
+}
+
 #define SYSCALL_FORK 57
 static int syscallFork() {
-  return taskFork(currentTask->syscallRegs, currentTask->syscallRsp);
+  return taskFork(currentTask->syscallRegs, currentTask->syscallRsp, true, true)
+      ->id;
+}
+
+#define SYSCALL_VFORK 58
+static int syscallVfork() {
+  Task *newTask =
+      taskFork(currentTask->syscallRegs, currentTask->syscallRsp, false, false);
+  int id = newTask->id;
+
+  // no race condition today :")
+  taskCreateFinish(newTask);
+
+  currentTask->state = TASK_STATE_WAITING_VFORK;
+  handControl();
+
+  return id;
 }
 
 typedef struct CopyPtrStyle {
@@ -100,62 +145,88 @@ static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
 
   asm volatile("sti");
 
-  if (pid == -1) {
-    // if nothing is on the side, then ensure we have something to wait() for
-    if (!currentTask->childrenTerminatedAmnt) {
-      int amnt = 0;
+  // if nothing is on the side, then ensure we have something to wait() for
+  if (!currentTask->childrenTerminatedAmnt) {
+    int amnt = 0;
 
-      spinlockCntReadAcquire(&TASK_LL_MODIFY);
-      Task *browse = firstTask;
+    spinlockCntReadAcquire(&TASK_LL_MODIFY);
+    Task *browse = firstTask;
+    while (browse) {
+      if (browse->state == TASK_STATE_READY && browse->parent == currentTask)
+        amnt++;
+      browse = browse->next;
+    }
+    spinlockCntReadRelease(&TASK_LL_MODIFY);
+
+    if (!amnt)
+      return -ECHILD;
+  }
+
+  // target is the item we "found"
+  KilledInfo *target = 0;
+
+  // check if specific pid item is already there
+  if (pid != -1) {
+    spinlockAcquire(&currentTask->LOCK_CHILD_TERM);
+    KilledInfo *browse = currentTask->firstChildTerminated;
+    while (browse) {
+      if (browse->pid == pid)
+        break;
+      browse = browse->next;
+    }
+    target = browse;
+    spinlockRelease(&currentTask->LOCK_CHILD_TERM);
+
+    // not there? wait for it!
+    if (!target) {
+      // "poll"
+      currentTask->waitingForPid = pid;
+      currentTask->state = TASK_STATE_WAITING_CHILD_SPECIFIC;
+      handControl();
+
+      // we're back
+      currentTask->waitingForPid = 0; // just for good measure
+      spinlockAcquire(&currentTask->LOCK_CHILD_TERM);
+      KilledInfo *browse = currentTask->firstChildTerminated;
       while (browse) {
-        if (browse->state == TASK_STATE_READY && browse->parent == currentTask)
-          amnt++;
+        if (browse->pid == pid)
+          break;
         browse = browse->next;
       }
-      spinlockCntReadRelease(&TASK_LL_MODIFY);
-
-      if (!amnt)
-        return -ECHILD;
+      target = browse;
+      spinlockRelease(&currentTask->LOCK_CHILD_TERM);
     }
-
+  } else {
     // we got children, wait for any changes
     // OR just continue :")
     if (!currentTask->childrenTerminatedAmnt) {
       currentTask->state = TASK_STATE_WAITING_CHILD;
       handControl();
+      target = currentTask->firstChildTerminated;
     }
-    // while (!currentTask->childrenTerminatedAmnt)
-    //   ;
-
-    spinlockAcquire(&currentTask->LOCK_CHILD_TERM);
-    if (!currentTask->firstChildTerminated) {
-      debugf("[syscalls::wait4] FATAL Just fatal!");
-      panic();
-    }
-
-    int output = currentTask->firstChildTerminated->pid;
-    int ret = currentTask->firstChildTerminated->ret;
-
-    // cleanup
-    LinkedListRemove((void **)(&currentTask->firstChildTerminated),
-                     currentTask->firstChildTerminated);
-    currentTask->childrenTerminatedAmnt--;
-    spinlockRelease(&currentTask->LOCK_CHILD_TERM);
-
-    if (wstatus)
-      *wstatus = (ret & 0xff) << 8;
-
-#if DEBUG_SYSCALLS_EXTRA
-    debugf("[syscall::wait4] ret{%d} ret{%d}\n", output, ret);
-#endif
-    return output;
-  } else {
-#if DEBUG_SYSCALLS_STUB
-    debugf("[syscall::wait4] UNIMPLEMENTED pid{%d}!\n", pid);
-#endif
   }
 
-  return -1;
+  spinlockAcquire(&currentTask->LOCK_CHILD_TERM);
+  if (!target) {
+    debugf("[syscalls::wait4] FATAL Just fatal!");
+    panic();
+  }
+
+  int output = target->pid;
+  int ret = target->ret;
+
+  // cleanup
+  LinkedListRemove((void **)(&currentTask->firstChildTerminated), target);
+  currentTask->childrenTerminatedAmnt--;
+  spinlockRelease(&currentTask->LOCK_CHILD_TERM);
+
+  if (wstatus)
+    *wstatus = (ret & 0xff) << 8;
+
+#if DEBUG_SYSCALLS_EXTRA
+  debugf("[syscall::wait4] ret{%d} ret{%d}\n", output, ret);
+#endif
+  return output;
 }
 
 #define SYSCALL_EXIT_GROUP 231
@@ -163,8 +234,10 @@ static void syscallExitGroup(int return_code) { syscallExitTask(return_code); }
 
 void syscallsRegProc() {
   registerSyscall(SYSCALL_PIPE, syscallPipe);
+  registerSyscall(SYSCALL_PIPE2, syscallPipe2);
   registerSyscall(SYSCALL_EXIT_TASK, syscallExitTask);
   registerSyscall(SYSCALL_FORK, syscallFork);
+  registerSyscall(SYSCALL_VFORK, syscallVfork);
   registerSyscall(SYSCALL_WAIT4, syscallWait4);
   registerSyscall(SYSCALL_EXECVE, syscallExecve);
   registerSyscall(SYSCALL_EXIT_GROUP, syscallExitGroup);

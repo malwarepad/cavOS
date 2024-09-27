@@ -26,6 +26,8 @@ typedef enum TASK_STATE {
   TASK_STATE_WAITING_INPUT = 3,
   TASK_STATE_CREATED = 4, // just made by taskCreate()
   TASK_STATE_WAITING_CHILD = 5,
+  TASK_STATE_WAITING_CHILD_SPECIFIC = 6, // task->waitingForPid
+  TASK_STATE_WAITING_VFORK = 7,
   TASK_STATE_DUMMY = 69,
 } TASK_STATE;
 
@@ -53,6 +55,8 @@ struct Task {
   int      pgid;
   bool     kernel_task;
   uint8_t  state;
+
+  uint64_t waitingForPid; // wait4()
 
   AsmPassedInterrupt registers;
   uint64_t          *pagedir;
@@ -120,7 +124,8 @@ void  taskFreeChildren(Task *task);
 Task *taskGet(uint32_t id);
 int16_t taskGenerateId();
 int     taskChangeCwd(char *newdir);
-int     taskFork(AsmPassedInterrupt *cpu, uint64_t rsp);
+Task   *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, bool copyPages,
+                 bool spinup);
 void    taskFilesCopy(Task *original, Task *target, bool respectCOE);
 void    taskFilesEmpty(Task *task);
 

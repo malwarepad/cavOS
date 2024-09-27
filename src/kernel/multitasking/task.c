@@ -165,10 +165,16 @@ void taskKill(uint32_t id, uint16_t ret) {
     info->pid = task->id;
     info->ret = ret;
     task->parent->childrenTerminatedAmnt++;
-    if (task->parent->state == TASK_STATE_WAITING_CHILD)
+    if (task->parent->state == TASK_STATE_WAITING_CHILD ||
+        (task->parent->state == TASK_STATE_WAITING_CHILD_SPECIFIC &&
+         task->parent->waitingForPid == task->id))
       task->parent->state = TASK_STATE_READY;
     spinlockRelease(&task->parent->LOCK_CHILD_TERM);
   }
+
+  // vfork() children need to notify parents no matter what
+  if (task->parent->state == TASK_STATE_WAITING_VFORK)
+    task->parent->state = TASK_STATE_READY;
 
   // close any left open files
   OpenFile *file = task->firstFile;
@@ -360,7 +366,8 @@ void taskFilesCopy(Task *original, Task *target, bool respectCOE) {
   }
 }
 
-int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
+Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, bool copyPages,
+               bool spinup) {
   spinlockCntWriteAcquire(&TASK_LL_MODIFY);
   Task *browse = firstTask;
   while (browse) {
@@ -377,8 +384,12 @@ int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
   browse->next = target;
   spinlockCntWriteRelease(&TASK_LL_MODIFY);
 
-  uint64_t *targetPagedir = PageDirectoryAllocate();
-  PageDirectoryUserDuplicate(currentTask->pagedir, targetPagedir);
+  if (copyPages) {
+    uint64_t *targetPagedir = PageDirectoryAllocate();
+    PageDirectoryUserDuplicate(currentTask->pagedir, targetPagedir);
+    target->pagedir = targetPagedir;
+  } else
+    target->pagedir = currentTask->pagedir;
 
   target->id = taskGenerateId();
   target->pgid = currentTask->pgid;
@@ -387,7 +398,6 @@ int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
 
   // target->registers = currentTask->registers;
   memcpy(&target->registers, cpu, sizeof(AsmPassedInterrupt));
-  target->pagedir = targetPagedir;
   void  *tssRsp = VirtualAllocate(USER_STACK_PAGES);
   size_t tssRspSize = USER_STACK_PAGES * BLOCK_SIZE;
   memset(tssRsp, 0, tssRspSize);
@@ -437,9 +447,10 @@ int taskFork(AsmPassedInterrupt *cpu, uint64_t rsp) {
   memcpy(target->fpuenv, currentTask->fpuenv, 512);
   target->mxcsr = currentTask->mxcsr;
 
-  taskCreateFinish(target);
+  if (spinup)
+    taskCreateFinish(target);
 
-  return target->id;
+  return target;
 }
 
 void kernelDummyEntry() {
