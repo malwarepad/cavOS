@@ -202,8 +202,8 @@ static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
     if (!currentTask->childrenTerminatedAmnt) {
       currentTask->state = TASK_STATE_WAITING_CHILD;
       handControl();
-      target = currentTask->firstChildTerminated;
     }
+    target = currentTask->firstChildTerminated;
   }
 
   spinlockAcquire(&currentTask->LOCK_CHILD_TERM);

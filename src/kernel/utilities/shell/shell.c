@@ -127,11 +127,11 @@ void echo(char *ch) {
 bool run(char *binary, bool wait) {
   char *argv[] = {binary};
   Task *task = elfExecute(binary, 1, argv, 0, 0, true);
+  task->parent = currentTask;
 
   bool ret = !!task;
 
   if (task && wait) {
-    task->parent = currentTask;
     currentTask->state = TASK_STATE_WAITING_CHILD;
     handControl();
     // while (currentTask->state == TASK_STATE_WAITING_CHILD)

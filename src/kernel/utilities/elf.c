@@ -247,6 +247,9 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
   taskAdjustHeap(target, DivRoundUp(target->heap_end, 0x1000) * 0x1000,
                  &target->heap_start, &target->heap_end);
 
+  // Just a sane default
+  target->parent = currentTask;
+
   if (startup)
     taskCreateFinish(target);
 

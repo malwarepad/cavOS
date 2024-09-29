@@ -157,7 +157,11 @@ void taskKill(uint32_t id, uint16_t ret) {
   if (!task)
     return;
 
-  // Notify that poor parent... they must've been searching all over the place!
+  // We'll need this later
+  bool parentVfork = task->parent->state == TASK_STATE_WAITING_VFORK;
+
+  // Notify that poor parent... they must've been searching all over the
+  // place!
   if (task->parent && !task->noInformParent) {
     spinlockAcquire(&task->parent->LOCK_CHILD_TERM);
     KilledInfo *info = (KilledInfo *)LinkedListAllocate(
@@ -193,6 +197,11 @@ void taskKill(uint32_t id, uint16_t ret) {
   }
   spinlockCntWriteRelease(&TASK_LL_MODIFY);
 
+  if (!parentVfork)
+    PageDirectoryFree(task->pagedir);
+
+  // tssRsp, syscalltssRsp left
+
   browse->next = task->next;
 
   task->state = TASK_STATE_DEAD;
@@ -214,55 +223,7 @@ void taskKillCleanup(Task *task) {
   if (task->state != TASK_STATE_DEAD)
     return;
 
-  // Task *browse = firstTask;
-  // while (browse) {
-  //   if (browse->next && browse->next->id == task->id)
-  //     break;
-  //   browse = browse->next;
-  // }
-
-  // Task *task = browse->next;
-  // if (!task || task->state == TASK_STATE_DEAD)
-  //   return;
-
-  // browse->next = task->next;
-
-  // free user heap
-  /*uint32_t *defaultPagedir = GetPageDirectory();
-  ChangePageDirectory(task->pagedir);
-  int heap_start = DivRoundUp(task->heap_start, PAGE_SIZE);
-  int heap_end = DivRoundUp(task->heap_end, PAGE_SIZE);
-
-  if (heap_end > heap_start) {
-    int num = heap_end - heap_start;
-
-    for (int i = 0; i < num; i++) {
-      uint32_t virt = heap_start * PAGE_SIZE + i * PAGE_SIZE;
-      uint32_t phys = VirtualToPhysical(virt);
-      BitmapFreePageframe(&physical, phys);
-    }
-  }
-  ChangePageDirectory(defaultPagedir);*/
-  // ^ not needed because of PageDirectoryFree() doing it automatically
-
-  // size_t currPagedir = (size_t)GetPageDirectory();
-  // if (currPagedir == (size_t)task->pagedir)
-  //   ChangePageDirectory(taskGet(KERNEL_TASK_ID)->pagedir);
-
-  // PageDirectoryFree(task->pagedir); // left for sched
-
   return;
-  // todo: this is horrible... below stuff causes a lot of corruption
-
-  // close any left open files
-  OpenFile *file = task->firstFile;
-  while (file) {
-    int id = file->id;
-    file = file->next;
-    fsUserClose(task, id);
-  }
-
-  PageDirectoryFree(task->pagedir);
   VirtualFree((void *)task->whileTssRsp, USER_STACK_PAGES);
   VirtualFree((void *)task->whileSyscallRsp, USER_STACK_PAGES);
   free(task);
@@ -276,7 +237,7 @@ void taskFreeChildren(Task *task) {
   while (child) {
     Task *next = child->next;
     if (child->parent == task && child->state != TASK_STATE_DEAD)
-      child->parent = 0;
+      child->parent = firstTask; // ykyk
     child = next;
   }
 }
