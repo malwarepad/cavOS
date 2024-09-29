@@ -69,7 +69,7 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
       free(target);
       free(safeFilename);
 
-      if (symlink) {
+      if (symlink && ret != -ELOOP) {
         // we came across a symbolic link
         char *symlinkResolved = fsResolveSymlink(mnt, symlink);
         free(symlink);
@@ -141,11 +141,6 @@ OpenFile *fsKernelOpen(char *filename, int flags, uint32_t mode) {
 int fsUserOpen(void *task, char *filename, int flags, int mode) {
   if (flags & FASYNC) {
     debugf("[syscalls::fs] FATAL! Tried to open %s with O_ASYNC!\n", filename);
-    return -ENOSYS;
-  }
-  if (flags & O_NOFOLLOW) {
-    debugf("[syscalls::fs] TODO! Tried to open %s with O_NOFOLLOW!\n",
-           filename);
     return -ENOSYS;
   }
   OpenFile *file = fsOpenGeneric(filename, (Task *)task, flags, mode);

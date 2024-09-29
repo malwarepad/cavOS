@@ -121,8 +121,14 @@ int ext2Open(char *filename, int flags, int mode, OpenFile *fd,
   uint32_t inode =
       ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, true, symlinkResolve);
 
-  if (!inode && *symlinkResolve)
-    return -ENOENT;
+  if (!inode && *symlinkResolve) {
+    // last entry is a soft symlink that'll have to be resolved back on the
+    // open() phase..
+    if (flags & O_NOFOLLOW)
+      return -ELOOP;
+    else
+      return -ENOENT;
+  }
 
   if (inode && flags & O_EXCL && flags & O_CREAT)
     return -EEXIST;

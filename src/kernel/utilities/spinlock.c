@@ -1,13 +1,6 @@
 #include <spinlock.h>
 #include <system.h>
 
-void spinlockWait(Spinlock *lock) {
-  while (atomic_flag_test_and_set_explicit(lock, memory_order_relaxed)) {
-    // Clear the flag immediately to not actually acquire it
-    atomic_flag_clear_explicit(lock, memory_order_relaxed);
-  }
-}
-
 void spinlockAcquire(Spinlock *lock) {
   while (atomic_flag_test_and_set_explicit(lock, memory_order_acquire))
     handControl();

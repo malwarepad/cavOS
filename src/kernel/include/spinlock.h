@@ -15,8 +15,6 @@ typedef atomic_flag Spinlock;
 void spinlockAcquire(Spinlock *lock);
 void spinlockRelease(Spinlock *lock);
 
-void spinlockWait(Spinlock *lock);
-
 typedef struct SpinlockCnt {
   int64_t cnt;
 } SpinlockCnt;
