@@ -396,6 +396,30 @@ static int syscallOpenat(int dirfd, char *pathname, int flags, int mode) {
   return -ENOSYS;
 }
 
+#define SYSCALL_MKDIRAT 258
+static int syscallMkdirAt(int dirfd, char *pathname, int mode) {
+  if (pathname[0] == '\0') { // by fd
+    return dirfd;
+  } else if (pathname[0] == '/') { // by absolute pathname
+    return syscallMkdir(pathname, mode);
+  } else if (pathname[0] != '/') {
+    if (dirfd == AT_FDCWD) { // relative to cwd
+      return syscallMkdir(pathname, mode);
+    } else {
+#if DEBUG_SYSCALLS_STUB
+      debugf("[syscalls::mkdirat] todo: partial sanitization!");
+#endif
+      return -1;
+    }
+  } else {
+#if DEBUG_SYSCALLS_FAILS
+    debugf("[syscalls::mkdirat] Unsupported!\n");
+#endif
+    return -1;
+  }
+  return -ENOSYS;
+}
+
 #define SYSCALL_FACCESSAT 269
 static int syscallFaccessat(int dirfd, char *pathname, int mode) {
   if (pathname[0] == '\0') { // by fd
@@ -507,6 +531,7 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_READ, syscallRead);
   registerSyscall(SYSCALL_OPEN, syscallOpen);
   registerSyscall(SYSCALL_OPENAT, syscallOpenat);
+  registerSyscall(SYSCALL_MKDIRAT, syscallMkdirAt);
   registerSyscall(SYSCALL_CLOSE, syscallClose);
   registerSyscall(SYSCALL_LSEEK, syscallLseek);
   registerSyscall(SYSCALL_STAT, syscallStat);
