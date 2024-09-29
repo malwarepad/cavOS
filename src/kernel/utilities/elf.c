@@ -50,7 +50,7 @@ void elfProcessLoad(Elf64_Phdr *elf_phdr, uint8_t *out, size_t base) {
   uint64_t pagesRequired = DivRoundUp(elf_phdr->p_memsz, 0x1000) + 1;
   for (int j = 0; j < pagesRequired; j++) {
     size_t vaddr = (elf_phdr->p_vaddr & ~0xFFF) + j * 0x1000;
-    size_t paddr = (size_t)BitmapAllocatePageframe(&physical);
+    size_t paddr = PhysicalAllocate(1);
     VirtualMap(base + vaddr, paddr, PF_USER | PF_RW);
   }
 

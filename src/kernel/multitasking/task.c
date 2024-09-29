@@ -137,7 +137,7 @@ void taskAdjustHeap(Task *task, size_t new_heap_end, size_t *start,
       if (VirtualToPhysical(virt))
         continue;
 
-      size_t phys = BitmapAllocatePageframe(&physical);
+      size_t phys = PhysicalAllocate(1);
 
       VirtualMap(virt, phys, PF_RW | PF_USER);
 

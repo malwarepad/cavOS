@@ -20,7 +20,7 @@ void stackGenerateMutual(Task *task) {
   for (int i = 0; i < USER_STACK_PAGES; i++) {
     size_t virt_addr =
         USER_STACK_BOTTOM - USER_STACK_PAGES * 0x1000 + i * 0x1000;
-    VirtualMap(virt_addr, BitmapAllocatePageframe(&physical), PF_USER | PF_RW);
+    VirtualMap(virt_addr, PhysicalAllocate(1), PF_USER | PF_RW);
     memset((void *)virt_addr, 0, PAGE_SIZE);
   }
 }

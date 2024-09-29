@@ -36,7 +36,7 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
     currentTask->mmap_end += pages * PAGE_SIZE;
 
     for (int i = 0; i < pages; i++)
-      VirtualMap(base + i * PAGE_SIZE, BitmapAllocatePageframe(&physical),
+      VirtualMap(base + i * PAGE_SIZE, PhysicalAllocate(1),
                  PF_RW | PF_USER | PF_SHARED);
 
     return base;

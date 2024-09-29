@@ -56,3 +56,26 @@ void initiatePMM() {
   // BitmapDumpBlocks(bitmap);
   bitmap->ready = true;
 }
+
+Spinlock LOCK_PMM = ATOMIC_FLAG_INIT;
+
+size_t PhysicalAllocate(int pages) {
+  spinlockAcquire(&LOCK_PMM);
+  size_t phys = (size_t)BitmapAllocate(&physical, pages);
+  spinlockRelease(&LOCK_PMM);
+
+  if (!phys) {
+    debugf("[vmm::alloc] Physical kernel memory ran out!\n");
+    panic();
+  }
+
+  return phys;
+}
+
+void PhysicalFree(size_t ptr, int pages) {
+  // maybe verify no double-frees are occuring..
+
+  spinlockAcquire(&LOCK_PMM);
+  MarkRegion(&physical, (void *)ptr, pages * BLOCK_SIZE, 0);
+  spinlockRelease(&LOCK_PMM);
+}

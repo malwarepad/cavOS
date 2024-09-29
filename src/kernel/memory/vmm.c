@@ -35,17 +35,8 @@ void initiateVMM() {
   virtual.ready = true;
 }
 
-Spinlock LOCK_VMM = ATOMIC_FLAG_INIT;
-
 void *VirtualAllocate(int pages) {
-  spinlockAcquire(&LOCK_VMM);
-  size_t phys = (size_t)BitmapAllocate(&physical, pages);
-  spinlockRelease(&LOCK_VMM);
-
-  if (!phys) {
-    debugf("[vmm::alloc] Physical kernel memory ran out!\n");
-    panic();
-  }
+  size_t phys = PhysicalAllocate(pages);
 
   uint64_t output = phys + bootloader.hhdmOffset;
 #if VMM_DEBUG
@@ -66,9 +57,6 @@ bool VirtualFree(void *ptr, int pages) {
     panic();
   }
 
-  spinlockAcquire(&LOCK_VMM);
-  MarkRegion(&physical, (void *)phys, pages * BLOCK_SIZE, 0);
-  spinlockRelease(&LOCK_VMM);
-
-  return 1;
+  PhysicalFree(phys, pages);
+  return true;
 }

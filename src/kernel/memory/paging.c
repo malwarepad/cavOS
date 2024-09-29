@@ -139,8 +139,8 @@ uint64_t *GetPageDirectory() { return (uint64_t *)globalPagedir; }
 
 void invalidate(uint64_t vaddr) { asm volatile("invlpg %0" ::"m"(vaddr)); }
 
-size_t VirtAllocPhys() {
-  size_t phys = BitmapAllocatePageframe(&physical);
+size_t PagingPhysAllocate() {
+  size_t phys = PhysicalAllocate(1);
 
   void *virt = (void *)(phys + HHDMoffset);
   memset(virt, 0, PAGE_SIZE);
@@ -170,19 +170,19 @@ void VirtualMapL(uint64_t *pagedir, uint64_t virt_addr, uint64_t phys_addr,
 
   spinlockCntWriteAcquire(&WLOCK_PAGING);
   if (!(pagedir[pml4_index] & PF_PRESENT)) {
-    size_t target = VirtAllocPhys();
+    size_t target = PagingPhysAllocate();
     pagedir[pml4_index] = target | PF_PRESENT | PF_RW | PF_USER;
   }
   size_t *pdp = (size_t *)(PTE_GET_ADDR(pagedir[pml4_index]) + HHDMoffset);
 
   if (!(pdp[pdp_index] & PF_PRESENT)) {
-    size_t target = VirtAllocPhys();
+    size_t target = PagingPhysAllocate();
     pdp[pdp_index] = target | PF_PRESENT | PF_RW | PF_USER;
   }
   size_t *pd = (size_t *)(PTE_GET_ADDR(pdp[pdp_index]) + HHDMoffset);
 
   if (!(pd[pd_index] & PF_PRESENT)) {
-    size_t target = VirtAllocPhys();
+    size_t target = PagingPhysAllocate();
     pd[pd_index] = target | PF_PRESENT | PF_RW | PF_USER;
   }
   size_t *pt = (size_t *)(PTE_GET_ADDR(pd[pd_index]) + HHDMoffset);
@@ -301,7 +301,7 @@ void PageDirectoryFree(uint64_t *page_dir) {
             continue;
 
           uint64_t phys = PTE_GET_ADDR(pt[pt_index]);
-          BitmapFreePageframe(&physical, (void *)phys);
+          PhysicalFree(phys, 1);
         }
       }
     }
@@ -336,9 +336,8 @@ void PageDirectoryUserDuplicate(uint64_t *source, uint64_t *target) {
             continue;
 
           size_t physSource = PTE_GET_ADDR(pt[pt_index]);
-          size_t physTarget = (pt[pt_index] & PF_SHARED)
-                                  ? physSource
-                                  : BitmapAllocatePageframe(&physical);
+          size_t physTarget =
+              (pt[pt_index] & PF_SHARED) ? physSource : PagingPhysAllocate();
 
           size_t virt =
               BITS_TO_VIRT_ADDR(pml4_index, pdp_index, pd_index, pt_index);
