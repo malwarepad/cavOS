@@ -144,7 +144,7 @@ fi
 # By this point, we have all compiler tools we need inside the target system...
 # Hence, we can begin to use it for targetted compilations, instead of cross-compilations like so:
 
-# source "${SCRIPTPATH}/../shared/chroot.sh"
+source "${SCRIPTPATH}/../shared/chroot.sh"
 # chroot_establish "$USR_PATHNAME/../"
 # cd "$USR_PATHNAME/../"
 
@@ -194,4 +194,4 @@ fi
 # 	sudo chroot "$TARGET_DIR/" /usr/bin/bash -c "cd /vim-9.1.0041 && ./configure --prefix=/usr --with-tlib=ncursesw && make -j$(nproc) && make install && cd / && rm -rf /vim-9.1.0041 /vim-9.1.0041.tar.gz"
 # fi
 
-# chroot_drop "$USR_PATHNAME/../"
+chroot_drop "$USR_PATHNAME/../"
