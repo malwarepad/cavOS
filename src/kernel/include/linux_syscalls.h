@@ -7,8 +7,8 @@ typedef struct {
   char *rsi;
   char *rdx;
   char *r10;
-  char *r9;
   char *r8;
+  char *r9;
 } LINUX_SYSCALL;
 
 static const LINUX_SYSCALL linux_syscalls[] = {
