@@ -5,39 +5,31 @@
 # # anything
 # EOT
 
-SCRIPT=$(realpath "$0")
-SCRIPTPATH=$(dirname "$SCRIPT")
-
-TARGET_DIR="$SCRIPTPATH/../../target/"
-
 chroot_drop() {
-	sudo umount -l "$TARGET_DIR/dev/shm" || true
-	sudo umount -l "$TARGET_DIR/run" || true
-	sudo umount -l "$TARGET_DIR/sys" || true
-	sudo umount -l "$TARGET_DIR/proc" || true
-	sudo umount -l "$TARGET_DIR/dev/pts" || true
-	sudo umount -l "$TARGET_DIR/dev" || true
+	sudo umount -l "$1/dev/shm" || true
+	sudo umount -l "$1/run" || true
+	sudo umount -l "$1/sys" || true
+	sudo umount -l "$1/proc" || true
+	sudo umount -l "$1/dev/pts" || true
+	sudo umount -l "$1/dev" || true
 }
 
 chroot_establish() {
-	chroot_drop
+	chroot_drop "$1"
 
-	mkdir -p "$TARGET_DIR/"{dev,proc,sys,run,tmp}
-	sudo mount --bind /dev "$TARGET_DIR/dev"
-	sudo mount -t devpts devpts -o gid=5,mode=0620 "$TARGET_DIR/dev/pts"
-	sudo mount -t proc proc "$TARGET_DIR/proc"
-	sudo mount -t sysfs sysfs "$TARGET_DIR/sys"
-	sudo mount -t tmpfs tmpfs "$TARGET_DIR/run"
-	if [ -h "$TARGET_DIR/dev/shm" ]; then
-		sudo install -v -d -m 1777 "$TARGET_DIR/$(realpath /dev/shm)"
+	mkdir -p "$1/"{dev,proc,sys,run,tmp}
+	sudo mount --bind /dev "$1/dev"
+	sudo mount -t devpts devpts -o gid=5,mode=0620 "$1/dev/pts"
+	sudo mount -t proc proc "$1/proc"
+	sudo mount -t sysfs sysfs "$1/sys"
+	sudo mount -t tmpfs tmpfs "$1/run"
+	if [ -h "$1/dev/shm" ]; then
+		sudo install -v -d -m 1777 "$1/$(realpath /dev/shm)"
 	else
-		sudo mount -t tmpfs -o nosuid,nodev tmpfs "$TARGET_DIR/dev/shm"
+		sudo mount -t tmpfs -o nosuid,nodev tmpfs "$1/dev/shm"
 	fi
-
-	# sudo chroot "$TARGET_DIR/" /usr/bin/bash -c "ls files
-	# cat files/ab.txt"
 }
 
-# chroot_establish
-# sudo chroot "$TARGET_DIR/" /usr/bin/env -i HISTFILE=/dev/null /bin/bash
-# chroot_drop
+# chroot_establish "$1"
+# sudo chroot "$1/" /usr/bin/env -i HISTFILE=/dev/null /bin/bash
+# chroot_drop "$1"
