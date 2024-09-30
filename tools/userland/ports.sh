@@ -144,54 +144,54 @@ fi
 # By this point, we have all compiler tools we need inside the target system...
 # Hence, we can begin to use it for targetted compilations, instead of cross-compilations like so:
 
-source "${SCRIPTPATH}/../shared/chroot.sh"
-chroot_establish "$USR_PATHNAME/../"
-cd "$USR_PATHNAME/../"
+# source "${SCRIPTPATH}/../shared/chroot.sh"
+# chroot_establish "$USR_PATHNAME/../"
+# cd "$USR_PATHNAME/../"
 
 # The netwide assembler (nasm)
-if [ ! -f "$USR_PATHNAME/bin/nasm" ]; then
-	wget -nc https://www.nasm.us/pub/nasm/releasebuilds/2.15.05/nasm-2.15.05.tar.xz
-	tar xpvf nasm-2.15.05.tar.xz
-	sudo chroot "$TARGET_DIR/" /usr/bin/bash -c "cd /nasm-2.15.05 && ./configure --prefix=/usr && make -j$(nproc) && make install && cd / && rm -rf /nasm-2.15.05 /nasm-2.15.05.tar.xz"
-fi
+# if [ ! -f "$USR_PATHNAME/bin/nasm" ]; then
+# 	wget -nc https://www.nasm.us/pub/nasm/releasebuilds/2.15.05/nasm-2.15.05.tar.xz
+# 	tar xpvf nasm-2.15.05.tar.xz
+# 	sudo chroot "$TARGET_DIR/" /usr/bin/bash -c "cd /nasm-2.15.05 && ./configure --prefix=/usr && make -j$(nproc) && make install && cd / && rm -rf /nasm-2.15.05 /nasm-2.15.05.tar.xz"
+# fi
 
 # Linux headers (needed for a lot of software)
-if [ ! -f "$USR_PATHNAME/include/asm/byteorder.h" ]; then
-	wget -nc https://www.kernel.org/pub/linux/kernel/v6.x/linux-6.6.41.tar.xz
-	tar xpvf linux-6.6.41.tar.xz
-	cd linux-6.6.41
-	make mrproper
-	make headers
-	find usr/include -type f ! -name '*.h' -delete
-	cp -r usr/include/* "$USR_PATHNAME/include/"
-	cd ..
-	rm -rf linux-6.6.41 linux-6.6.41.tar.xz
-fi
+# if [ ! -f "$USR_PATHNAME/include/asm/byteorder.h" ]; then
+# 	wget -nc https://www.kernel.org/pub/linux/kernel/v6.x/linux-6.6.41.tar.xz
+# 	tar xpvf linux-6.6.41.tar.xz
+# 	cd linux-6.6.41
+# 	make mrproper
+# 	make headers
+# 	find usr/include -type f ! -name '*.h' -delete
+# 	cp -r usr/include/* "$USR_PATHNAME/include/"
+# 	cd ..
+# 	rm -rf linux-6.6.41 linux-6.6.41.tar.xz
+# fi
 
 # PCI utilities (lspci, update-pciids, etc)
-if [ ! -f "$USR_PATHNAME/sbin/lspci" ]; then
-	wget -nc https://www.kernel.org/pub/software/utils/pciutils/pciutils-3.7.0.tar.xz
-	tar xpvf pciutils-3.7.0.tar.xz
-	sudo chroot "$TARGET_DIR/" /usr/bin/bash -c "cd /pciutils-3.7.0 && make PREFIX=/usr SHAREDIR=/usr/share/hwdata -j$(nproc) && make PREFIX=/usr SHAREDIR=/usr/share/hwdata install install-lib && cd / && rm -rf /pciutils-3.7.0 /pciutils-3.7.0.tar.xz"
-fi
+# if [ ! -f "$USR_PATHNAME/sbin/lspci" ]; then
+# 	wget -nc https://www.kernel.org/pub/software/utils/pciutils/pciutils-3.7.0.tar.xz
+# 	tar xpvf pciutils-3.7.0.tar.xz
+# 	sudo chroot "$TARGET_DIR/" /usr/bin/bash -c "cd /pciutils-3.7.0 && make PREFIX=/usr SHAREDIR=/usr/share/hwdata -j$(nproc) && make PREFIX=/usr SHAREDIR=/usr/share/hwdata install install-lib && cd / && rm -rf /pciutils-3.7.0 /pciutils-3.7.0.tar.xz"
+# fi
 
 # pkg-config
-if [ ! -f "$USR_PATHNAME/bin/pkg-config" ]; then
-	wget -nc http://pkgconfig.freedesktop.org/releases/pkg-config-0.29.2.tar.gz
-	tar xpvf pkg-config-0.29.2.tar.gz
-	cd pkg-config-0.29.2
-	patch -p1 <../../patches/pkg-config.diff
-	cd ..
-	sudo chroot "$TARGET_DIR/" /usr/bin/bash -c "cd /pkg-config-0.29.2 && ./configure --prefix=/usr --with-internal-glib --disable-host-tool && make -j$(nproc) && make install && cd / && rm -rf /pkg-config-0.29.2 /pkg-config-0.29.2.tar.gz"
-fi
+# if [ ! -f "$USR_PATHNAME/bin/pkg-config" ]; then
+# 	wget -nc http://pkgconfig.freedesktop.org/releases/pkg-config-0.29.2.tar.gz
+# 	tar xpvf pkg-config-0.29.2.tar.gz
+# 	cd pkg-config-0.29.2
+# 	patch -p1 <../../patches/pkg-config.diff
+# 	cd ..
+# 	sudo chroot "$TARGET_DIR/" /usr/bin/bash -c "cd /pkg-config-0.29.2 && ./configure --prefix=/usr --with-internal-glib --disable-host-tool && make -j$(nproc) && make install && cd / && rm -rf /pkg-config-0.29.2 /pkg-config-0.29.2.tar.gz"
+# fi
 
 # Vim (fuck nano)
-if [ ! -f "$USR_PATHNAME/bin/vim" ]; then
-	wget -nc https://github.com/vim/vim/archive/v9.1.0041/vim-9.1.0041.tar.gz
-	tar xpvf vim-9.1.0041.tar.gz
-	echo '#define SYS_VIMRC_FILE  "/etc/vimrc"' >>vim-9.1.0041/src/feature.h
-	echo '#define SYS_GVIMRC_FILE "/etc/gvimrc"' >>vim-9.1.0041/src/feature.h
-	sudo chroot "$TARGET_DIR/" /usr/bin/bash -c "cd /vim-9.1.0041 && ./configure --prefix=/usr --with-tlib=ncursesw && make -j$(nproc) && make install && cd / && rm -rf /vim-9.1.0041 /vim-9.1.0041.tar.gz"
-fi
+# if [ ! -f "$USR_PATHNAME/bin/vim" ]; then
+# 	wget -nc https://github.com/vim/vim/archive/v9.1.0041/vim-9.1.0041.tar.gz
+# 	tar xpvf vim-9.1.0041.tar.gz
+# 	echo '#define SYS_VIMRC_FILE  "/etc/vimrc"' >>vim-9.1.0041/src/feature.h
+# 	echo '#define SYS_GVIMRC_FILE "/etc/gvimrc"' >>vim-9.1.0041/src/feature.h
+# 	sudo chroot "$TARGET_DIR/" /usr/bin/bash -c "cd /vim-9.1.0041 && ./configure --prefix=/usr --with-tlib=ncursesw && make -j$(nproc) && make install && cd / && rm -rf /vim-9.1.0041 /vim-9.1.0041.tar.gz"
+# fi
 
-chroot_drop "$USR_PATHNAME/../"
+# chroot_drop "$USR_PATHNAME/../"
