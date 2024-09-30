@@ -44,6 +44,8 @@ disk_dirty: disk_prepare
 
 # Verify our toolchain is.. there!
 TOOLCHAIN_GCC_VERSION := $(shell ~/opt/cross/bin/x86_64-cavos-gcc --version 2>/dev/null)
+GCC_CHECK_DATE = 1727727259
+GCC_ACTUAL_DATE := $(shell stat -c %Y ~/opt/cross/bin/x86_64-cavos-gcc)
 verifytools:
 ifdef TOOLCHAIN_GCC_VERSION
 	@echo "$(TOOLCHAIN_GCC_VERSION)"
@@ -51,6 +53,10 @@ else
 	@echo -e '\033[0;31mx86_64-cavos-gcc was not found! Please use "make tools" to compile the toolchain!\033[0m'
 	@exit 1
 endif
+	@if [ $(GCC_ACTUAL_DATE) -lt $(GCC_CHECK_DATE) ]; then \
+		echo -e '\033[0;31mThe cavOS toolchain is outdated! Please remove the ~/opt/cross/ directory and re-build it via "make tools"!\033[0m'; \
+		exit 1; \
+	fi
 
 # Raw kernel.bin
 kernel:
