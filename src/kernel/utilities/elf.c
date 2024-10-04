@@ -47,7 +47,9 @@ bool elf_check_file(Elf64_Ehdr *hdr) {
 
 void elfProcessLoad(Elf64_Phdr *elf_phdr, uint8_t *out, size_t base) {
   // Map the (current) program page
-  uint64_t pagesRequired = DivRoundUp(elf_phdr->p_memsz, 0x1000) + 1;
+  size_t   startRounded = (elf_phdr->p_vaddr & ~0xFFF);
+  uint64_t pagesRequired = DivRoundUp(
+      (elf_phdr->p_vaddr - startRounded) + elf_phdr->p_memsz, 0x1000);
   for (int j = 0; j < pagesRequired; j++) {
     size_t vaddr = (elf_phdr->p_vaddr & ~0xFFF) + j * 0x1000;
     size_t paddr = PhysicalAllocate(1);
@@ -120,7 +122,8 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
       char     *interpreterFilename = (char *)(out + elf_phdr->p_offset);
       OpenFile *interpreter = fsKernelOpen(interpreterFilename, O_RDONLY, 0);
       if (!interpreter) {
-        debugf("[elf] Interpreter path{%s} could not be found!\n");
+        debugf("[elf] Interpreter path{%s} could not be found!\n",
+               interpreterFilename);
         panic();
       }
       size_t size = fsGetFilesize(interpreter);

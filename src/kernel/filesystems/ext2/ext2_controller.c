@@ -1,5 +1,7 @@
+#include <bootloader.h>
 #include <ext2.h>
 #include <malloc.h>
+#include <paging.h>
 #include <string.h>
 #include <system.h>
 #include <task.h>
@@ -584,6 +586,58 @@ bool ext2DuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan) {
   return true;
 }
 
+// task is taken into account
+size_t ext2Mmap(size_t addr, size_t length, int prot, int flags, OpenFile *fd,
+                size_t pgoffset) {
+  if (!(flags & MAP_PRIVATE)) {
+    debugf("[ext2::mmap] Unsupported flags! flags{%x}\n", flags);
+    return -ENOSYS;
+  }
+
+  // if (prot & PROT_WRITE && !(fd->flags & O_WRONLY || fd->flags & O_RDWR))
+  //   return -EACCES;
+
+  uint64_t mappingFlags = PF_USER;
+  if (prot & PROT_WRITE)
+    mappingFlags |= PF_RW;
+  // read & execute don't have to be specified..
+
+  int pages = DivRoundUp(length, PAGE_SIZE);
+
+  size_t virt = 0;
+  if (!(flags & MAP_FIXED)) {
+    currentTask->mmap_end += pages * PAGE_SIZE;
+    virt = currentTask->mmap_end;
+  } else {
+    virt = addr;
+    if (virt > bootloader.hhdmOffset &&
+        virt < (bootloader.hhdmOffset + bootloader.mmTotal))
+      return -EACCES;
+    else if (virt > bootloader.kernelVirtBase &&
+             virt < bootloader.kernelVirtBase + 268435456) {
+      return -EACCES;
+    }
+  }
+
+  // allocate physical space required
+  size_t phys = PhysicalAllocate(pages);
+  size_t hhdmAddition = bootloader.hhdmOffset + phys;
+
+  // now access it properly (via the HHDM, obviously)
+  for (int i = 0; i < pages; i++)
+    VirtualMap(virt + i * PAGE_SIZE, phys + i * PAGE_SIZE, mappingFlags);
+  memset((void *)(hhdmAddition), 0, pages * PAGE_SIZE);
+
+  // do the read
+  Ext2OpenFd *dir = EXT2_DIR_PTR(fd->dir);
+  size_t      oldPtr = dir->ptr;
+  dir->ptr = pgoffset;
+  ext2Read(fd, (void *)hhdmAddition, length);
+  dir->ptr = oldPtr;
+
+  return virt;
+}
+
 VfsHandlers ext2Handlers = {.open = ext2Open,
                             .write = ext2Write,
                             .close = ext2Close,
@@ -592,4 +646,5 @@ VfsHandlers ext2Handlers = {.open = ext2Open,
                             .stat = ext2StatFd,
                             .getdents64 = ext2Getdents64,
                             .seek = ext2Seek,
-                            .getFilesize = ext2GetFilesize};
+                            .getFilesize = ext2GetFilesize,
+                            .mmap = ext2Mmap};

@@ -7,6 +7,9 @@
 #define SYSCALL_MMAP 9
 static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
                             int fd, size_t pgoffset) {
+  if (length == 0)
+    return -EINVAL;
+
   length = DivRoundUp(length, 0x1000) * 0x1000;
   /* No point in DEBUG_SYSCALLS_ARGS'ing here */
 
