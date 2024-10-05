@@ -606,8 +606,8 @@ size_t ext2Mmap(size_t addr, size_t length, int prot, int flags, OpenFile *fd,
 
   size_t virt = 0;
   if (!(flags & MAP_FIXED)) {
-    currentTask->mmap_end += pages * PAGE_SIZE;
     virt = currentTask->mmap_end;
+    currentTask->mmap_end += pages * PAGE_SIZE;
   } else {
     virt = addr;
     if (virt > bootloader.hhdmOffset &&
