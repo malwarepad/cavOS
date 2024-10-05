@@ -187,9 +187,12 @@ void VirtualMapL(uint64_t *pagedir, uint64_t virt_addr, uint64_t phys_addr,
   }
   size_t *pt = (size_t *)(PTE_GET_ADDR(pd[pd_index]) + HHDMoffset);
 
-  if (pt[pt_index] & PF_PRESENT)
-    debugf("[paging] Overwrite (without unmapping) WARN! virt{%lx} phys{%lx}\n",
-           virt_addr, phys_addr);
+  if (pt[pt_index] & PF_PRESENT) {
+    PhysicalFree(PTE_GET_ADDR(pt[pt_index]), 1);
+    // debugf("[paging] Overwrite (without unmapping) WARN! virt{%lx}
+    // phys{%lx}\n",
+    //        virt_addr, phys_addr);
+  }
   pt[pt_index] = (P_PHYS_ADDR(phys_addr)) | PF_PRESENT | flags; // | PF_RW
 
   invalidate(virt_addr);

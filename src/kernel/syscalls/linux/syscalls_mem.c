@@ -12,6 +12,18 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
 
   length = DivRoundUp(length, 0x1000) * 0x1000;
   /* No point in DEBUG_SYSCALLS_ARGS'ing here */
+  if (!addr)
+    flags &= ~MAP_FIXED;
+
+  if (flags & MAP_FIXED && flags & MAP_ANONYMOUS) {
+    size_t pages = DivRoundUp(length, PAGE_SIZE);
+
+    for (int i = 0; i < pages; i++)
+      VirtualMap(addr + i * PAGE_SIZE, PhysicalAllocate(1), PF_RW | PF_USER);
+
+    memset((void *)addr, 0, pages * PAGE_SIZE);
+    return addr;
+  }
 
   if (!addr && fd == -1 &&
       (flags & ~MAP_FIXED & ~MAP_PRIVATE) ==
@@ -34,6 +46,8 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
                  MAP_ANONYMOUS &&
              (flags & ~MAP_FIXED & ~MAP_PRIVATE & ~MAP_ANONYMOUS) ==
                  MAP_SHARED) {
+    debugf("[syscalls::mmap] FATAL! Shared memory is unstable asf!\n");
+    panic();
     size_t base = currentTask->mmap_end;
     size_t pages = DivRoundUp(length, PAGE_SIZE);
     currentTask->mmap_end += pages * PAGE_SIZE;

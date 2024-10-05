@@ -52,6 +52,8 @@ void elfProcessLoad(Elf64_Phdr *elf_phdr, uint8_t *out, size_t base) {
       (elf_phdr->p_vaddr - startRounded) + elf_phdr->p_memsz, 0x1000);
   for (int j = 0; j < pagesRequired; j++) {
     size_t vaddr = (elf_phdr->p_vaddr & ~0xFFF) + j * 0x1000;
+    if (VirtualToPhysical(base + vaddr))
+      continue;
     size_t paddr = PhysicalAllocate(1);
     VirtualMap(base + vaddr, paddr, PF_USER | PF_RW);
   }
