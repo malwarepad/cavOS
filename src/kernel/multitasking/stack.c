@@ -81,6 +81,10 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint32_t envc,
     if (!lowestThing || lowestThing > elf_phdr->p_vaddr)
       lowestThing = elf_phdr->p_vaddr;
   }
+  size_t phdrThing = lowestThing;
+  if (elf_ehdr->e_type == 3) {
+    phdrThing = 0;
+  } // DYN
 
   // aux: AT_NULL
   PUSH_TO_STACK(target->registers.usermode_rsp, size_t, (size_t)0);
@@ -116,7 +120,7 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint32_t envc,
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 16);
   // aux: AT_PHDR
   PUSH_TO_STACK(target->registers.usermode_rsp, size_t,
-                lowestThing + elf_ehdr->e_phoff);
+                phdrThing + elf_ehdr->e_phoff);
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 3);
 
   // store arguments & environment variables in heap
