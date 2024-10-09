@@ -94,8 +94,10 @@ static int syscallExecve(char *filename, char **argv, char **envp) {
   CopyPtrStyle arguments = copyPtrStyle(argv);
   CopyPtrStyle environment = copyPtrStyle(envp);
 
-  Task *ret = elfExecute(filename, arguments.count, arguments.ptrPlace,
+  char *filenameSanitized = fsSanitize(currentTask->cwd, filename);
+  Task *ret = elfExecute(filenameSanitized, arguments.count, arguments.ptrPlace,
                          environment.count, environment.ptrPlace, 0);
+  free(filenameSanitized);
   free(arguments.ptrPlace);
   free(arguments.valPlace);
   free(environment.ptrPlace);

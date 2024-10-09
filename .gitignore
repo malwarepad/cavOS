@@ -12,6 +12,7 @@ target/usr/include/ncursesw
 target/usr/etc/profile.d
 target/usr/libexec
 target/usr/x86_64-cavos
+target/usr/x86_64-linux-musl
 
 # Chroot stuff
 target/dev/shm
