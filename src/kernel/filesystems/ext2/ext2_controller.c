@@ -211,7 +211,7 @@ int ext2Read(OpenFile *fd, uint8_t *buff, size_t naiveLimit) {
   uint32_t *blocks =
       ext2BlockChain(ext2, dir, dir->ptr / ext2->blockSize, blocksRequired);
 
-  uint8_t *tmp = (uint8_t *)malloc((blocksRequired + 1) * ext2->blockSize);
+  uint8_t *tmp = (uint8_t *)calloc((blocksRequired + 1) * ext2->blockSize, 1);
   int      currBlock = 0;
 
   // optimization: we can use consecutive sectors to make our life easier
@@ -292,95 +292,124 @@ int ext2Write(OpenFile *fd, uint8_t *buff, size_t limit) {
   int ptrIgnoredBlocks = dir->ptr / ext2->blockSize;
   int ptrIgnoredBytes = dir->ptr % ext2->blockSize;
 
-  size_t    blocksRequired = DivRoundUp(limit, ext2->blockSize);
-  uint32_t *blocks =
-      ext2BlockChain(ext2, dir, ptrIgnoredBlocks, blocksRequired);
-  uint32_t group = INODE_TO_BLOCK_GROUP(ext2, dir->inodeNum);
+  size_t remainder = limit;
+  size_t left = 0;
 
-  int startsAt = -1;
-  for (int i = 0; i < blocksRequired; i++) {
-    if (!blocks[i]) {
-      startsAt = i;
-      break;
-    }
-  }
-
-  if (startsAt != -1) {
-    Ext2LookupControl control = {0};
-    ext2BlockFetchInit(ext2, &control);
-
-    int needed = blocksRequired - startsAt;
-
-    uint32_t freeBlocks = ext2BlockFind(ext2, group, needed);
-    for (int i = 0; i < needed; i++) {
-      ext2BlockAssign(ext2, &dir->inode, dir->inodeNum, &control,
-                      ptrIgnoredBlocks + startsAt + i, freeBlocks + i);
-      blocks[startsAt + i] = freeBlocks + i;
-    }
-
-    ext2BlockFetchCleanup(&control);
-  }
-
-  uint8_t *tmp = (uint8_t *)calloc((blocksRequired + 1) * ext2->blockSize, 1);
-  if (ptrIgnoredBlocks > 0) {
-    // our first block will have junk data in the start!
-    getDiskBytes(&tmp[0], BLOCK_TO_LBA(ext2, 0, blocks[0]),
+  if (ptrIgnoredBytes > 0) {
+    left = MIN(ext2->blockSize - ptrIgnoredBytes, remainder);
+    uint32_t block =
+        ext2BlockFetch(ext2, &dir->inode, &dir->lookup, ptrIgnoredBlocks);
+    uint8_t *tmp = (uint8_t *)malloc(ext2->blockSize);
+    getDiskBytes(tmp, BLOCK_TO_LBA(ext2, 0, block),
                  ext2->blockSize / SECTOR_SIZE);
-  }
-  if (((dir->ptr + limit) % ext2->blockSize) != 0) {
-    // the last block will have junk data at the end!
-    getDiskBytes(&tmp[(blocksRequired - 1) * ext2->blockSize],
-                 BLOCK_TO_LBA(ext2, 0, blocks[blocksRequired - 1]),
+    memcpy(&tmp[ptrIgnoredBytes], buff, left);
+    setDiskBytes(tmp, BLOCK_TO_LBA(ext2, 0, block),
                  ext2->blockSize / SECTOR_SIZE);
+
+    free(tmp);
+    remainder -= left;
+    dir->ptr += left;
+
+    // ignore the first block in the functions that follow
+    ptrIgnoredBlocks++;
   }
-  memcpy(&tmp[ptrIgnoredBytes], buff, limit);
 
-  int currBlock = 0;
+  if (remainder > 0) {
+    // we are aligned on block boundaries so we can use this
+    int       blocksRequired = DivRoundUp(remainder, ext2->blockSize);
+    uint32_t *blocks =
+        ext2BlockChain(ext2, dir, ptrIgnoredBlocks, blocksRequired - 1);
 
-  // optimization: we can use consecutive sectors to make our life easier
-  int consecStart = -1;
-  int consecEnd = 0;
+    uint32_t group = INODE_TO_BLOCK_GROUP(ext2, dir->inodeNum);
 
-  // +1 for starting
-  for (int i = 0; i < blocksRequired; i++) {
-    if (!blocks[i])
-      break;
-    bool last = i == (blocksRequired - 1);
-    if (consecStart < 0) {
-      // nothing consecutive yet
-      if (!last && blocks[i + 1] == (blocks[i] + 1)) {
-        // consec starts here
-        consecStart = i;
-        continue;
+    int startsAt = -1;
+    for (int i = 0; i < blocksRequired; i++) {
+      if (!blocks[i]) {
+        startsAt = i;
+        break;
       }
-    } else {
-      // we are in a consecutive that started since consecStart
-      if (last || blocks[i + 1] != (blocks[i] + 1))
-        consecEnd = i; // either last or the end
-      else             // otherwise, we good
-        continue;
     }
 
-    if (consecEnd) {
-      // optimized consecutive cluster reading
-      int needed = consecEnd - consecStart + 1;
-      setDiskBytes(&tmp[currBlock * ext2->blockSize],
-                   BLOCK_TO_LBA(ext2, 0, blocks[consecStart]),
-                   (needed * ext2->blockSize) / SECTOR_SIZE);
-      currBlock += needed;
-    } else {
-      setDiskBytes(&tmp[currBlock * ext2->blockSize],
-                   BLOCK_TO_LBA(ext2, 0, blocks[i]),
+    if (startsAt != -1) {
+      int needed = blocksRequired - startsAt;
+
+      uint32_t freeBlocks = ext2BlockFind(ext2, group, needed);
+      for (int i = 0; i < needed; i++) {
+        // todo: standardize weird lookup stuff
+        ext2BlockAssign(ext2, &dir->inode, dir->inodeNum, &dir->lookup,
+                        ptrIgnoredBlocks + startsAt + i, freeBlocks + i);
+        blocks[startsAt + i] = freeBlocks + i;
+      }
+    }
+
+    uint8_t *tmp = (uint8_t *)calloc((blocksRequired + 1) * ext2->blockSize, 1);
+
+    // our first block will have junk data in the start!
+    getDiskBytes(tmp, BLOCK_TO_LBA(ext2, 0, blocks[0]),
+                 ext2->blockSize / SECTOR_SIZE);
+
+    // the last block might have junk data at the end!
+    int target = blocksRequired - 1;
+    if (target > 0)
+      getDiskBytes(&tmp[target * ext2->blockSize],
+                   BLOCK_TO_LBA(ext2, 0, blocks[target]),
                    ext2->blockSize / SECTOR_SIZE);
-      currBlock++;
+    memcpy(tmp, &buff[left], remainder);
+
+    int currBlock = 0;
+
+    // optimization: we can use consecutive sectors to make our life easier
+    int consecStart = -1;
+    int consecEnd = 0;
+
+    // +1 for starting
+    for (int i = 0; i < blocksRequired; i++) {
+      if (!blocks[i]) {
+        debugf("[ext2::write] FATAL! Out of sync!\n");
+        panic();
+      }
+
+      bool last = i == (blocksRequired - 1);
+      if (consecStart < 0) {
+        // nothing consecutive yet
+        if (!last && blocks[i + 1] == (blocks[i] + 1)) {
+          // consec starts here
+          consecStart = i;
+          continue;
+        }
+      } else {
+        // we are in a consecutive that started since consecStart
+        if (last || blocks[i + 1] != (blocks[i] + 1))
+          consecEnd = i; // either last or the end
+        else             // otherwise, we good
+          continue;
+      }
+
+      if (consecEnd) {
+        // optimized consecutive cluster reading
+        int needed = consecEnd - consecStart + 1;
+        setDiskBytes(&tmp[currBlock * ext2->blockSize],
+                     BLOCK_TO_LBA(ext2, 0, blocks[consecStart]),
+                     (needed * ext2->blockSize) / SECTOR_SIZE);
+        currBlock += needed;
+      } else {
+        setDiskBytes(&tmp[currBlock * ext2->blockSize],
+                     BLOCK_TO_LBA(ext2, 0, blocks[i]),
+                     ext2->blockSize / SECTOR_SIZE);
+        currBlock++;
+      }
+
+      // traverse
+      consecStart = -1;
+      consecEnd = 0;
     }
 
-    // traverse
-    consecStart = -1;
-    consecEnd = 0;
-  }
+    dir->ptr += remainder; // set pointer
 
-  dir->ptr += limit; // set pointer
+    // cleanup
+    free(blocks);
+    free(tmp);
+  }
 
   if (dir->ptr > dir->inode.size) {
     // update size
@@ -391,10 +420,6 @@ int ext2Write(OpenFile *fd, uint8_t *buff, size_t limit) {
     ext2InodeModifyM(ext2, dir->inodeNum, &dir->inode);
     ext2->inodeOperations[lockAt] = 0;
   }
-
-  // cleanup
-  free(blocks);
-  free(tmp);
 
   if (fd->flags & O_APPEND)
     dir->ptr = appendCursor;
@@ -429,6 +454,11 @@ size_t ext2Seek(OpenFile *fd, size_t target, long int offset, int whence) {
     int written = ext2Write(fd, bytePlacement, remainder);
     if (written != remainder) {
       debugf("[ext2::seek] FAILED! Write not in sync!!\n");
+      panic();
+    }
+
+    if (dir->ptr != target) {
+      debugf("[ext2::seek] What?\n");
       panic();
     }
 
