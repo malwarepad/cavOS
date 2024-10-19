@@ -24,6 +24,7 @@ void  memset(void *_dst, int val, size_t len);
 int   memcmp(const void *aptr, const void *bptr, size_t size);
 int   rand(void);
 void  srand(unsigned int seed);
-void  hexDump(const char *desc, const void *addr, const int len, int perLine);
+void  hexDump(const char *desc, const void *addr, const int len, int perLine,
+              int (*f)(const char *fmt, ...));
 
 #endif

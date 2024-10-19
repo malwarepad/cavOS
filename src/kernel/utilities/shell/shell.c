@@ -110,7 +110,7 @@ void readDisk() {
   uint8_t *rawArr = (uint8_t *)malloc(SECTOR_SIZE);
   getDiskBytes(rawArr, lba, 1);
 
-  hexDump(choice, rawArr, SECTOR_SIZE, 16);
+  hexDump(choice, rawArr, SECTOR_SIZE, 16, printf);
 
   printf("\n");
   free(rawArr);

@@ -52,6 +52,7 @@ bool asciiProcess(int charnum) {
   }
 
   // end it all (asciiWaitingChar != 0xff && validAsciiChar)
+  eraseBull();
   switch (charnum) {
   case 'l':
     if (asciiChar1 == 25 && asciiQuestionmark) {
@@ -100,6 +101,20 @@ bool asciiProcess(int charnum) {
     height = (asciiChar1 - 1) * TTY_CHARACTER_HEIGHT;
     break;
 
+  case 'G':
+    if (!asciiChar1)
+      asciiChar1 = 1;
+    width = (asciiChar1 - 1) * TTY_CHARACTER_WIDTH;
+    break;
+
+  case 'A':
+    if (!asciiChar1)
+      asciiChar1 = 1;
+    height -= (asciiChar1 - 2) * TTY_CHARACTER_HEIGHT;
+    if (height > framebufferHeight)
+      height = 0;
+    break;
+
   case 'J':
     switch (asciiChar1) {
     case 0: { // no
@@ -129,6 +144,7 @@ bool asciiProcess(int charnum) {
     break;
   }
 
+  updateBull();
   return true;
 }
 
