@@ -8,9 +8,7 @@
 bool ext2DirAllocate(Ext2 *ext2, uint32_t inodeNum, Ext2Inode *parentDirInode,
                      char *filename, uint8_t filenameLen, uint8_t type,
                      uint32_t inode) {
-  int actuallyHoldingLock =
-      ext2DirLock(ext2->dirOperations, &ext2->LOCK_DIRALLOC_GLOBAL,
-                  EXT2_MAX_CONSEC_DIRALLOC, inodeNum);
+  spinlockAcquire(&ext2->LOCK_DIRALLOC);
   int entryLen = sizeof(Ext2Directory) + filenameLen;
 
   Ext2Inode *ino = parentDirInode; // <- todo
@@ -87,19 +85,16 @@ bool ext2DirAllocate(Ext2 *ext2, uint32_t inodeNum, Ext2Inode *parentDirInode,
                ext2->blockSize / SECTOR_SIZE);
   ext2BlockAssign(ext2, ino, inodeNum, &control, blockNum, newBlock);
 
-  int lockAt = ext2DirLock(ext2->inodeOperations, &ext2->LOCK_BLOCK_INODE,
-                           EXT2_MAX_CONSEC_INODE, inode);
   ino->num_sectors += ext2->blockSize / SECTOR_SIZE;
   ino->size += ext2->blockSize;
   ext2InodeModifyM(ext2, inodeNum, ino);
-  ext2->inodeOperations[lockAt] = 0;
 
   ret = true;
 
 cleanup:
   ext2BlockFetchCleanup(&control);
   free(names);
-  ext2->dirOperations[actuallyHoldingLock] = 0;
+  spinlockRelease(&ext2->LOCK_DIRALLOC);
 
   return ret;
 }

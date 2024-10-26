@@ -3,9 +3,6 @@
 #include <system.h>
 #include <util.h>
 
-// *tmp has to be of blockSizeRounded
-// todo, use this and/or fixup!!
-
 void ext2BlockFetchInit(Ext2 *ext2, Ext2LookupControl *control) {
   control->tmp1 = (uint32_t *)malloc(ext2->blockSize);
   control->tmp2 = (uint32_t *)malloc(ext2->blockSize);
@@ -20,60 +17,22 @@ void ext2BlockFetchCleanup(Ext2LookupControl *control) {
   control->tmp2Block = 0;
 }
 
-// todo: like wtf is this? I need some better locks soon..
-int ext2DirLock(uint32_t *opArr, Spinlock *lock, int constant,
-                uint32_t inodeNum) {
-  spinlockAcquire(lock);
-
-  int waitForIndex = -1;
-  int firstEmpty = -1;
-  int actuallyHoldingLock = -1;
-  for (int i = 0; i < constant; i++) {
-    if (opArr[i] == inodeNum)
-      waitForIndex = i;
-    if (!opArr[i])
-      firstEmpty = i;
-  }
-
-  if (waitForIndex == -1) {
-    if (firstEmpty == -1) {
-      debugf("[ext2::dynlock] FATAL! Increase constant{%d}!\n", constant);
-      panic();
-    }
-
-    opArr[firstEmpty] = inodeNum;
-    actuallyHoldingLock = firstEmpty;
-  }
-
-  spinlockRelease(lock);
-
-  if (waitForIndex != -1) {
-    while (opArr[waitForIndex] == inodeNum)
-      asm volatile("pause");
-
-    opArr[waitForIndex] = inodeNum;
-    actuallyHoldingLock = waitForIndex;
-  }
-
-  if (actuallyHoldingLock == -1) {
-    debugf("[ext2] FATAL! Something is seriously wrong! ret{%d}\n",
-           actuallyHoldingLock);
-    panic();
-  }
-
-  return actuallyHoldingLock;
-}
-
 uint32_t ext2BlockFetch(Ext2 *ext2, Ext2Inode *ino, Ext2LookupControl *control,
                         size_t curr) {
+  int result = 0;
+  spinlockCntReadAcquire(&ext2->WLOCK_BLOCK);
+
   uint32_t itemsPerBlock = ext2->blockSize / sizeof(uint32_t);
   size_t   baseSingly = 12 + itemsPerBlock;
   size_t   baseDoubly = baseSingly + ext2->blockSize * itemsPerBlock;
-  if (curr < 12)
-    return ino->blocks[curr];
-  else if (curr < baseSingly) {
-    if (!ino->blocks[12])
-      return 0;
+  if (curr < 12) {
+    result = ino->blocks[curr];
+    goto cleanup;
+  } else if (curr < baseSingly) {
+    if (!ino->blocks[12]) {
+      result = 0;
+      goto cleanup;
+    }
     size_t tmp1block = BLOCK_TO_LBA(ext2, 0, ino->blocks[12]);
     if (control->tmp1Block != tmp1block) {
       control->tmp1Block = tmp1block;
@@ -81,10 +40,13 @@ uint32_t ext2BlockFetch(Ext2 *ext2, Ext2Inode *ino, Ext2LookupControl *control,
       getDiskBytes((void *)control->tmp1, tmp1block,
                    ext2->blockSize / SECTOR_SIZE);
     }
-    return control->tmp1[curr - 12];
+    result = control->tmp1[curr - 12];
+    goto cleanup;
   } else if (curr < baseDoubly) {
-    if (!ino->blocks[13])
-      return 0;
+    if (!ino->blocks[13]) {
+      result = 0;
+      goto cleanup;
+    }
     size_t tmp1block = BLOCK_TO_LBA(ext2, 0, ino->blocks[13]);
     if (control->tmp1Block != tmp1block) {
       control->tmp1Block = tmp1block;
@@ -97,34 +59,37 @@ uint32_t ext2BlockFetch(Ext2 *ext2, Ext2Inode *ino, Ext2LookupControl *control,
     uint32_t index = at / itemsPerBlock;
     uint32_t rem = at % itemsPerBlock;
     size_t   tmp2block = BLOCK_TO_LBA(ext2, 0, control->tmp1[index]);
-    if (!control->tmp1[index])
-      return 0;
+    if (!control->tmp1[index]) {
+      result = 0;
+      goto cleanup;
+    }
     if (control->tmp2Block != tmp2block) {
       control->tmp2Block = tmp2block;
       getDiskBytes((void *)control->tmp2, tmp2block,
                    ext2->blockSize / SECTOR_SIZE);
     }
-    return control->tmp2[rem];
+    result = control->tmp2[rem];
+    goto cleanup;
   }
 
   debugf("[ext2] TODO! Triply Indirect Block Pointer!\n");
   panic();
   return 0;
+
+cleanup:
+  spinlockCntReadRelease(&ext2->WLOCK_BLOCK);
+  return result;
 }
 
 void ext2BlockAssign(Ext2 *ext2, Ext2Inode *ino, uint32_t inodeNum,
                      Ext2LookupControl *control, size_t curr, uint32_t val) {
-  int holdsLock = ext2DirLock(ext2->blockOperations, &ext2->LOCK_BLOCK_GLOBAL,
-                              EXT2_MAX_CONSEC_BLOCK, inodeNum);
+  spinlockCntWriteAcquire(&ext2->WLOCK_BLOCK);
   // uint32_t itemsPerBlock = ext2->blockSize / sizeof(uint32_t);
   // size_t   baseSingly = 12 + itemsPerBlock;
   // size_t   baseDoubly = baseSingly + ext2->blockSize * itemsPerBlock;
   if (curr < 12) {
-    int lockAt = ext2DirLock(ext2->inodeOperations, &ext2->LOCK_BLOCK_INODE,
-                             EXT2_MAX_CONSEC_INODE, inodeNum);
     ino->blocks[curr] = val;
     ext2InodeModifyM(ext2, inodeNum, ino);
-    ext2->inodeOperations[lockAt] = 0;
     goto cleanup;
   }
   /*else if (curr < baseSingly) {
@@ -167,7 +132,7 @@ void ext2BlockAssign(Ext2 *ext2, Ext2Inode *ino, uint32_t inodeNum,
   panic();
 
 cleanup:
-  ext2->blockOperations[holdsLock] = 0;
+  spinlockCntWriteRelease(&ext2->WLOCK_BLOCK);
 }
 
 uint32_t ext2BlockFind(Ext2 *ext2, int groupSuggestion, uint32_t amnt) {

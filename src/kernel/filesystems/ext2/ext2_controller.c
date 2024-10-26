@@ -157,20 +157,11 @@ int ext2Open(char *filename, int flags, int mode, OpenFile *fd,
   }
 
   if (flags & O_TRUNC) {
-    int lockAt = ext2DirLock(ext2->writeOperations, &ext2->LOCK_WRITES,
-                             EXT2_MAX_CONSEC_WRITE, inode);
     inodeFetched->size = 0;
     inodeFetched->size_high = 0;
     inodeFetched->num_sectors = 0;
 
-    // push
-    int lockAtInode =
-        ext2DirLock(ext2->inodeOperations, &ext2->LOCK_BLOCK_INODE,
-                    EXT2_MAX_CONSEC_INODE, inode);
     ext2InodeModifyM(ext2, inode, inodeFetched);
-    ext2->inodeOperations[lockAtInode] = 0;
-
-    ext2->writeOperations[lockAt] = 0;
   }
 
   Ext2OpenFd *dir = (Ext2OpenFd *)malloc(sizeof(Ext2OpenFd));
@@ -280,8 +271,7 @@ int ext2Write(OpenFile *fd, uint8_t *buff, size_t limit) {
   Ext2       *ext2 = EXT2_PTR(fd->mountPoint->fsInfo);
   Ext2OpenFd *dir = EXT2_DIR_PTR(fd->dir);
 
-  int lockAt = ext2DirLock(ext2->writeOperations, &ext2->LOCK_WRITES,
-                           EXT2_MAX_CONSEC_WRITE, dir->inodeNum);
+  spinlockAcquire(&ext2->LOCK_WRITE);
 
   size_t appendCursor = (size_t)(-1);
   if (fd->flags & O_APPEND) {
@@ -413,18 +403,15 @@ int ext2Write(OpenFile *fd, uint8_t *buff, size_t limit) {
 
   if (dir->ptr > dir->inode.size) {
     // update size
-    int lockAt = ext2DirLock(ext2->inodeOperations, &ext2->LOCK_BLOCK_INODE,
-                             EXT2_MAX_CONSEC_INODE, dir->inodeNum);
     dir->inode.size = dir->ptr;
     dir->inode.num_sectors = DivRoundUp(dir->ptr, SECTOR_SIZE) * SECTOR_SIZE;
     ext2InodeModifyM(ext2, dir->inodeNum, &dir->inode);
-    ext2->inodeOperations[lockAt] = 0;
   }
 
   if (fd->flags & O_APPEND)
     dir->ptr = appendCursor;
 
-  ext2->writeOperations[lockAt] = 0;
+  spinlockRelease(&ext2->LOCK_WRITE);
 
   // debugf("[fd:%d id:%d] read %d bytes\n", fd->id, currentTask->id, curr);
   // debugf("%d / %d\n", dir->ptr, dir->inode.size);

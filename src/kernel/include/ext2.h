@@ -158,20 +158,20 @@ typedef struct Ext2 {
   Ext2Superblock  superblock;
 
   // special locks for ext2Dir(De)Allocate
-  uint32_t dirOperations[EXT2_MAX_CONSEC_DIRALLOC];
-  Spinlock LOCK_DIRALLOC_GLOBAL;
+  // uint32_t dirOperations[EXT2_MAX_CONSEC_DIRALLOC];
+  // Spinlock LOCK_DIRALLOC_GLOBAL;
 
   // special locks for ext2Blocks*
-  uint32_t blockOperations[EXT2_MAX_CONSEC_BLOCK];
-  Spinlock LOCK_BLOCK_GLOBAL;
+  // uint32_t blockOperations[EXT2_MAX_CONSEC_BLOCK];
+  // Spinlock LOCK_BLOCK_GLOBAL;
 
   // special locks for ext2Inode*
-  uint32_t inodeOperations[EXT2_MAX_CONSEC_INODE];
-  Spinlock LOCK_BLOCK_INODE;
+  // uint32_t inodeOperations[EXT2_MAX_CONSEC_INODE];
+  // Spinlock LOCK_BLOCK_INODE;
 
   // special locks for any file writing
-  uint32_t writeOperations[EXT2_MAX_CONSEC_INODE];
-  Spinlock LOCK_WRITES;
+  // uint32_t writeOperations[EXT2_MAX_CONSEC_INODE];
+  // Spinlock LOCK_WRITES;
 
   // regular Spinlock[] array for every bgdt item
   Spinlock *LOCKS_BLOCK_BITMAP;
@@ -180,6 +180,11 @@ typedef struct Ext2 {
   // bgdt & superblock global write locks
   Spinlock LOCK_BGDT_WRITE;
   Spinlock LOCK_SUPERBLOCK_WRITE;
+
+  SpinlockCnt WLOCK_BLOCK;
+  SpinlockCnt WLOCK_INODE;
+  Spinlock    LOCK_DIRALLOC;
+  Spinlock    LOCK_WRITE;
 } Ext2;
 
 typedef struct Ext2LookupControl {
@@ -244,9 +249,6 @@ int ext2Touch(MountPoint *mnt, char *filename, uint32_t mode,
 // ext2_util.c
 void ext2BlockFetchInit(Ext2 *ext2, Ext2LookupControl *control);
 void ext2BlockFetchCleanup(Ext2LookupControl *control);
-
-int ext2DirLock(uint32_t *opArr, Spinlock *lock, int constant,
-                uint32_t inodeNum);
 
 uint32_t  ext2BlockFetch(Ext2 *ext2, Ext2Inode *ino, Ext2LookupControl *control,
                          size_t curr);

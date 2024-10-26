@@ -78,10 +78,7 @@ int ext2Mkdir(MountPoint *mnt, char *dirname, uint32_t mode,
   uint32_t newInodeNum = ext2InodeFind(ext2, group);
 
   // write to it
-  int lockAt = ext2DirLock(ext2->inodeOperations, &ext2->LOCK_BLOCK_INODE,
-                           EXT2_MAX_CONSEC_INODE, newInodeNum);
   ext2InodeModifyM(ext2, newInodeNum, &newInode);
-  ext2->inodeOperations[lockAt] = 0;
 
   // create the . and .. entries as children
   ext2DirAllocate(ext2, newInodeNum, &newInode, ".", 1, 2, newInodeNum);
@@ -168,10 +165,7 @@ int ext2Touch(MountPoint *mnt, char *filename, uint32_t mode,
   uint32_t newInodeNum = ext2InodeFind(ext2, group);
 
   // write to it
-  int lockAt = ext2DirLock(ext2->inodeOperations, &ext2->LOCK_BLOCK_INODE,
-                           EXT2_MAX_CONSEC_INODE, newInodeNum);
   ext2InodeModifyM(ext2, newInodeNum, &newInode);
-  ext2->inodeOperations[lockAt] = 0;
 
   // finally, assign it to the parent
   ext2DirAllocate(ext2, inode, inodeContents, name, nameLen, 1, newInodeNum);

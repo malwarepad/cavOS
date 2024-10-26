@@ -72,11 +72,19 @@ bool asciiProcess(int charnum) {
       changeTextColor(255, 255, 255);
       break;
     }
-    bool        extra = asciiChar1 == 1;
-    bool        do2 = asciiChar2 >= 30;
-    bool        bg = (do2 ? asciiChar2 : asciiChar1) >= 40;
-    ANSIcolors *colors = &ansiColors[(do2 ? asciiChar2 : asciiChar1) - 30 -
-                                     (bg ? 10 : 0) + (extra ? 10 : 0)];
+    if (asciiChar1 >= 100) {
+      asciiChar2 = asciiChar1 - (100 - 40);
+      asciiChar1 = 1;
+    }
+    // debugf("\\033[ (%d) (%d) m\n", asciiChar1, asciiChar2);
+    bool extra = asciiChar1 == 1;
+    bool do2 = asciiChar2 >= 30;
+    int  controlling = do2 ? asciiChar2 : asciiChar1;
+    if (controlling < 30)
+      break; // bold and/or reset?
+    bool        bg = (controlling) >= 40;
+    ANSIcolors *colors =
+        &ansiColors[(controlling)-30 - (bg ? 10 : 0) + (extra ? 10 : 0)];
     (bg ? changeBg : changeTextColor)(colors->rgb[0], colors->rgb[1],
                                       colors->rgb[2]);
     break;

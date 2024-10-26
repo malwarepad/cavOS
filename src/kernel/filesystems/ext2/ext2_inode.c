@@ -4,6 +4,7 @@
 #include <util.h>
 
 Ext2Inode *ext2InodeFetch(Ext2 *ext2, size_t inode) {
+  spinlockCntReadAcquire(&ext2->WLOCK_INODE);
   uint32_t group = INODE_TO_BLOCK_GROUP(ext2, inode);
   uint32_t index = INODE_TO_INDEX(ext2, inode);
 
@@ -24,11 +25,13 @@ Ext2Inode *ext2InodeFetch(Ext2 *ext2, size_t inode) {
   memcpy(ret, tmp, ext2->inodeSize);
 
   free(buf);
+  spinlockCntReadRelease(&ext2->WLOCK_INODE);
   return ret;
 }
 
 // IMPORTANT! Remember to manually set the lock **before** calling
 void ext2InodeModifyM(Ext2 *ext2, size_t inode, Ext2Inode *target) {
+  spinlockCntWriteAcquire(&ext2->WLOCK_INODE);
   uint32_t group = INODE_TO_BLOCK_GROUP(ext2, inode);
   uint32_t index = INODE_TO_INDEX(ext2, inode);
 
@@ -48,6 +51,7 @@ void ext2InodeModifyM(Ext2 *ext2, size_t inode, Ext2Inode *target) {
   setDiskBytes(buf, lba, len / SECTOR_SIZE);
 
   free(buf);
+  spinlockCntWriteRelease(&ext2->WLOCK_INODE);
 }
 
 uint32_t ext2InodeFind(Ext2 *ext2, int groupSuggestion) {
