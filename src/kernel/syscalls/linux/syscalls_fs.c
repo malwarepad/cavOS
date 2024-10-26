@@ -142,6 +142,15 @@ static int syscallIoctl(int fd, unsigned long request, void *arg) {
   return ret;
 }
 
+#define SYSCALL_PREAD64 17
+static int syscallPread64(uint64_t fd, char *buff, size_t count, size_t pos) {
+  int seekOp = syscallLseek(fd, pos, SEEK_SET);
+  if (seekOp < 0)
+    return seekOp;
+  int readOp = syscallRead(fd, buff, count);
+  return readOp;
+}
+
 #define SYSCALL_WRITEV 20
 static int syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
   int cnt = 0;
@@ -539,6 +548,7 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_LSTAT, syscallLstat);
   registerSyscall(SYSCALL_MKDIR, syscallMkdir);
   registerSyscall(SYSCALL_UMASK, syscallUmask);
+  registerSyscall(SYSCALL_PREAD64, syscallPread64);
 
   registerSyscall(SYSCALL_IOCTL, syscallIoctl);
   registerSyscall(SYSCALL_READV, syscallReadV);
