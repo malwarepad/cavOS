@@ -3,6 +3,7 @@
 #include <syscalls.h>
 #include <system.h>
 #include <task.h>
+#include <timer.h>
 #include <util.h>
 
 #define SYSCALL_GETPID 39
@@ -145,6 +146,15 @@ static int syscallSetTidAddr(int *tidptr) {
   return currentTask->id;
 }
 
+// todo.. actually random!
+#define SYSCALL_GETRANDOM 318
+static int syscallGetRandom(char *buff, size_t count, uint32_t flags) {
+  srand(timerTicks);
+  for (int i = 0; i < count; i++)
+    buff[i] = rand();
+  return count;
+}
+
 void syscallsRegEnv() {
   registerSyscall(SYSCALL_GETPID, syscallGetPid);
   registerSyscall(SYSCALL_GETCWD, syscallGetcwd);
@@ -162,4 +172,5 @@ void syscallsRegEnv() {
   registerSyscall(SYSCALL_UNAME, syscallUname);
   registerSyscall(SYSCALL_FCHDIR, syscallFchdir);
   registerSyscall(SYSCALL_GETGROUPS, syscallGetgroups);
+  registerSyscall(SYSCALL_GETRANDOM, syscallGetRandom);
 }
