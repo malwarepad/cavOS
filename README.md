@@ -37,7 +37,7 @@ Important to mention these goals may never be satisfied, take a very long time t
   - [x] FAT32: Read
   - [x] Ext2: Read
   - [ ] FAT32: Write
-  - [ ] Ext2: Write
+  - [x] Ext2: Write
 - Device drivers
   - [x] Storage: AHCI
   - [x] Networking: RTL8139, RTL8169
@@ -59,7 +59,7 @@ Important to mention these goals may never be satisfied, take a very long time t
 - Interfaces
   - [x] Kernel: Embedded shell
   - [ ] Kernel: Good panic screens
-  - [ ] Ports: Bash, coreutils, vim, binutils, gcc
+  - [x] Ports: Bash, coreutils, vim, binutils, gcc
   - [ ] Desires: Cool fetch, some damn IRC client
 - Graphics
   - [x] Framebuffer: Use in kernel
