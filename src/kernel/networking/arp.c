@@ -54,48 +54,42 @@ void debugArpTable(NIC *nic) {
  * job of the handle function, called by the generic NIC interface controller*/
 
 void netArpSend(NIC *nic, const uint8_t *ip) {
-  arpPacket *arp = malloc(sizeof(arpPacket));
-  memset(arp, 0, sizeof(arpPacket));
+  arpPacket arp = {0};
 
-  arp->hardware_type = switch_endian_16(ARP_HARDWARE_TYPE);
-  arp->protocol_type = switch_endian_16(ARP_PROTOCOL_TYPE);
-  arp->hardware_size = ARP_HARDWARE_SIZE;
-  arp->protocol_size = ARP_PROTOCOL_SIZE;
-  arp->opcode = switch_endian_16(ARP_OP_REQUEST);
+  arp.hardware_type = switch_endian_16(ARP_HARDWARE_TYPE);
+  arp.protocol_type = switch_endian_16(ARP_PROTOCOL_TYPE);
+  arp.hardware_size = ARP_HARDWARE_SIZE;
+  arp.protocol_size = ARP_PROTOCOL_SIZE;
+  arp.opcode = switch_endian_16(ARP_OP_REQUEST);
 
-  memcpy(arp->sender_ip, nic->ip, ARP_PROTOCOL_SIZE);
-  memcpy(arp->sender_mac, nic->MAC, ARP_HARDWARE_SIZE);
+  memcpy(arp.sender_ip, nic->ip, ARP_PROTOCOL_SIZE);
+  memcpy(arp.sender_mac, nic->MAC, ARP_HARDWARE_SIZE);
 
-  memset(arp->target_mac, 0, ARP_HARDWARE_SIZE); // we don't know it!
-  memcpy(arp->target_ip, ip, ARP_PROTOCOL_SIZE);
+  memset(arp.target_mac, 0, ARP_HARDWARE_SIZE); // we don't know it!
+  memcpy(arp.target_ip, ip, ARP_PROTOCOL_SIZE);
 
   // Send packet
-  sendPacket(nic, broadcastMAC, arp, sizeof(arpPacket), NET_ETHERTYPE_ARP);
-
-  free(arp);
+  sendPacket(nic, broadcastMAC, &arp, sizeof(arpPacket), NET_ETHERTYPE_ARP);
 }
 
 void netArpReply(NIC *nic, arpPacket *arpRequest) {
-  arpPacket *arpResponse = (arpPacket *)malloc(sizeof(arpPacket));
-  memset(arpResponse, 0, sizeof(arpPacket));
+  arpPacket arpResponse = {0};
 
-  arpResponse->hardware_type = switch_endian_16(ARP_HARDWARE_TYPE);
-  arpResponse->protocol_type = switch_endian_16(ARP_PROTOCOL_TYPE);
-  arpResponse->hardware_size = ARP_HARDWARE_SIZE;
-  arpResponse->protocol_size = ARP_PROTOCOL_SIZE;
-  arpResponse->opcode = switch_endian_16(ARP_OP_REPLY);
+  arpResponse.hardware_type = switch_endian_16(ARP_HARDWARE_TYPE);
+  arpResponse.protocol_type = switch_endian_16(ARP_PROTOCOL_TYPE);
+  arpResponse.hardware_size = ARP_HARDWARE_SIZE;
+  arpResponse.protocol_size = ARP_PROTOCOL_SIZE;
+  arpResponse.opcode = switch_endian_16(ARP_OP_REPLY);
 
-  memcpy(arpResponse->sender_ip, nic->ip, ARP_PROTOCOL_SIZE);
-  memcpy(arpResponse->sender_mac, nic->MAC, ARP_HARDWARE_SIZE);
+  memcpy(arpResponse.sender_ip, nic->ip, ARP_PROTOCOL_SIZE);
+  memcpy(arpResponse.sender_mac, nic->MAC, ARP_HARDWARE_SIZE);
 
-  memcpy(arpResponse->target_mac, arpRequest->sender_mac, ARP_HARDWARE_SIZE);
-  memcpy(arpResponse->target_ip, arpRequest->sender_ip, ARP_PROTOCOL_SIZE);
+  memcpy(arpResponse.target_mac, arpRequest->sender_mac, ARP_HARDWARE_SIZE);
+  memcpy(arpResponse.target_ip, arpRequest->sender_ip, ARP_PROTOCOL_SIZE);
 
   // Send packet
-  sendPacket(nic, arpRequest->sender_mac, arpResponse, sizeof(arpPacket),
+  sendPacket(nic, arpRequest->sender_mac, &arpResponse, sizeof(arpPacket),
              NET_ETHERTYPE_ARP);
-
-  free(arpResponse);
 }
 
 void netArpHandle(NIC *nic, arpPacket *packet) {

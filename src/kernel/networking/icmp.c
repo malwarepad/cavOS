@@ -10,19 +10,14 @@
 
 void netICMPsendPing(NIC *nic, uint8_t *destination_mac,
                      uint8_t *destination_ip) {
-  uint8_t    *final = malloc(sizeof(icmpHeader));
-  icmpHeader *header = (icmpHeader *) final;
+  icmpHeader header = {0};
 
-  memset(header, 0, sizeof(icmpHeader));
+  header.type = ICMP_ECHO;
+  header.code = 0;
+  header.checksum = checksum(&header, sizeof(icmpHeader));
 
-  header->type = ICMP_ECHO;
-  header->code = 0;
-  header->checksum = checksum(header, sizeof(icmpHeader));
-
-  netIPv4Send(nic, destination_mac, destination_ip, final, sizeof(icmpHeader),
+  netIPv4Send(nic, destination_mac, destination_ip, &header, sizeof(icmpHeader),
               ICMP_PROTOCOL);
-
-  free(final);
 }
 
 void netICMPreply(NIC *nic, uint8_t *destination_mac, uint8_t *destination_ip,

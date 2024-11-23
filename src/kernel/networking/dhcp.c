@@ -16,7 +16,7 @@ uint8_t dhcpBroadcastMAC[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 uint8_t dhcpBroadcastIp[] = {0xff, 0xff, 0xff, 0xff};
 
 void netDHCPapproveOptions(NIC *nic) {
-  uint8_t    *body = (uint8_t *)malloc(sizeof(dhcpHeader) + 32);
+  uint8_t     body[sizeof(dhcpHeader) + 128] = {0};
   dhcpHeader *header = (dhcpHeader *)body;
   memset(header, 0, sizeof(dhcpHeader));
 
@@ -63,8 +63,6 @@ void netDHCPapproveOptions(NIC *nic) {
 
   netUdpSend(nic, dhcpBroadcastMAC, dhcpBroadcastIp, body,
              sizeof(dhcpHeader) + extras, 68, 67);
-
-  free(body);
 }
 
 // returns true only on ack
@@ -157,7 +155,7 @@ bool netDHCPreceive(NIC *nic, void *body, uint32_t size) {
 }
 
 void netDHCPinit(NIC *nic) {
-  uint8_t    *body = (uint8_t *)malloc(sizeof(dhcpHeader) + 32);
+  uint8_t     body[sizeof(dhcpHeader) + 128] = {0};
   dhcpHeader *header = (dhcpHeader *)body;
   memset(header, 0, sizeof(dhcpHeader));
 
@@ -200,7 +198,6 @@ void netDHCPinit(NIC *nic) {
   }
   netUdpSend(nic, dhcpBroadcastMAC, dhcpBroadcastIp, body,
              sizeof(dhcpHeader) + extras, 68, 67);
-  free(body);
 
   uint64_t caputre = timerTicks;
   bool     dhcpRet = false;
