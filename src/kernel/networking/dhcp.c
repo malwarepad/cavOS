@@ -67,9 +67,7 @@ void netDHCPapproveOptions(NIC *nic) {
 
 // returns true only on ack
 bool netDHCPreceive(NIC *nic, void *body, uint32_t size) {
-  udpHeader  *udp = (udpHeader *)((size_t)body + sizeof(netPacketHeader) +
-                                 sizeof(IPv4header));
-  dhcpHeader *dhcp = (dhcpHeader *)((size_t)udp + sizeof(udpHeader));
+  dhcpHeader *dhcp = (dhcpHeader *)body;
   uint8_t    *dhcpOptions = (uint8_t *)((size_t)dhcp + sizeof(dhcpHeader));
 
   if (switch_endian_32(dhcp->xid) != nic->dhcpTransactionID)
@@ -204,12 +202,12 @@ void netDHCPinit(NIC *nic) {
 
   // when i trust kernel tasks enough, could just create one of those...
   // !*(uint32_t *)(&nic->ip[0])
+  uint8_t buff[1500] = {0};
   while (!dhcpRet && timerTicks < (caputre + DHCP_TIMEOUT)) {
-    socketPacketHeader *head = netSocketRecv(nic->dhcpUdpRegistered);
-    if (head) {
-      dhcpRet = netDHCPreceive(
-          nic, (void *)((size_t)head + sizeof(socketPacketHeader)), head->size);
-      netSocketRecvCleanup(head);
+    uint32_t lenScanned = netSocketRecv(nic->dhcpUdpRegistered, buff, 1500);
+    if (lenScanned > 0) {
+      dhcpRet = netDHCPreceive(nic, buff, lenScanned);
+      // netSocketRecvCleanup(head);
     }
   }
 }

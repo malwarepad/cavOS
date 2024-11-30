@@ -107,25 +107,22 @@ void handlePacket(NIC *nic, void *packet, uint32_t size) {
 // outside stuff
 
 QueuePacket netQueue[QUEUE_MAX];
-int         netQueueCurr;
+int         netQueueRead = 0;
+int         netQueueWrite = 0;
 
 void netQueueAdd(NIC *nic, uint8_t *packet, uint16_t packetLength) {
-  QueuePacket *item = &netQueue[netQueueCurr];
-
-  if (item->exists) {
-    item->exists = false;
-    debugf("[netqueue] Old %d length packet dropped!\n", item->packetLength);
+  if ((netQueueWrite + 1) % QUEUE_MAX == netQueueRead) {
+    debugf("[netqueue] New %d length packet dropped!\n", packetLength);
+    return;
   }
 
-  item->exists = true;
+  QueuePacket *item = &netQueue[netQueueWrite];
   item->nic = nic;
   memcpy(item->buff, packet, packetLength);
   item->packetLength = packetLength;
-  item->exists = true;
 
-  if (++netQueueCurr >= QUEUE_MAX)
-    netQueueCurr = 0;
+  netQueueWrite = (netQueueWrite + 1) % QUEUE_MAX;
 
   // direct the task
-  netHelperTask->state = TASK_STATE_READY;
+  // netHelperTask->state = TASK_STATE_READY;
 }

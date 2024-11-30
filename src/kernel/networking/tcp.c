@@ -5,6 +5,7 @@
 #include <socket.h>
 #include <system.h>
 #include <tcp.h>
+#include <timer.h>
 #include <util.h>
 
 // An actual TCP implementation! (kinda)
@@ -31,8 +32,16 @@ void netTcpReceive(NIC *nic, void *body, uint32_t size) {
   tcpConnection *tcp = (tcpConnection *)browse->protocolSpecific;
   uint32_t       tcpSize =
       (switch_endian_16(ipv4->length) - sizeof(IPv4header) - sizeof(tcpHeader));
-  tcp->client_ack_number +=
-      switch_endian_16(ipv4->length) - sizeof(IPv4header) - sizeof(tcpHeader);
+
+  if (tcp->open &&
+      switch_endian_32(header->sequence_number) != tcp->client_ack_number) {
+    netTcpReAck(nic, browse);
+    debugf("[networking::tcp] Dropped! their_seq{%d} our_ack{%d}\n",
+           switch_endian_32(header->sequence_number), tcp->client_ack_number);
+    return;
+  }
+
+  tcp->client_ack_number += tcpSize;
 
   if (header->flags & ACK_FLAG && header->flags & SYN_FLAG && !tcp->open) {
     // still haven't completed handshake
@@ -50,10 +59,19 @@ void netTcpReceive(NIC *nic, void *body, uint32_t size) {
 
     tcp->closing = false;
     tcp->open = false;
+    tcp->closed = true;
   } else if (header->flags & ACK_FLAG && tcpSize) {
     // casual data receive
-    netTcpAck(nic, browse);
-    netSocketPass(nic, SOCKET_PROT_TCP, body, size);
+    bool res = netSocketPass(nic, SOCKET_PROT_TCP, body, size);
+    if (!res) {
+      tcp->client_ack_number -= tcpSize;
+      netTcpReAck(nic, browse);
+    } else
+      netTcpAck(nic, browse);
+  } else if (header->flags & RST_FLAG) {
+    tcp->closing = false;
+    tcp->open = false;
+    tcp->closed = true;
   }
 
   // browse->handler(nic, body, size, browse); // nah
@@ -108,6 +126,16 @@ void netTcpSendUnsafe(NIC *nic, Socket *socket, uint8_t flags, void *data,
   connection->client_seq_number += size;
 }
 
+void netTcpReAck(NIC *nic, Socket *socket) {
+  tcpConnection *connection = (tcpConnection *)socket->protocolSpecific;
+  if (timerTicks >=
+      (connection->lastRetransmissionTime + 500)) // 500 ms have passed
+  {
+    netTcpSendUnsafe(nic, socket, ACK_FLAG, 0, 0);
+    timerTicks = connection->lastRetransmissionTime;
+  }
+}
+
 void netTcpAck(NIC *nic, Socket *socket) {
   netTcpSendUnsafe(nic, socket, ACK_FLAG, 0, 0);
 }
@@ -136,6 +164,7 @@ tcpConnection *netTcpConnect(NIC *nic, Socket *socket) {
 
   connection->open = false;
   connection->closing = false;
+  connection->closed = false;
   // connection->client_port = source_port;
   // connection->server_port = destination_port;
   // memcpy(socket->server_ip, destination_ip, 4);
@@ -160,8 +189,8 @@ void netTcpAwaitOpen(Socket *socket) {
   tcpConnection *connection = (tcpConnection *)socket->protocolSpecific;
   if (connection->closing)
     return;
-  while (!connection->open)
-    ;
+  while (!connection->open && !connection->closed)
+    handControl();
 }
 
 bool netTcpClose(NIC *nic, Socket *socket) {

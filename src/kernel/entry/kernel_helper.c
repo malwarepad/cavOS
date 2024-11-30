@@ -14,22 +14,17 @@ Task *netHelperTask = 0;
 
 void netHelperEntry() {
   while (true) {
-    for (int i = 0; i < QUEUE_MAX; i++) {
-      if (!netQueue[i].exists)
-        continue;
-
-      handlePacket(netQueue[i].nic, netQueue[i].buff, netQueue[i].packetLength);
-      netQueue[i].exists = false;
+    while (netQueueRead == netQueueWrite) {
+      // empty :p
+      handControl();
     }
 
-    // wait until we're called back again
-    netHelperTask->state = TASK_STATE_IDLE;
-    while (netHelperTask->state == TASK_STATE_IDLE)
-      handControl();
+    handlePacket(netQueue[netQueueRead].nic, netQueue[netQueueRead].buff,
+                 netQueue[netQueueRead].packetLength);
+    netQueueRead = (netQueueRead + 1) % QUEUE_MAX;
   }
 }
 
 void initiateKernelThreads() {
-  // a
   netHelperTask = taskCreateKernel((size_t)netHelperEntry, 0);
 }

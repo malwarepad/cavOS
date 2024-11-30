@@ -1,4 +1,5 @@
 #include "pci.h"
+#include "system.h"
 #include "types.h"
 
 #ifndef NIC_CONTROLLER_H
@@ -53,6 +54,8 @@ struct socketPacketHeader {
   uint32_t            size;
 };
 
+#define SOCK_RECV_BUFSIZE 212992
+
 typedef struct Socket Socket;
 struct Socket {
   Socket *next;
@@ -65,7 +68,10 @@ struct Socket {
   uint16_t client_port; // dest
   uint16_t server_port;
 
-  socketPacketHeader *firstPacket;
+  uint32_t recvBuffRecv;
+  uint32_t recvBuffSend;
+  uint8_t  recvBuff[SOCK_RECV_BUFSIZE];
+  Spinlock LOCK_PACKET;
 };
 
 struct NIC {
@@ -132,7 +138,7 @@ void handlePacket(NIC *nic, void *packet, uint32_t size);
 // outside stuff
 
 #define PACKET_MAX 1600
-#define QUEUE_MAX 32
+#define QUEUE_MAX 128
 typedef struct QueuePacket {
   bool exists;
 
@@ -143,7 +149,8 @@ typedef struct QueuePacket {
 } QueuePacket;
 
 QueuePacket netQueue[QUEUE_MAX];
-int         netQueueCurr;
+int         netQueueRead;
+int         netQueueWrite;
 
 void netQueueAdd(NIC *nic, uint8_t *packet, uint16_t packetLength);
 
