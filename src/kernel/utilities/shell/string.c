@@ -4,11 +4,31 @@
 // String management file
 // Copyright (C) 2024 Panagiotis
 
-uint32_t strlength(const char *ch) {
-  uint32_t i = 0; // Changed counter to 0
+size_t strlength(const char *ch) {
+  size_t i = 0; // Changed counter to 0
   while (ch[i++])
     ;
   return i - 1; // Changed counter to i instead of i--
+}
+
+size_t strlen(const char *ch) {
+  size_t i = 0; // Changed counter to 0
+  while (ch[i++])
+    ;
+  return i - 1; // Changed counter to i instead of i--
+}
+
+int strncmp(const char *str1, const char *str2, size_t n) {
+  size_t i;
+
+  for (i = 0; i < n; i++) {
+    if (str1[i] == '\0' || str2[i] == '\0')
+      return (unsigned char)str1[i] - (unsigned char)str2[i];
+    if (str1[i] != str2[i])
+      return (unsigned char)str1[i] - (unsigned char)str2[i];
+  }
+
+  return 0;
 }
 
 int isdigit(char c) { return c >= '0' && c <= '9'; }

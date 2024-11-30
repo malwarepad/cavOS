@@ -429,6 +429,16 @@ static int syscallMkdirAt(int dirfd, char *pathname, int mode) {
   return -ENOSYS;
 }
 
+#define SYSCALL_NEWFSTATAT 262
+static int syscallNewfstatat(int dfd, char *filename, struct stat *statbuf,
+                             int flag) {
+  if (filename[0] == '\0')
+    return syscallFstat(dfd, statbuf);
+
+  debugf("[syscalls::newfstatat] Not implemented!\n");
+  return -ENOSYS;
+}
+
 #define SYSCALL_FACCESSAT 269
 static int syscallFaccessat(int dirfd, char *pathname, int mode) {
   if (pathname[0] == '\0') { // by fd
@@ -563,5 +573,6 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_FCNTL, syscallFcntl);
   registerSyscall(SYSCALL_STATX, syscallStatx);
   registerSyscall(SYSCALL_READLINK, syscallReadlink);
+  registerSyscall(SYSCALL_NEWFSTATAT, syscallNewfstatat);
   // registerSyscall(SYSCALL_FACCESSAT2, syscallFaccessat2);
 }

@@ -7,6 +7,7 @@
   "C_Cpp.clang_format_style": "{ BasedOnStyle: LLVM, AlignConsecutiveDeclarations: true, IndentWidth: 2 }",
   "C_Cpp.default.compilerArgs": [
     "-I${workspaceRoot}/src/kernel/include",
+    "-I${workspaceRoot}/src/kernel/networking/lwip/include/",
     "-m64",
     "-c",
     "-ffreestanding",
@@ -26,6 +27,7 @@
   ],
   "clang.cflags": [
     "-I${workspaceRoot}/src/kernel/include",
+    "-I${workspaceRoot}/src/kernel/networking/lwip/include/",
     "-m64",
     "-c",
     "-ffreestanding",

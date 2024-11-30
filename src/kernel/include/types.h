@@ -5,6 +5,9 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+// typedef long ssize_t;
+#define INT_MAX 2147483647 // 2^31 - 1
+
 #define low_16(address) (uint16_t)((address) & 0xFFFF)
 #define high_16(address) (uint16_t)(((address) >> 16) & 0xFFFF)
 

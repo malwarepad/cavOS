@@ -42,3 +42,18 @@ void spinlockCntWriteRelease(SpinlockCnt *lock) {
   }
   lock->cnt = 0;
 }
+
+void semaphoreWait(Semaphore *sem) {
+  while (sem->cnt < 1)
+    handControl();
+
+  spinlockAcquire(&sem->LOCK);
+  sem->cnt--;
+  spinlockRelease(&sem->LOCK);
+}
+
+void semaphorePost(Semaphore *sem) {
+  spinlockAcquire(&sem->LOCK);
+  sem->cnt++;
+  spinlockRelease(&sem->LOCK);
+}

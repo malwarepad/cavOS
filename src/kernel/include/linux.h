@@ -576,7 +576,7 @@ struct old_utsname {
 
 // /usr/include/x86_64-linux-gnu/bits/struct_stat.h
 typedef struct stat {
-#ifdef __USE_TIME_BITS64
+#if 0
 #include <bits/struct_stat_time64_helper.h>
 #else
   __dev_t st_dev; /* Device.  */
@@ -622,9 +622,9 @@ typedef struct stat {
      identifier 'timespec' to appear in the <sys/stat.h> header.
      Therefore we have to handle the use of this header in strictly
      standard-compliant sources special.  */
-  struct timespec st_atim; /* Time of last access.  */
-  struct timespec st_mtim; /* Time of last modification.  */
-  struct timespec st_ctim; /* Time of last status change.  */
+  struct timespec st_atim;      /* Time of last access.  */
+  struct timespec st_mtim;      /* Time of last modification.  */
+  struct timespec st_ctim;      /* Time of last status change.  */
 #define st_atime st_atim.tv_sec /* Backward compatibility.  */
 #define st_mtime st_mtim.tv_sec
 #define st_ctime st_ctim.tv_sec

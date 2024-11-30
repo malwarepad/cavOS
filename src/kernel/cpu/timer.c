@@ -28,8 +28,10 @@ void timerTick(uint64_t rsp) {
   schedule(rsp);
 }
 
-void sleep(uint32_t time) {
+uint32_t sleep(uint32_t time) {
   uint64_t target = timerTicks + (time);
-  while (target > timerTicks) {
-  }
+  while (target > timerTicks)
+    handControl();
+
+  return 0;
 }

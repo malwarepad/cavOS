@@ -1,0 +1,87 @@
+#include "arch/cc.h"
+
+// extending on lwip/include/lwip/opt.h
+
+#ifndef CUSTOM_LWIPOPTS_H
+#define CUSTOM_LWIPOPTS_H
+
+#define LWIP_PROVIDE_ERRNO 1
+#define MEM_LIBC_MALLOC 1
+#define LWIP_NO_CTYPE_H 1
+#define LWIP_NO_UNISTD_H 1
+#define LWIP_NO_LIMITS_H 1
+#define LWIP_TIMEVAL_PRIVATE 0
+#define CUSTOM_IOVEC 1
+
+#define TCPIP_MBOX_SIZE 32
+
+#define LWIP_DHCP 1
+#define LWIP_DEBUG 1
+
+#define SYS_LIGHTWEIGHT_PROT 0
+
+typedef struct {
+  Spinlock LOCK;
+
+  bool   invalid;
+  int    ptrRead;
+  int    ptrWrite;
+  int    size;
+  void **msges;
+} sys_mbox_t;
+
+typedef uint64_t  sys_thread_t;
+typedef Semaphore sys_sem_t;
+typedef Spinlock  sys_mutex_t;
+// typedef lwip_mbox sys_mbox_t;
+
+// #define SYS_LIGHTWEIGHT_PROT 1
+typedef uint8_t sys_prot_t;
+
+int errno;
+
+#define LWIP_PLATFORM_ASSERT(x)                                                \
+  do {                                                                         \
+    debugf("Assertion \"%s\" failed at line %d in %s\n", x, __LINE__,          \
+           __FILE__);                                                          \
+    panic();                                                                   \
+  } while (0)
+
+#define LWIP_PLATFORM_DIAG(x)                                                  \
+  do {                                                                         \
+    debugf x;                                                                  \
+  } while (0)
+
+// off lwip/include/lwip/sys.h
+
+// #define sys_sem_new(s, c) ERR_OK
+// #define sys_sem_signal(s)
+// #define sys_sem_wait(s)
+// #define sys_arch_sem_wait(s, t)
+// #define sys_sem_free(s)
+// #define sys_sem_valid(s) 0
+// #define sys_sem_valid_val(s) 0
+// #define sys_sem_set_invalid(s)
+// #define sys_sem_set_invalid_val(s)
+// #define sys_mutex_new(mu) ERR_OK
+// #define sys_mutex_lock(mu)
+// #define sys_mutex_unlock(mu)
+// #define sys_mutex_free(mu)
+// #define sys_mutex_valid(mu) 0
+// #define sys_mutex_set_invalid(mu)
+// #define sys_mbox_new(m, s) ERR_OK
+// #define sys_mbox_fetch(m, d)
+// #define sys_mbox_tryfetch(m, d)
+// #define sys_mbox_post(m, d)
+// #define sys_mbox_trypost(m, d)
+// #define sys_mbox_free(m)
+// #define sys_mbox_valid(m)
+// #define sys_mbox_valid_val(m)
+// #define sys_mbox_set_invalid(m)
+// #define sys_mbox_set_invalid_val(m)
+
+// #define sys_thread_new(n, t, a, s, p)
+
+// #define sys_msleep(t)
+
+#endif

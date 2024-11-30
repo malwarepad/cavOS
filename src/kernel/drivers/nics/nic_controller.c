@@ -11,8 +11,18 @@
 #include <system.h>
 #include <util.h>
 
+#include <timer.h>
+
+#include <lwip/api.h>
+#include <lwip/dhcp.h>
+#include <lwip/etharp.h>
+#include <lwip/ip_addr.h>
+#include <lwip/tcpip.h>
+
 // Manager for all connected network interfaces
 // Copyright (C) 2024 Panagiotis
+
+err_t lwipDummyInit(struct netif *netif) { return ERR_OK; }
 
 void initiateNetworking() {
   // start off with no first NIC and no selected one
@@ -21,10 +31,69 @@ void initiateNetworking() {
   debugf("[networking] Ready to scan for NICs..\n");
 }
 
+err_t lwipOutput(struct netif *netif, struct pbuf *p) {
+  PCI *pci = firstPCI;
+  while (pci) {
+    NIC *nic = (NIC *)pci->extra;
+    if (pci->category == PCI_DRIVER_CATEGORY_NIC && &nic->lwip == netif)
+      break;
+    pci = pci->next;
+  }
+
+  if (!pci) {
+    debugf("[nics] Coudln't find netif to pass!\n");
+    panic();
+  }
+
+  NIC *nic = (NIC *)pci->extra;
+  sendPacketRaw(nic, p->payload, p->len);
+  return ERR_OK;
+}
+
+void lwipInitInThread(void *nicPre) {
+  NIC *nic = (NIC *)nicPre;
+  // struct ethernetif *ethernetif;
+  struct ip4_addr netmask;
+
+  struct netif *this_netif = &nic->lwip;
+
+  this_netif->state = NULL;
+  this_netif->name[0] = 65;
+  this_netif->name[1] = 66;
+  this_netif->next = NULL;
+
+  IP4_ADDR(&netmask, 255, 255, 255, 0);
+  netif_add(this_netif, NULL, &netmask, NULL, NULL, lwipDummyInit,
+            tcpip_input); // ethernetif_init_low
+
+  this_netif->output = etharp_output;
+  this_netif->linkoutput = lwipOutput;
+  netif_set_default(this_netif);
+  this_netif->hwaddr_len = ETHARP_HWADDR_LEN;
+  this_netif->hwaddr[0] = nic->MAC[0]; // or whatever u like
+  this_netif->hwaddr[1] = nic->MAC[1];
+  this_netif->hwaddr[2] = nic->MAC[2];
+  this_netif->hwaddr[3] = nic->MAC[3];
+  this_netif->hwaddr[4] = nic->MAC[4];
+  this_netif->hwaddr[5] = nic->MAC[5];
+  this_netif->mtu = nic->mtu;
+  this_netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP |
+                      NETIF_FLAG_ETHERNET | NETIF_FLAG_LINK_UP;
+  netif_set_up(this_netif);
+  err_t out = dhcp_start(this_netif);
+  if (out != ERR_OK) {
+    debugf("[nic::lwip] Couldn't start dhcp!\n");
+    panic();
+  }
+  sys_check_timeouts();
+  dhcp_supplied_address(this_netif);
+}
+
 void initiateNIC(PCIdevice *device) {
   if (initiateNe2000(device) || initiateRTL8139(device) ||
       initiateRTL8169(device)) {
-    netDHCPinit(selectedNIC); // selectedNIC = newly created NIC structure
+    // selectedNIC = newly created NIC structure
+    tcpip_init(lwipInitInThread, selectedNIC);
   }
 }
 
@@ -72,36 +141,32 @@ void sendPacket(NIC *nic, uint8_t *destination_mac, void *data, uint32_t size,
   free(packet);
 }
 
-void handlePacket(NIC *nic, void *packet, uint32_t size) {
-  netPacketHeader *header = (netPacketHeader *)packet;
-  void            *body = (void *)((size_t)packet + sizeof(netPacketHeader));
-
-  if (memcmp(header->destination_mac, nic->MAC, 6) != 0 &&
-      memcmp(header->destination_mac, macBroadcast, 6) != 0 &&
-      memcmp(header->destination_mac, macZero, 6) != 0) {
-    debugf("[nics] Packet isn't intended for us, ignoring! "
-           "dest{%02X:%02X:%02X:%02X:%02X:%02X}\n",
-           header->destination_mac[0], header->destination_mac[1],
-           header->destination_mac[2], header->destination_mac[3],
-           header->destination_mac[4], header->destination_mac[5]);
+void sendPacketRaw(NIC *nic, void *data, uint32_t size) {
+  if (size > nic->mtu) {
+    debugf("[nics] FATAL! Packet size{%d} is larger than said NIC's MTU{%d}\n",
+           size, nic->mtu);
     return;
   }
 
-  switch (switch_endian_16(header->ethertype)) {
-  case NET_ETHERTYPE_ARP:
-    netArpHandle(nic, body);
+  switch (nic->type) {
+  case NE2000:
+    sendNe2000(nic, data, size);
     break;
-  case NET_ETHERTYPE_IPV4:
-    netIPv4Receive(nic, packet, size);
+  case RTL8139:
+    sendRTL8139(nic, data, size);
     break;
-  case NET_ETHERTYPE_IPV6:
-    // fuck IPv6
-    break;
-  default:
-    debugf("[nics] Odd ethertype: exact{%X} reversed{%X}\n", header->ethertype,
-           switch_endian_16(header->ethertype));
+  case RTL8169:
+    sendRTL8169(nic, data, size);
     break;
   }
+}
+
+void handlePacket(NIC *nic, void *packet, uint32_t size) {
+  struct pbuf *p = pbuf_alloc(PBUF_RAW, size, PBUF_RAM);
+  uint8_t     *targ = (uint8_t *)p->payload;
+  for (int i = 0; i < size; i++)
+    targ[i] = ((uint8_t *)packet)[i];
+  nic->lwip.input(p, &nic->lwip);
 }
 
 // outside stuff

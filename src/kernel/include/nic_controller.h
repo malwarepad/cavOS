@@ -2,6 +2,8 @@
 #include "system.h"
 #include "types.h"
 
+#include <lwip/netif.h>
+
 #ifndef NIC_CONTROLLER_H
 #define NIC_CONTROLLER_H
 
@@ -75,6 +77,8 @@ struct Socket {
 };
 
 struct NIC {
+  struct netif lwip;
+
   NIC_TYPE type;
   uint16_t mtu;
   uint8_t  mintu;
@@ -133,6 +137,7 @@ enum NET_ETHERTYPES {
 
 void sendPacket(NIC *nic, uint8_t *destination_mac, void *data, uint32_t size,
                 uint16_t protocol);
+void sendPacketRaw(NIC *nic, void *data, uint32_t size);
 void handlePacket(NIC *nic, void *packet, uint32_t size);
 
 // outside stuff

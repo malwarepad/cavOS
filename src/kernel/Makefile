@@ -2,7 +2,7 @@ COMPILER = ~/opt/cross/bin/x86_64-cavos-gcc
 LINKER = ~/opt/cross/bin/x86_64-cavos-ld
 ASSEMBLER = nasm
 # -w(no warnings) -g(dev)
-CFLAGS = -m64 -c -ffreestanding -Wall -Werror -fcommon -Iinclude/ -fPIE -mno-80387 \
+CFLAGS = -m64 -g -c -ffreestanding -Wall -Werror -fcommon -Iinclude/ -Inetworking/lwip/include/ -fPIE -mno-80387 \
     -mno-mmx \
     -mno-sse \
 		-nostartfiles \

@@ -3,12 +3,14 @@
 
 #include "types.h"
 
-bool     strEql(char *ch1, char *ch2);
-char    *strtok(char *str, const char *delimiters, char **context);
-char    *strpbrk(const char *str, const char *delimiters);
-int      atoi(const char *str);
-uint32_t strlength(const char *ch);
-bool     check_string(char *str);
-long     strtol(const char *s, char **endptr, int base);
+bool   strEql(char *ch1, char *ch2);
+char  *strtok(char *str, const char *delimiters, char **context);
+char  *strpbrk(const char *str, const char *delimiters);
+int    atoi(const char *str);
+size_t strlength(const char *ch);
+size_t strlen(const char *ch);
+int    strncmp(const char *str1, const char *str2, size_t n);
+bool   check_string(char *str);
+long   strtol(const char *s, char **endptr, int base);
 
 #endif
