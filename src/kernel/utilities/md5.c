@@ -282,3 +282,17 @@ void MD5_Final(unsigned char *result, MD5_CTX *ctx) {
 }
 
 #endif
+
+#include <malloc.h>
+#include <system.h>
+void MD5_Simple(uint8_t *buff, int length, char *md5sum_out) {
+  MD5_CTX ctx = {0};
+  MD5_Init(&ctx);
+  MD5_Update(&ctx, buff, length);
+
+  MD5_OUT md = {0};
+  MD5_Final((void *)&md, &ctx);
+  snprintf(md5sum_out, MD5_LEN, "%02x%02x%02x%02x", switch_endian_32(md.a),
+           switch_endian_32(md.b), switch_endian_32(md.c),
+           switch_endian_32(md.d));
+}
