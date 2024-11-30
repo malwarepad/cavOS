@@ -16,6 +16,7 @@
 #define TCPIP_MBOX_SIZE 32
 
 #define LWIP_DHCP 1
+#define LWIP_DNS 1
 #define LWIP_DEBUG 1
 
 #define SYS_LIGHTWEIGHT_PROT 0
@@ -51,6 +52,8 @@ int errno;
   do {                                                                         \
     debugf x;                                                                  \
   } while (0)
+
+#define LWIP_RAND() ((u32_t)rand())
 
 // off lwip/include/lwip/sys.h
 

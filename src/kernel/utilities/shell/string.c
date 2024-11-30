@@ -31,6 +31,17 @@ int strncmp(const char *str1, const char *str2, size_t n) {
   return 0;
 }
 
+void strncpy(char *dest, const char *src, size_t n) {
+  size_t i = 0;
+  while (i < n && src[i] != '\0') {
+    dest[i] = src[i];
+    i++;
+  }
+  while (i < n) {
+    dest[i++] = '\0';
+  }
+}
+
 int isdigit(char c) { return c >= '0' && c <= '9'; }
 
 int atoi(const char *str) {
