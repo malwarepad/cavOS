@@ -130,8 +130,8 @@ if [ ! -f "$USR_PATHNAME/share/zoneinfo/Europe/Amsterdam" ]; then
 	mkdir timezonestuff
 	cd timezonestuff
 
-	wget http://ftp.us.debian.org/debian/pool/main/t/tzdata/tzdata_2024a-4_all.deb
-	ar x tzdata_2024a-4_all.deb
+	wget http://ftp.us.debian.org/debian/pool/main/t/tzdata/tzdata_2024b-3_all.deb
+	ar x tzdata_2024b-3_all.deb
 	tar -xvf data.tar.xz
 
 	mkdir -p "$USR_PATHNAME/share/zoneinfo/"
