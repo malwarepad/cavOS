@@ -104,6 +104,9 @@ Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
 
   taskAttachDefTermios(target);
 
+  // just in case it ends up becoming an orphan
+  target->parent = firstTask;
+
   return target;
 }
 
