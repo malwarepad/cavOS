@@ -34,9 +34,9 @@ limine:
 # Primary (disk creation)
 disk_prepare: verifytools limine musl ports
 # @$(MAKE) -C src/libs/system
-	@$(MAKE) -C src/software/test
-	@$(MAKE) -C src/software/badtest
-	@$(MAKE) -C src/software/drawimg
+	@$(MAKE) -C src/software/test -j1
+	@$(MAKE) -C src/software/badtest -j1
+	@$(MAKE) -C src/software/drawimg -j1
 disk: disk_prepare
 	@$(MAKE) -C src/kernel disk
 disk_dirty: disk_prepare
@@ -83,3 +83,7 @@ vmware:
 ringhome:
 	cmd.exe /c C:/Users/Panagiotis/ring.bat
 dev: clean disk_dirty qemu_dbg
+
+# this makefile is designed to work in order..
+# however the -j flag is passed to ones that benefit from multiple jobs (such as the kernel)
+.NOTPARALLEL:
