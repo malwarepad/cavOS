@@ -32,6 +32,23 @@ void initiateNetworking() {
 }
 
 err_t lwipOutput(struct netif *netif, struct pbuf *p) {
+  uint8_t     *complete = malloc(p->tot_len);
+  struct pbuf *browse = p;
+  uint32_t     cnt = 0;
+
+  while (browse) {
+    memcpy(&complete[cnt], browse->payload, browse->len);
+    cnt += browse->len;
+    browse = browse->next;
+  }
+
+  if (cnt != p->tot_len) {
+    debugf("[networking::lwipOut] Something is seriously wrong! tot_len{%d} "
+           "cnt{%d}\n",
+           p->tot_len, cnt);
+    panic();
+  }
+
   PCI *pci = firstPCI;
   while (pci) {
     NIC *nic = (NIC *)pci->extra;
@@ -46,7 +63,7 @@ err_t lwipOutput(struct netif *netif, struct pbuf *p) {
   }
 
   NIC *nic = (NIC *)pci->extra;
-  sendPacketRaw(nic, p->payload, p->len);
+  sendPacketRaw(nic, complete, p->tot_len);
   return ERR_OK;
 }
 
