@@ -64,6 +64,7 @@ err_t lwipOutput(struct netif *netif, struct pbuf *p) {
 
   NIC *nic = (NIC *)pci->extra;
   sendPacketRaw(nic, complete, p->tot_len);
+  free(complete);
   return ERR_OK;
 }
 
