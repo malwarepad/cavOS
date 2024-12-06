@@ -110,6 +110,32 @@ static int syscallLstat(char *filename, stat *statbuf) {
   return 0;
 }
 
+#include <timer.h>
+#define SYSCALL_POLL 7
+static int syscallPoll(struct pollfd *fds, int nfds, int timeout) {
+  int ret = 0;
+  for (int i = 0; i < nfds; i++) {
+    uint64_t start = timerTicks;
+    fds[i].revents = 0; // as a start
+    if (fds[i].fd == -1)
+      continue; // ignore -1 fds
+
+    OpenFile *browse = fsUserGetNode(currentTask, fds[i].fd);
+    if (!browse || !browse->handlers->poll)
+      continue;
+
+    if (browse->handlers->poll(browse, &fds[i], timeout))
+      ret++;
+
+    // ack time
+    if (timeout <= (timerTicks - start))
+      timeout = 0;
+    else
+      timeout -= timerTicks - start;
+  }
+  return ret;
+}
+
 #define SYSCALL_LSEEK 8
 static int syscallLseek(uint32_t file, int offset, int whence) {
   return fsUserSeek(currentTask, file, offset, whence);
@@ -240,6 +266,8 @@ static int syscallFcntl(int fd, int cmd, uint64_t arg) {
   OpenFile *file = fsUserGetNode(currentTask, fd);
   if (!file)
     return -EBADF;
+  if (file->handlers->fcntl)
+    file->handlers->fcntl(file, cmd, arg);
   switch (cmd) {
   case F_GETFD:
     return file->closeOnExec;
@@ -550,6 +578,7 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_READ, syscallRead);
   registerSyscall(SYSCALL_OPEN, syscallOpen);
   registerSyscall(SYSCALL_OPENAT, syscallOpenat);
+  registerSyscall(SYSCALL_POLL, syscallPoll);
   registerSyscall(SYSCALL_MKDIRAT, syscallMkdirAt);
   registerSyscall(SYSCALL_CLOSE, syscallClose);
   registerSyscall(SYSCALL_LSEEK, syscallLseek);

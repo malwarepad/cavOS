@@ -1037,4 +1037,25 @@ struct fb_fix_screeninfo {
 #define TIOCSPTLCK 0x40045431
 #define TIOCGPTN 0xffffffff80045430
 
+#define POLLIN 0x1
+#define POLLOUT 0x2
+#define POLLERR 0x4
+#define POLLNVAL 0x8
+/* Below values are unimplemented */
+#define POLLRDNORM 0x10
+#define POLLRDBAND 0x20
+#define POLLPRI 0x40
+#define POLLWRNORM 0x80
+#define POLLWRBAND 0x100
+#define POLLHUP 0x200
+typedef unsigned int nfds_t;
+struct pollfd {
+  int   fd;      /* file descriptor */
+  short events;  /* requested events */
+  short revents; /* returned events */
+};
+
+#define SOCK_CLOEXEC 02000000
+#define SOCK_NONBLOCK 04000
+
 #endif

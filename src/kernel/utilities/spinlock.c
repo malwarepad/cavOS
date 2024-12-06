@@ -1,5 +1,6 @@
 #include <spinlock.h>
 #include <system.h>
+#include <timer.h>
 
 void spinlockAcquire(Spinlock *lock) {
   while (atomic_flag_test_and_set_explicit(lock, memory_order_acquire))
@@ -43,13 +44,19 @@ void spinlockCntWriteRelease(SpinlockCnt *lock) {
   lock->cnt = 0;
 }
 
-void semaphoreWait(Semaphore *sem) {
-  while (sem->cnt < 1)
+bool semaphoreWait(Semaphore *sem, uint32_t timeout) {
+  uint64_t timerStart = timerTicks;
+  while (sem->cnt < 1) {
+    if (timeout > 0 && timerTicks > (timerStart + timeout))
+      return false;
     handControl();
+  }
 
   spinlockAcquire(&sem->LOCK);
   sem->cnt--;
   spinlockRelease(&sem->LOCK);
+
+  return true;
 }
 
 void semaphorePost(Semaphore *sem) {

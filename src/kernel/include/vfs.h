@@ -64,6 +64,8 @@ typedef int (*SpecialOpen)(char *filename, int flags, int mode, OpenFile *fd,
                            char **symlinkResolve);
 typedef bool (*SpecialClose)(OpenFile *fd);
 typedef size_t (*SpecialGetFilesize)(OpenFile *fd);
+typedef void (*SpecialFcntl)(OpenFile *fd, int cmd, uint64_t arg);
+typedef bool (*SpecialPoll)(OpenFile *fd, struct pollfd *pollFd, int timeout);
 
 typedef struct VfsHandlers {
   SpecialReadHandler  read;
@@ -74,6 +76,8 @@ typedef struct VfsHandlers {
   SpecialMmapHandler  mmap;
   SpecialGetdents64   getdents64;
   SpecialGetFilesize  getFilesize;
+  SpecialPoll         poll;
+  SpecialFcntl        fcntl; // it's extra
 
   SpecialDuplicate duplicate;
   SpecialOpen      open;

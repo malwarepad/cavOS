@@ -22,6 +22,7 @@ target/proc
 target/dev/pts
 target/dev
 target/bin
+target/etc/ssl
 
 # Limine repository
 src/bootloader/limine

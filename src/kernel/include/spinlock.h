@@ -32,7 +32,7 @@ void spinlockCntReadRelease(SpinlockCnt *lock);
 void spinlockCntWriteAcquire(SpinlockCnt *lock);
 void spinlockCntWriteRelease(SpinlockCnt *lock);
 
-void semaphoreWait(Semaphore *sem);
+bool semaphoreWait(Semaphore *sem, uint32_t timeout);
 void semaphorePost(Semaphore *sem);
 
 #endif

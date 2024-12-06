@@ -45,8 +45,8 @@ uint32_t sys_arch_sem_wait(sys_sem_t *sem, uint32_t timeout) {
     debugf("[lwip::glue] todo: Timeout\n");
     panic();
   }
-  semaphoreWait(sem);
-  return 0;
+  bool ret = semaphoreWait(sem, timeout);
+  return ret ? 0 : SYS_ARCH_TIMEOUT;
 }
 
 void sys_sem_free(sys_sem_t *sem) { sys_sem_new(sem, 0); }

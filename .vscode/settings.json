@@ -47,5 +47,6 @@
   ],
   "files.exclude": {
     "**/*.o": true
-  }
+  },
+  "makefile.configureOnOpen": false
 }

@@ -136,6 +136,9 @@ void initiateSyscalls() {
   // Time/Date/Clocks!
   syscallsRegClock();
 
+  // Networking
+  syscallsRegNet();
+
   debugf("[syscalls] System calls are ready to fire: %d/%d\n", syscallCnt,
          MAX_SYSCALLS);
 }

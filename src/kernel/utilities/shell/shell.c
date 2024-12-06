@@ -18,6 +18,8 @@
 #include <timer.h>
 #include <util.h>
 
+#include <lwip/dns.h>
+
 // Temporary kernelspace shell
 // Copyright (C) 2024 Panagiotis
 
@@ -275,6 +277,13 @@ void launch_shell(int n) {
         }
         NIC *nic = pci->extra;
 
+        const ip_addr_t *dns = dns_getserver(1);
+
+        uint8_t *ipaddr = (uint8_t *)&nic->lwip.ip_addr.addr;
+        uint8_t *subnetaddr = (uint8_t *)&nic->lwip.netmask.addr;
+        uint8_t *serveraddr = (uint8_t *)&nic->lwip.gw;
+        uint8_t *dnsaddr = (uint8_t *)&dns[0].addr;
+
         if (nic == selectedNIC)
           printf("[%d]: ", nic->type);
         else
@@ -282,11 +291,10 @@ void launch_shell(int n) {
         printf("%02X:%02X:%02X:%02X:%02X:%02X IPv4{%d.%d.%d.%d} "
                "SubnetMask{%d.%d.%d.%d} Router{%d.%d.%d.%d} DNS{%d.%d.%d.%d}\n",
                nic->MAC[0], nic->MAC[1], nic->MAC[2], nic->MAC[3], nic->MAC[4],
-               nic->MAC[5], nic->ip[0], nic->ip[1], nic->ip[2], nic->ip[3],
-               nic->subnetMask[0], nic->subnetMask[1], nic->subnetMask[2],
-               nic->subnetMask[3], nic->serverIp[0], nic->serverIp[1],
-               nic->serverIp[2], nic->serverIp[3], nic->dnsIp[0], nic->dnsIp[1],
-               nic->dnsIp[2], nic->dnsIp[3]);
+               nic->MAC[5], ipaddr[0], ipaddr[1], ipaddr[2], ipaddr[3],
+               subnetaddr[0], subnetaddr[1], subnetaddr[2], subnetaddr[3],
+               serveraddr[0], serveraddr[1], serveraddr[2], serveraddr[3],
+               dnsaddr[0], dnsaddr[1], dnsaddr[2], dnsaddr[3]);
         pci = pci->next;
       }
     } else if (strEql(ch, "lspci_")) {
