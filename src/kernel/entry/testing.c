@@ -6,6 +6,7 @@
 #include <md5.h>
 #include <ne2k.h>
 #include <pci.h>
+#include <shell.h>
 #include <socket.h>
 #include <string.h>
 #include <system.h>
@@ -22,25 +23,38 @@
 // Testing stuff
 // Copyright (C) 2024 Panagiotis
 
+#include "lwip/err.h"
+#include "lwip/netdb.h"
+#include "lwip/sockets.h"
+
+#include <kb.h>
+
 extern void weirdTests();
+
+void waitNicIPAssigned() {
+  PCI *pci = firstPCI;
+  while (pci) {
+    if (pci->category == PCI_DRIVER_CATEGORY_NIC)
+      break;
+    pci = pci->next;
+  }
+  NIC *nic = (NIC *)(pci ? pci->extra : 0);
+
+  if (nic)
+    while (!nic->lwip.ip_addr.addr)
+      handControl();
+}
 
 // char *argv[] = {"/doom", "-iwad", "/DOOM.WAD"};
 // char *argv[] = {"/usr/bin/busybox", "sh"};
 // char *argv[] = {"/usr/bin/bash"};
+// char *argv[] = {"/usr/bin/bash", "-c", "/a.out"};
 // char *argv[] = {"/usr/bin/testing"};
 // char *argv[] = {"/a.out"};
 // char *argv[] = {"/usr/bin/doom", "-iwad", "/usr/bin/doom.wad"};
 void testingInit() {
-  // netSocketConnect(selectedNIC, SOCKET_PROT_UDP, (uint8_t[]){10, 0, 2, 15},
-  //                   5643, 69);
-  // weirdTests();
-  // elfExecute("/usr/bin/busybox", 2, argv);
-  // while (1) {
-  // Task *task =
-  //     elfExecute(argv[0], sizeof(argv) / sizeof(argv[0]), argv, 0, 0, true);
-  // while (taskGetState(task->id))
-  //   ;
-  // }
+  // waitNicIPAssigned();
+  // run(argv[0], true, sizeof(argv) / sizeof(argv[0]), argv);
 }
 
 void weirdTests() {

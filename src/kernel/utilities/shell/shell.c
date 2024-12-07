@@ -126,9 +126,13 @@ void echo(char *ch) {
   printf("\n%s\n", str);
 }
 
-bool run(char *binary, bool wait) {
+bool run(char *binary, bool wait, int _argc, char **_argv) {
   char *argv[] = {binary};
-  Task *task = elfExecute(binary, 1, argv, 0, 0, true);
+  Task *task = 0;
+  if (_argc > 0)
+    task = elfExecute(binary, _argc, _argv, 0, 0, true);
+  else
+    task = elfExecute(binary, 1, argv, 0, 0, true);
   task->parent = currentTask;
 
   bool ret = !!task;
@@ -253,7 +257,7 @@ void launch_shell(int n) {
                mac[3], mac[4], mac[5]);
     } else if (strEql(ch, "bash")) {
       printf("\n");
-      run("/usr/bin/bash", true);
+      run("/usr/bin/bash", true, 0, 0);
     } else if (strEql(ch, "ping")) {
       uint8_t ip[4];
       uint8_t mac[6];
@@ -334,7 +338,7 @@ void launch_shell(int n) {
       readStr(filepath);
       printf("\n");
 
-      bool ret = run(filepath, true);
+      bool ret = run(filepath, true, 0, 0);
       if (!ret) {
         printf("Failure executing %s!\n", filepath);
         continue;
@@ -363,7 +367,7 @@ void launch_shell(int n) {
     } else if (strEql(ch, "proctest")) {
       printf("\n");
       for (int i = 0; i < 4; i++)
-        run("/usr/bin/testing", false);
+        run("/usr/bin/testing", false, 0, 0);
     } else if (strEql(ch, "cwm")) {
       printf("\n%s\n",
              "After taking some time off the project, I realized I was "

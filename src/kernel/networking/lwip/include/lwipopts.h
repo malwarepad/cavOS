@@ -19,6 +19,10 @@
 #define LWIP_DNS 1
 #define LWIP_DEBUG 1
 
+// optimizations
+#define TCP_WND (16 * TCP_MSS)
+#define LWIP_CHKSUM_ALGORITHM 3
+
 #define SYS_LIGHTWEIGHT_PROT 0
 
 typedef struct {

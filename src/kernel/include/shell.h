@@ -3,6 +3,6 @@
 #include "types.h"
 
 void launch_shell(int n);
-bool run(char *binary, bool wait);
+bool run(char *binary, bool wait, int _argc, char **_argv);
 
 #endif
