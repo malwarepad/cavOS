@@ -132,11 +132,57 @@ force_inline HBA_CMD_TBL *ahciSetUpCmdTable(ahci           *ahciPtr,
   return cmdtbl;
 }
 
+uint16_t ahciCalcPrdts(void *buff, uint32_t sectors) {
+  size_t bytes = sectors << 9;
+  size_t start = (size_t)buff;
+  size_t end = start + bytes;
+
+  uint16_t prdt_count = 0;
+  size_t   current = start;
+
+  while (current < end) {
+    // max space for current prdt
+    size_t prdt_limit =
+        ((current + AHCI_BYTES_PER_PRDT) & ~(AHCI_BYTES_PER_PRDT - 1)) -
+        current;
+    size_t page_limit = ((current + PAGE_SIZE) & ~(PAGE_SIZE - 1)) - current;
+
+    // find smallest limit (ass, ik)
+    size_t chunk_size = MIN(prdt_limit, page_limit);
+    chunk_size = MIN(chunk_size, end - current);
+
+    // traverse
+    current += chunk_size;
+    prdt_count++;
+  }
+
+  if (prdt_count > AHCI_PRDTS) {
+    debugf("[ahci] Wrong calculations inside disk.c! prdts{%lx} max{%lx}\n",
+           prdt_count, AHCI_PRDTS);
+    panic();
+  }
+
+  return prdt_count;
+}
+
 force_inline void ahciSetUpPRDT(HBA_CMD_HEADER *cmdheader, HBA_CMD_TBL *cmdtbl,
                                 uint16_t *buff, uint32_t count) {
-  // 4 MiB (16 sectors) per PRDT
+  size_t totalBytes = count << 9;
   size_t i = 0;
-  for (i = 0; i < cmdheader->prdtl - 1; i++) {
+  if (!IS_ALIGNED((size_t)buff, 0x1000)) {
+    size_t rounded = ((((size_t)buff) + 4095) & ~4095);
+    size_t needed = MIN(rounded - (size_t)buff, totalBytes); // min(gap, limit)
+    size_t targPhys = VirtualToPhysical((size_t)buff);
+    cmdtbl->prdt_entry[i].dba = SPLIT_64_LOWER(targPhys);
+    cmdtbl->prdt_entry[i].dbau = SPLIT_64_HIGHER(targPhys);
+    cmdtbl->prdt_entry[i].dbc = needed - 1; // 512 bytes per sector
+    cmdtbl->prdt_entry[i].i = 1;
+    totalBytes -= needed;
+    buff = (void *)((size_t)buff + needed);
+    i++;
+  }
+  // 4 MiB (16 sectors) per PRDT
+  for (; i < cmdheader->prdtl - 1; i++) {
     size_t targPhys = VirtualToPhysical((size_t)buff);
     cmdtbl->prdt_entry[i].dba = SPLIT_64_LOWER(targPhys);
     cmdtbl->prdt_entry[i].dbau = SPLIT_64_HIGHER(targPhys);
@@ -144,15 +190,24 @@ force_inline void ahciSetUpPRDT(HBA_CMD_HEADER *cmdheader, HBA_CMD_TBL *cmdtbl,
         AHCI_BYTES_PER_PRDT - 1; // 4 MiB (this value should always be set to 1
                                  // less than the actual value)
     cmdtbl->prdt_entry[i].i = 1;
-    buff += AHCI_BYTES_PER_PRDT / 2;    // appropriate words
-    count -= AHCI_BYTES_PER_PRDT / 512; // appropriate sectors
+    buff += AHCI_BYTES_PER_PRDT / 2; // appropriate words
+    // count -= AHCI_BYTES_PER_PRDT / 512; // appropriate sectors
+    totalBytes -= AHCI_BYTES_PER_PRDT;
   }
-  size_t targPhys = VirtualToPhysical((size_t)buff);
-  // Last entry
-  cmdtbl->prdt_entry[i].dba = SPLIT_64_LOWER(targPhys);
-  cmdtbl->prdt_entry[i].dbau = SPLIT_64_HIGHER(targPhys);
-  cmdtbl->prdt_entry[i].dbc = (count << 9) - 1; // 512 bytes per sector
-  cmdtbl->prdt_entry[i].i = 1;
+  if (totalBytes > 0) {
+    size_t targPhys = VirtualToPhysical((size_t)buff);
+    // Last entry
+    cmdtbl->prdt_entry[i].dba = SPLIT_64_LOWER(targPhys);
+    cmdtbl->prdt_entry[i].dbau = SPLIT_64_HIGHER(targPhys);
+    cmdtbl->prdt_entry[i].dbc = totalBytes - 1; // 512 bytes per sector
+    cmdtbl->prdt_entry[i].i = 1;
+  }
+
+  if (totalBytes > 0x1000) {
+    debugf("[ahci] FATAL! Mis-calculation, left totalBytes{%ld} > 0x1000!\n",
+           totalBytes);
+    panic();
+  }
 }
 
 /* Port initialization (used only on startup): */
@@ -285,8 +340,8 @@ bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
   if (slot == -1)
     return false;
 
-  HBA_CMD_HEADER *cmdheader =
-      ahciSetUpCmdHeader(ahciPtr, portId, slot, AHCI_CALC_PRDT(count), false);
+  HBA_CMD_HEADER *cmdheader = ahciSetUpCmdHeader(
+      ahciPtr, portId, slot, ahciCalcPrdts(buff, count), false);
   HBA_CMD_TBL *cmdtbl = ahciSetUpCmdTable(ahciPtr, cmdheader, portId, slot);
 
   ahciSetUpPRDT(cmdheader, cmdtbl, (uint16_t *)buff, count);
@@ -322,8 +377,8 @@ bool ahciWrite(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
   if (slot == -1)
     return false;
 
-  HBA_CMD_HEADER *cmdheader =
-      ahciSetUpCmdHeader(ahciPtr, portId, slot, AHCI_CALC_PRDT(count), true);
+  HBA_CMD_HEADER *cmdheader = ahciSetUpCmdHeader(
+      ahciPtr, portId, slot, ahciCalcPrdts(buff, count), true);
   HBA_CMD_TBL *cmdtbl = ahciSetUpCmdTable(ahciPtr, cmdheader, portId, slot);
 
   ahciSetUpPRDT(cmdheader, cmdtbl, (uint16_t *)buff, count);

@@ -1,5 +1,6 @@
 #include "pci.h"
 #include "types.h"
+#include "util.h"
 
 #ifndef AHCI_H
 #define AHCI_H
@@ -545,13 +546,10 @@ typedef struct tagHBA_CMD_TBL {
 
 // my defs (there are problems with PRDTS > 256)
 #define AHCI_PRDTS (256)
-#define AHCI_BYTES_PER_PRDT (4194304 / 1024)
+#define AHCI_BYTES_PER_PRDT (0x1000)
 
 #define AHCI_MEM_TABLE (64 + 16 + 48 + 16 * AHCI_PRDTS)
 #define AHCI_MEM_ALL_TABLES (AHCI_MEM_TABLE * 32)
-
-#define AHCI_CALC_PRDT(sectors)                                                \
-  (DivRoundUp((sectors) * 512, AHCI_BYTES_PER_PRDT))
 
 typedef enum {
   FIS_TYPE_REG_H2D = 0x27,   // Register FIS - host to device

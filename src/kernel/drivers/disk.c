@@ -56,9 +56,14 @@ void diskBytes(uint8_t *target_address, uint32_t LBA, uint32_t sector_count,
 // todo: allow concurrent stuff
 force_inline void diskBytesMax(uint8_t *target_address, uint32_t LBA,
                                size_t sector_count, bool write) {
+  int prdtAmnt = AHCI_PRDTS;
+
+  if (!IS_ALIGNED((size_t)target_address, 0x1000))
+    prdtAmnt--; // we later fill in for head
+
   // calculated by: (bytesPerPRDT * PRDTamnt) / SECTOR_SIZE
   //                (    4MiB     *     8   ) /     512
-  size_t max = (AHCI_BYTES_PER_PRDT * AHCI_PRDTS) / SECTOR_SIZE;
+  size_t max = (AHCI_BYTES_PER_PRDT * prdtAmnt) / SECTOR_SIZE;
 
   size_t chunks = sector_count / max;
   size_t remainder = sector_count % max;
