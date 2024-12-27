@@ -108,6 +108,12 @@ force_inline HBA_CMD_HEADER *ahciSetUpCmdHeader(ahci *ahciPtr, uint32_t portId,
   HBA_CMD_HEADER *cmdheader = (HBA_CMD_HEADER *)ahciPtr->clbVirt[portId];
   cmdheader =
       (HBA_CMD_HEADER *)((size_t)cmdheader + cmdslot * sizeof(HBA_CMD_HEADER));
+  memset(cmdheader, 0, sizeof(HBA_CMD_HEADER));
+  size_t ctbaPhysCurr =
+      (size_t)VirtualToPhysical((size_t)ahciPtr->ctbaVirt[portId]) +
+      cmdslot * AHCI_MEM_TABLE;
+  cmdheader->ctba = SPLIT_64_LOWER(ctbaPhysCurr);
+  cmdheader->ctbau = SPLIT_64_HIGHER(ctbaPhysCurr);
   cmdheader->cfl = sizeof(FIS_REG_H2D) / sizeof(uint32_t); // Command FIS size
   cmdheader->w = (uint8_t)write; // 0 = read, 1 = write
   cmdheader->prdtl = prdt;       // PRDT entries count
@@ -119,33 +125,33 @@ force_inline HBA_CMD_TBL *ahciSetUpCmdTable(ahci           *ahciPtr,
                                             HBA_CMD_HEADER *cmdheader,
                                             uint32_t        portId,
                                             uint32_t        cmdTableId) {
-  HBA_CMD_TBL *cmdtbl =
-      (HBA_CMD_TBL *)((size_t)ahciPtr->ctbaVirt[portId] + cmdTableId * 256);
+  HBA_CMD_TBL *cmdtbl = (HBA_CMD_TBL *)((size_t)ahciPtr->ctbaVirt[portId] +
+                                        cmdTableId * AHCI_MEM_TABLE);
   memset(cmdtbl, 0,
-         sizeof(HBA_CMD_TBL) + (cmdheader->prdtl - 1) * sizeof(HBA_PRDT_ENTRY));
+         sizeof(HBA_CMD_TBL) + cmdheader->prdtl * sizeof(HBA_PRDT_ENTRY));
   return cmdtbl;
 }
 
 force_inline void ahciSetUpPRDT(HBA_CMD_HEADER *cmdheader, HBA_CMD_TBL *cmdtbl,
-                                uint16_t *buff, uint32_t *count) {
+                                uint16_t *buff, uint32_t count) {
   // 4 MiB (16 sectors) per PRDT
-  int i = 0;
+  size_t i = 0;
   for (i = 0; i < cmdheader->prdtl - 1; i++) {
     size_t targPhys = VirtualToPhysical((size_t)buff);
     cmdtbl->prdt_entry[i].dba = SPLIT_64_LOWER(targPhys);
     cmdtbl->prdt_entry[i].dbau = SPLIT_64_HIGHER(targPhys);
     cmdtbl->prdt_entry[i].dbc =
-        4194304 - 1; // 4 MiB (this value should always be set to 1 less
-                     // than the actual value)
+        AHCI_BYTES_PER_PRDT - 1; // 4 MiB (this value should always be set to 1
+                                 // less than the actual value)
     cmdtbl->prdt_entry[i].i = 1;
-    buff += 4194304 / 2;     // appropriate words
-    *count -= 4194304 / 512; // appropriate sectors
+    buff += AHCI_BYTES_PER_PRDT / 2;    // appropriate words
+    count -= AHCI_BYTES_PER_PRDT / 512; // appropriate sectors
   }
   size_t targPhys = VirtualToPhysical((size_t)buff);
   // Last entry
   cmdtbl->prdt_entry[i].dba = SPLIT_64_LOWER(targPhys);
   cmdtbl->prdt_entry[i].dbau = SPLIT_64_HIGHER(targPhys);
-  cmdtbl->prdt_entry[i].dbc = (*count << 9) - 1; // 512 bytes per sector
+  cmdtbl->prdt_entry[i].dbc = (count << 9) - 1; // 512 bytes per sector
   cmdtbl->prdt_entry[i].i = 1;
 }
 
@@ -203,15 +209,17 @@ void ahciPortRebase(ahci *ahciPtr, HBA_PORT *port, int portno) {
   // Command table offset: 40K + 8K*portno
   // Command table size = 256*32 = 8K per port
   HBA_CMD_HEADER *cmdheader = (HBA_CMD_HEADER *)clbVirt;
-  void           *ctbaVirt = VirtualAllocate(2); // 2 pages = 8192 bytes //!
+  void           *ctbaVirt = VirtualAllocate(AHCI_MEM_ALL_TABLES /
+                                             PAGE_SIZE); // 2 pages = 8192 bytes //!
   ahciPtr->ctbaVirt[portno] = ctbaVirt;
   size_t ctbaPhys = (size_t)VirtualToPhysical((size_t)ctbaVirt);
-  memset(ctbaVirt, 0, 8192);
+  memset(ctbaVirt, 0, AHCI_MEM_ALL_TABLES);
   for (int i = 0; i < 32; i++) {
-    cmdheader[i].prdtl = 8; // 8 prdt entries per command table
-                            // 256 bytes per command table, 64+16+48+16*8
+    cmdheader[i].prdtl =
+        AHCI_PRDTS; // 8 prdt entries per command table
+                    // 256 bytes per command table, 64+16+48+16*8
     // Command table offset: 40K + 8K*portno + cmdheader_index*256
-    size_t ctbaPhysCurr = ctbaPhys + i * 256;
+    size_t ctbaPhysCurr = ctbaPhys + i * AHCI_MEM_TABLE;
     cmdheader[i].ctba = SPLIT_64_LOWER(ctbaPhysCurr);
     cmdheader[i].ctbau = SPLIT_64_HIGHER(ctbaPhysCurr);
     // memset((void *)cmdheader[i].ctba, 0, 256); already 0'd
@@ -281,9 +289,7 @@ bool ahciRead(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
       ahciSetUpCmdHeader(ahciPtr, portId, slot, AHCI_CALC_PRDT(count), false);
   HBA_CMD_TBL *cmdtbl = ahciSetUpCmdTable(ahciPtr, cmdheader, portId, slot);
 
-  // todo: look this up
-  uint32_t countSec = count;
-  ahciSetUpPRDT(cmdheader, cmdtbl, (uint16_t *)buff, &countSec);
+  ahciSetUpPRDT(cmdheader, cmdtbl, (uint16_t *)buff, count);
 
   FIS_REG_H2D *cmdfis = (FIS_REG_H2D *)(&cmdtbl->cfis);
 
@@ -320,7 +326,7 @@ bool ahciWrite(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
       ahciSetUpCmdHeader(ahciPtr, portId, slot, AHCI_CALC_PRDT(count), true);
   HBA_CMD_TBL *cmdtbl = ahciSetUpCmdTable(ahciPtr, cmdheader, portId, slot);
 
-  ahciSetUpPRDT(cmdheader, cmdtbl, (uint16_t *)buff, &count);
+  ahciSetUpPRDT(cmdheader, cmdtbl, (uint16_t *)buff, count);
 
   FIS_REG_H2D *cmdfis = (FIS_REG_H2D *)(&cmdtbl->cfis);
 
@@ -359,7 +365,8 @@ void ahciInterruptHandler(AsmPassedInterrupt *regs) {
         HBA_PORT *port = &ahciPtr->mem->ports[portNum];
         if (port->is & HBA_PxIS_TFES) {
           // Task file error
-          printf("[pci::ahci] FATAL! Task file error!\n");
+          printf("[pci::ahci] FATAL! Task file error! %x %x\n", port->tfd,
+                 port->serr);
           panic();
         }
         ahciPtr->mem->is = ahciPtr->mem->is;
