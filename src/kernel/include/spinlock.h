@@ -16,7 +16,7 @@ void spinlockAcquire(Spinlock *lock);
 void spinlockRelease(Spinlock *lock);
 
 typedef struct SpinlockCnt {
-  Spinlock LOCK; // todo!
+  Spinlock LOCK;
   int64_t  cnt;
 } SpinlockCnt;
 
