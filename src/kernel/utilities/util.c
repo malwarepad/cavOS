@@ -3,7 +3,25 @@
 // Utilities used inside source code
 // Copyright (C) 2024 Panagiotis
 
-#define LONG_MASK (sizeof(unsigned long) - 1)
+const char *ANSI_RESET = "\e[0m";
+const char *ANSI_BLACK = "\e[0;30m";
+const char *ANSI_RED = "\e[0;31m";
+const char *ANSI_GREEN = "\e[0;32m";
+const char *ANSI_YELLOW = "\e[0;33m";
+const char *ANSI_BLUE = "\e[0;34m";
+const char *ANSI_PURPLE = "\e[0;35m";
+const char *ANSI_CYAN = "\e[0;36m";
+const char *ANSI_WHITE = "\e[0;37m";
+
+const char *LINUX_ERRNO[37] = {
+    "EPERM",  "ENOENT",  "ESRCH",   "EINTR",  "EIO",     "ENXIO",
+    "E2BIG",  "ENOEXEC", "EBADF",   "ECHILD", "EAGAIN",  "ENOMEM",
+    "EACCES", "EFAULT",  "ENOTBLK", "EBUSY",  "EEXIST",  "EXDEV",
+    "ENODEV", "ENOTDIR", "EISDIR",  "EINVAL", "ENFILE",  "EMFILE",
+    "ENOTTY", "ETXTBSY", "EFBIG",   "ENOSPC", "ESPIPE",  "EROFS",
+    "EMLINK", "EPIPE",   "EDOM",    "ERANGE", "EDEADLK", "ENAMETOOLONG",
+    "ENOLCK"};
+
 void memset(void *_dst, int val, size_t len) {
   asm volatile("pushf; cld; rep stosb; popf"
                :

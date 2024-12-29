@@ -154,10 +154,7 @@ static int syscallSocket(int family, int type, int protocol) {
     break;
   }
   default:
-#if DEBUG_SYSCALLS_STUB
-    debugf("[syscalls::socket] Tried to create a socket of family{%d}\n",
-           family);
-#endif
+    dbgSysStubf("todo family{%d}", family);
     return -ENOSYS;
     break;
   }

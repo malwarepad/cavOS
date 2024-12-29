@@ -16,7 +16,7 @@ static int syscallPipe(int *fds) { return pipeOpen(fds); }
 #define SYSCALL_PIPE2 293
 static int syscallPipe2(int *fds, int flags) {
   if (flags && flags != O_CLOEXEC) {
-    debugf("[syscalls::pipe2] FAILING! Unimplemented flags! %x\n", flags);
+    dbgSysStubf("todo flags");
     return -ENOSYS;
   }
 
@@ -134,16 +134,13 @@ static void syscallExitTask(int return_code) {
 
 #define SYSCALL_WAIT4 61
 static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
-#if DEBUG_SYSCALLS_STUB
   if (options || ru)
-    debugf("[syscall::wait4] UNIMPLEMENTED options{%d} rusage{%lx}!\n", options,
-           ru);
-  debugf("[syscall::wait4] UNIMPLEMENTED WNOHANG{%d} WUNTRACED{%d} "
-         "WSTOPPED{%d} WEXITED{%d} WCONTINUED{%d} "
-         "WNOWAIT{%d}\n",
-         options & WNOHANG, options & WUNTRACED, options & WSTOPPED,
-         options & WEXITED, options & WCONTINUED, options & WNOWAIT);
-#endif
+    dbgSysStubf("todo options & rusage");
+  /*dbgSysExtraf("WNOHANG{%d} WUNTRACED{%d} "
+               "WSTOPPED{%d} WEXITED{%d} WCONTINUED{%d} "
+               "WNOWAIT{%d}",
+               options & WNOHANG, options & WUNTRACED, options & WSTOPPED,
+               options & WEXITED, options & WCONTINUED, options & WNOWAIT);*/
 
   asm volatile("sti");
 
@@ -226,7 +223,8 @@ static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
     *wstatus = (ret & 0xff) << 8;
 
 #if DEBUG_SYSCALLS_EXTRA
-  debugf("[syscall::wait4] ret{%d} ret{%d}\n", output, ret);
+  debugf("\n%d [RET] [syscall::wait4] pid{%d} ret{%d}", currentTask->id, output,
+         ret);
 #endif
   return output;
 }

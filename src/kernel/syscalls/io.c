@@ -40,9 +40,9 @@ int readHandler(OpenFile *fd, uint8_t *in, size_t limit) {
 int writeHandler(OpenFile *fd, uint8_t *out, size_t limit) {
   // console fb
   for (int i = 0; i < limit; i++) {
-#if DEBUG_SYSCALLS_EXTRA
-    serial_send(COM1, out[i]);
-#endif
+    // #if DEBUG_SYSCALLS_EXTRA
+    //     serial_send(COM1, out[i]);
+    // #endif
     printfch(out[i]);
   }
   return limit;

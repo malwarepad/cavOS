@@ -15,7 +15,7 @@
 #if !NO_DEBUG_SYSCALLS
 /* Syscall Debugging: Comprehensive */
 #define DEBUG_SYSCALLS_STRACE 1
-#define DEBUG_SYSCALLS_EXTRA 0
+#define DEBUG_SYSCALLS_EXTRA 1
 
 /* Syscall Debugging: Important */
 #define DEBUG_SYSCALLS_FAILS 1
@@ -38,6 +38,25 @@ void syscallsRegClock();
 void syscallsRegNet();
 
 void registerSyscall(uint32_t id, void *handler); // <- the master
+
+/* Debugf helpers */
+#if DEBUG_SYSCALLS_FAILS
+int dbgSysFailf(const char *format, ...);
+#else
+#define dbgSysFailf(...) ((void)0)
+#endif
+
+#if DEBUG_SYSCALLS_EXTRA
+int dbgSysExtraf(const char *format, ...);
+#else
+#define dbgSysExtraf(...) ((void)0)
+#endif
+
+#if DEBUG_SYSCALLS_STUB
+int dbgSysStubf(const char *format, ...);
+#else
+#define dbgSysStubf(...) ((void)0)
+#endif
 
 /* Standard output handlers (io.c) */
 int readHandler(OpenFile *fd, uint8_t *in, size_t limit);

@@ -20,6 +20,18 @@
 
 #define IS_ALIGNED(addr, align) (((addr) & ((align) - 1)) == 0)
 
+const char *ANSI_RESET;
+const char *ANSI_BLACK;
+const char *ANSI_RED;
+const char *ANSI_GREEN;
+const char *ANSI_YELLOW;
+const char *ANSI_BLUE;
+const char *ANSI_PURPLE;
+const char *ANSI_CYAN;
+const char *ANSI_WHITE;
+
+const char *LINUX_ERRNO[37];
+
 void *memcpy(void *restrict dstptr, const void *restrict srcptr, size_t size);
 void *memmove(void *dstptr, const void *srcptr, size_t size);
 void  memset(void *_dst, int val, size_t len);

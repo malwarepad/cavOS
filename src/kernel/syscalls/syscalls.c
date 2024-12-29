@@ -9,10 +9,12 @@
 #include <syscalls.h>
 #include <system.h>
 #include <task.h>
+#include <timer.h>
 #include <util.h>
 
 #if DEBUG_SYSCALLS_STRACE
 #include <linux_syscalls.h>
+const char *defaultErrStr = "unknown";
 #endif
 
 // System call entry and management-related functions
@@ -61,13 +63,11 @@ void syscallHandler(AsmPassedInterrupt *regs) {
   size_t handler = syscalls[id];
 
 #if DEBUG_SYSCALLS_STRACE
-  // debugf("[syscalls] id{%d} handler{%lx}\n", id, handler);
-
   bool usable = id < (sizeof(linux_syscalls) / sizeof(linux_syscalls[0]));
   const LINUX_SYSCALL *info = &linux_syscalls[id];
 
   if (!handler)
-    debugf("\033[0;31m");
+    debugf("%s", ANSI_BLUE);
   debugf("%d [syscalls] %s( ", currentTask->id, usable ? info->name : "???");
   if (usable) {
     if (info->rdi[0])
@@ -85,21 +85,30 @@ void syscallHandler(AsmPassedInterrupt *regs) {
   }
   debugf("\b)");
   if (!handler)
-    debugf("\033[0m\n");
+    debugf("%s\n", ANSI_RESET);
 #endif
 
   if (!handler) {
     regs->rax = -ENOSYS;
-#if DEBUG_SYSCALLS_MISSING
-    debugf("[syscalls] Tried to access syscall{%d} (doesn't exist)!\n", id);
-#endif
     goto cleanup;
   }
 
+  uint64_t timeStart = timerTicks;
   long int ret = ((SyscallHandler)(handler))(regs->rdi, regs->rsi, regs->rdx,
                                              regs->r10, regs->r8, regs->r9);
+  uint64_t timeTook = timerTicks - timeStart;
+  (void)timeTook; // just in case
+
 #if DEBUG_SYSCALLS_STRACE
-  debugf(" = %d\n", ret);
+  int errNum = (int)ret;
+  if (errNum < 0) { // error occurred
+    const char *errStr = defaultErrStr;
+    if (errNum >= -37)
+      errStr = LINUX_ERRNO[-errNum - 1];
+    debugf("%s = %d (-%s) (%ldms)%s\n", ANSI_RED, ret, errStr, timeTook,
+           ANSI_RESET);
+  } else
+    debugf(" = %d (%ldms)\n", ret, timeTook);
 #endif
 
   regs->rax = ret;
@@ -110,7 +119,38 @@ cleanup:
   currentTask->systemCallInProgress = false;
 }
 
-// System calls themselves
+#if DEBUG_SYSCALLS_FAILS
+int dbgSysFailf(const char *format, ...) {
+  debugf(" %s//%s ", ANSI_RED, ANSI_RESET);
+  va_list va;
+  va_start(va, format);
+  int ret = vfctprintf(debug, 0, format, va);
+  va_end(va);
+  return ret;
+}
+#endif
+
+#if DEBUG_SYSCALLS_EXTRA
+int dbgSysExtraf(const char *format, ...) {
+  debugf(" %s//%s ", ANSI_BLUE, ANSI_RESET);
+  va_list va;
+  va_start(va, format);
+  int ret = vfctprintf(debug, 0, format, va);
+  va_end(va);
+  return ret;
+}
+#endif
+
+#if DEBUG_SYSCALLS_STUB
+int dbgSysStubf(const char *format, ...) {
+  debugf(" %s//%s ", ANSI_BLACK, ANSI_RESET);
+  va_list va;
+  va_start(va, format);
+  int ret = vfctprintf(debug, 0, format, va);
+  va_end(va);
+  return ret;
+}
+#endif
 
 void initiateSyscalls() {
   /*

@@ -6,17 +6,16 @@
 #include <task.h>
 #include <util.h>
 
+// Manages all systemcalls related to filesystem operations
+// Copyright (C) 2024 Panagiotis
+
 #define SYSCALL_READ 0
 static int syscallRead(int fd, char *str, uint32_t count) {
   if (!count)
     return 0;
   OpenFile *browse = fsUserGetNode(currentTask, fd);
-  if (!browse) {
-#if DEBUG_SYSCALLS_FAILS
-    debugf("[syscalls::read] FAIL! Couldn't find file! fd{%d}\n", fd);
-#endif
+  if (!browse)
     return -EBADF;
-  }
   uint32_t read = fsRead(browse, (uint8_t *)str, count);
   return read;
 }
@@ -26,37 +25,18 @@ static int syscallWrite(int fd, char *str, uint32_t count) {
   if (!count)
     return 0;
   OpenFile *browse = fsUserGetNode(currentTask, fd);
-  if (!browse) {
-#if DEBUG_SYSCALLS_FAILS
-    debugf("[syscalls::write] FAIL! Couldn't find file! fd{%d}\n", fd);
-#endif
+  if (!browse)
     return -EBADF;
-  }
-
   uint32_t writtenBytes = fsWrite(browse, (uint8_t *)str, count);
   return writtenBytes;
 }
 
 #define SYSCALL_OPEN 2
 static int syscallOpen(char *filename, int flags, int mode) {
-#if DEBUG_SYSCALLS_EXTRA
-  debugf("[syscalls::open] filename{%s}\n", filename);
-#endif
-  if (!filename) {
-#if DEBUG_SYSCALLS_FAILS
-    debugf("[syscalls::open] FAIL! No filename given... yeah.\n");
-#endif
-    return -1;
-  }
-
-  int ret = fsUserOpen(currentTask, filename, flags, mode);
-#if DEBUG_SYSCALLS_FAILS
-  if (ret < 0)
-    debugf("[syscalls::open] FAIL! Couldn't open file! filename{%s}\n",
-           filename);
-#endif
-
-  return ret;
+  dbgSysExtraf("filename{%s}", filename);
+  if (!filename)
+    return -EFAULT;
+  return fsUserOpen(currentTask, filename, flags, mode);
 }
 
 #define SYSCALL_CLOSE 3
@@ -64,19 +44,9 @@ static int syscallClose(int fd) { return fsUserClose(currentTask, fd); }
 
 #define SYSCALL_STAT 4
 static int syscallStat(char *filename, stat *statbuf) {
-#if DEBUG_SYSCALLS_EXTRA
-  debugf("[syscalls::stat] filename{%s}\n", filename);
-#endif
+  dbgSysExtraf("filename{%s}", filename);
   bool ret = fsStatByFilename(currentTask, filename, statbuf);
-  if (!ret) {
-#if DEBUG_SYSCALLS_FAILS
-    debugf("[syscalls::stat] FAIL! Couldn't stat() file! filename{%s}\n",
-           filename);
-#endif
-    return -ENOENT;
-  }
-
-  return 0;
+  return (ret ? 0 : -ENOENT);
 }
 
 #define SYSCALL_FSTAT 5
@@ -86,28 +56,13 @@ static int syscallFstat(int fd, stat *statbuf) {
     return -EBADF;
 
   bool ret = fsStat(file, statbuf);
-  if (!ret) {
-#if DEBUG_SYSCALLS_FAILS
-    debugf("[syscalls::fstat] FAIL! Couldn't fstat() file! fd{%d}\n", fd);
-#endif
-    return -ENOENT;
-  }
-
-  return 0;
+  return (ret ? 0 : -ENOENT);
 }
 
 #define SYSCALL_LSTAT 6
 static int syscallLstat(char *filename, stat *statbuf) {
   bool ret = fsLstatByFilename(currentTask, filename, statbuf);
-  if (!ret) {
-#if DEBUG_SYSCALLS_FAILS
-    debugf("[syscalls::lstat] FAIL! Couldn't lstat() file! filename{%d}\n",
-           filename);
-#endif
-    return -ENOENT;
-  }
-
-  return 0;
+  return (ret ? 0 : -ENOENT);
 }
 
 #include <timer.h>
@@ -144,27 +99,15 @@ static int syscallLseek(uint32_t file, int offset, int whence) {
 #define SYSCALL_IOCTL 16
 static int syscallIoctl(int fd, unsigned long request, void *arg) {
   OpenFile *browse = fsUserGetNode(currentTask, fd);
-  if (!browse) {
-#if DEBUG_SYSCALLS_FAILS
-    debugf(
-        "[syscalls::ioctl] FAIL! Tried to manipulate non-special file! fd{%d} "
-        "req{%lx} arg{%lx}\n",
-        fd, request, arg);
-#endif
+  if (!browse)
     return -EBADF;
+
+  if (!browse->handlers->ioctl) {
+    dbgSysFailf("non-special file");
+    return -ENOTTY;
   }
 
-  if (!browse->handlers->ioctl)
-    return -ENOTTY;
-
   int ret = browse->handlers->ioctl(browse, request, arg);
-
-#if DEBUG_SYSCALLS_STUB
-  if (ret < 0)
-    debugf("[syscalls::ioctl] UNIMPLEMENTED! fd{%d} req{%lx} arg{%lx}\n", fd,
-           request, arg);
-#endif
-
   return ret;
 }
 
@@ -183,10 +126,6 @@ static int syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
   for (int i = 0; i < ioVcnt; i++) {
     iovec *curr = (iovec *)((size_t)iov + i * sizeof(iovec));
 
-#if DEBUG_SYSCALLS_EXTRA
-    debugf("[syscalls::writev(%d)] fd{%d} iov_base{%x} iov_len{%x}\n", i, fd,
-           curr->iov_base, curr->iov_len);
-#endif
     int singleCnt = syscallWrite(fd, curr->iov_base, curr->iov_len);
     if (singleCnt < 0)
       return singleCnt;
@@ -203,10 +142,6 @@ static int syscallReadV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
   for (int i = 0; i < ioVcnt; i++) {
     iovec *curr = (iovec *)((size_t)iov + i * sizeof(iovec));
 
-#if DEBUG_SYSCALLS_EXTRA
-    debugf("[syscalls::readv(%d)] fd{%d} iov_base{%x} iov_len{%x}\n", i, fd,
-           curr->iov_base, curr->iov_len);
-#endif
     int singleCnt = syscallRead(fd, curr->iov_base, curr->iov_len);
     if (singleCnt < 0)
       return singleCnt;
@@ -227,7 +162,7 @@ static int syscallAccess(char *filename, int mode) {
 static int syscallDup(uint32_t fd) {
   OpenFile *file = fsUserGetNode(currentTask, fd);
   if (!file)
-    return -1;
+    return -EBADF;
 
   OpenFile *new = fsUserDuplicateNode(currentTask, file);
   new->closeOnExec = 0; // does not persist
@@ -254,10 +189,6 @@ static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
   LinkedListPushFrontUnsafe((void **)(&currentTask->firstFile), targetFile);
 
   targetFile->id = newFd;
-
-#if DEBUG_SYSCALLS_STUB
-  debugf("[syscalls::dup2] wonky... old{%d} new{%d}\n", oldFd, newFd);
-#endif
   return newFd;
 }
 
@@ -302,9 +233,7 @@ static int syscallFcntl(int fd, int cmd, uint64_t arg) {
     return targ;
   }
   default:
-#if DEBUG_SYSCALLS_STUB
-    debugf("[syscalls::fcntl] cmd{%d} not implemented!\n", cmd);
-#endif
+    dbgSysStubf("cmd{%d} not implemented", cmd);
     return -1;
     break;
   }
@@ -312,12 +241,14 @@ static int syscallFcntl(int fd, int cmd, uint64_t arg) {
 
 #define SYSCALL_MKDIR 83
 static int syscallMkdir(char *path, uint32_t mode) {
+  dbgSysExtraf("path{%s}", path);
   mode &= ~(currentTask->umask);
   return fsMkdir(currentTask, path, mode);
 }
 
 #define SYSCALL_READLINK 89
 static int syscallReadlink(char *path, char *buf, int size) {
+  dbgSysExtraf("path{%s}", path);
   return fsReadlink(currentTask, path, buf, size);
 }
 
@@ -332,12 +263,8 @@ static int syscallUmask(uint32_t mask) {
 static int syscallGetdents64(unsigned int fd, struct linux_dirent64 *dirp,
                              unsigned int count) {
   OpenFile *browse = fsUserGetNode(currentTask, fd);
-  if (!browse) {
-#if DEBUG_SYSCALLS_FAILS
-    debugf("[syscalls::getdents64] FAIL! Couldn't find file! fd{%d}\n", fd);
-#endif
+  if (!browse)
     return -EBADF;
-  }
   if (!browse->handlers->getdents64)
     return -ENOTDIR;
   return browse->handlers->getdents64(browse, dirp, count);
@@ -357,10 +284,6 @@ static int syscallPselect6(int nfds, fd_set *readfds, fd_set *writefds,
                            void *smthsignalthing) {
   if (timeout && !timeout->tv_nsec && !timeout->tv_sec)
     return 0;
-
-#if DEBUG_SYSCALLS_FAILS
-  debugf("[syscalls::pselect6::wonky]\n");
-#endif
 
   int amnt = 0;
   int bits_per_long = sizeof(unsigned long) * 8;
@@ -419,15 +342,11 @@ static int syscallOpenat(int dirfd, char *pathname, int flags, int mode) {
     if (dirfd == AT_FDCWD) { // relative to cwd
       return syscallOpen(pathname, flags, mode);
     } else {
-#if DEBUG_SYSCALLS_STUB
-      debugf("[syscalls::openat] todo: partial sanitization!");
-#endif
+      dbgSysStubf("todo: relative to dirfd{%d}", dirfd);
       return -1;
     }
   } else {
-#if DEBUG_SYSCALLS_FAILS
-    debugf("[syscalls::openat] Unsupported!\n");
-#endif
+    dbgSysFailf("unsupported!");
     return -1;
   }
   return -ENOSYS;
@@ -443,15 +362,11 @@ static int syscallMkdirAt(int dirfd, char *pathname, int mode) {
     if (dirfd == AT_FDCWD) { // relative to cwd
       return syscallMkdir(pathname, mode);
     } else {
-#if DEBUG_SYSCALLS_STUB
-      debugf("[syscalls::mkdirat] todo: partial sanitization!");
-#endif
+      dbgSysStubf("todo: relative to dirfd{%d}", dirfd);
       return -1;
     }
   } else {
-#if DEBUG_SYSCALLS_FAILS
-    debugf("[syscalls::mkdirat] Unsupported!\n");
-#endif
+    dbgSysFailf("unsupported!");
     return -1;
   }
   return -ENOSYS;
@@ -477,15 +392,11 @@ static int syscallFaccessat(int dirfd, char *pathname, int mode) {
     if (dirfd == AT_FDCWD) { // relative to cwd
       return syscallAccess(pathname, mode);
     } else {
-#if DEBUG_SYSCALLS_STUB
-      debugf("[syscalls::access] todo: partial sanitization!");
-#endif
+      dbgSysStubf("todo: relative to dirfd{%d}", dirfd);
       return -1;
     }
   } else {
-#if DEBUG_SYSCALLS_FAILS
-    debugf("[syscalls::access] Unsupported!\n");
-#endif
+    dbgSysFailf("unsupported!");
     return -1;
   }
   return -ENOSYS;
@@ -523,15 +434,11 @@ static int syscallStatx(int dirfd, char *pathname, int flags, uint32_t mask,
       if (!ret)
         return -ENOENT;
     } else {
-#if DEBUG_SYSCALLS_STUB
-      debugf("[syscalls::statx] todo: partial sanitization!");
-#endif
+      dbgSysStubf("todo: relative to dirfd{%d}", dirfd);
       return -1;
     }
   } else {
-#if DEBUG_SYSCALLS_FAILS
-    debugf("[syscalls::statx] Unsupported!\n");
-#endif
+    dbgSysFailf("unsupported!");
     return -1;
   }
 

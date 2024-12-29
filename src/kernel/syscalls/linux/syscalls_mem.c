@@ -29,17 +29,9 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
       (flags & ~MAP_FIXED & ~MAP_PRIVATE) ==
           MAP_ANONYMOUS) { // before: !addr &&
     size_t curr = currentTask->mmap_end;
-#if DEBUG_SYSCALLS_EXTRA
-    debugf("[syscalls::mmap] No placement preference, no file descriptor: "
-           "addr{%lx} length{%lx}\n",
-           curr, length);
-#endif
     taskAdjustHeap(currentTask, currentTask->mmap_end + length,
                    &currentTask->mmap_start, &currentTask->mmap_end);
     memset((void *)curr, 0, length);
-#if DEBUG_SYSCALLS_EXTRA
-    debugf("[syscalls::mmap] Found addr{%lx}\n", curr);
-#endif
     return curr;
   } else if (!addr && fd == -1 &&
              (flags & ~MAP_FIXED & ~MAP_PRIVATE & ~MAP_SHARED) ==
@@ -67,14 +59,7 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
     return file->handlers->mmap(addr, length, prot, flags, file, pgoffset);
   }
 
-#if DEBUG_SYSCALLS_STUB
-  debugf(
-      "[syscalls::mmap] UNIMPLEMENTED! addr{%lx} len{%lx} prot{%d} flags{%x} "
-      "fd{%d} "
-      "pgoffset{%x}\n",
-      addr, length, prot, flags, fd, pgoffset);
-#endif
-
+  dbgSysStubf("dead end");
   return -1;
 }
 
@@ -90,11 +75,7 @@ static uint64_t syscallBrk(uint64_t brk) {
     return currentTask->heap_end;
 
   if (brk < currentTask->heap_end) {
-#if DEBUG_SYSCALLS_FAILS
-    debugf("[syscalls::brk] FAIL! Tried to go inside heap limits! brk{%lx} "
-           "limit{%lx}\n",
-           brk, currentTask->heap_end);
-#endif
+    dbgSysFailf("inside heap limits");
     return -1;
   }
 
