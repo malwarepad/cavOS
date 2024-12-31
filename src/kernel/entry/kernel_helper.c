@@ -12,11 +12,11 @@
 
 Task *netHelperTask = 0;
 
-void netHelperEntry() {
+void helperNet() {
   while (true) {
-    while (netQueueRead == netQueueWrite) {
+    if (netQueueRead == netQueueWrite) {
       // empty :p
-      handControl();
+      return;
     }
 
     handlePacket(netQueue[netQueueRead].nic, netQueue[netQueueRead].buff,
@@ -25,6 +25,14 @@ void netHelperEntry() {
   }
 }
 
+void kernelHelpEntry() {
+  while (true) {
+    helperNet();
+
+    handControl();
+  }
+}
+
 void initiateKernelThreads() {
-  netHelperTask = taskCreateKernel((size_t)netHelperEntry, 0);
+  netHelperTask = taskCreateKernel((size_t)kernelHelpEntry, 0);
 }

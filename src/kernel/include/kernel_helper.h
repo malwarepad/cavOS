@@ -5,7 +5,7 @@
 #define KERNEL_HELPER_H
 
 Task *netHelperTask;
-void  netHelperEntry();
+void  kernelHelpEntry();
 
 void initiateKernelThreads();
 

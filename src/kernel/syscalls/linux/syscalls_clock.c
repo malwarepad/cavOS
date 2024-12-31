@@ -4,11 +4,11 @@
 #include <task.h>
 #include <timer.h>
 
-// #define SYSCALL_NANOSLEEP 35
-// static int syscallNanosleep() {
-//   sleep(1);
-//   return -1;
-// }
+/*#define SYSCALL_NANOSLEEP 35
+static int syscallNanosleep(struct timespec *duration, struct timespec *rem) {
+  dbgSysExtraf("sec{%ld} nsec{%ld}", duration->tv_sec, duration->tv_nsec);
+  return 0;
+}*/
 
 #define SYSCALL_CLOCK_GETTIME 228
 static int syscallClockGettime(int which, timespec *spec) {

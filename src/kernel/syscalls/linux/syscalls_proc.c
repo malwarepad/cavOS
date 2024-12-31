@@ -91,6 +91,7 @@ CopyPtrStyle copyPtrStyle(char **ptr) {
 
 #define SYSCALL_EXECVE 59
 static int syscallExecve(char *filename, char **argv, char **envp) {
+  dbgSysExtraf("filename{%s}", filename);
   CopyPtrStyle arguments = copyPtrStyle(argv);
   CopyPtrStyle environment = copyPtrStyle(envp);
 
