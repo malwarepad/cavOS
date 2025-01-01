@@ -40,3 +40,6 @@ pci.ids
 # Could obviously contain sensitive data
 .idea/
 Session.vim
+
+# uACPI
+.version_uacpi

@@ -1,3 +1,4 @@
+#include <acpi.h>
 #include <bootloader.h>
 #include <console.h>
 #include <disk.h>
@@ -56,6 +57,7 @@ void _start(void) {
   initiateVMM();
 
   initiateGDT();
+  initiateACPI(); // needed for APIC setup
   initiateISR();
   initiatePaging();
 

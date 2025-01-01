@@ -51,6 +51,8 @@ struct irqHandler {
 
   uint8_t     id;
   FunctionPtr handler;
+
+  uint64_t argument; // extra
 };
 
 void        initiateISR();

@@ -161,7 +161,8 @@ void handle_interrupt(uint64_t rsp) {
       while (browse) {
         if (browse->id == (cpu->interrupt - 32)) {
           FunctionPtr handler = browse->handler;
-          handler(cpu);
+          handler(browse->argument ? (AsmPassedInterrupt *)browse->argument
+                                   : cpu);
         }
         browse = browse->next;
       }

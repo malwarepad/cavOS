@@ -15,6 +15,8 @@ typedef struct Bootloader {
   size_t kernelVirtBase;
   size_t kernelPhysBase;
 
+  size_t rsdp;
+
   size_t   mmTotal;
   uint64_t mmEntryCnt;
   LIMINE_PTR(struct limine_memmap_entry **) mmEntries;

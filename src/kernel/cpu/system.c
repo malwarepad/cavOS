@@ -117,6 +117,8 @@ bool checkInterrupts() {
 #include <paging.h>
 #include <task.h>
 void handControl() {
+  if (!tasksInitiated)
+    return;
   currentTask->schedPageFault = true;
   volatile uint8_t _drop = *(uint8_t *)(SCHED_PAGE_FAULT_MAGIC_ADDRESS);
   (void)(_drop);

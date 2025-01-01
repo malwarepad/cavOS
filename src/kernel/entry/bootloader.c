@@ -22,6 +22,9 @@ static volatile struct limine_memmap_request limineMMreq = {
 static volatile struct limine_smp_request limineSmpReq = {
     .id = LIMINE_SMP_REQUEST, .revision = 0};
 
+static volatile struct limine_rsdp_request limineRsdpReq = {
+    .id = LIMINE_RSDP_REQUEST, .revision = 0};
+
 void initialiseBootloaderParser() {
   // Paging mode
   struct limine_paging_mode_response *liminePagingres =
@@ -61,4 +64,9 @@ void initialiseBootloaderParser() {
   // for (int i = 0; i < smp_response->cpu_count; i++) {
   //   struct limine_smp_info *entry = smp_response->cpus[i];
   // }
+
+  // RSDP
+  // todo: revision >= 3 and it's not virtual!
+  struct limine_rsdp_response *rsdp_response = limineRsdpReq.response;
+  bootloader.rsdp = (size_t)rsdp_response->address - bootloader.hhdmOffset;
 }

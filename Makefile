@@ -31,8 +31,12 @@ limine:
 	chmod +x src/bootloader/assert.sh
 	src/bootloader/assert.sh
 
+uacpi:
+	chmod +x tools/kernel/uacpi.sh
+	tools/kernel/uacpi.sh
+
 # Primary (disk creation)
-disk_prepare: verifytools limine musl ports
+disk_prepare: verifytools limine uacpi musl ports
 # @$(MAKE) -C src/libs/system
 	@$(MAKE) -C src/software/test -j1
 	@$(MAKE) -C src/software/badtest -j1
