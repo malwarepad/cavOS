@@ -21,6 +21,7 @@ typedef struct Bootloader {
   uint64_t mmEntryCnt;
   LIMINE_PTR(struct limine_memmap_entry **) mmEntries;
   LIMINE_PTR(struct limine_smp_response *) smp;
+  uint64_t smpBspIndex;
 } Bootloader;
 
 Bootloader bootloader;

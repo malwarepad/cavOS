@@ -1,3 +1,4 @@
+#include <apic.h>
 #include <bootloader.h>
 #include <dhcp.h>
 #include <isr.h>
@@ -197,7 +198,8 @@ bool initiateRTL8169(PCIdevice *device) {
                      command_status);
   }
 
-  pci->irqHandler = registerIRQhandler(nic->irq, &interruptHandlerRTL8169);
+  uint8_t targIrq = ioApicPciRegister(device, details);
+  pci->irqHandler = registerIRQhandler(targIrq, &interruptHandlerRTL8169);
 
   outportb(iobase + 0x37, 0x10);
   while (inportb(iobase + 0x37) & 0x10) {

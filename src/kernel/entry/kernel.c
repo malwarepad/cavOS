@@ -62,10 +62,10 @@ void _start(void) {
   initiatePaging();
 
   initiateKb();
-  initiateMouse();
+  // initiateMouse(); // todo
 
   debugf("\n====== REACHED SYSTEM ======\n");
-  initiateTimer(1000);
+  initiateApicTimer();
   // any filesystem operations depend on currentTask
   initiateTasks();
   initiateKernelThreads();

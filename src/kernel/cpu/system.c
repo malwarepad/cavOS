@@ -105,7 +105,8 @@ void        initiateSSE() {
 void panic() {
   debugf("[kernel] Kernel panic triggered!\n");
   asm volatile("cli");
-  asm volatile("hlt");
+  while (true)
+    asm volatile("hlt");
 }
 
 bool checkInterrupts() {

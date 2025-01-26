@@ -1,3 +1,4 @@
+#include <apic.h>
 #include <idt.h>
 #include <isr.h>
 #include <kb.h>
@@ -52,6 +53,19 @@ char *exceptions[] = {"Division By Zero",
                       "Reserved",
                       "Reserved"};
 
+void disable_pic() {
+  // outportb(0x20, ICW_1);
+  // outportb(0xA0, ICW_1);
+  // outportb(0x21, ICW_2_M);
+  // outportb(0xA1, ICW_2_S);
+  // outportb(0x21, ICW_3_M);
+  // outportb(0xA1, ICW_3_S);
+  // outportb(0x21, ICW_4);
+  // outportb(0xA1, ICW_4);
+  outportb(0x21, 0xFF);
+  outportb(0xA1, 0xFF);
+}
+
 void remap_pic() {
   outportb(0x20, 0x11);
   outportb(0xA0, 0x11);
@@ -63,11 +77,14 @@ void remap_pic() {
   outportb(0xA1, 0x01);
   outportb(0x21, 0x00);
   outportb(0xA1, 0x00);
+
+  disable_pic();
 }
 
 irqHandler *firstIrqHandler = 0;
 
-void initiateISR() {
+extern void isr255();
+void        initiateISR() {
   // IRQs 0 - 15 -> 32 - 48
   remap_pic();
 
@@ -76,11 +93,15 @@ void initiateISR() {
     set_idt_gate(i, (uint64_t)asm_isr_redirect_table[i], 0x8E);
   }
 
+  // APIC Spurious Interrupts
+  set_idt_gate(0xff, (uint64_t)isr255, 0x8E);
+
   // Syscalls having DPL 3
   set_idt_gate(0x80, (uint64_t)isr128, 0xEE);
 
   // Finalize
   set_idt();
+  initiateAPIC();
   asm volatile("sti");
 }
 
@@ -143,31 +164,22 @@ uint64_t handle_tssrsp(uint64_t rsp) {
 void handle_interrupt(uint64_t rsp) {
   AsmPassedInterrupt *cpu = (AsmPassedInterrupt *)rsp;
   if (cpu->interrupt >= 32 && cpu->interrupt <= 47) { // IRQ
+    /* Ack the IRQ respectively */
     if (cpu->interrupt >= 40) {
       outportb(0xA0, 0x20);
     }
     outportb(0x20, 0x20);
-    switch (cpu->interrupt) {
-    case 32 + 0: // irq0
-      timerTick((uint64_t)cpu);
-      break;
+    apicWrite(0xB0, 0);
 
-    case 32 + 1: // irq1
-      kbIrq();
-      break;
-
-    default: { // execute other handlers
-      irqHandler *browse = firstIrqHandler;
-      while (browse) {
-        if (browse->id == (cpu->interrupt - 32)) {
-          FunctionPtr handler = browse->handler;
-          handler(browse->argument ? (AsmPassedInterrupt *)browse->argument
-                                   : cpu);
-        }
-        browse = browse->next;
+    /* find handler */
+    irqHandler *browse = firstIrqHandler;
+    while (browse) {
+      if (browse->id == cpu->interrupt) {
+        FunctionPtr handler = browse->handler;
+        handler(browse->argument ? (AsmPassedInterrupt *)browse->argument
+                                 : cpu);
       }
-      break;
-    }
+      browse = browse->next;
     }
   } else if (cpu->interrupt >= 0 && cpu->interrupt <= 31) { // ISR
     // To drop the current execution and give control to the scheduler, set this

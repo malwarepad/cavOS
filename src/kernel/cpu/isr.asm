@@ -188,6 +188,12 @@ isr%1:
     jmp isr_common
 %endmacro
 
+global isr255
+isr255:
+    push 0    ; dummy error code to align with TrapFrame
+    push 255   ; interrupt number
+    jmp isr_common
+
 ; exceptions and CPU reserved interrupts 0 - 31
 ISR_NO_ERROR_CODE 0
 ISR_NO_ERROR_CODE 1

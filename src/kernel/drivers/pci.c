@@ -65,6 +65,52 @@ int FilterDevice(uint8_t bus, uint8_t slot, uint8_t function) {
   return !(vendor_id == 0xffff || !vendor_id);
 }
 
+bool GetParentBridgeNested(uint8_t bus, uint8_t *Tbus, uint8_t *Tslot,
+                           uint8_t *Tfunction, uint8_t targetBus, int level) {
+  // regulate the nesting
+  level++;
+  if (level > 15) {
+    debugf("[pci::getparent] Recursion too deep!\n");
+    panic();
+  }
+
+  for (uint8_t slot = 0; slot < PCI_MAX_DEVICES; slot++) {
+    for (uint8_t function = 0; function < PCI_MAX_FUNCTIONS; function++) {
+      if (!FilterDevice(bus, slot, function))
+        continue;
+
+      uint16_t headerType_bist =
+          ConfigReadWord(bus, slot, function, PCI_HEADER_TYPE);
+      uint8_t headerType = EXPORT_BYTE(headerType_bist, true);
+      if ((headerType & ~(1 << 7)) != 0x1)
+        continue;
+
+      uint16_t primary_Secondary =
+          ConfigReadWord(bus, slot, function, PCI_PRIMARY_BUS_NUM);
+      uint8_t secondary = EXPORT_BYTE(primary_Secondary, false);
+      if (secondary == targetBus) {
+        // found!
+        *Tbus = bus;
+        *Tslot = slot;
+        *Tfunction = function;
+        return true;
+      } else {
+        // check under that bridge (just in case)
+        if (GetParentBridgeNested(secondary, Tbus, Tslot, Tfunction, targetBus,
+                                  level))
+          return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+bool GetParentBridge(uint8_t bus, uint8_t *Tbus, uint8_t *Tslot,
+                     uint8_t *Tfunction, uint8_t targetBus) {
+  return GetParentBridgeNested(bus, Tbus, Tslot, Tfunction, targetBus, 0);
+}
+
 void GetDevice(PCIdevice *device, uint8_t bus, uint8_t slot, uint8_t function) {
   device->bus = bus;
   device->slot = slot;

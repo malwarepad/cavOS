@@ -1,3 +1,4 @@
+#include <apic.h>
 #include <fb.h>
 #include <isr.h>
 #include <mouse.h>
@@ -68,6 +69,13 @@ void mouseIrq() {
 }
 
 void initiateMouse() {
+  // irq handler
+  debugf("m. redirecting\n");
+  uint8_t targIrq = ioApicRedirect(12, false);
+  debugf("m. redirected\n");
+  registerIRQhandler(targIrq, mouseIrq);
+  debugf("m. registered\n");
+
   // enable the auxiliary mouse
   mouseWait(1);
   outportb(0x64, 0xA8);
@@ -90,7 +98,4 @@ void initiateMouse() {
   // enable device
   mouseWrite(0xF4);
   mouseRead();
-
-  // irq handler
-  registerIRQhandler(12, mouseIrq);
 }

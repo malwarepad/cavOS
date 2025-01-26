@@ -1,3 +1,5 @@
+#include <apic.h>
+#include <bootloader.h>
 #include <isr.h>
 #include <malloc.h>
 #include <rtl8139.h>
@@ -163,8 +165,9 @@ bool initiateRTL8139(PCIdevice *device) {
   //        selectedNIC->MAC[0], selectedNIC->MAC[1], selectedNIC->MAC[2],
   //        selectedNIC->MAC[3], selectedNIC->MAC[4], selectedNIC->MAC[5]);
 
+  uint8_t targIrq = ioApicPciRegister(device, details);
   free(details);
-  pci->irqHandler = registerIRQhandler(nic->irq, &interruptHandler);
+  pci->irqHandler = registerIRQhandler(targIrq, &interruptHandler);
 
   // Solve QEMU's weird fiddleness by "kindly" reminding it to wake up our
   // device!

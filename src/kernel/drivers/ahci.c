@@ -1,4 +1,5 @@
 #include <ahci.h>
+#include <apic.h>
 #include <bootloader.h>
 #include <isr.h>
 #include <linked_list.h>
@@ -453,7 +454,8 @@ bool initiateAHCI(PCIdevice *device) {
   if (!(command_status & (1 << 1)))
     command_status |= (1 << 1);
   if (command_status & (1 << 10))
-    command_status |= (1 << 10);
+    command_status &= ~(1 << 10);
+  // command_status |= (1 << 10);
   ConfigWriteDword(device->bus, device->slot, device->function, PCI_COMMAND,
                    command_status);
 
@@ -502,8 +504,8 @@ bool initiateAHCI(PCIdevice *device) {
   ahciPortProbe(ahciPtr, mem);
 
   // enable interrupts
-  pci->irqHandler =
-      registerIRQhandler(details->interruptLine, &ahciInterruptHandler);
+  uint8_t targIrq = ioApicPciRegister(device, details);
+  pci->irqHandler = registerIRQhandler(targIrq, &ahciInterruptHandler);
   if (!(mem->ghc & (1 << 1)))
     mem->ghc |= 1 << 1;
 

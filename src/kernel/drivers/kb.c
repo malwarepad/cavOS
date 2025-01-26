@@ -1,3 +1,4 @@
+#include <apic.h>
 #include <console.h>
 #include <kb.h>
 #include <paging.h>
@@ -147,6 +148,8 @@ void kbReset() {
 }
 
 void initiateKb() {
+  uint8_t targIrq = ioApicRedirect(1, false);
+  registerIRQhandler(targIrq, kbIrq);
   kbReset();
   kbWrite(0x64, 0xae);
   inportb(0x60);

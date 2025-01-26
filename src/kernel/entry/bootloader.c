@@ -61,9 +61,17 @@ void initialiseBootloaderParser() {
   struct limine_smp_response *smp_response = limineSmpReq.response;
   bootloader.smp = smp_response;
 
-  // for (int i = 0; i < smp_response->cpu_count; i++) {
-  //   struct limine_smp_info *entry = smp_response->cpus[i];
-  // }
+  // Bootstrap core index
+  bootloader.smpBspIndex = (uint64_t)(-1);
+  for (int i = 0; i < smp_response->cpu_count; i++) {
+    struct limine_smp_info *entry = smp_response->cpus[i];
+    if (entry->lapic_id == smp_response->bsp_lapic_id)
+      bootloader.smpBspIndex = i;
+  }
+  if (bootloader.smpBspIndex == (uint64_t)(-1)) {
+    debugf("[bootloader] Couldn't find bootstrap core!\n");
+    panic();
+  }
 
   // RSDP
   // todo: revision >= 3 and it's not virtual!

@@ -70,6 +70,10 @@ typedef enum PCI_DEVICES {
 #define PCI_CLASS_CODE_COPROCESSOR 0x40
 #define PCI_CLASS_CODE_UNASSIGNED 0xFF
 
+#define PCI_PRIMARY_BUS_NUM 0x18
+#define PCI_SECONDARY_BUS_NUM 0x19
+#define PCI_SUBORDINATE_BUS_NUM 0x20
+
 typedef struct PCIdevice {
   uint16_t bus;
   uint16_t slot;
@@ -158,5 +162,8 @@ uint16_t ConfigReadWord(uint8_t bus, uint8_t slot, uint8_t func,
 PCI *lookupPCIdevice(PCIdevice *device);
 void setupPCIdeviceDriver(PCI *pci, PCI_DRIVER driver,
                           PCI_DRIVER_CATEGORY category);
+
+bool GetParentBridge(uint8_t bus, uint8_t *Tbus, uint8_t *Tslot,
+                     uint8_t *Tfunction, uint8_t targetBus);
 
 #endif

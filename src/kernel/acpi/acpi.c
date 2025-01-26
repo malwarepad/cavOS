@@ -1,3 +1,4 @@
+#include <acpi.h>
 #include <system.h>
 #include <uacpi/uacpi.h>
 
@@ -20,6 +21,9 @@ void initiateACPI() {
     debugf("uacpi_namespace_load error: %s", uacpi_status_to_string(ret));
     panic();
   }
+
+  // set the interrupt model
+  uacpi_set_interrupt_model(UACPI_INTERRUPT_MODEL_IOAPIC);
 
   /*
    * Initialize the namespace. This calls all necessary _STA/_INI AML methods,
