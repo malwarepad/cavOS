@@ -18,8 +18,8 @@ if [ ! -d "$1/bin" ]; then
 	cd "$SCRIPTPATH"
 fi
 
-if test -f /dev/loop101 || test -f /dev/loop102 || test -f /dev/loop103; then
-	echo "Loopback devices designated for cavOS are already assigned to something! (/dev/loop101, /dev/loop102, /dev/loop103)"
+if test -f /dev/loop101; then
+	echo "Loopback device designated for cavOS is already assigned to something! (/dev/loop101)"
 	exit 1
 fi
 
@@ -43,22 +43,18 @@ if [ -z "$4" ]; then
 	"$LIMINE_EXEC" bios-install "${3}"
 fi
 
-sudo losetup /dev/loop101 "${3}"
-sudo losetup /dev/loop102 "${3}" -o 1048576   #  1  MB
-sudo losetup /dev/loop103 "${3}" -o 136314880 # 128 MB
+sudo losetup -P /dev/loop101 "${3}"
 
 if [ -z "$4" ]; then
-	sudo mkdosfs -F32 -f 2 /dev/loop102 || sudo mkfs.fat -F32 -f 2 /dev/loop102
-	# sudo mkdosfs -F32 -f 2 /dev/loop103
-	sudo mke2fs -L "cavOS" -O ^dir_index /dev/loop103 "$(((($SIZE_IN_BLOCKS - 350000) * 512) / 1024))"
-	sudo fatlabel /dev/loop102 LIMINE
-	# sudo fatlabel /dev/loop103 CAVOS
+	sudo mkdosfs -F32 -f 2 /dev/loop101p1 || sudo mkfs.fat -F32 -f 2 /dev/loop101p1
+	sudo mke2fs -L "cavOS" -O ^dir_index /dev/loop101p2 "$(((($SIZE_IN_BLOCKS - 350000) * 512) / 1024))"
+	sudo fatlabel /dev/loop101p1 LIMINE
 fi
 
 sudo mkdir -p "${2}"
-sudo mount /dev/loop103 "${2}"
+sudo mount /dev/loop101p2 "${2}"
 sudo mkdir -p "${2}/boot/"
-sudo mount /dev/loop102 "${2}/boot/"
+sudo mount /dev/loop101p1 "${2}/boot/"
 
 sudo mkdir -p "${2}/boot/limine/" "${2}/boot/EFI/BOOT"
 sudo cp "$LIMINE_DIR/limine-bios.sys" "${2}/boot/limine/"
