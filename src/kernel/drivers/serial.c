@@ -1,3 +1,4 @@
+#include <psf.h>
 #include <serial.h>
 #include <stdarg.h>
 #include <system.h>
@@ -45,6 +46,8 @@ void serial_send(int device, char out) {
 
 void debug(char c, void *arg) {
   // outportb(0xE9, c);
+  // if (psf)
+  //   printf("%c", c);
   serial_send(COM1, c);
 }
 

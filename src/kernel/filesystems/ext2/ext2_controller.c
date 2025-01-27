@@ -8,8 +8,6 @@
 #include <timer.h>
 #include <util.h>
 
-#include <vmm.h>
-
 bool ext2Mount(MountPoint *mount) {
   // assign handlers
   mount->handlers = &ext2Handlers;
@@ -196,16 +194,16 @@ int ext2Read(OpenFile *fd, uint8_t *buff, size_t naiveLimit) {
   if (dir->ptr >= filesize)
     return 0;
 
-  size_t limit = MIN(naiveLimit, filesize - dir->ptr);
+  size_t limit = naiveLimit;
+  if (limit > (filesize - dir->ptr))
+    limit = filesize - dir->ptr;
 
   size_t    blocksRequired = DivRoundUp(limit, ext2->blockSize);
   uint32_t *blocks =
       ext2BlockChain(ext2, dir, dir->ptr / ext2->blockSize, blocksRequired);
 
-  uint8_t *tmp =
-      (uint8_t *)VirtualAllocate(DivRoundUp(ext2->blockSize * 2, PAGE_SIZE));
-  size_t   remaining = limit;
-  uint32_t offsetStarting = dir->ptr % ext2->blockSize; // remainder
+  uint8_t *tmp = (uint8_t *)calloc((blocksRequired + 1) * ext2->blockSize, 1);
+  int      currBlock = 0;
 
   // optimization: we can use consecutive sectors to make our life easier
   int consecStart = -1;
@@ -231,56 +229,18 @@ int ext2Read(OpenFile *fd, uint8_t *buff, size_t naiveLimit) {
         continue;
     }
 
-    uint32_t lba = 0;
-    size_t   sectors = 0;
     if (consecEnd) {
       // optimized consecutive cluster reading
       int needed = consecEnd - consecStart + 1;
-      lba = BLOCK_TO_LBA(ext2, 0, blocks[consecStart]);
-      sectors = (needed * ext2->blockSize) / SECTOR_SIZE;
+      getDiskBytes(&tmp[currBlock * ext2->blockSize],
+                   BLOCK_TO_LBA(ext2, 0, blocks[consecStart]),
+                   (needed * ext2->blockSize) / SECTOR_SIZE);
+      currBlock += needed;
     } else {
-      lba = BLOCK_TO_LBA(ext2, 0, blocks[i]);
-      sectors = ext2->blockSize / SECTOR_SIZE;
-    }
-
-    if (!remaining)
-      break;
-
-    if (offsetStarting > 0) {
-      // first, clear the offset (< ext2->blockSize)
-      size_t clearSize = ext2->blockSize - offsetStarting;
-      size_t clearToCopy = MIN(clearSize, remaining);
-      size_t ext2Sec = ext2->blockSize / SECTOR_SIZE;
-      getDiskBytes(tmp, lba, ext2Sec);
-      memcpy(buff, &tmp[offsetStarting], clearToCopy);
-      remaining -= clearToCopy;
-
-      lba += ext2Sec;
-      sectors -= ext2Sec;
-      offsetStarting = 0; // not again!
-    }
-
-    size_t bytes = sectors * SECTOR_SIZE;
-    if (bytes > remaining) {
-      // find head
-      size_t bigSectors = remaining / SECTOR_SIZE;
-      if (bigSectors > 0)
-        getDiskBytes(&buff[limit - remaining], lba, bigSectors);
-      size_t bigBytes = bigSectors * SECTOR_SIZE;
-      if (bigBytes != remaining) {
-        // there's a tail, find it (< 512)
-        int tail = remaining - bigBytes;
-        if (tail < 0 || tail > 512) {
-          debugf("[ext2::read] FATAL! Tail miscalculation!\n");
-          panic();
-        }
-        getDiskBytes(tmp, lba + bigSectors, 1);
-        memcpy(&buff[limit - remaining + bigBytes], tmp, tail);
-      }
-      remaining = 0;
-    } else {
-      getDiskBytes(&buff[limit - remaining], lba, sectors);
-      remaining -= bytes;
+      getDiskBytes(&tmp[currBlock * ext2->blockSize],
+                   BLOCK_TO_LBA(ext2, 0, blocks[i]),
+                   ext2->blockSize / SECTOR_SIZE);
+      currBlock++;
     }
 
     // traverse
@@ -288,15 +248,19 @@ int ext2Read(OpenFile *fd, uint8_t *buff, size_t naiveLimit) {
     consecEnd = 0;
   }
 
-  dir->ptr += limit; // set pointer
-  if (remaining > 0) {
-    debugf("[ext2::read] FATAL! More left! remaining{%ld}", remaining);
-    panic();
+  // actually fill the buffer
+  uint32_t offsetStarting = dir->ptr % ext2->blockSize; // remainder
+  size_t   headtoCopy = MIN(ext2->blockSize - offsetStarting, limit);
+  memcpy(buff, &tmp[offsetStarting], headtoCopy);
+  if (limit > headtoCopy) {
+    memcpy(&buff[headtoCopy], &tmp[ext2->blockSize], limit - headtoCopy);
   }
+
+  dir->ptr += limit; // set pointer
 
   // cleanup
   free(blocks);
-  VirtualFree(tmp, DivRoundUp(ext2->blockSize * 2, PAGE_SIZE));
+  free(tmp);
 
   // debugf("[fd:%d id:%d] read %d bytes\n", fd->id, currentTask->id, curr);
   // debugf("%d / %d\n", dir->ptr, dir->inode.size);
@@ -642,9 +606,6 @@ bool ext2DuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan) {
 // task is taken into account
 size_t ext2Mmap(size_t addr, size_t length, int prot, int flags, OpenFile *fd,
                 size_t pgoffset) {
-  // todo: for shared entries I need to double-check: syscallMprotect() and some
-  // darn way to sync them!
-
   if (!(flags & MAP_PRIVATE)) {
     debugf("[ext2::mmap] Unsupported flags! flags{%x}\n", flags);
     return -ENOSYS;
