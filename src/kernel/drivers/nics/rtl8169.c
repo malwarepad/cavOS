@@ -61,7 +61,11 @@ void interruptHandlerRTL8169(AsmPassedInterrupt *regs) {
 
       netQueueAdd(selectedNIC, (uint8_t *)virt, buffSize - 4);
 
-      info->RxDescriptors[i].command |= RTL8169_OWN;
+      bool isFinal = info->RxDescriptors[i].command & RTL8169_EOR;
+      info->RxDescriptors[i].command = (RTL8169_OWN | (1536 & 0x3FFF));
+      if (isFinal)
+        info->RxDescriptors[i].command |= RTL8169_EOR;
+      // info->RxDescriptors[i].command |= RTL8169_OWN;
     }
 
     status |= RTL8169_RECV;
