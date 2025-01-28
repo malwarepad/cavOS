@@ -114,6 +114,7 @@ void sendRTL8169(NIC *nic, void *packet, uint32_t packetSize) {
 void setupDescriptorsRTL8169(rtl8169_interface *infoLocation) {
   for (uint32_t i = 0; i < RTL8169_DESCRIPTORS; i++) {
     uint32_t buffer_len = 1536;
+    uint32_t default_len = 0;
 
     // will be consecutive
     void *addrRX = (void *)malloc(buffer_len);
@@ -124,10 +125,10 @@ void setupDescriptorsRTL8169(rtl8169_interface *infoLocation) {
     // setup RX
     if (i == (RTL8169_DESCRIPTORS - 1)) {
       infoLocation->RxDescriptors[i].command =
-          (RTL8169_OWN | RTL8169_EOR | (buffer_len & 0x3FFF));
+          (RTL8169_OWN | RTL8169_EOR | (default_len & 0x3FFF));
     } else {
       infoLocation->RxDescriptors[i].command =
-          (RTL8169_OWN | (buffer_len & 0x3FFF));
+          (RTL8169_OWN | (default_len & 0x3FFF));
     }
     size_t physRX = VirtualToPhysical((size_t)addrRX);
     infoLocation->RxDescriptors[i].low_buf = (uint32_t)(physRX & 0xFFFFFFFF);
@@ -136,10 +137,9 @@ void setupDescriptorsRTL8169(rtl8169_interface *infoLocation) {
     // setup TX
     if (i == (RTL8169_DESCRIPTORS - 1)) {
       infoLocation->TxDescriptors[i].command =
-          (RTL8169_OWN | RTL8169_EOR | (buffer_len & 0x3FFF));
+          (RTL8169_EOR | (default_len & 0x3FFF));
     } else {
-      infoLocation->TxDescriptors[i].command =
-          (RTL8169_OWN | (buffer_len & 0x3FFF));
+      infoLocation->TxDescriptors[i].command = ((default_len & 0x3FFF));
     }
     size_t physTX = VirtualToPhysical((size_t)addrTX);
     infoLocation->TxDescriptors[i].low_buf = (uint32_t)(physTX & 0xFFFFFFFF);
