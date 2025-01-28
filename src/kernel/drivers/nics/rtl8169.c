@@ -125,10 +125,10 @@ void setupDescriptorsRTL8169(rtl8169_interface *infoLocation) {
     // setup RX
     if (i == (RTL8169_DESCRIPTORS - 1)) {
       infoLocation->RxDescriptors[i].command =
-          (RTL8169_OWN | RTL8169_EOR | (default_len & 0x3FFF));
+          (RTL8169_OWN | RTL8169_EOR | (buffer_len & 0x3FFF));
     } else {
       infoLocation->RxDescriptors[i].command =
-          (RTL8169_OWN | (default_len & 0x3FFF));
+          (RTL8169_OWN | (buffer_len & 0x3FFF));
     }
     size_t physRX = VirtualToPhysical((size_t)addrRX);
     infoLocation->RxDescriptors[i].low_buf = (uint32_t)(physRX & 0xFFFFFFFF);
