@@ -44,8 +44,8 @@ void _start(void) {
   if (LIMINE_BASE_REVISION_SUPPORTED == false)
     panic();
 
-  initialiseBootloaderParser();
   initiateSerial();
+  initialiseBootloaderParser();
 
   // Framebuffer doesn't depend on paging, limine prepares it anyways
   initiateVGA();
