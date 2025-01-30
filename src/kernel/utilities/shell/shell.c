@@ -1,12 +1,10 @@
-#include <arp.h>
 #include <bootloader.h>
-#include <checksum.h>
 #include <console.h>
 #include <elf.h>
 #include <fb.h>
-#include <icmp.h>
 #include <kb.h>
 #include <malloc.h>
+#include <nic_controller.h>
 #include <paging.h>
 #include <pci.h>
 #include <pmm.h>
@@ -240,33 +238,9 @@ void launch_shell(int n) {
       Task *fr = firstTask->next;
       fr->state = TASK_STATE_READY;
       printf("\n");
-    } else if (strEql(ch, "arptable")) {
-      debugArpTable(selectedNIC);
-    } else if (strEql(ch, "arping")) {
-      uint8_t ip[4];
-      uint8_t mac[6];
-      printf("\nInsert IP address: ");
-      ipPrompt(ip);
-      printf("\n");
-
-      bool test = netArpGetIPv4(selectedNIC, ip, mac);
-      if (!test)
-        printf("MAC address cannot be parsed!\n");
-      else
-        printf("MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", mac[0], mac[1], mac[2],
-               mac[3], mac[4], mac[5]);
     } else if (strEql(ch, "bash")) {
       printf("\n");
       run("/usr/bin/bash", true, 0, 0);
-    } else if (strEql(ch, "ping")) {
-      uint8_t ip[4];
-      uint8_t mac[6];
-      printf("\nInsert IP address: ");
-      ipPrompt(ip);
-      printf("\n");
-
-      netArpGetIPv4(selectedNIC, ip, mac);
-      netICMPsendPing(selectedNIC, mac, ip);
     } else if (strEql(ch, "net")) {
       printf("\nWarning: networking is still very early in testing!\n");
       printf("=========================================\n");
@@ -281,7 +255,7 @@ void launch_shell(int n) {
         }
         NIC *nic = pci->extra;
 
-        const ip_addr_t *dns = dns_getserver(1);
+        const ip_addr_t *dns = dns_getserver(0);
 
         uint8_t *ipaddr = (uint8_t *)&nic->lwip.ip_addr.addr;
         uint8_t *subnetaddr = (uint8_t *)&nic->lwip.netmask.addr;

@@ -84,6 +84,15 @@ void   apicSetBase(size_t apic) {
           apic | IA32_APIC_BASE_MSR_ENABLE | IA32_APIC_BASE_MSR_BSP);
 }
 
+uint32_t apicCurrentCore() {
+  if (!apicVirt) {
+    debugf("[lapic::currCore] APIC hasn't been initialized yet!\n");
+    return 0;
+  }
+
+  return (apicRead(APIC_REGISTER_ID) >> 24) & 0xFF;
+}
+
 /* PCI routing */
 
 uacpi_iteration_decision uacpiBusMatch(void *user, uacpi_namespace_node *node,
@@ -391,6 +400,12 @@ void initiateAPIC() {
   debugf("\n");
 
   // enable lapic (for the bootstrap core)
+  apicSetBase(apicPhys);
+  apicWrite(0xF0, apicRead(0xF0) | 0x1FF);
+}
+
+void smpInitiateAPIC() {
+  // enable lapic
   apicSetBase(apicPhys);
   apicWrite(0xF0, apicRead(0xF0) | 0x1FF);
 }

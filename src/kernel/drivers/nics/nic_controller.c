@@ -1,6 +1,3 @@
-#include <arp.h>
-#include <dhcp.h>
-#include <ipv4.h>
 #include <kernel_helper.h>
 #include <linked_list.h>
 #include <malloc.h>

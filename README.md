@@ -44,14 +44,8 @@ Important to mention these goals may never be satisfied, take a very long time t
   - [x] Generic: PS/2 Keyboard, serial port
   - [x] Generic: Mouse
 - Networking stack
-  - [ ] Generic: Rethink everything networking-related
-  - [x] Layer3: IPv4, ARP, ICMP
-  - [x] Layer4: UDP, TCP
-  - [x] Layer5: DHCP
-  - [ ] Layer6: TLS
-  - [ ] Layer7: DNS, HTTP
   - [x] OS Interface: Sockets
-  - [ ] Generic: Improve reliability & security
+  - [ ] Ports: Stuff to take advantage of the network stack
 - Userspace
   - [x] Toolchain: cavOS-specific
   - [x] Libraries: musl(libC)

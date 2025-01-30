@@ -8,6 +8,7 @@
 #define IA32_APIC_BASE_MSR_BSP 0x100 // Processor is a BSP
 #define IA32_APIC_BASE_MSR_ENABLE 0x800
 
+#define APIC_REGISTER_ID 0x20
 #define APIC_REGISTER_APICID 0x20
 #define APIC_REGISTER_EOI 0x0B0
 #define APIC_REGISTER_SPURIOUS 0x0F0
@@ -43,6 +44,7 @@ uint8_t  irqGenericArray[MAX_IRQ];
 uint32_t lapicGenericArray[MAX_IRQ];
 
 void initiateAPIC();
+void smpInitiateAPIC();
 
 uint8_t ioApicRedirect(uint8_t irq, bool ignored);
 uint8_t ioApicPciRegister(PCIdevice *device, PCIgeneralDevice *details);
@@ -50,5 +52,7 @@ uint8_t irqPerCoreAllocate(uint8_t gsi, uint32_t *lapicId);
 
 uint32_t apicRead(uint32_t offset);
 void     apicWrite(uint32_t offset, uint32_t value);
+
+uint32_t apicCurrentCore();
 
 #endif
