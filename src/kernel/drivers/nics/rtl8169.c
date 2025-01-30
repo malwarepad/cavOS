@@ -1,6 +1,5 @@
 #include <apic.h>
 #include <bootloader.h>
-#include <dhcp.h>
 #include <isr.h>
 #include <malloc.h>
 #include <paging.h>
