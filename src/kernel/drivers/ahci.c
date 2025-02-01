@@ -194,44 +194,42 @@ void ahciPortRebase(ahci *ahciPtr, HBA_PORT *port, int portno) {
   // enable (all) interrupts
   port->ie = 1;
 
-  // Command list offset: 1K*portno
-  // Command list entry size = 32
-  // Command list entry maxim count = 32
-  // Command list maxim size = 32*32 = 1K per port
+  // Command list: 1K-byte aligned, 32 commands, 32 bytes each = 1K per port
   uint32_t clbPages = DivRoundUp(sizeof(HBA_CMD_HEADER) * 32, BLOCK_SIZE);
-  void    *clbVirt = VirtualAllocate(clbPages); //!
-  ahciPtr->clbVirt[portno] = clbVirt;
-  size_t clbPhys = VirtualToPhysical((size_t)clbVirt);
+  void    *clbVirt = VirtualAllocate(clbPages);
+  size_t   clbPhys = VirtualToPhysical((size_t)clbVirt);
+  memset(clbVirt, 0, clbPages * BLOCK_SIZE);
+
+  // store the command list
   port->clb = SPLIT_64_LOWER(clbPhys);
   port->clbu = SPLIT_64_HIGHER(clbPhys);
-  memset(clbVirt, 0, clbPages * BLOCK_SIZE); // could've just done 1024
+  ahciPtr->clbVirt[portno] = clbVirt; //!
 
-  // FIS offset: 32K+256*portno
-  // FIS entry size = 256 bytes per port
-  // use a bit of the wasted (256-aligned) space for this
-  size_t fbPhys = clbPhys + 2048;
+  // FIS: 256-byte aligned, 32 commands, 256 bytes each = 8K per port
+  void  *fbVirt = VirtualAllocate(DivRoundUp(256 * 32, BLOCK_SIZE));
+  size_t fbPhys = VirtualToPhysical((size_t)fbVirt);
+  memset((void *)(fbVirt), 0, 256 * 32);
+
+  // store the FIS
   port->fb = SPLIT_64_LOWER(fbPhys);
   port->fbu = SPLIT_64_HIGHER(fbPhys);
-  // memset((void *)(port->fb), 0, 256); already 0'd
 
-  // Command table offset: 40K + 8K*portno
-  // Command table size = 256*32 = 8K per port
+  // Command table: 128-byte aligned, 32 commands, AHCI_MEM_TABLE * 32 = [...]
   HBA_CMD_HEADER *cmdheader = (HBA_CMD_HEADER *)clbVirt;
-  void           *ctbaVirt = VirtualAllocate(AHCI_MEM_ALL_TABLES /
-                                             PAGE_SIZE); // 2 pages = 8192 bytes //!
-  ahciPtr->ctbaVirt[portno] = ctbaVirt;
+  void  *ctbaVirt = VirtualAllocate(DivRoundUp(AHCI_MEM_ALL_TABLES, PAGE_SIZE));
   size_t ctbaPhys = (size_t)VirtualToPhysical((size_t)ctbaVirt);
   memset(ctbaVirt, 0, AHCI_MEM_ALL_TABLES);
+
+  // store the command table
   for (int i = 0; i < 32; i++) {
-    cmdheader[i].prdtl =
-        AHCI_PRDTS; // 8 prdt entries per command table
-                    // 256 bytes per command table, 64+16+48+16*8
-    // Command table offset: 40K + 8K*portno + cmdheader_index*256
+    // x prdt entries per command table
+    // y bytes per command table, y=64+16+48+16*x
+    cmdheader[i].prdtl = AHCI_PRDTS;
     size_t ctbaPhysCurr = ctbaPhys + i * AHCI_MEM_TABLE;
     cmdheader[i].ctba = SPLIT_64_LOWER(ctbaPhysCurr);
     cmdheader[i].ctbau = SPLIT_64_HIGHER(ctbaPhysCurr);
-    // memset((void *)cmdheader[i].ctba, 0, 256); already 0'd
   }
+  ahciPtr->ctbaVirt[portno] = ctbaVirt; //!
 
   if (port->serr & (1 << 10))
     port->serr |= (1 << 10);
@@ -396,11 +394,11 @@ bool initiateAHCI(PCIdevice *device) {
   // Enable PCI Bus Mastering, memory access and interrupts (if not already)
   uint32_t command_status = COMBINE_WORD(device->status, device->command);
   if (!(command_status & (1 << 2)))
-    command_status |= (1 << 2);
+    command_status |= (1 << 2); // PCI Bus Mastering
   if (!(command_status & (1 << 1)))
-    command_status |= (1 << 1);
+    command_status |= (1 << 1); // PCI Memory Space
   if (command_status & (1 << 10))
-    command_status &= ~(1 << 10);
+    command_status &= ~(1 << 10); // PCI Interrupt Disable
   // command_status |= (1 << 10);
   ConfigWriteDword(device->bus, device->slot, device->function, PCI_COMMAND,
                    command_status);
