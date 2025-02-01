@@ -246,6 +246,11 @@ static int syscallMkdir(char *path, uint32_t mode) {
   return fsMkdir(currentTask, path, mode);
 }
 
+#define SYSCALL_UNLINK 87
+static int syscallUnlink(char *path) {
+  return fsUnlink(currentTask, path, false);
+}
+
 #define SYSCALL_READLINK 89
 static int syscallReadlink(char *path, char *buf, int size) {
   dbgSysExtraf("path{%s}", path);
@@ -382,6 +387,28 @@ static int syscallNewfstatat(int dfd, char *filename, struct stat *statbuf,
   return -ENOSYS;
 }
 
+#define SYSCALL_UNLINKAT 263
+static int syscallUnlinkat(int dirfd, char *pathname, int mode) {
+  bool directory = mode & 0x200;
+  if (pathname[0] == '\0') { // by fd
+    dbgSysFailf("unsupported!");
+    return -1;
+  } else if (pathname[0] == '/') { // by absolute pathname
+    return fsUnlink(currentTask, pathname, directory);
+  } else if (pathname[0] != '/') {
+    if (dirfd == AT_FDCWD) { // relative to cwd
+      return fsUnlink(currentTask, pathname, directory);
+    } else {
+      dbgSysStubf("todo: relative to dirfd{%d}", dirfd);
+      return -1;
+    }
+  } else {
+    dbgSysFailf("unsupported!");
+    return -1;
+  }
+  return -ENOSYS;
+}
+
 #define SYSCALL_FACCESSAT 269
 static int syscallFaccessat(int dirfd, char *pathname, int mode) {
   if (pathname[0] == '\0') { // by fd
@@ -495,6 +522,7 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_MKDIR, syscallMkdir);
   registerSyscall(SYSCALL_UMASK, syscallUmask);
   registerSyscall(SYSCALL_PREAD64, syscallPread64);
+  registerSyscall(SYSCALL_UNLINK, syscallUnlink);
 
   registerSyscall(SYSCALL_IOCTL, syscallIoctl);
   registerSyscall(SYSCALL_READV, syscallReadV);
@@ -510,5 +538,6 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_STATX, syscallStatx);
   registerSyscall(SYSCALL_READLINK, syscallReadlink);
   registerSyscall(SYSCALL_NEWFSTATAT, syscallNewfstatat);
+  registerSyscall(SYSCALL_UNLINKAT, syscallUnlinkat);
   // registerSyscall(SYSCALL_FACCESSAT2, syscallFaccessat2);
 }

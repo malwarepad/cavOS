@@ -54,6 +54,26 @@ void ext2InodeModifyM(Ext2 *ext2, size_t inode, Ext2Inode *target) {
   spinlockCntWriteRelease(&ext2->WLOCK_INODE);
 }
 
+void ext2InodeDelete(Ext2 *ext2, size_t inode) {
+  spinlockCntWriteAcquire(&ext2->WLOCK_INODE);
+  uint32_t group = INODE_TO_BLOCK_GROUP(ext2, inode);
+  uint32_t index = INODE_TO_INDEX(ext2, inode);
+
+  uint32_t where = index / 8;
+  uint32_t remainder = index % 8;
+
+  size_t lba = BLOCK_TO_LBA(ext2, 0, ext2->bgdts[group].inode_bitmap);
+
+  uint8_t *buf = (uint8_t *)malloc(ext2->blockSize);
+  getDiskBytes(buf, lba, ext2->blockSize / SECTOR_SIZE);
+  assert(buf[where] & (1 << remainder));
+  buf[where] &= ~(1 << remainder);
+  setDiskBytes(buf, lba, ext2->blockSize / SECTOR_SIZE);
+
+  free(buf);
+  spinlockCntWriteRelease(&ext2->WLOCK_INODE);
+}
+
 uint32_t ext2InodeFind(Ext2 *ext2, int groupSuggestion) {
   if (ext2->superblock.free_inodes < 1)
     goto burn;

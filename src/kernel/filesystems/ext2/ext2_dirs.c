@@ -99,6 +99,64 @@ cleanup:
   return ret;
 }
 
+bool ext2DirRemove(Ext2 *ext2, Ext2Inode *parentDirInode, char *filename,
+                   uint8_t filenameLen) {
+  spinlockAcquire(&ext2->LOCK_DIRALLOC);
+
+  Ext2Inode *ino = parentDirInode; // <- todo
+  uint8_t   *names = (uint8_t *)malloc(ext2->blockSize);
+
+  Ext2LookupControl control = {0};
+  size_t            blockNum = 0;
+
+  bool ret = false;
+  ext2BlockFetchInit(ext2, &control);
+
+  int blocksContained = DivRoundUp(ino->size, ext2->blockSize);
+  for (int i = 0; i < blocksContained; i++) {
+    size_t block = ext2BlockFetch(ext2, ino, &control, blockNum);
+    if (!block)
+      break;
+    blockNum++;
+    Ext2Directory *dir = (Ext2Directory *)names;
+
+    getDiskBytes(names, BLOCK_TO_LBA(ext2, 0, block),
+                 ext2->blockSize / SECTOR_SIZE);
+
+    Ext2Directory *before = 0;
+    while (((size_t)dir - (size_t)names) < ext2->blockSize) {
+      if (dir->inode && filenameLen == dir->filenameLength &&
+          memcmp(dir->filename, filename, filenameLen) == 0) {
+        // found!
+        if ((size_t)dir == (size_t)names) {
+          // it's the first element
+          assert(!before);
+          dir->inode = 0;
+          dir->filenameLength = 0;
+          setDiskBytes(names, BLOCK_TO_LBA(ext2, 0, block),
+                       ext2->blockSize / SECTOR_SIZE);
+        } else {
+          // it's somewhere in between, meaning there's another element behind
+          before->size += dir->size;
+          setDiskBytes(names, BLOCK_TO_LBA(ext2, 0, block),
+                       ext2->blockSize / SECTOR_SIZE);
+        }
+        // done successfuly!
+        ret = true;
+      }
+
+      before = dir;
+      dir = (void *)((size_t)dir + dir->size);
+    }
+  }
+
+  ext2BlockFetchCleanup(&control);
+  free(names);
+  spinlockRelease(&ext2->LOCK_DIRALLOC);
+
+  return ret;
+}
+
 int ext2Getdents64(OpenFile *file, struct linux_dirent64 *start,
                    unsigned int hardlimit) {
   Ext2       *ext2 = EXT2_PTR(file->mountPoint->fsInfo);

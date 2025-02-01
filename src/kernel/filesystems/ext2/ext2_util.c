@@ -215,6 +215,35 @@ cleanup:
   return ret ? (group * ext2->superblock.blocks_per_group + ret) : 0;
 }
 
+void ext2BlockDelete(Ext2 *ext2, uint32_t group, uint32_t index) {
+  spinlockAcquire(&ext2->LOCKS_BLOCK_BITMAP[group]);
+
+  uint8_t *buff = malloc(ext2->blockSize);
+
+  getDiskBytes(buff, BLOCK_TO_LBA(ext2, 0, ext2->bgdts[group].block_bitmap),
+               ext2->blockSize / SECTOR_SIZE);
+
+  uint32_t where = index / 8;
+  uint32_t remainder = index % 8;
+  buff[where] &= ~(1 << remainder);
+  setDiskBytes(buff, BLOCK_TO_LBA(ext2, 0, ext2->bgdts[group].block_bitmap),
+               ext2->blockSize / SECTOR_SIZE);
+
+  // set the bgdt accordingly
+  spinlockAcquire(&ext2->LOCK_BGDT_WRITE);
+  ext2->bgdts[group].free_blocks++;
+  ext2BgdtPushM(ext2);
+  spinlockRelease(&ext2->LOCK_BGDT_WRITE);
+
+  // and the superblock
+  spinlockAcquire(&ext2->LOCK_SUPERBLOCK_WRITE);
+  ext2->superblock.free_blocks++;
+  ext2SuperblockPushM(ext2);
+  spinlockRelease(&ext2->LOCK_SUPERBLOCK_WRITE);
+
+  spinlockRelease(&ext2->LOCKS_BLOCK_BITMAP[group]);
+}
+
 uint32_t *ext2BlockChain(Ext2 *ext2, Ext2OpenFd *fd, size_t curr,
                          size_t blocks) {
   uint32_t *ret = (uint32_t *)malloc((1 + blocks) * sizeof(uint32_t));

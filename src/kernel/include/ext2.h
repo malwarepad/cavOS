@@ -239,6 +239,8 @@ size_t ext2Seek(OpenFile *fd, size_t target, long int offset, int whence);
 size_t ext2GetFilesize(OpenFile *fd);
 int    ext2Readlink(Ext2 *ext2, char *path, char *buf, int size,
                     char **symlinkResolve);
+int    ext2Delete(MountPoint *mnt, char *filename, bool directory,
+                  char **symlinkResolve);
 
 // ext2_create.c
 int ext2Mkdir(MountPoint *mnt, char *dirname, uint32_t mode,
@@ -259,6 +261,7 @@ void     ext2BlockAssign(Ext2 *ext2, Ext2Inode *ino, uint32_t inodeNum,
                          Ext2LookupControl *control, size_t curr, uint32_t val);
 uint32_t ext2BlockFind(Ext2 *ext2, int groupSuggestion, uint32_t amnt);
 uint32_t ext2BlockFindL(Ext2 *ext2, int group, uint32_t amnt);
+void     ext2BlockDelete(Ext2 *ext2, uint32_t group, uint32_t index);
 
 // ext2_traverse.c
 uint32_t ext2Traverse(Ext2 *ext2, size_t initInode, char *search,
@@ -269,6 +272,7 @@ uint32_t ext2TraversePath(Ext2 *ext2, char *path, size_t initInode, bool follow,
 // ext2_inode.c
 Ext2Inode *ext2InodeFetch(Ext2 *ext2, size_t inode);
 void       ext2InodeModifyM(Ext2 *ext2, size_t inode, Ext2Inode *target);
+void       ext2InodeDelete(Ext2 *ext2, size_t inode);
 
 uint32_t ext2InodeFindL(Ext2 *ext2, int group);
 uint32_t ext2InodeFind(Ext2 *ext2, int groupSuggestion);
@@ -282,6 +286,8 @@ int  ext2Getdents64(OpenFile *file, struct linux_dirent64 *start,
 
 void ext2BgdtPushM(Ext2 *ext2);
 void ext2SuperblockPushM(Ext2 *ext2);
+bool ext2DirRemove(Ext2 *ext2, Ext2Inode *parentDirInode, char *filename,
+                   uint8_t filenameLen);
 
 // finale
 VfsHandlers ext2Handlers;

@@ -16,6 +16,7 @@ bool ext2Mount(MountPoint *mount) {
   mount->lstat = ext2Lstat;
 
   mount->mkdir = ext2Mkdir;
+  mount->delete = ext2Delete;
 
   // assign fsInfo
   mount->fsInfo = malloc(sizeof(Ext2));
@@ -191,6 +192,9 @@ int ext2Read(OpenFile *fd, uint8_t *buff, size_t naiveLimit) {
   Ext2       *ext2 = EXT2_PTR(fd->mountPoint->fsInfo);
   Ext2OpenFd *dir = EXT2_DIR_PTR(fd->dir);
 
+  if (dir->inode.permission & S_IFDIR)
+    return -EISDIR;
+
   size_t filesize = ext2GetFilesize(fd);
   if (dir->ptr >= filesize)
     return 0;
@@ -273,6 +277,9 @@ int ext2Read(OpenFile *fd, uint8_t *buff, size_t naiveLimit) {
 int ext2Write(OpenFile *fd, uint8_t *buff, size_t limit) {
   Ext2       *ext2 = EXT2_PTR(fd->mountPoint->fsInfo);
   Ext2OpenFd *dir = EXT2_DIR_PTR(fd->dir);
+
+  if (dir->inode.permission & S_IFDIR)
+    return -EISDIR;
 
   spinlockAcquire(&ext2->LOCK_WRITE);
 
@@ -658,6 +665,123 @@ size_t ext2Mmap(size_t addr, size_t length, int prot, int flags, OpenFile *fd,
   dir->ptr = oldPtr;
 
   return virt;
+}
+
+int ext2Delete(MountPoint *mnt, char *filename, bool directory,
+               char **symlinkResolve) {
+  int      ret = 0;
+  Ext2    *ext2 = EXT2_PTR(mnt->fsInfo);
+  uint32_t inodeNum =
+      ext2TraversePath(ext2, filename, 2, false, symlinkResolve);
+  if (!inodeNum)
+    return -ENOENT;
+
+  Ext2Inode *inode = ext2InodeFetch(ext2, inodeNum);
+  if (!inode)
+    return -ENOENT;
+
+  if (directory) {
+    // we're in directory mode, check if it's a directory
+    if (!(inode->permission & S_IFDIR)) {
+      ret = -ENOTDIR;
+      goto cleanup;
+    }
+  } else {
+    // we're in file mode, check if it's a file
+    if (inode->permission & S_IFDIR) {
+      ret = -EISDIR;
+      goto cleanup;
+    }
+  }
+
+  // start the fun
+  int filenameLen = strlength(filename);
+  if (filenameLen == 1) {
+    // talking about /
+    if (directory)
+      ret = -ENOTEMPTY;
+    else
+      ret = -EISDIR;
+    goto cleanup;
+  }
+  int parentLen = 0;
+
+  if (directory) {
+    // directory special: check if the directory is empty first
+    uint8_t       *names = (uint8_t *)malloc(ext2->blockSize);
+    Ext2Directory *dir = (Ext2Directory *)names;
+    getDiskBytes((uint8_t *)dir, BLOCK_TO_LBA(ext2, 0, inode->blocks[0]),
+                 ext2->blockSize / SECTOR_SIZE);
+    int i = 0;
+    while (((size_t)dir - (size_t)names) < ext2->blockSize) {
+      if (dir->filenameLength > 2 || i > 1) {
+        free(names);
+        ret = -ENOTEMPTY;
+        goto cleanup;
+      }
+      if (dir->inode)
+        i++;
+      dir = (void *)((size_t)dir + dir->size);
+    }
+    free(names);
+  }
+
+  // find the parent
+  char *parent = (char *)malloc(filenameLen + 1);
+  memcpy(parent, filename, filenameLen + 1);
+  for (int i = filenameLen; i >= 0; i--) {
+    if (parent[i] == '/') {
+      if (i != 0)
+        parent[i] = '\0';
+      parentLen = i;
+      break;
+    }
+    parent[i] = '\0';
+  }
+
+  // shouldn't need symlinkResolve now since the upper one resolved
+  uint32_t parentInodeNum = ext2TraversePath(ext2, parent, 2, false, 0);
+  assert(parentInodeNum);
+
+  Ext2Inode *parentInode = ext2InodeFetch(ext2, parentInodeNum);
+  assert(parentInode && parentInode->permission & S_IFDIR);
+
+  inode->hard_links--;
+  if (!inode->hard_links) {
+    if (inode->permission & S_IFREG || inode->permission & S_IFDIR) {
+      // regular file, delete the contents (really just mark them as free)
+      // same applies with empty directories that host the "." & ".." stuff
+      Ext2LookupControl control = {0};
+      ext2BlockFetchInit(ext2, &control);
+      size_t i = 0;
+      while (true) {
+        uint32_t block = ext2BlockFetch(ext2, inode, &control, i++);
+        if (!block)
+          break;
+
+        uint32_t group = block / ext2->superblock.blocks_per_group;
+        uint32_t index = block % ext2->superblock.blocks_per_group;
+        ext2BlockDelete(ext2, group, index);
+      }
+      ext2BlockFetchCleanup(&control);
+    }
+
+    // get rid of this inode
+    ext2InodeDelete(ext2, inodeNum);
+  } else {
+    ext2InodeModifyM(ext2, inodeNum, inode);
+  }
+
+  // keep only the last part of filename, let's recycle parent
+  memmove(parent, &filename[parentLen + 1], filenameLen - parentLen - 1);
+  ret = ext2DirRemove(ext2, parentInode, parent, filenameLen - parentLen - 1)
+            ? 0
+            : -1;
+  free(parent);
+
+cleanup:
+  free(inode);
+  return ret;
 }
 
 VfsHandlers ext2Handlers = {.open = ext2Open,

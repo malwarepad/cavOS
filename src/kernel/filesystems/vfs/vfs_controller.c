@@ -271,3 +271,29 @@ int fsMkdir(void *task, char *path, uint32_t mode) {
 
   return ret;
 }
+
+int fsUnlink(void *task, char *path, bool directory) {
+  Task       *target = (Task *)task;
+  char       *safeFilename = fsSanitize(target->cwd, path);
+  MountPoint *mnt = fsDetermineMountPoint(safeFilename);
+
+  int ret = 0;
+
+  char *symlink = 0;
+  if (mnt->delete) {
+    ret = mnt->delete(mnt, safeFilename, directory, &symlink);
+  } else {
+    ret = -EROFS;
+  }
+
+  free(safeFilename);
+
+  if (symlink) {
+    char *symlinkResolved = fsResolveSymlink(mnt, symlink);
+    free(symlink);
+    ret = fsUnlink(task, symlinkResolved, directory);
+    free(symlinkResolved);
+  }
+
+  return ret;
+}
