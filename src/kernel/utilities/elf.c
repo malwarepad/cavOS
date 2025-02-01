@@ -12,6 +12,7 @@
 #include <timer.h>
 #include <util.h>
 #include <vfs.h>
+#include <vmm.h>
 
 // ELF (for now only 64) parser
 // Copyright (C) 2024 Panagiotis
@@ -80,7 +81,8 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
 #if ELF_DEBUG
   debugf("[elf] Executing %s: filesize{%d}\n", filepath, filesize);
 #endif
-  uint8_t *out = (uint8_t *)malloc(filesize);
+  size_t   outSize = DivRoundUp(filesize, BLOCK_SIZE);
+  uint8_t *out = (uint8_t *)VirtualAllocate(outSize);
   fsReadFullFile(dir, out);
   fsKernelClose(dir);
 
@@ -130,7 +132,9 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
       }
       size_t size = fsGetFilesize(interpreter);
 
-      uint8_t *interpreterContents = (uint8_t *)malloc(size);
+      size_t   intContentsSize = DivRoundUp(size, BLOCK_SIZE);
+      uint8_t *interpreterContents =
+          (uint8_t *)VirtualAllocate(intContentsSize);
       fsReadFullFile(interpreter, interpreterContents);
       fsKernelClose(interpreter);
 
@@ -150,7 +154,7 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
           continue;
         elfProcessLoad(interpreterPhdr, interpreterContents, interpreterBase);
       }
-      free(interpreterContents);
+      VirtualFree(interpreterContents, intContentsSize);
 
       continue;
     }
@@ -220,7 +224,7 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
 
   // User stack generation: the stack itself, AUXs, etc...
   stackGenerateUser(target, argc, argv, envc, envv, out, filesize, elf_ehdr);
-  free(out);
+  VirtualFree(out, outSize);
 
   // void **a = (void **)(&target->firstSpecialFile);
   // fsUserOpenSpecial(a, "/dev/stdin", target, 0, &stdio);

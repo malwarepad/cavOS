@@ -7,6 +7,7 @@
 #include <task.h>
 #include <timer.h>
 #include <util.h>
+#include <vmm.h>
 
 bool ext2Mount(MountPoint *mount) {
   // assign handlers
@@ -202,7 +203,9 @@ int ext2Read(OpenFile *fd, uint8_t *buff, size_t naiveLimit) {
   uint32_t *blocks =
       ext2BlockChain(ext2, dir, dir->ptr / ext2->blockSize, blocksRequired);
 
-  uint8_t *tmp = (uint8_t *)calloc((blocksRequired + 1) * ext2->blockSize, 1);
+  size_t tmpSize =
+      DivRoundUp((blocksRequired + 1) * ext2->blockSize, BLOCK_SIZE);
+  uint8_t *tmp = (uint8_t *)VirtualAllocate(tmpSize);
   int      currBlock = 0;
 
   // optimization: we can use consecutive sectors to make our life easier
@@ -260,7 +263,7 @@ int ext2Read(OpenFile *fd, uint8_t *buff, size_t naiveLimit) {
 
   // cleanup
   free(blocks);
-  free(tmp);
+  VirtualFree(tmp, tmpSize);
 
   // debugf("[fd:%d id:%d] read %d bytes\n", fd->id, currentTask->id, curr);
   // debugf("%d / %d\n", dir->ptr, dir->inode.size);
@@ -332,7 +335,9 @@ int ext2Write(OpenFile *fd, uint8_t *buff, size_t limit) {
       }
     }
 
-    uint8_t *tmp = (uint8_t *)calloc((blocksRequired + 1) * ext2->blockSize, 1);
+    size_t tmpSize =
+        DivRoundUp((blocksRequired + 1) * ext2->blockSize, BLOCK_SIZE);
+    uint8_t *tmp = (uint8_t *)VirtualAllocate(tmpSize);
 
     // our first block will have junk data in the start!
     getDiskBytes(tmp, BLOCK_TO_LBA(ext2, 0, blocks[0]),
@@ -398,7 +403,7 @@ int ext2Write(OpenFile *fd, uint8_t *buff, size_t limit) {
 
     // cleanup
     free(blocks);
-    free(tmp);
+    VirtualFree(tmp, tmpSize);
   }
 
   if (dir->ptr > dir->inode.size) {
