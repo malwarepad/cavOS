@@ -8,6 +8,8 @@ typedef struct DS_Bitmap {
   size_t   BitmapSizeInBlocks; // CEIL(x / BLOCK_SIZE)
   size_t   BitmapSizeInBytes;  // CEIL(blockSize / 8)
 
+  size_t allocatedSizeInBlocks;
+
   // optimization(1): For (de/)allocations know to what extend our
   // bitmap is fully fragmented so it doesn't scan over it over and over and
   // over again.. This is especially useful for single-block allocations (such

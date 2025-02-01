@@ -4,6 +4,7 @@
 #include <fat32.h>
 #include <linked_list.h>
 #include <malloc.h>
+#include <proc.h>
 #include <string.h>
 #include <sys.h>
 #include <system.h>
@@ -83,6 +84,10 @@ MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
   case CONNECTOR_SYS:
     mount->filesystem = FS_SYS;
     ret = sysMount(mount);
+    break;
+  case CONNECTOR_PROC:
+    mount->filesystem = FS_PROC;
+    ret = procMount(mount);
     break;
   default:
     debugf("[vfs] Tried to mount with bad connector! id{%d}\n", connector);

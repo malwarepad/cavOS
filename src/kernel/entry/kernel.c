@@ -76,6 +76,7 @@ void _start(void) {
   fsMount("/boot/", CONNECTOR_AHCI, 0, 0);
   fsMount("/dev/", CONNECTOR_DEV, 0, 0);
   fsMount("/sys/", CONNECTOR_SYS, 0, 0);
+  fsMount("/proc/", CONNECTOR_PROC, 0, 0);
 
   // just in case there's another font preference
   psfLoadFromFile(DEFAULT_FONT_PATH);

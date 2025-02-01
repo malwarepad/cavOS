@@ -5,11 +5,12 @@
 #ifndef FS_CONTROLLER_H
 #define FS_CONTROLLER_H
 
-typedef enum FS { FS_FATFS, FS_EXT2, FS_DEV, FS_SYS } FS;
+typedef enum FS { FS_FATFS, FS_EXT2, FS_DEV, FS_SYS, FS_PROC } FS;
 typedef enum CONNECTOR {
   CONNECTOR_AHCI,
   CONNECTOR_DEV,
-  CONNECTOR_SYS
+  CONNECTOR_SYS,
+  CONNECTOR_PROC
 } CONNECTOR;
 
 // Accordingly to fatfs

@@ -125,11 +125,13 @@ void *BitmapAllocate(DS_Bitmap *bitmap, size_t blocks) {
   if (pickedRegion == INVALID_BLOCK)
     return 0;
 
+  bitmap->allocatedSizeInBlocks += blocks;
   MarkBlocks(bitmap, pickedRegion, blocks, 1);
   return ToPtr(bitmap, pickedRegion);
 }
 
 void BitmapFree(DS_Bitmap *bitmap, void *base, size_t blocks) {
+  bitmap->allocatedSizeInBlocks -= blocks;
   MarkRegion(bitmap, base, BLOCK_SIZE * blocks, 0);
 }
 
