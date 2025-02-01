@@ -25,7 +25,7 @@ bool fat32Mount(MountPoint *mount) {
   fat->offsetBase = mount->mbr.lba_first_sector; // 2048 (in LBA)
 
   // get first sector
-  uint8_t firstSec[SECTOR_SIZE] = {0};
+  uint8_t firstSec[SECTOR_SIZE] __attribute__((aligned(2))) = {0};
   getDiskBytes(firstSec, fat->offsetBase, 1);
 
   // store it

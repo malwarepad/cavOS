@@ -109,6 +109,13 @@ void panic() {
     asm volatile("hlt");
 }
 
+void _assert(bool expression, char *file, int line) {
+  if (!expression) {
+    debugf("[assert] Assertation failed! file{%s:%d}\n", file, line);
+    panic();
+  }
+}
+
 bool checkInterrupts() {
   uint16_t flags;
   asm volatile("pushf; pop %0" : "=g"(flags));

@@ -25,8 +25,17 @@ void initiateSSE();
 
 // Generic
 void panic();
-
 bool checkInterrupts();
+
+// Assert system
+void _assert(bool expression, char *file, int line);
+#define NO_ASSERT 0
+#if NO_ASSERT
+// #define assert(...)
+#define assert(expression) _assert(expression, 0, 0)
+#else
+#define assert(expression) _assert(expression, __FILE__, __LINE__)
+#endif
 
 // Has root (system) drive been initialized?
 bool systemDiskInit;

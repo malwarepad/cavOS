@@ -26,7 +26,7 @@ bool ext2Mount(MountPoint *mount) {
   ext2->offsetSuperblock = mount->mbr.lba_first_sector + 2;
 
   // get superblock
-  uint8_t tmp[sizeof(Ext2Superblock)] = {0};
+  uint8_t tmp[sizeof(Ext2Superblock)] __attribute__((aligned(2))) = {0};
   getDiskBytes(tmp, ext2->offsetSuperblock, 2);
 
   // store it
