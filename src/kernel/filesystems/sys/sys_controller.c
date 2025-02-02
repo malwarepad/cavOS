@@ -14,7 +14,7 @@ typedef struct PciConf {
   uint8_t  function;
 } PciConf;
 
-int pciConfigRead(OpenFile *fd, uint8_t *out, size_t limit) {
+size_t pciConfigRead(OpenFile *fd, uint8_t *out, size_t limit) {
   FakefsFile *file = (FakefsFile *)fd->fakefs;
   PciConf    *conf = (PciConf *)file->extra;
 

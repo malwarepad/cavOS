@@ -11,7 +11,7 @@ static int syscallNanosleep(struct timespec *duration, struct timespec *rem) {
 }*/
 
 #define SYSCALL_CLOCK_GETTIME 228
-static int syscallClockGettime(int which, timespec *spec) {
+static size_t syscallClockGettime(int which, timespec *spec) {
   switch (which) {
   case CLOCK_MONOTONIC: // <- todo
   case CLOCK_REALTIME: {
@@ -24,7 +24,7 @@ static int syscallClockGettime(int which, timespec *spec) {
   }
   default:
     dbgSysStubf("clock not supported\n");
-    return -EINVAL;
+    return ERR(EINVAL);
     break;
   }
 }

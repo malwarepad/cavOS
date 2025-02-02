@@ -2,10 +2,10 @@
 #include <task.h>
 #include <util.h>
 
-int nullRead(OpenFile *fd, uint8_t *out, size_t limit) { return 0; }
-int nullWrite(OpenFile *fd, uint8_t *in, size_t limit) { return limit; }
+size_t nullRead(OpenFile *fd, uint8_t *out, size_t limit) { return 0; }
+size_t nullWrite(OpenFile *fd, uint8_t *in, size_t limit) { return limit; }
 
-int nullStat(OpenFile *fd, stat *target) {
+size_t nullStat(OpenFile *fd, stat *target) {
   target->st_dev = 70;
   target->st_ino = rand(); // todo!
   target->st_mode = S_IFCHR | S_IRUSR | S_IWUSR;
@@ -23,7 +23,9 @@ int nullStat(OpenFile *fd, stat *target) {
   return 0;
 }
 
-int  nullIoctl(OpenFile *fd, uint64_t request, void *arg) { return -ENOTTY; }
+size_t nullIoctl(OpenFile *fd, uint64_t request, void *arg) {
+  return ERR(ENOTTY);
+}
 bool nullDuplicate() { return true; }
 
 size_t nullMmap() {

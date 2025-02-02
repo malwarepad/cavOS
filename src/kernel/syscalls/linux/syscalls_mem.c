@@ -8,7 +8,7 @@
 static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
                             int fd, size_t pgoffset) {
   if (length == 0)
-    return -EINVAL;
+    return ERR(EINVAL);
 
   length = DivRoundUp(length, 0x1000) * 0x1000;
   /* No point in DEBUG_SYSCALLS_ARGS'ing here */
@@ -64,7 +64,7 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
 }
 
 #define SYSCALL_MUNMAP 11
-static int syscallMunmap(uint64_t addr, size_t len) {
+static size_t syscallMunmap(uint64_t addr, size_t len) {
   // todo
   return 0;
 }

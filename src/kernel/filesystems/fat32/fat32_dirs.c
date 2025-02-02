@@ -5,18 +5,18 @@
 #include <system.h>
 #include <util.h>
 
-int fat32Getdents64(OpenFile *file, struct linux_dirent64 *start,
-                    unsigned int hardlimit) {
+size_t fat32Getdents64(OpenFile *file, struct linux_dirent64 *start,
+                       unsigned int hardlimit) {
   FAT32       *fat = FAT_PTR(file->mountPoint->fsInfo);
   FAT32OpenFd *fatDir = FAT_DIR_PTR(file->dir);
 
   if (!(fatDir->dirEnt.attrib & FAT_ATTRIB_DIRECTORY))
-    return -ENOTDIR;
+    return ERR(ENOTDIR);
 
   if (!fatDir->directoryCurr)
     return 0;
 
-  int allocatedlimit = 0;
+  size_t allocatedlimit = 0;
 
   int bytesPerCluster = LBA_TO_OFFSET(fat->bootsec.sectors_per_cluster);
 
@@ -85,7 +85,7 @@ int fat32Getdents64(OpenFile *file, struct linux_dirent64 *start,
             FAT_INODE_GEN(fatDir->directoryCurr, i / 32), type);
 
         if (res == DENTS_NO_SPACE) {
-          allocatedlimit = -EINVAL;
+          allocatedlimit = ERR(EINVAL);
           goto cleanup;
         } else if (res == DENTS_RETURN)
           goto cleanup;

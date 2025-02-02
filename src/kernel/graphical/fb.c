@@ -30,12 +30,12 @@ void drawRect(int x, int y, int w, int h, int r, int g,
   }
 }
 
-int fbUserIllegal() {
+size_t fbUserIllegal() {
   debugf("[io::fb] Tried to do anything but an mmap/ioctl!\n");
   return -1;
 }
 
-int fbUserIoctl(OpenFile *fd, uint64_t request, void *arg) {
+size_t fbUserIoctl(OpenFile *fd, uint64_t request, void *arg) {
   switch (request) {
   // case FBIOGETCMAP: {
   //   struct fb_cmap *cmap = arg;
@@ -103,7 +103,7 @@ size_t fbUserMmap(size_t addr, size_t length, int prot, int flags, OpenFile *fd,
   return 0x150000000000;
 }
 
-int fbUserStat(OpenFile *fd, stat *target) {
+size_t fbUserStat(OpenFile *fd, stat *target) {
   target->st_dev = 70;
   target->st_ino = rand(); // todo!
   target->st_mode = S_IFCHR | S_IRUSR | S_IWUSR;

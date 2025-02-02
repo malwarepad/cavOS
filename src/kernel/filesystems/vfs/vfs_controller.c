@@ -69,7 +69,7 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
       free(target);
       free(safeFilename);
 
-      if (symlink && ret != -ELOOP) {
+      if (symlink && ret != ERR(ELOOP)) {
         // we came across a symbolic link
         char *symlinkResolved = fsResolveSymlink(mnt, symlink);
         free(symlink);
@@ -138,10 +138,10 @@ OpenFile *fsKernelOpen(char *filename, int flags, uint32_t mode) {
   return ret;
 }
 
-int fsUserOpen(void *task, char *filename, int flags, int mode) {
+size_t fsUserOpen(void *task, char *filename, int flags, int mode) {
   if (flags & FASYNC) {
     debugf("[syscalls::fs] FATAL! Tried to open %s with O_ASYNC!\n", filename);
-    return -ENOSYS;
+    return ERR(ENOSYS);
   }
   OpenFile *file = fsOpenGeneric(filename, (Task *)task, flags, mode);
   if ((size_t)(file) < 1024)
@@ -163,10 +163,10 @@ bool fsKernelClose(OpenFile *file) {
   return fsCloseGeneric(file, target);
 }
 
-int fsUserClose(void *task, int fd) {
+size_t fsUserClose(void *task, int fd) {
   OpenFile *file = fsUserGetNode(task, fd);
   if (!file)
-    return -EBADF;
+    return ERR(EBADF);
   bool res = fsCloseGeneric(file, (Task *)task);
   if (res)
     return 0;
@@ -178,17 +178,17 @@ size_t fsGetFilesize(OpenFile *file) {
   return file->handlers->getFilesize(file);
 }
 
-uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit) {
+size_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit) {
   if (!file->handlers->read)
-    return -EBADF;
+    return ERR(EBADF);
   return file->handlers->read(file, out, limit);
 }
 
-uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit) {
+size_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit) {
   if (!(file->flags & O_RDWR) && !(file->flags & O_WRONLY))
-    return -EBADF;
+    return ERR(EBADF);
   if (!file->handlers->write)
-    return -EBADF;
+    return ERR(EBADF);
   return file->handlers->write(file, in, limit);
 }
 
@@ -196,7 +196,7 @@ void fsReadFullFile(OpenFile *file, uint8_t *out) {
   fsRead(file, out, fsGetFilesize(file));
 }
 
-int fsUserSeek(void *task, uint32_t fd, int offset, int whence) {
+size_t fsUserSeek(void *task, uint32_t fd, int offset, int whence) {
   OpenFile *file = fsUserGetNode(task, fd);
   if (!file) // todo "special"
     return -1;
@@ -209,21 +209,21 @@ int fsUserSeek(void *task, uint32_t fd, int offset, int whence) {
     target += fsGetFilesize(file);
 
   if (!file->handlers->seek)
-    return -ESPIPE;
+    return ERR(ESPIPE);
 
   return file->handlers->seek(file, target, offset, whence);
 }
 
-int fsReadlink(void *task, char *path, char *buf, int size) {
+size_t fsReadlink(void *task, char *path, char *buf, int size) {
   Task       *target = task;
   char       *safeFilename = fsSanitize(target->cwd, path);
   MountPoint *mnt = fsDetermineMountPoint(safeFilename);
-  int         ret = -1;
+  size_t      ret = -1;
 
   char *symlink = 0;
   switch (mnt->filesystem) {
   case FS_FATFS:
-    ret = -EINVAL;
+    ret = ERR(EINVAL);
     break;
   case FS_EXT2:
     ret =
@@ -246,18 +246,18 @@ int fsReadlink(void *task, char *path, char *buf, int size) {
   return ret;
 }
 
-int fsMkdir(void *task, char *path, uint32_t mode) {
+size_t fsMkdir(void *task, char *path, uint32_t mode) {
   Task       *target = (Task *)task;
   char       *safeFilename = fsSanitize(target->cwd, path);
   MountPoint *mnt = fsDetermineMountPoint(safeFilename);
 
-  int ret = 0;
+  size_t ret = 0;
 
   char *symlink = 0;
   if (mnt->mkdir) {
     ret = mnt->mkdir(mnt, safeFilename, mode, &symlink);
   } else {
-    ret = -EROFS;
+    ret = ERR(EROFS);
   }
 
   free(safeFilename);
@@ -272,18 +272,18 @@ int fsMkdir(void *task, char *path, uint32_t mode) {
   return ret;
 }
 
-int fsUnlink(void *task, char *path, bool directory) {
+size_t fsUnlink(void *task, char *path, bool directory) {
   Task       *target = (Task *)task;
   char       *safeFilename = fsSanitize(target->cwd, path);
   MountPoint *mnt = fsDetermineMountPoint(safeFilename);
 
-  int ret = 0;
+  size_t ret = 0;
 
   char *symlink = 0;
   if (mnt->delete) {
     ret = mnt->delete(mnt, safeFilename, directory, &symlink);
   } else {
-    ret = -EROFS;
+    ret = ERR(EROFS);
   }
 
   free(safeFilename);

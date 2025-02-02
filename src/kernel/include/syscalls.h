@@ -59,9 +59,9 @@ int dbgSysStubf(const char *format, ...);
 #endif
 
 /* Standard output handlers (io.c) */
-int readHandler(OpenFile *fd, uint8_t *in, size_t limit);
-int writeHandler(OpenFile *fd, uint8_t *out, size_t limit);
-int ioctlHandler(OpenFile *fd, uint64_t request, void *arg);
+size_t readHandler(OpenFile *fd, uint8_t *in, size_t limit);
+size_t writeHandler(OpenFile *fd, uint8_t *out, size_t limit);
+size_t ioctlHandler(OpenFile *fd, uint64_t request, void *arg);
 
 size_t mmapHandler(size_t addr, size_t length, int prot, int flags,
                    OpenFile *fd, size_t pgoffset);
@@ -73,7 +73,9 @@ extern VfsHandlers stdio;
 VfsHandlers pipeReadEnd;
 VfsHandlers pipeWriteEnd;
 
-bool pipeCloseEnd(OpenFile *readFd);
-int  pipeOpen(int *fds);
+bool   pipeCloseEnd(OpenFile *readFd);
+size_t pipeOpen(int *fds);
+
+#define RET_IS_ERR(syscall_return) ((syscall_return) > -4096UL)
 
 #endif

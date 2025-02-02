@@ -5,6 +5,9 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#define ERR_INDIRECT(errno) (errno##UL)
+#define ERR(errno) (-ERR_INDIRECT(errno))
+
 // typedef long ssize_t;
 #define INT_MAX 2147483647 // 2^31 - 1
 

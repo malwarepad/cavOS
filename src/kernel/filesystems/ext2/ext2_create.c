@@ -5,8 +5,8 @@
 #include <timer.h>
 #include <util.h>
 
-int ext2Mkdir(MountPoint *mnt, char *dirname, uint32_t mode,
-              char **symlinkResolve) {
+size_t ext2Mkdir(MountPoint *mnt, char *dirname, uint32_t mode,
+                 char **symlinkResolve) {
   Ext2 *ext2 = EXT2_PTR(mnt->fsInfo);
 
   // dirname will be sanitized anyways
@@ -29,26 +29,26 @@ int ext2Mkdir(MountPoint *mnt, char *dirname, uint32_t mode,
     inode = 2;
 
   if (!inode)
-    return -ENOENT;
+    return ERR(ENOENT);
 
   // main scope
-  int ret = 0;
+  size_t ret = 0;
 
   // various checks
   char *name = &dirname[lastSlash + 1];
   int   nameLen = strlength(name);
 
   if (!nameLen) // going for /
-    return -EEXIST;
+    return ERR(EEXIST);
 
   Ext2Inode *inodeContents = ext2InodeFetch(ext2, inode);
   if (!(inodeContents->permission & S_IFDIR)) {
-    ret = -ENOTDIR;
+    ret = ERR(ENOTDIR);
     goto cleanup;
   }
 
   if (ext2Traverse(ext2, inode, name, nameLen)) {
-    ret = -EEXIST;
+    ret = ERR(EEXIST);
     goto cleanup;
   }
 
@@ -92,8 +92,8 @@ cleanup:
   return ret;
 }
 
-int ext2Touch(MountPoint *mnt, char *filename, uint32_t mode,
-              char **symlinkResolve) {
+size_t ext2Touch(MountPoint *mnt, char *filename, uint32_t mode,
+                 char **symlinkResolve) {
   Ext2 *ext2 = EXT2_PTR(mnt->fsInfo);
 
   // dirname will be sanitized anyways
@@ -116,26 +116,26 @@ int ext2Touch(MountPoint *mnt, char *filename, uint32_t mode,
     inode = 2;
 
   if (!inode)
-    return -ENOENT;
+    return ERR(ENOENT);
 
   // main scope
-  int ret = 0;
+  size_t ret = 0;
 
   // various checks
   char *name = &filename[lastSlash + 1];
   int   nameLen = strlength(name);
 
   if (!nameLen) // going for /
-    return -EISDIR;
+    return ERR(EISDIR);
 
   Ext2Inode *inodeContents = ext2InodeFetch(ext2, inode);
   if (!(inodeContents->permission & S_IFDIR)) {
-    ret = -ENOTDIR;
+    ret = ERR(ENOTDIR);
     goto cleanup;
   }
 
   if (ext2Traverse(ext2, inode, name, nameLen)) {
-    ret = -EEXIST;
+    ret = ERR(EEXIST);
     goto cleanup;
   }
 

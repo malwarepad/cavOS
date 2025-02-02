@@ -90,7 +90,7 @@ void syscallHandler(AsmPassedInterrupt *regs) {
 #endif
 
   if (!handler) {
-    regs->rax = -ENOSYS;
+    regs->rax = ERR(ENOSYS);
     goto cleanup;
   }
 

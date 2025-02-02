@@ -53,17 +53,17 @@ bool fat32Mount(MountPoint *mount) {
   return true;
 }
 
-int fat32Open(char *filename, int flags, int mode, OpenFile *fd,
-              char **symlinkResolve) {
+size_t fat32Open(char *filename, int flags, int mode, OpenFile *fd,
+                 char **symlinkResolve) {
   if (flags & O_CREAT || flags & O_WRONLY || flags & O_RDWR)
-    return -EROFS;
+    return ERR(EROFS);
   FAT32 *fat = FAT_PTR(fd->mountPoint->fsInfo);
 
   // first make sure it.. exists!
   FAT32TraverseResult res = fat32TraversePath(
       fat, filename, fat->bootsec.extended_section.root_cluster);
   if (!res.directory)
-    return -ENOENT;
+    return ERR(ENOENT);
 
   // allocate some space
   fd->dir = malloc(sizeof(FAT32OpenFd));
@@ -87,7 +87,7 @@ int fat32Open(char *filename, int flags, int mode, OpenFile *fd,
   return 0;
 }
 
-int fat32Read(OpenFile *fd, uint8_t *buff, size_t limit) {
+size_t fat32Read(OpenFile *fd, uint8_t *buff, size_t limit) {
   FAT32       *fat = FAT_PTR(fd->mountPoint->fsInfo);
   FAT32OpenFd *dir = FAT_DIR_PTR(fd->dir);
 
@@ -187,10 +187,10 @@ size_t fat32Seek(OpenFile *fd, size_t target, long int offset, int whence) {
     target += dir->ptr;
 
   if (dir->dirEnt.attrib & FAT_ATTRIB_DIRECTORY)
-    return -EINVAL;
+    return ERR(EINVAL);
 
   if (target > dir->dirEnt.filesize)
-    return -EINVAL;
+    return ERR(EINVAL);
 
   int old = dir->ptr;
   if (old > target) {

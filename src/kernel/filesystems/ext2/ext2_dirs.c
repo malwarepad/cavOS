@@ -157,15 +157,15 @@ bool ext2DirRemove(Ext2 *ext2, Ext2Inode *parentDirInode, char *filename,
   return ret;
 }
 
-int ext2Getdents64(OpenFile *file, struct linux_dirent64 *start,
-                   unsigned int hardlimit) {
+size_t ext2Getdents64(OpenFile *file, struct linux_dirent64 *start,
+                      unsigned int hardlimit) {
   Ext2       *ext2 = EXT2_PTR(file->mountPoint->fsInfo);
   Ext2OpenFd *edir = EXT2_DIR_PTR(file->dir);
 
   if ((edir->inode.permission & 0xF000) != EXT2_S_IFDIR)
-    return -ENOTDIR;
+    return ERR(ENOTDIR);
 
-  int        allocatedlimit = 0;
+  size_t     allocatedlimit = 0;
   Ext2Inode *ino = &edir->inode;
   uint8_t   *names = (uint8_t *)malloc(ext2->blockSize);
 
@@ -200,7 +200,7 @@ int ext2Getdents64(OpenFile *file, struct linux_dirent64 *start,
                    dir->filenameLength, dir->inode, type);
 
       if (res == DENTS_NO_SPACE) {
-        allocatedlimit = -EINVAL;
+        allocatedlimit = ERR(EINVAL);
         goto cleanup;
       } else if (res == DENTS_RETURN)
         goto cleanup;

@@ -118,8 +118,8 @@ error:
   return false;
 }
 
-int ext2Open(char *filename, int flags, int mode, OpenFile *fd,
-             char **symlinkResolve) {
+size_t ext2Open(char *filename, int flags, int mode, OpenFile *fd,
+                char **symlinkResolve) {
   Ext2 *ext2 = EXT2_PTR(fd->mountPoint->fsInfo);
 
   uint32_t inode =
@@ -129,13 +129,13 @@ int ext2Open(char *filename, int flags, int mode, OpenFile *fd,
     // last entry is a soft symlink that'll have to be resolved back on the
     // open() phase..
     if (flags & O_NOFOLLOW)
-      return -ELOOP;
+      return ERR(ELOOP);
     else
-      return -ENOENT;
+      return ERR(ENOENT);
   }
 
   if (inode && flags & O_EXCL && flags & O_CREAT)
-    return -EEXIST;
+    return ERR(EEXIST);
 
   if (!inode) {
     if (flags & O_CREAT) {
@@ -149,13 +149,13 @@ int ext2Open(char *filename, int flags, int mode, OpenFile *fd,
       inode = ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, true,
                                symlinkResolve);
     } else
-      return -ENOENT;
+      return ERR(ENOENT);
   }
 
   Ext2Inode *inodeFetched = ext2InodeFetch(ext2, inode);
   if (flags & O_DIRECTORY && !(inodeFetched->permission & S_IFDIR)) {
     free(inodeFetched);
-    return -ENOTDIR;
+    return ERR(ENOTDIR);
   }
 
   if (flags & O_TRUNC) {
@@ -188,12 +188,12 @@ int ext2Open(char *filename, int flags, int mode, OpenFile *fd,
   return 0;
 }
 
-int ext2Read(OpenFile *fd, uint8_t *buff, size_t naiveLimit) {
+size_t ext2Read(OpenFile *fd, uint8_t *buff, size_t naiveLimit) {
   Ext2       *ext2 = EXT2_PTR(fd->mountPoint->fsInfo);
   Ext2OpenFd *dir = EXT2_DIR_PTR(fd->dir);
 
   if (dir->inode.permission & S_IFDIR)
-    return -EISDIR;
+    return ERR(EISDIR);
 
   size_t filesize = ext2GetFilesize(fd);
   if (dir->ptr >= filesize)
@@ -274,12 +274,12 @@ int ext2Read(OpenFile *fd, uint8_t *buff, size_t naiveLimit) {
   return limit;
 }
 
-int ext2Write(OpenFile *fd, uint8_t *buff, size_t limit) {
+size_t ext2Write(OpenFile *fd, uint8_t *buff, size_t limit) {
   Ext2       *ext2 = EXT2_PTR(fd->mountPoint->fsInfo);
   Ext2OpenFd *dir = EXT2_DIR_PTR(fd->dir);
 
   if (dir->inode.permission & S_IFDIR)
-    return -EISDIR;
+    return ERR(EISDIR);
 
   spinlockAcquire(&ext2->LOCK_WRITE);
 
@@ -440,7 +440,7 @@ size_t ext2Seek(OpenFile *fd, size_t target, long int offset, int whence) {
   size_t filesize = ext2GetFilesize(fd);
   if (target > filesize) {
     if (!(fd->flags & O_RDWR) && !(fd->flags & O_WRONLY))
-      return -EINVAL;
+      return ERR(EINVAL);
 
     size_t   remainder = target - filesize;
     uint8_t *bytePlacement = calloc(remainder, 1);
@@ -533,30 +533,30 @@ bool ext2Lstat(MountPoint *mnt, char *filename, struct stat *target,
   return true;
 }
 
-int ext2StatFd(OpenFile *fd, struct stat *target) {
+size_t ext2StatFd(OpenFile *fd, struct stat *target) {
   Ext2       *ext2 = EXT2_PTR(fd->mountPoint->fsInfo);
   Ext2OpenFd *dir = EXT2_DIR_PTR(fd->dir);
   ext2StatInternal(ext2, &dir->inode, dir->inodeNum, target);
   return 0;
 }
 
-int ext2Readlink(Ext2 *ext2, char *path, char *buf, int size,
-                 char **symlinkResolve) {
+size_t ext2Readlink(Ext2 *ext2, char *path, char *buf, int size,
+                    char **symlinkResolve) {
   if (size < 0)
-    return -EINVAL;
+    return ERR(EINVAL);
   else if (!size)
     return 0;
 
   uint32_t inodeNum =
       ext2TraversePath(ext2, path, EXT2_ROOT_INODE, false, symlinkResolve);
   if (!inodeNum)
-    return -ENOENT;
+    return ERR(ENOENT);
 
-  int ret = -1;
+  size_t ret = -1;
 
   Ext2Inode *inode = ext2InodeFetch(ext2, inodeNum);
   if ((inode->permission & 0xF000) != 0xA000) {
-    ret = -EINVAL;
+    ret = ERR(EINVAL);
     goto cleanup;
   }
 
@@ -620,11 +620,11 @@ size_t ext2Mmap(size_t addr, size_t length, int prot, int flags, OpenFile *fd,
                 size_t pgoffset) {
   if (!(flags & MAP_PRIVATE)) {
     debugf("[ext2::mmap] Unsupported flags! flags{%x}\n", flags);
-    return -ENOSYS;
+    return ERR(ENOSYS);
   }
 
   // if (prot & PROT_WRITE && !(fd->flags & O_WRONLY || fd->flags & O_RDWR))
-  //   return -EACCES;
+  //   return ERR(EACCES);
 
   uint64_t mappingFlags = PF_USER;
   if (prot & PROT_WRITE)
@@ -641,10 +641,10 @@ size_t ext2Mmap(size_t addr, size_t length, int prot, int flags, OpenFile *fd,
     virt = addr;
     if (virt > bootloader.hhdmOffset &&
         virt < (bootloader.hhdmOffset + bootloader.mmTotal))
-      return -EACCES;
+      return ERR(EACCES);
     else if (virt > bootloader.kernelVirtBase &&
              virt < bootloader.kernelVirtBase + 268435456) {
-      return -EACCES;
+      return ERR(EACCES);
     }
   }
 
@@ -667,29 +667,29 @@ size_t ext2Mmap(size_t addr, size_t length, int prot, int flags, OpenFile *fd,
   return virt;
 }
 
-int ext2Delete(MountPoint *mnt, char *filename, bool directory,
-               char **symlinkResolve) {
-  int      ret = 0;
+size_t ext2Delete(MountPoint *mnt, char *filename, bool directory,
+                  char **symlinkResolve) {
+  size_t   ret = 0;
   Ext2    *ext2 = EXT2_PTR(mnt->fsInfo);
   uint32_t inodeNum =
       ext2TraversePath(ext2, filename, 2, false, symlinkResolve);
   if (!inodeNum)
-    return -ENOENT;
+    return ERR(ENOENT);
 
   Ext2Inode *inode = ext2InodeFetch(ext2, inodeNum);
   if (!inode)
-    return -ENOENT;
+    return ERR(ENOENT);
 
   if (directory) {
     // we're in directory mode, check if it's a directory
     if (!(inode->permission & S_IFDIR)) {
-      ret = -ENOTDIR;
+      ret = ERR(ENOTDIR);
       goto cleanup;
     }
   } else {
     // we're in file mode, check if it's a file
     if (inode->permission & S_IFDIR) {
-      ret = -EISDIR;
+      ret = ERR(EISDIR);
       goto cleanup;
     }
   }
@@ -699,9 +699,9 @@ int ext2Delete(MountPoint *mnt, char *filename, bool directory,
   if (filenameLen == 1) {
     // talking about /
     if (directory)
-      ret = -ENOTEMPTY;
+      ret = ERR(ENOTEMPTY);
     else
-      ret = -EISDIR;
+      ret = ERR(EISDIR);
     goto cleanup;
   }
   int parentLen = 0;
@@ -716,7 +716,7 @@ int ext2Delete(MountPoint *mnt, char *filename, bool directory,
     while (((size_t)dir - (size_t)names) < ext2->blockSize) {
       if (dir->filenameLength > 2 || i > 1) {
         free(names);
-        ret = -ENOTEMPTY;
+        ret = ERR(ENOTEMPTY);
         goto cleanup;
       }
       if (dir->inode)

@@ -10,64 +10,62 @@
 // Copyright (C) 2024 Panagiotis
 
 #define SYSCALL_READ 0
-static int syscallRead(int fd, char *str, uint32_t count) {
+static size_t syscallRead(int fd, char *str, uint32_t count) {
   if (!count)
     return 0;
   OpenFile *browse = fsUserGetNode(currentTask, fd);
   if (!browse)
-    return -EBADF;
-  uint32_t read = fsRead(browse, (uint8_t *)str, count);
-  return read;
+    return ERR(EBADF);
+  return fsRead(browse, (uint8_t *)str, count);
 }
 
 #define SYSCALL_WRITE 1
-static int syscallWrite(int fd, char *str, uint32_t count) {
+static size_t syscallWrite(int fd, char *str, uint32_t count) {
   if (!count)
     return 0;
   OpenFile *browse = fsUserGetNode(currentTask, fd);
   if (!browse)
-    return -EBADF;
-  uint32_t writtenBytes = fsWrite(browse, (uint8_t *)str, count);
-  return writtenBytes;
+    return ERR(EBADF);
+  return fsWrite(browse, (uint8_t *)str, count);
 }
 
 #define SYSCALL_OPEN 2
-static int syscallOpen(char *filename, int flags, int mode) {
+static size_t syscallOpen(char *filename, int flags, int mode) {
   dbgSysExtraf("filename{%s}", filename);
   if (!filename)
-    return -EFAULT;
+    return ERR(EFAULT);
   return fsUserOpen(currentTask, filename, flags, mode);
 }
 
 #define SYSCALL_CLOSE 3
-static int syscallClose(int fd) { return fsUserClose(currentTask, fd); }
+static size_t syscallClose(int fd) { return fsUserClose(currentTask, fd); }
 
 #define SYSCALL_STAT 4
-static int syscallStat(char *filename, stat *statbuf) {
+static size_t syscallStat(char *filename, stat *statbuf) {
   dbgSysExtraf("filename{%s}", filename);
   bool ret = fsStatByFilename(currentTask, filename, statbuf);
-  return (ret ? 0 : -ENOENT);
+  return (ret ? 0 : ERR(ENOENT));
 }
 
 #define SYSCALL_FSTAT 5
-static int syscallFstat(int fd, stat *statbuf) {
+static size_t syscallFstat(int fd, stat *statbuf) {
   OpenFile *file = fsUserGetNode(currentTask, fd);
   if (!file)
-    return -EBADF;
+    return ERR(EBADF);
 
   bool ret = fsStat(file, statbuf);
-  return (ret ? 0 : -ENOENT);
+  return (ret ? 0 : ERR(ENOENT));
 }
 
 #define SYSCALL_LSTAT 6
-static int syscallLstat(char *filename, stat *statbuf) {
+static size_t syscallLstat(char *filename, stat *statbuf) {
   bool ret = fsLstatByFilename(currentTask, filename, statbuf);
-  return (ret ? 0 : -ENOENT);
+  return (ret ? 0 : ERR(ENOENT));
 }
 
 #include <timer.h>
 #define SYSCALL_POLL 7
-static int syscallPoll(struct pollfd *fds, int nfds, int timeout) {
+static size_t syscallPoll(struct pollfd *fds, int nfds, int timeout) {
   int ret = 0;
   for (int i = 0; i < nfds; i++) {
     uint64_t start = timerTicks;
@@ -92,42 +90,42 @@ static int syscallPoll(struct pollfd *fds, int nfds, int timeout) {
 }
 
 #define SYSCALL_LSEEK 8
-static int syscallLseek(uint32_t file, int offset, int whence) {
+static size_t syscallLseek(uint32_t file, int offset, int whence) {
   return fsUserSeek(currentTask, file, offset, whence);
 }
 
 #define SYSCALL_IOCTL 16
-static int syscallIoctl(int fd, unsigned long request, void *arg) {
+static size_t syscallIoctl(int fd, unsigned long request, void *arg) {
   OpenFile *browse = fsUserGetNode(currentTask, fd);
   if (!browse)
-    return -EBADF;
+    return ERR(EBADF);
 
   if (!browse->handlers->ioctl) {
     dbgSysFailf("non-special file");
-    return -ENOTTY;
+    return ERR(ENOTTY);
   }
 
-  int ret = browse->handlers->ioctl(browse, request, arg);
-  return ret;
+  return browse->handlers->ioctl(browse, request, arg);
 }
 
 #define SYSCALL_PREAD64 17
-static int syscallPread64(uint64_t fd, char *buff, size_t count, size_t pos) {
-  int seekOp = syscallLseek(fd, pos, SEEK_SET);
-  if (seekOp < 0)
+static size_t syscallPread64(uint64_t fd, char *buff, size_t count,
+                             size_t pos) {
+  size_t seekOp = syscallLseek(fd, pos, SEEK_SET);
+  if (RET_IS_ERR(seekOp))
     return seekOp;
-  int readOp = syscallRead(fd, buff, count);
+  size_t readOp = syscallRead(fd, buff, count);
   return readOp;
 }
 
 #define SYSCALL_WRITEV 20
-static int syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
-  int cnt = 0;
+static size_t syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
+  size_t cnt = 0;
   for (int i = 0; i < ioVcnt; i++) {
     iovec *curr = (iovec *)((size_t)iov + i * sizeof(iovec));
 
-    int singleCnt = syscallWrite(fd, curr->iov_base, curr->iov_len);
-    if (singleCnt < 0)
+    size_t singleCnt = syscallWrite(fd, curr->iov_base, curr->iov_len);
+    if (RET_IS_ERR(singleCnt))
       return singleCnt;
 
     cnt += singleCnt;
@@ -137,13 +135,13 @@ static int syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
 }
 
 #define SYSCALL_READV 19
-static int syscallReadV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
-  int cnt = 0;
+static size_t syscallReadV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
+  size_t cnt = 0;
   for (int i = 0; i < ioVcnt; i++) {
     iovec *curr = (iovec *)((size_t)iov + i * sizeof(iovec));
 
-    int singleCnt = syscallRead(fd, curr->iov_base, curr->iov_len);
-    if (singleCnt < 0)
+    size_t singleCnt = syscallRead(fd, curr->iov_base, curr->iov_len);
+    if (RET_IS_ERR(singleCnt))
       return singleCnt;
 
     cnt += singleCnt;
@@ -153,16 +151,16 @@ static int syscallReadV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
 }
 
 #define SYSCALL_ACCESS 21
-static int syscallAccess(char *filename, int mode) {
+static size_t syscallAccess(char *filename, int mode) {
   struct stat buf;
   return syscallStat(filename, &buf);
 }
 
 #define SYSCALL_DUP 32
-static int syscallDup(uint32_t fd) {
+static size_t syscallDup(uint32_t fd) {
   OpenFile *file = fsUserGetNode(currentTask, fd);
   if (!file)
-    return -EBADF;
+    return ERR(EBADF);
 
   OpenFile *new = fsUserDuplicateNode(currentTask, file);
   new->closeOnExec = 0; // does not persist
@@ -171,10 +169,10 @@ static int syscallDup(uint32_t fd) {
 }
 
 #define SYSCALL_DUP2 33
-static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
+static size_t syscallDup2(uint32_t oldFd, uint32_t newFd) {
   OpenFile *realFile = fsUserGetNode(currentTask, oldFd);
   if (!realFile)
-    return -EBADF;
+    return ERR(EBADF);
 
   if (oldFd == newFd)
     return newFd;
@@ -193,10 +191,10 @@ static int syscallDup2(uint32_t oldFd, uint32_t newFd) {
 }
 
 #define SYSCALL_FCNTL 72
-static int syscallFcntl(int fd, int cmd, uint64_t arg) {
+static size_t syscallFcntl(int fd, int cmd, uint64_t arg) {
   OpenFile *file = fsUserGetNode(currentTask, fd);
   if (!file)
-    return -EBADF;
+    return ERR(EBADF);
   if (file->handlers->fcntl)
     file->handlers->fcntl(file, cmd, arg);
   switch (cmd) {
@@ -222,12 +220,12 @@ static int syscallFcntl(int fd, int cmd, uint64_t arg) {
     break;
   }
   case F_DUPFD_CLOEXEC: {
-    int targ = syscallDup(fd);
-    if (targ < 0)
+    size_t targ = syscallDup(fd);
+    if (RET_IS_ERR(targ))
       return targ;
 
-    int res = syscallFcntl(targ, F_SETFD, FD_CLOEXEC);
-    if (res < 0)
+    size_t res = syscallFcntl(targ, F_SETFD, FD_CLOEXEC);
+    if (RET_IS_ERR(res))
       return res;
 
     return targ;
@@ -240,38 +238,38 @@ static int syscallFcntl(int fd, int cmd, uint64_t arg) {
 }
 
 #define SYSCALL_MKDIR 83
-static int syscallMkdir(char *path, uint32_t mode) {
+static size_t syscallMkdir(char *path, uint32_t mode) {
   dbgSysExtraf("path{%s}", path);
   mode &= ~(currentTask->umask);
   return fsMkdir(currentTask, path, mode);
 }
 
 #define SYSCALL_UNLINK 87
-static int syscallUnlink(char *path) {
+static size_t syscallUnlink(char *path) {
   return fsUnlink(currentTask, path, false);
 }
 
 #define SYSCALL_READLINK 89
-static int syscallReadlink(char *path, char *buf, int size) {
+static size_t syscallReadlink(char *path, char *buf, int size) {
   dbgSysExtraf("path{%s}", path);
   return fsReadlink(currentTask, path, buf, size);
 }
 
 #define SYSCALL_UMASK 95
-static int syscallUmask(uint32_t mask) {
+static size_t syscallUmask(uint32_t mask) {
   int old = currentTask->umask;
   currentTask->umask = mask & 0777;
   return old;
 }
 
 #define SYSCALL_GETDENTS64 217
-static int syscallGetdents64(unsigned int fd, struct linux_dirent64 *dirp,
-                             unsigned int count) {
+static size_t syscallGetdents64(unsigned int fd, struct linux_dirent64 *dirp,
+                                unsigned int count) {
   OpenFile *browse = fsUserGetNode(currentTask, fd);
   if (!browse)
-    return -EBADF;
+    return ERR(EBADF);
   if (!browse->handlers->getdents64)
-    return -ENOTDIR;
+    return ERR(ENOTDIR);
   return browse->handlers->getdents64(browse, dirp, count);
 }
 
@@ -284,9 +282,9 @@ typedef struct {
 } fd_set;
 
 #define SYSCALL_PSELECT6 270
-static int syscallPselect6(int nfds, fd_set *readfds, fd_set *writefds,
-                           fd_set *exceptfds, struct timespec *timeout,
-                           void *smthsignalthing) {
+static size_t syscallPselect6(int nfds, fd_set *readfds, fd_set *writefds,
+                              fd_set *exceptfds, struct timespec *timeout,
+                              void *smthsignalthing) {
   if (timeout && !timeout->tv_nsec && !timeout->tv_sec)
     return 0;
 
@@ -326,8 +324,8 @@ static int syscallPselect6(int nfds, fd_set *readfds, fd_set *writefds,
 }
 
 #define SYSCALL_SELECT 23
-static int syscallSelect(int nfds, fd_set *readfds, fd_set *writefds,
-                         fd_set *exceptfds, struct timeval *timeout) {
+static size_t syscallSelect(int nfds, fd_set *readfds, fd_set *writefds,
+                            fd_set *exceptfds, struct timeval *timeout) {
   if (timeout) {
     struct timespec timeoutformat = {.tv_sec = timeout->tv_sec,
                                      .tv_nsec = timeout->tv_usec * 1000};
@@ -338,7 +336,7 @@ static int syscallSelect(int nfds, fd_set *readfds, fd_set *writefds,
 }
 
 #define SYSCALL_OPENAT 257
-static int syscallOpenat(int dirfd, char *pathname, int flags, int mode) {
+static size_t syscallOpenat(int dirfd, char *pathname, int flags, int mode) {
   if (pathname[0] == '\0') { // by fd
     return dirfd;
   } else if (pathname[0] == '/') { // by absolute pathname
@@ -354,11 +352,11 @@ static int syscallOpenat(int dirfd, char *pathname, int flags, int mode) {
     dbgSysFailf("unsupported!");
     return -1;
   }
-  return -ENOSYS;
+  return ERR(ENOSYS);
 }
 
 #define SYSCALL_MKDIRAT 258
-static int syscallMkdirAt(int dirfd, char *pathname, int mode) {
+static size_t syscallMkdirAt(int dirfd, char *pathname, int mode) {
   if (pathname[0] == '\0') { // by fd
     return dirfd;
   } else if (pathname[0] == '/') { // by absolute pathname
@@ -374,21 +372,21 @@ static int syscallMkdirAt(int dirfd, char *pathname, int mode) {
     dbgSysFailf("unsupported!");
     return -1;
   }
-  return -ENOSYS;
+  return ERR(ENOSYS);
 }
 
 #define SYSCALL_NEWFSTATAT 262
-static int syscallNewfstatat(int dfd, char *filename, struct stat *statbuf,
-                             int flag) {
+static size_t syscallNewfstatat(int dfd, char *filename, struct stat *statbuf,
+                                int flag) {
   if (filename[0] == '\0')
     return syscallFstat(dfd, statbuf);
 
   debugf("[syscalls::newfstatat] Not implemented!\n");
-  return -ENOSYS;
+  return ERR(ENOSYS);
 }
 
 #define SYSCALL_UNLINKAT 263
-static int syscallUnlinkat(int dirfd, char *pathname, int mode) {
+static size_t syscallUnlinkat(int dirfd, char *pathname, int mode) {
   bool directory = mode & 0x200;
   if (pathname[0] == '\0') { // by fd
     dbgSysFailf("unsupported!");
@@ -406,11 +404,11 @@ static int syscallUnlinkat(int dirfd, char *pathname, int mode) {
     dbgSysFailf("unsupported!");
     return -1;
   }
-  return -ENOSYS;
+  return ERR(ENOSYS);
 }
 
 #define SYSCALL_FACCESSAT 269
-static int syscallFaccessat(int dirfd, char *pathname, int mode) {
+static size_t syscallFaccessat(int dirfd, char *pathname, int mode) {
   if (pathname[0] == '\0') { // by fd
     return 0;
   } else if (pathname[0] == '/') { // by absolute pathname
@@ -426,19 +424,19 @@ static int syscallFaccessat(int dirfd, char *pathname, int mode) {
     dbgSysFailf("unsupported!");
     return -1;
   }
-  return -ENOSYS;
+  return ERR(ENOSYS);
 }
 
 #define SYSCALL_STATX 332
-static int syscallStatx(int dirfd, char *pathname, int flags, uint32_t mask,
-                        struct statx *buff) {
+static size_t syscallStatx(int dirfd, char *pathname, int flags, uint32_t mask,
+                           struct statx *buff) {
   struct stat simple = {0};
   if (pathname[0] == '\0') { // by fd
     OpenFile *file = fsUserGetNode(currentTask, dirfd);
     if (!file)
-      return -ENOENT;
+      return ERR(ENOENT);
     if (!fsStat(file, &simple))
-      return -EBADF;
+      return ERR(EBADF);
   } else if (pathname[0] == '/') { // by absolute pathname
     char *safeFilename = fsSanitize(currentTask->cwd, pathname);
     bool  ret = false;
@@ -448,7 +446,7 @@ static int syscallStatx(int dirfd, char *pathname, int flags, uint32_t mask,
       ret = fsStatByFilename(currentTask, safeFilename, &simple);
     free(safeFilename);
     if (!ret)
-      return -ENOENT;
+      return ERR(ENOENT);
   } else if (pathname[0] != '/') {
     if (dirfd == AT_FDCWD) { // relative to cwd
       char *safeFilename = fsSanitize(currentTask->cwd, pathname);
@@ -459,7 +457,7 @@ static int syscallStatx(int dirfd, char *pathname, int flags, uint32_t mask,
         ret = fsStatByFilename(currentTask, safeFilename, &simple);
       free(safeFilename);
       if (!ret)
-        return -ENOENT;
+        return ERR(ENOENT);
     } else {
       dbgSysStubf("todo: relative to dirfd{%d}", dirfd);
       return -1;
@@ -502,7 +500,8 @@ static int syscallStatx(int dirfd, char *pathname, int flags, uint32_t mask,
 }
 
 // #define SYSCALL_FACCESSAT2 439
-// static int syscallFaccessat2(int dirfd, char *pathname, int mode, int flags)
+// static size_t syscallFaccessat2(int dirfd, char *pathname, int mode, int
+// flags)
 // {
 //   return -1;
 // }

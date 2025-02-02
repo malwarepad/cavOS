@@ -125,9 +125,9 @@ typedef struct FAT32OpenFd {
 
 // fat32_controller.c
 bool   fat32Mount(MountPoint *mount);
-int    fat32Open(char *filename, int flags, int mode, OpenFile *fd,
+size_t fat32Open(char *filename, int flags, int mode, OpenFile *fd,
                  char **symlinkResolve);
-int    fat32Read(OpenFile *fd, uint8_t *buff, size_t limit);
+size_t fat32Read(OpenFile *fd, uint8_t *buff, size_t limit);
 size_t fat32Seek(OpenFile *fd, size_t target, long int offset, int whence);
 size_t fat32GetFilesize(OpenFile *fd);
 bool   fat32Close(OpenFile *fd);
@@ -154,14 +154,14 @@ FAT32TraverseResult fat32TraversePath(FAT32 *fat, char *path,
                                       uint32_t directoryStarting);
 
 // fat32_stat.c
-bool fat32Stat(MountPoint *mnt, char *filename, struct stat *target,
-               char **symlinkResolve);
-int  fat32StatFd(OpenFile *fd, struct stat *target);
+bool   fat32Stat(MountPoint *mnt, char *filename, struct stat *target,
+                 char **symlinkResolve);
+size_t fat32StatFd(OpenFile *fd, struct stat *target);
 
 // fat32_dirs.c
-int fat32Getdents64(OpenFile *file, struct linux_dirent64 *start,
-                    unsigned int hardlimit);
-int fat32SFNtoNormal(uint8_t *target, FAT32DirectoryEntry *dirent);
+size_t fat32Getdents64(OpenFile *file, struct linux_dirent64 *start,
+                       unsigned int hardlimit);
+int    fat32SFNtoNormal(uint8_t *target, FAT32DirectoryEntry *dirent);
 
 // finale
 VfsHandlers fat32Handlers;

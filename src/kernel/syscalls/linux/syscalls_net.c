@@ -29,7 +29,7 @@ force_inline void sockaddrLwipToLinux(struct sockaddr *dest_addr,
 }
 
 #define SYSCALL_SOCKET 41
-static int syscallSocket(int family, int type, int protocol) {
+static size_t syscallSocket(int family, int type, int protocol) {
   switch (family) {
   case 2: {
     bool cloexec = type & SOCK_CLOEXEC;
@@ -74,16 +74,16 @@ static int syscallSocket(int family, int type, int protocol) {
   }
   default:
     dbgSysStubf("todo family{%d}", family);
-    return -ENOSYS;
+    return ERR(ENOSYS);
     break;
   }
 }
 
 #define SYSCALL_CONNECT 42
-static int syscallConnect(int fd, struct sockaddr *addr, size_t len) {
+static size_t syscallConnect(int fd, struct sockaddr *addr, size_t len) {
   OpenFile *fileNode = fsUserGetNode(currentTask, fd);
   if (!fileNode)
-    return -EBADF;
+    return ERR(EBADF);
 
   UserSocket *userSocket = (UserSocket *)fileNode->dir;
 
@@ -96,10 +96,10 @@ static int syscallConnect(int fd, struct sockaddr *addr, size_t len) {
 }
 
 #define SYSCALL_BIND 49
-static int syscallBind(int fd, struct sockaddr *addr, size_t len) {
+static size_t syscallBind(int fd, struct sockaddr *addr, size_t len) {
   OpenFile *fileNode = fsUserGetNode(currentTask, fd);
   if (!fileNode)
-    return -EBADF;
+    return ERR(EBADF);
 
   addr->sa_family = AF_INET;
 
@@ -112,11 +112,11 @@ static int syscallBind(int fd, struct sockaddr *addr, size_t len) {
 }
 
 #define SYSCALL_SENDTO 44
-static int syscallSendto(int fd, void *buff, size_t len, int flags,
-                         struct sockaddr *dest_addr, socklen_t addrlen) {
+static size_t syscallSendto(int fd, void *buff, size_t len, int flags,
+                            struct sockaddr *dest_addr, socklen_t addrlen) {
   OpenFile *fileNode = fsUserGetNode(currentTask, fd);
   if (!fileNode)
-    return -EBADF;
+    return ERR(EBADF);
 
   UserSocket *userSocket = (UserSocket *)fileNode->dir;
 
@@ -131,10 +131,10 @@ static int syscallSendto(int fd, void *buff, size_t len, int flags,
 }
 
 #define SYSCALL_RECVMSG 47
-static int syscallRecvmsg(int fd, struct msghdr *msg, int flags) {
+static size_t syscallRecvmsg(int fd, struct msghdr *msg, int flags) {
   OpenFile *fileNode = fsUserGetNode(currentTask, fd);
   if (!fileNode)
-    return -EBADF;
+    return ERR(EBADF);
 
   UserSocket *userSocket = (UserSocket *)fileNode->dir;
 

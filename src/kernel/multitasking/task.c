@@ -287,17 +287,17 @@ int16_t taskGenerateId() {
   // return max + 1;
 }
 
-int taskChangeCwd(char *newdir) {
+size_t taskChangeCwd(char *newdir) {
   stat  stat = {0};
   char *safeNewdir = fsSanitize(currentTask->cwd, newdir);
   if (!fsStatByFilename(currentTask, safeNewdir, &stat)) {
     free(safeNewdir);
-    return -ENOENT;
+    return ERR(ENOENT);
   }
 
   if (!(stat.st_mode & S_IFDIR)) {
     free(safeNewdir);
-    return -ENOTDIR;
+    return ERR(ENOTDIR);
   }
 
   size_t len = strlength(safeNewdir) + 1;

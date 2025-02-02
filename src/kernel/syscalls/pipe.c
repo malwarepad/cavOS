@@ -25,7 +25,7 @@ struct PipeSpecific {
   PipeInfo *info;
 };
 
-int pipeOpen(int *fds) {
+size_t pipeOpen(int *fds) {
   int readFd = fsUserOpen(currentTask, "/dev/stdout", O_RDONLY, 0);
   int writeFd = fsUserOpen(currentTask, "/dev/stdout", O_WRONLY, 0);
 
@@ -82,7 +82,7 @@ bool pipeDuplicate(OpenFile *original, OpenFile *orphan) {
   return true;
 }
 
-int pipeRead(OpenFile *fd, uint8_t *out, size_t limit) {
+size_t pipeRead(OpenFile *fd, uint8_t *out, size_t limit) {
   if (limit > 65536)
     limit = 65536;
   PipeSpecific *spec = (PipeSpecific *)fd->dir;
@@ -106,7 +106,7 @@ int pipeRead(OpenFile *fd, uint8_t *out, size_t limit) {
   // if there are no more write items, don't hang
   while (pipe->writeFds != 0 && !pipe->assigned) {
     if (fd->flags & O_NONBLOCK)
-      return -EWOULDBLOCK;
+      return ERR(EWOULDBLOCK);
     // debugf("write{%d} curr{%d}\n", pipe->writeFds, currentTask->id);
     asm volatile("pause");
   }
@@ -127,12 +127,12 @@ int pipeRead(OpenFile *fd, uint8_t *out, size_t limit) {
   return toCopy;
 }
 
-int pipeWriteInner(OpenFile *fd, uint8_t *in, size_t limit) {
+size_t pipeWriteInner(OpenFile *fd, uint8_t *in, size_t limit) {
   PipeSpecific *spec = (PipeSpecific *)fd->dir;
   PipeInfo     *pipe = spec->info;
   while ((pipe->assigned + limit) > 65536) {
     if (fd->flags & O_NONBLOCK)
-      return -EWOULDBLOCK;
+      return ERR(EWOULDBLOCK);
     asm volatile("pause");
   }
 
@@ -144,7 +144,7 @@ int pipeWriteInner(OpenFile *fd, uint8_t *in, size_t limit) {
   return limit;
 }
 
-int pipeWrite(OpenFile *fd, uint8_t *in, size_t limit) {
+size_t pipeWrite(OpenFile *fd, uint8_t *in, size_t limit) {
   int    ret = 0;
   size_t chunks = limit / 65536;
   size_t remainder = limit % 65536;
@@ -186,7 +186,7 @@ bool pipeCloseEnd(OpenFile *readFd) {
   return true;
 }
 
-int pipeStat(OpenFile *fd, stat *stat) {
+size_t pipeStat(OpenFile *fd, stat *stat) {
   stat->st_mode = 0x1180;
   stat->st_dev = 70;
   stat->st_ino = rand(); // todo!
@@ -204,9 +204,9 @@ int pipeStat(OpenFile *fd, stat *stat) {
   return 0;
 }
 
-int pipeBadRead() { return -EBADF; }
-int pipeBadWrite() { return -EBADF; }
-int pipeBadIoctl() { return -ENOTTY; }
+size_t pipeBadRead() { return ERR(EBADF); }
+size_t pipeBadWrite() { return ERR(EBADF); }
+size_t pipeBadIoctl() { return ERR(ENOTTY); }
 
 size_t pipeBadMmap() { return -1; }
 

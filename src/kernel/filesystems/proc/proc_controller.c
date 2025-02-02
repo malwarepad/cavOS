@@ -10,7 +10,7 @@
 
 Fakefs rootProc = {0};
 
-int meminfoRead(OpenFile *fd, uint8_t *out, size_t limit) {
+size_t meminfoRead(OpenFile *fd, uint8_t *out, size_t limit) {
   char   buff[1024] = {0};
   size_t allocated = physical.allocatedSizeInBlocks / 1024;
   size_t total = bootloader.mmTotal / 1024;
@@ -30,7 +30,7 @@ int meminfoRead(OpenFile *fd, uint8_t *out, size_t limit) {
 }
 VfsHandlers handleMeminfo = {.read = meminfoRead, .stat = fakefsFstat};
 
-int uptimeRead(OpenFile *fd, uint8_t *out, size_t limit) {
+size_t uptimeRead(OpenFile *fd, uint8_t *out, size_t limit) {
   char   buff[1024] = {0};
   size_t secs = timerTicks / 1000;
   int    msFirstTwo = (timerTicks % 1000) / 10;

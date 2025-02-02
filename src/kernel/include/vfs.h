@@ -50,19 +50,20 @@ typedef enum CONNECTOR {
 
 typedef struct OpenFile OpenFile;
 
-typedef int (*SpecialReadHandler)(OpenFile *fd, uint8_t *out, size_t limit);
-typedef int (*SpecialWriteHandler)(OpenFile *fd, uint8_t *in, size_t limit);
+typedef size_t (*SpecialReadHandler)(OpenFile *fd, uint8_t *out, size_t limit);
+typedef size_t (*SpecialWriteHandler)(OpenFile *fd, uint8_t *in, size_t limit);
 typedef size_t (*SpecialSeekHandler)(OpenFile *file, size_t target,
                                      long int offset, int whence);
-typedef int (*SpecialIoctlHandler)(OpenFile *fd, uint64_t request, void *arg);
-typedef int (*SpecialStatHandler)(OpenFile *fd, stat *stat);
+typedef size_t (*SpecialIoctlHandler)(OpenFile *fd, uint64_t request,
+                                      void *arg);
+typedef size_t (*SpecialStatHandler)(OpenFile *fd, stat *stat);
 typedef size_t (*SpecialMmapHandler)(size_t addr, size_t length, int prot,
                                      int flags, OpenFile *fd, size_t pgoffset);
 typedef bool (*SpecialDuplicate)(OpenFile *original, OpenFile *orphan);
-typedef int (*SpecialGetdents64)(OpenFile *fd, struct linux_dirent64 *dirp,
-                                 unsigned int count);
-typedef int (*SpecialOpen)(char *filename, int flags, int mode, OpenFile *fd,
-                           char **symlinkResolve);
+typedef size_t (*SpecialGetdents64)(OpenFile *fd, struct linux_dirent64 *dirp,
+                                    unsigned int count);
+typedef size_t (*SpecialOpen)(char *filename, int flags, int mode, OpenFile *fd,
+                              char **symlinkResolve);
 typedef bool (*SpecialClose)(OpenFile *fd);
 typedef size_t (*SpecialGetFilesize)(OpenFile *fd);
 typedef void (*SpecialFcntl)(OpenFile *fd, int cmd, uint64_t arg);
@@ -92,10 +93,10 @@ typedef bool (*MntStat)(MountPoint *mnt, char *filename, struct stat *target,
 typedef bool (*MntLstat)(MountPoint *mnt, char *filename, struct stat *target,
                          char **symlinkResolve);
 
-typedef int (*MntMkdir)(MountPoint *mnt, char *path, uint32_t mode,
-                        char **symlinkResolve);
-typedef int (*MntDelete)(MountPoint *mnt, char *path, bool directory,
-                         char **symlinkResolve);
+typedef size_t (*MntMkdir)(MountPoint *mnt, char *path, uint32_t mode,
+                           char **symlinkResolve);
+typedef size_t (*MntDelete)(MountPoint *mnt, char *path, bool directory,
+                            char **symlinkResolve);
 
 struct MountPoint {
   MountPoint *next;
@@ -148,22 +149,22 @@ MountPoint *firstMountPoint;
 OpenFile *fsKernelOpen(char *filename, int flags, uint32_t mode);
 bool      fsKernelClose(OpenFile *file);
 
-int fsUserOpen(void *task, char *filename, int flags, int mode);
-int fsUserClose(void *task, int fd);
-int fsUserSeek(void *task, uint32_t fd, int offset, int whence);
+size_t fsUserOpen(void *task, char *filename, int flags, int mode);
+size_t fsUserClose(void *task, int fd);
+size_t fsUserSeek(void *task, uint32_t fd, int offset, int whence);
 
 OpenFile *fsUserGetNode(void *task, int fd);
 
 OpenFile *fsUserDuplicateNode(void *taskPtr, OpenFile *original);
 OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original);
 
-uint32_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit);
-uint32_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit);
-void     fsReadFullFile(OpenFile *file, uint8_t *out);
-int      fsReadlink(void *task, char *path, char *buf, int size);
-int      fsMkdir(void *task, char *path, uint32_t mode);
-int      fsUnlink(void *task, char *path, bool directory);
-size_t   fsGetFilesize(OpenFile *file);
+size_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit);
+size_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit);
+void   fsReadFullFile(OpenFile *file, uint8_t *out);
+size_t fsReadlink(void *task, char *path, char *buf, int size);
+size_t fsMkdir(void *task, char *path, uint32_t mode);
+size_t fsUnlink(void *task, char *path, bool directory);
+size_t fsGetFilesize(OpenFile *file);
 
 // vfs_sanitize.c
 char *fsStripMountpoint(const char *filename, MountPoint *mnt);

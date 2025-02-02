@@ -226,27 +226,27 @@ typedef struct Ext2OpenFd {
 
 // ext2_controller.c
 bool   ext2Mount(MountPoint *mount);
-int    ext2Open(char *filename, int flags, int mode, OpenFile *fd,
+size_t ext2Open(char *filename, int flags, int mode, OpenFile *fd,
                 char **symlinkResolve);
 bool   ext2Close(OpenFile *fd);
-int    ext2Read(OpenFile *fd, uint8_t *buff, size_t limit);
+size_t ext2Read(OpenFile *fd, uint8_t *buff, size_t limit);
 bool   ext2Stat(MountPoint *mnt, char *filename, struct stat *target,
                 char **symlinkResolve);
 bool   ext2Lstat(MountPoint *mnt, char *filename, struct stat *target,
                  char **symlinkResolve);
-int    ext2StatFd(OpenFile *fd, struct stat *target);
+size_t ext2StatFd(OpenFile *fd, struct stat *target);
 size_t ext2Seek(OpenFile *fd, size_t target, long int offset, int whence);
 size_t ext2GetFilesize(OpenFile *fd);
-int    ext2Readlink(Ext2 *ext2, char *path, char *buf, int size,
+size_t ext2Readlink(Ext2 *ext2, char *path, char *buf, int size,
                     char **symlinkResolve);
-int    ext2Delete(MountPoint *mnt, char *filename, bool directory,
+size_t ext2Delete(MountPoint *mnt, char *filename, bool directory,
                   char **symlinkResolve);
 
 // ext2_create.c
-int ext2Mkdir(MountPoint *mnt, char *dirname, uint32_t mode,
-              char **symlinkResolve);
-int ext2Touch(MountPoint *mnt, char *filename, uint32_t mode,
-              char **symlinkResolve);
+size_t ext2Mkdir(MountPoint *mnt, char *dirname, uint32_t mode,
+                 char **symlinkResolve);
+size_t ext2Touch(MountPoint *mnt, char *filename, uint32_t mode,
+                 char **symlinkResolve);
 
 // ext2_util.c
 void ext2BlockFetchInit(Ext2 *ext2, Ext2LookupControl *control);
@@ -278,11 +278,11 @@ uint32_t ext2InodeFindL(Ext2 *ext2, int group);
 uint32_t ext2InodeFind(Ext2 *ext2, int groupSuggestion);
 
 // ext2_dirs.c
-bool ext2DirAllocate(Ext2 *ext2, uint32_t inodeNum, Ext2Inode *parentDirInode,
-                     char *filename, uint8_t filenameLen, uint8_t type,
-                     uint32_t inode);
-int  ext2Getdents64(OpenFile *file, struct linux_dirent64 *start,
-                    unsigned int hardlimit);
+bool   ext2DirAllocate(Ext2 *ext2, uint32_t inodeNum, Ext2Inode *parentDirInode,
+                       char *filename, uint8_t filenameLen, uint8_t type,
+                       uint32_t inode);
+size_t ext2Getdents64(OpenFile *file, struct linux_dirent64 *start,
+                      unsigned int hardlimit);
 
 void ext2BgdtPushM(Ext2 *ext2);
 void ext2SuperblockPushM(Ext2 *ext2);

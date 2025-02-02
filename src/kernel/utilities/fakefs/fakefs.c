@@ -91,15 +91,15 @@ FakefsFile *fakefsTraversePath(FakefsFile *start, char *path) {
   return 0;
 }
 
-int fakefsOpen(char *filename, int flags, int mode, OpenFile *target,
-               char **symlinkResolve) {
+size_t fakefsOpen(char *filename, int flags, int mode, OpenFile *target,
+                  char **symlinkResolve) {
   MountPoint    *mnt = target->mountPoint;
   FakefsOverlay *fakefs = (FakefsOverlay *)mnt->fsInfo;
 
   FakefsFile *file = fakefsTraversePath(fakefs->fakefs->rootFile, filename);
   if (!file) {
     // debugf("! %s\n", filename);
-    return -ENOENT;
+    return ERR(ENOENT);
   }
   target->handlers = file->handlers;
 
@@ -155,7 +155,7 @@ bool fakefsStat(MountPoint *mnt, char *filename, struct stat *target,
   return true;
 }
 
-int fakefsFstat(OpenFile *fd, stat *target) {
+size_t fakefsFstat(OpenFile *fd, stat *target) {
   FakefsFile *file = fd->fakefs;
   fakefsStatGeneric(file, target);
   return 0;
@@ -177,8 +177,8 @@ VfsHandlers fakefsHandlers = {.open = fakefsOpen,
                               .write = 0,
                               .getdents64 = 0};
 
-int fakefsGetDents64(OpenFile *fd, struct linux_dirent64 *start,
-                     unsigned int hardlimit) {
+size_t fakefsGetDents64(OpenFile *fd, struct linux_dirent64 *start,
+                        unsigned int hardlimit) {
   FakefsOverlay *fakefs = (FakefsOverlay *)fd->mountPoint->fsInfo;
 
   FakefsFile *weAt = fakefsTraversePath(fakefs->fakefs->rootFile, fd->dirname);
@@ -190,7 +190,7 @@ int fakefsGetDents64(OpenFile *fd, struct linux_dirent64 *start,
     fd->tmp1 = (size_t)(-1); // in case it's empty
 
   struct linux_dirent64 *dirp = (struct linux_dirent64 *)start;
-  int                    allocatedlimit = 0;
+  size_t                 allocatedlimit = 0;
 
   while (fd->tmp1 != (size_t)(-1)) {
     FakefsFile *current = (FakefsFile *)fd->tmp1;
@@ -199,7 +199,7 @@ int fakefsGetDents64(OpenFile *fd, struct linux_dirent64 *start,
                  current->filenameLength, current->inode, 0); // todo: type
 
     if (res == DENTS_NO_SPACE) {
-      allocatedlimit = -EINVAL;
+      allocatedlimit = ERR(EINVAL);
       goto cleanup;
     } else if (res == DENTS_RETURN)
       goto cleanup;
@@ -214,7 +214,7 @@ cleanup:
 }
 
 // taking in mind that void *extra points to a null terminated string
-int fakefsSimpleRead(OpenFile *fd, uint8_t *out, size_t limit) {
+size_t fakefsSimpleRead(OpenFile *fd, uint8_t *out, size_t limit) {
   FakefsFile *file = (FakefsFile *)fd->fakefs;
   if (!file->extra) {
     debugf("[vfs::fakefs] simple read failed! no extra! FATAL!\n");

@@ -11,16 +11,16 @@
 // process lifetime system calls (send help)
 
 #define SYSCALL_PIPE 22
-static int syscallPipe(int *fds) { return pipeOpen(fds); }
+static size_t syscallPipe(int *fds) { return pipeOpen(fds); }
 
 #define SYSCALL_PIPE2 293
-static int syscallPipe2(int *fds, int flags) {
+static size_t syscallPipe2(int *fds, int flags) {
   if (flags && flags != O_CLOEXEC) {
     dbgSysStubf("todo flags");
-    return -ENOSYS;
+    return ERR(ENOSYS);
   }
 
-  int out = pipeOpen(fds);
+  size_t out = pipeOpen(fds);
   if (out < 0)
     goto cleanup;
 
@@ -43,13 +43,13 @@ cleanup:
 }
 
 #define SYSCALL_FORK 57
-static int syscallFork() {
+static size_t syscallFork() {
   return taskFork(currentTask->syscallRegs, currentTask->syscallRsp, true, true)
       ->id;
 }
 
 #define SYSCALL_VFORK 58
-static int syscallVfork() {
+static size_t syscallVfork() {
   Task *newTask =
       taskFork(currentTask->syscallRegs, currentTask->syscallRsp, false, false);
   int id = newTask->id;
@@ -90,7 +90,7 @@ CopyPtrStyle copyPtrStyle(char **ptr) {
 }
 
 #define SYSCALL_EXECVE 59
-static int syscallExecve(char *filename, char **argv, char **envp) {
+static size_t syscallExecve(char *filename, char **argv, char **envp) {
   dbgSysExtraf("filename{%s}", filename);
   CopyPtrStyle arguments = copyPtrStyle(argv);
   CopyPtrStyle environment = copyPtrStyle(envp);
@@ -104,7 +104,7 @@ static int syscallExecve(char *filename, char **argv, char **envp) {
   free(environment.ptrPlace);
   free(environment.valPlace);
   if (!ret)
-    return -ENOENT;
+    return ERR(ENOENT);
 
   int targetId = currentTask->id;
   currentTask->id = taskGenerateId();
@@ -134,7 +134,8 @@ static void syscallExitTask(int return_code) {
 }
 
 #define SYSCALL_WAIT4 61
-static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
+static size_t syscallWait4(int pid, int *wstatus, int options,
+                           struct rusage *ru) {
   if (options || ru)
     dbgSysStubf("todo options & rusage");
   /*dbgSysExtraf("WNOHANG{%d} WUNTRACED{%d} "
@@ -159,7 +160,7 @@ static int syscallWait4(int pid, int *wstatus, int options, struct rusage *ru) {
     spinlockCntReadRelease(&TASK_LL_MODIFY);
 
     if (!amnt)
-      return -ECHILD;
+      return ERR(ECHILD);
   }
 
   // target is the item we "found"

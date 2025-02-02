@@ -11,7 +11,8 @@ typedef enum {
 } DENTS_RES;
 
 DENTS_RES dentsAdd(void *buffStart, struct linux_dirent64 **dirp,
-                   int *allocatedlimit, unsigned int hardlimit, char *filename,
-                   size_t filenameLength, size_t inode, unsigned char type);
+                   size_t *allocatedlimit, unsigned int hardlimit,
+                   char *filename, size_t filenameLength, size_t inode,
+                   unsigned char type);
 
 #endif

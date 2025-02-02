@@ -123,7 +123,7 @@ void  taskKillChildren(Task *task);
 void  taskFreeChildren(Task *task);
 Task *taskGet(uint32_t id);
 int16_t taskGenerateId();
-int     taskChangeCwd(char *newdir);
+size_t  taskChangeCwd(char *newdir);
 Task   *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, bool copyPages,
                  bool spinup);
 void    taskFilesCopy(Task *original, Task *target, bool respectCOE);

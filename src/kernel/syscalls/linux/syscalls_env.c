@@ -7,13 +7,13 @@
 #include <util.h>
 
 #define SYSCALL_GETPID 39
-static uint32_t syscallGetPid() { return currentTask->id; }
+static size_t syscallGetPid() { return currentTask->id; }
 
 #define SYSCALL_GETCWD 79
-static int syscallGetcwd(char *buff, size_t size) {
+static size_t syscallGetcwd(char *buff, size_t size) {
   size_t realLength = strlength(currentTask->cwd) + 1;
   if (size < realLength)
-    return -ERANGE;
+    return ERR(ERANGE);
   memcpy(buff, currentTask->cwd, realLength);
 
   return realLength;
@@ -27,7 +27,7 @@ char version[] = "0.69.2";
 char machine[] = "x86_64";
 
 #define SYSCALL_UNAME 63
-static int syscallUname(struct old_utsname *utsname) {
+static size_t syscallUname(struct old_utsname *utsname) {
   memcpy(utsname->sysname, sysname, sizeof(sysname));
   memcpy(utsname->nodename, nodename, sizeof(nodename));
   memcpy(utsname->release, release, sizeof(release));
@@ -38,50 +38,50 @@ static int syscallUname(struct old_utsname *utsname) {
 }
 
 #define SYSCALL_CHDIR 80
-static int syscallChdir(char *newdir) {
+static size_t syscallChdir(char *newdir) {
   dbgSysExtraf("newdir{%s}", newdir);
   return taskChangeCwd(newdir);
 }
 
 #define SYSCALL_FCHDIR 81
-static int syscallFchdir(int fd) {
+static size_t syscallFchdir(int fd) {
   OpenFile *file = fsUserGetNode(currentTask, fd);
   if (!file)
-    return -EBADF;
+    return ERR(EBADF);
   if (!file->dirname)
-    return -ENOTDIR;
+    return ERR(ENOTDIR);
   return syscallChdir(file->dirname);
 }
 
 #define SYSCALL_GETUID 102
-static int syscallGetuid() {
+static size_t syscallGetuid() {
   return 0; // root ;)
 }
 
 #define SYSCALL_GETGID 104
-static int syscallGetgid() {
+static size_t syscallGetgid() {
   return 0; // root ;)
 }
 
 #define SYSCALL_GETEUID 107
-static int syscallGeteuid() {
+static size_t syscallGeteuid() {
   return 0; // root ;)
 }
 
 #define SYSCALL_GETEGID 108
-static int syscallGetegid() {
+static size_t syscallGetegid() {
   return 0; // root ;)
 }
 
 #define SYSCALL_SETPGID 109
-static int syscallSetpgid(int pid, int pgid) {
+static size_t syscallSetpgid(int pid, int pgid) {
   if (!pid)
     pid = currentTask->id;
 
   Task *task = taskGet(pid);
   if (!task) {
     dbgSysExtraf("no such task w/pid{%d}", pid);
-    return -EPERM;
+    return ERR(EPERM);
   }
 
   task->pgid = pgid;
@@ -89,7 +89,7 @@ static int syscallSetpgid(int pid, int pgid) {
 }
 
 #define SYSCALL_GETPPID 110
-static int syscallGetppid() {
+static size_t syscallGetppid() {
   if (currentTask->parent)
     return currentTask->parent->id;
   else
@@ -97,7 +97,7 @@ static int syscallGetppid() {
 }
 
 #define SYSCALL_GETGROUPS 115
-static int syscallGetgroups(int gidsetsize, uint32_t *gids) {
+static size_t syscallGetgroups(int gidsetsize, uint32_t *gids) {
   if (!gidsetsize)
     return 1;
 
@@ -106,10 +106,10 @@ static int syscallGetgroups(int gidsetsize, uint32_t *gids) {
 }
 
 #define SYSCALL_GETPGID 121
-static int syscallGetpgid() { return currentTask->pgid; }
+static size_t syscallGetpgid() { return currentTask->pgid; }
 
 #define SYSCALL_PRCTL 158
-static int syscallPrctl(int code, size_t addr) {
+static size_t syscallPrctl(int code, size_t addr) {
   switch (code) {
   case 0x1002:
     currentTask->fsbase = addr;
@@ -120,21 +120,21 @@ static int syscallPrctl(int code, size_t addr) {
   }
 
   dbgSysStubf("unsupported code{%d:0x%x}", code, code);
-  return -ENOSYS;
+  return ERR(ENOSYS);
 }
 
 #define SYSCALL_GET_TID 186
-static int syscallGetTid() { return currentTask->id; }
+static size_t syscallGetTid() { return currentTask->id; }
 
 #define SYSCALL_SET_TID_ADDR 218
-static int syscallSetTidAddr(int *tidptr) {
+static size_t syscallSetTidAddr(int *tidptr) {
   *tidptr = currentTask->id;
   return currentTask->id;
 }
 
 // todo.. actually random!
 #define SYSCALL_GETRANDOM 318
-static int syscallGetRandom(char *buff, size_t count, uint32_t flags) {
+static size_t syscallGetRandom(char *buff, size_t count, uint32_t flags) {
   srand(timerTicks);
   for (int i = 0; i < count; i++)
     buff[i] = rand();

@@ -5,8 +5,9 @@
 // Copyright (C) 2024 Panagiotis
 
 DENTS_RES dentsAdd(void *buffStart, struct linux_dirent64 **dirp,
-                   int *allocatedlimit, unsigned int hardlimit, char *filename,
-                   size_t filenameLength, size_t inode, unsigned char type) {
+                   size_t *allocatedlimit, unsigned int hardlimit,
+                   char *filename, size_t filenameLength, size_t inode,
+                   unsigned char type) {
   size_t reclen = 23 + filenameLength + 1;
   if ((*allocatedlimit + reclen + 2) > hardlimit) {
     if (*allocatedlimit)

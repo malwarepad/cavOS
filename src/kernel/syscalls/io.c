@@ -10,7 +10,7 @@
 // Manages /dev/std* files and the like
 // Copyright (C) 2024 Panagiotis
 
-int readHandler(OpenFile *fd, uint8_t *in, size_t limit) {
+size_t readHandler(OpenFile *fd, uint8_t *in, size_t limit) {
   // console fb
   // while (kbIsOccupied()) {
   // } done in kbTaskRead()
@@ -37,7 +37,7 @@ int readHandler(OpenFile *fd, uint8_t *in, size_t limit) {
   return fr;
 }
 
-int writeHandler(OpenFile *fd, uint8_t *out, size_t limit) {
+size_t writeHandler(OpenFile *fd, uint8_t *out, size_t limit) {
   // console fb
   for (int i = 0; i < limit; i++) {
     // #if DEBUG_SYSCALLS_EXTRA
@@ -48,7 +48,7 @@ int writeHandler(OpenFile *fd, uint8_t *out, size_t limit) {
   return limit;
 }
 
-int ioctlHandler(OpenFile *fd, uint64_t request, void *arg) {
+size_t ioctlHandler(OpenFile *fd, uint64_t request, void *arg) {
   switch (request) {
   case 0x5413: {
     winsize *win = (winsize *)arg;
@@ -95,7 +95,7 @@ size_t mmapHandler(size_t addr, size_t length, int prot, int flags,
   return -1;
 }
 
-int statHandler(OpenFile *fd, stat *target) {
+size_t statHandler(OpenFile *fd, stat *target) {
   target->st_dev = 420;
   target->st_ino = rand(); // todo!
   target->st_mode = S_IFCHR | S_IRUSR | S_IWUSR;

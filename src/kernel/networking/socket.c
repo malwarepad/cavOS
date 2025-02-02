@@ -6,7 +6,7 @@
 
 #include <lwip/sockets.h>
 
-int socketRead(OpenFile *fd, uint8_t *out, size_t limit) {
+size_t socketRead(OpenFile *fd, uint8_t *out, size_t limit) {
   UserSocket *userSocket = (UserSocket *)fd->dir;
 
   int lwipOut = lwip_read(userSocket->lwipFd, out, limit);
@@ -15,7 +15,7 @@ int socketRead(OpenFile *fd, uint8_t *out, size_t limit) {
   return lwipOut;
 }
 
-int socketWrite(OpenFile *fd, uint8_t *in, size_t limit) {
+size_t socketWrite(OpenFile *fd, uint8_t *in, size_t limit) {
   UserSocket *userSocket = (UserSocket *)fd->dir;
 
   int lwipOut = lwip_write(userSocket->lwipFd, in, limit);
