@@ -42,7 +42,14 @@ asm_finalize_sched:
 
 global syscall_entry
 syscall_entry:
-  push rsp
+  swapgs
+  mov cr2, rax ; use cr2 as an extra register
+  mov rax, qword [gs:0] ; thread pointer
+  ; mov rax, [rax] ; kernel stack top
+  xchg rsp, rax ; switch stack ptrs
+
+  push rax
+  mov rax, cr2
 
   ; mimic: interrupt stuff
   push qword 0
@@ -74,13 +81,9 @@ syscall_entry:
   push rbp
 
   mov rdi, rsp
-  extern handle_syscall_tssrsp
-  call handle_syscall_tssrsp
-  mov rsp, rax
-
-  mov rdi, rsp
   extern syscallHandler
   call syscallHandler
+  cli ; important to avoid race conditions
   
   pop rbp
   mov ds, ebp
@@ -135,11 +138,6 @@ isr_common:
     mov ss, bx
     ; mov fs, bx
     ; mov gs, bx
-
-    mov rdi, rsp
-    extern handle_tssrsp
-    call handle_tssrsp
-    mov rsp, rax
 
 		mov rdi, rsp
     extern handle_interrupt

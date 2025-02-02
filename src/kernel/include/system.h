@@ -52,4 +52,14 @@ extern uint64_t kernel_start;
 extern uint64_t kernel_end;
 uint32_t        stack_bottom;
 
+// Thread Info
+// todo: make all of this SMP-friendly (along with fastSyscall.c)
+typedef struct ThreadInfo {
+  uint64_t syscall_stack;
+  uint64_t lapic_id;
+  // [...]
+} ThreadInfo;
+
+ThreadInfo threadInfo;
+
 #endif

@@ -42,6 +42,7 @@ void registerSyscall(uint32_t id, void *handler) {
 typedef uint64_t (*SyscallHandler)(uint64_t a1, uint64_t a2, uint64_t a3,
                                    uint64_t a4, uint64_t a5, uint64_t a6);
 void syscallHandler(AsmPassedInterrupt *regs) {
+  wrmsr(MSRID_KERNEL_GSBASE, (size_t)&threadInfo);
   uint64_t *rspPtr = (uint64_t *)((size_t)regs + sizeof(AsmPassedInterrupt));
   uint64_t  rsp = *rspPtr;
 

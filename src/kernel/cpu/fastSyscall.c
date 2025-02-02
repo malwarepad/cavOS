@@ -1,3 +1,4 @@
+#include <bootloader.h>
 #include <fastSyscall.h>
 #include <gdt.h>
 #include <isr.h>
@@ -17,6 +18,11 @@ void initiateSyscallInst() {
     debugf("[syscalls] FATAL! No support for the syscall instruction found!\n");
     panic();
   }
+
+  // setup this core's thread info structure
+  threadInfo.syscall_stack = 0;
+  threadInfo.lapic_id = bootloader.smp[bootloader.smpBspIndex].bsp_lapic_id;
+  wrmsr(MSRID_KERNEL_GSBASE, (size_t)&threadInfo);
 
   uint64_t star_reg = rdmsr(MSRID_STAR);
   star_reg &= 0x00000000ffffffff;

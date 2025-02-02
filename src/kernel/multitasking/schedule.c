@@ -57,6 +57,7 @@ void schedule(uint64_t rsp) {
 
   // Change TSS rsp0 (software multitasking)
   tssPtr->rsp0 = next->whileTssRsp;
+  threadInfo.syscall_stack = next->whileSyscallRsp;
 
   // Save MSRIDs (HIGHLY unsure)
   // old->fsbase = rdmsr(MSRID_FSBASE);
@@ -65,6 +66,7 @@ void schedule(uint64_t rsp) {
   // Apply new MSRIDs
   wrmsr(MSRID_FSBASE, next->fsbase);
   wrmsr(MSRID_GSBASE, next->gsbase);
+  wrmsr(MSRID_KERNEL_GSBASE, (size_t)&threadInfo);
 
   // Save generic (and non) registers
   memcpy(&old->registers, cpu, sizeof(AsmPassedInterrupt));
