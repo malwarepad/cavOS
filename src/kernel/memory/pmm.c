@@ -49,6 +49,7 @@ void initiatePMM() {
   }
 
   MarkRegion(bitmap, (void *)bitmapStartPhys, physical.BitmapSizeInBytes, 1);
+  physical.allocatedSizeInBlocks = 0;
 
   debugf("[pmm] Bitmap initiated: bitmapStartPhys{0x%lx} size{%lx}\n",
          bitmapStartPhys, physical.BitmapSizeInBytes);

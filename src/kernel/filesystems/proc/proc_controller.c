@@ -12,7 +12,7 @@ Fakefs rootProc = {0};
 
 size_t meminfoRead(OpenFile *fd, uint8_t *out, size_t limit) {
   char   buff[1024] = {0};
-  size_t allocated = physical.allocatedSizeInBlocks / 1024;
+  size_t allocated = physical.allocatedSizeInBlocks * BLOCK_SIZE / 1024;
   size_t total = bootloader.mmTotal / 1024;
   size_t free = total - allocated;
 

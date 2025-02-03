@@ -75,6 +75,8 @@ void MarkBlocks(DS_Bitmap *bitmap, size_t start, size_t size, bool val) {
   for (size_t i = start; i < start + size; i++) {
     BitmapSet(bitmap, i, val);
   }
+
+  bitmap->allocatedSizeInBlocks += val ? size : -size;
 }
 
 void MarkRegion(DS_Bitmap *bitmap, void *basePtr, size_t sizeBytes,
@@ -125,13 +127,11 @@ void *BitmapAllocate(DS_Bitmap *bitmap, size_t blocks) {
   if (pickedRegion == INVALID_BLOCK)
     return 0;
 
-  bitmap->allocatedSizeInBlocks += blocks;
   MarkBlocks(bitmap, pickedRegion, blocks, 1);
   return ToPtr(bitmap, pickedRegion);
 }
 
 void BitmapFree(DS_Bitmap *bitmap, void *base, size_t blocks) {
-  bitmap->allocatedSizeInBlocks -= blocks;
   MarkRegion(bitmap, base, BLOCK_SIZE * blocks, 0);
 }
 

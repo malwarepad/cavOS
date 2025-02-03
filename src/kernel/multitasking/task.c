@@ -202,9 +202,11 @@ void taskKill(uint32_t id, uint16_t ret) {
 
   if (!parentVfork)
     PageDirectoryFree(task->pagedir);
+  // ^ only changes userspace locations so we don't need to change our pagedir
 
   // tssRsp, syscalltssRsp left
 
+  // also the stuff below can easily be affected by race conditions
   browse->next = task->next;
 
   task->state = TASK_STATE_DEAD;
