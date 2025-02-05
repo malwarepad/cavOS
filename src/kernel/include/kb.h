@@ -8,6 +8,8 @@
 #define SCANCODE_SHIFT 42
 #define SCANCODE_CAPS 58
 #define SCANCODE_UP 0x48
+#define SCANCODE_CTRL 0x1D
+#define SCANCODE_ALT  0x38
 
 #define CHARACTER_ENTER '\n'
 #define CHARACTER_BACK '\b'
