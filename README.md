@@ -42,6 +42,7 @@ No! The cavOS kernel does not share source code or headers with Linux. The Linux
 
 ## Credits
 - [Limine](https://github.com/limine-bootloader/limine): Modern, advanced, portable, multiprotocol bootloader and boot manager
+- [uACPI](https://github.com/uACPI/uACPI): A portable and easy-to-integrate implementation of the ACPI
 - [lwIP](https://savannah.nongnu.org/projects/lwip/): A small independent implementation of the TCP/IP protocol suite 
 - [dlmalloc](https://gee.cs.oswego.edu/pub/misc/): Doug Lea's Memory Allocator, a good all purpose memory allocator that is widely used and ported
 - [eyalroz/printf](https://github.com/eyalroz/printf): Tiny, fast(ish), self-contained, fully loaded printf, sprinf etc. implementation
