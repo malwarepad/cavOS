@@ -77,6 +77,18 @@ uacpi_status uacpi_kernel_io_read(uacpi_handle handle, uacpi_size offset,
   }
   return UACPI_STATUS_OK;
 }
+uacpi_status uacpi_kernel_io_read8(uacpi_handle handle, uacpi_size offset,
+                                   uacpi_u8 *out_value) {
+  return uacpi_kernel_io_read(handle, offset, 1, (uacpi_u64 *)out_value);
+}
+uacpi_status uacpi_kernel_io_read16(uacpi_handle handle, uacpi_size offset,
+                                    uacpi_u16 *out_value) {
+  return uacpi_kernel_io_read(handle, offset, 2, (uacpi_u64 *)out_value);
+}
+uacpi_status uacpi_kernel_io_read32(uacpi_handle handle, uacpi_size offset,
+                                    uacpi_u32 *out_value) {
+  return uacpi_kernel_io_read(handle, offset, 4, (uacpi_u64 *)out_value);
+}
 
 uacpi_status uacpi_kernel_io_write(uacpi_handle handle, uacpi_size offset,
                                    uacpi_u8 width, uacpi_u64 value) {
@@ -95,6 +107,18 @@ uacpi_status uacpi_kernel_io_write(uacpi_handle handle, uacpi_size offset,
     return UACPI_STATUS_INVALID_ARGUMENT;
   }
   return UACPI_STATUS_OK;
+}
+uacpi_status uacpi_kernel_io_write8(uacpi_handle handle, uacpi_size offset,
+                                    uacpi_u8 in_value) {
+  return uacpi_kernel_io_write(handle, offset, 1, in_value);
+}
+uacpi_status uacpi_kernel_io_write16(uacpi_handle handle, uacpi_size offset,
+                                     uacpi_u16 in_value) {
+  return uacpi_kernel_io_write(handle, offset, 2, in_value);
+}
+uacpi_status uacpi_kernel_io_write32(uacpi_handle handle, uacpi_size offset,
+                                     uacpi_u32 in_value) {
+  return uacpi_kernel_io_write(handle, offset, 4, in_value);
 }
 
 uacpi_u64 uacpi_kernel_get_nanoseconds_since_boot(void) {
@@ -266,6 +290,19 @@ uacpi_status uacpi_kernel_pci_read(uacpi_handle handle, uacpi_size offset,
   return UACPI_STATUS_OK;
 }
 
+uacpi_status uacpi_kernel_pci_read8(uacpi_handle device, uacpi_size offset,
+                                    uacpi_u8 *value) {
+  return uacpi_kernel_pci_read(device, offset, 1, (uacpi_u64 *)value);
+}
+uacpi_status uacpi_kernel_pci_read16(uacpi_handle device, uacpi_size offset,
+                                     uacpi_u16 *value) {
+  return uacpi_kernel_pci_read(device, offset, 2, (uacpi_u64 *)value);
+}
+uacpi_status uacpi_kernel_pci_read32(uacpi_handle device, uacpi_size offset,
+                                     uacpi_u32 *value) {
+  return uacpi_kernel_pci_read(device, offset, 4, (uacpi_u64 *)value);
+}
+
 uacpi_status uacpi_kernel_pci_write(uacpi_handle handle, uacpi_size offset,
                                     uacpi_u8 width, uacpi_u64 value) {
   uacpi_pci_address *address = (uacpi_pci_address *)handle;
@@ -305,6 +342,19 @@ uacpi_status uacpi_kernel_pci_write(uacpi_handle handle, uacpi_size offset,
   }
 
   return UACPI_STATUS_OK;
+}
+
+uacpi_status uacpi_kernel_pci_write8(uacpi_handle device, uacpi_size offset,
+                                     uacpi_u8 value) {
+  return uacpi_kernel_pci_write(device, offset, 1, value);
+}
+uacpi_status uacpi_kernel_pci_write16(uacpi_handle device, uacpi_size offset,
+                                      uacpi_u16 value) {
+  return uacpi_kernel_pci_write(device, offset, 2, value);
+}
+uacpi_status uacpi_kernel_pci_write32(uacpi_handle device, uacpi_size offset,
+                                      uacpi_u32 value) {
+  return uacpi_kernel_pci_write(device, offset, 4, value);
 }
 
 // https://github.com/osdev0/cc-runtime/blob/dcdf5d82973e77edee597a047a3ef66300903de9/cc-runtime.c#L2229
