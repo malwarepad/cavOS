@@ -1,0 +1,19 @@
+name: Formatting check
+
+on:
+  pull_request:
+    branches: ["*"]
+
+jobs:
+  formatting-check:
+    name: Run code formatting checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check formatting
+        run: make format_check
