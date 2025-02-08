@@ -1,4 +1,6 @@
 *.o
 
+# NOTE TO SELF! EXTREMELY IMPORTANT!
+# When adding stuff here DO NOT FORGET "make format"
 acpi/uacpi/
 include/uacpi/

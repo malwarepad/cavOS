@@ -74,7 +74,7 @@ bool LinkedListDuplicate(void **LLfirstPtrSource, void **LLfirstPtrTarget,
   LLheader *browse = (LLheader *)(LLfirstPtrSource);
   while (browse) {
     LLheader *new = LinkedListAllocate(LLfirstPtrTarget, structSize);
-    memcpy((void *)((size_t) new + sizeof(new->next)),
+    memcpy((void *)((size_t)new + sizeof(new->next)),
            (void *)((size_t)browse + sizeof(browse->next)),
            structSize - sizeof(browse->next));
     browse = browse->next;

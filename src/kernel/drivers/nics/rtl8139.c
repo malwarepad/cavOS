@@ -127,7 +127,7 @@ bool initiateRTL8139(PCIdevice *device) {
   void *virtual = VirtualAllocatePhysicallyContiguous(
       DivRoundUp(8192 + 16 + 1500, BLOCK_SIZE));
   memset(virtual, 0, 8192 + 16 + 1500);
-  size_t physical = VirtualToPhysical((size_t) virtual);
+  size_t physical = VirtualToPhysical((size_t)virtual);
   outportl(iobase + RTL8139_REG_RBSTART, (uint32_t)physical);
 
   // Save it (physical can be computed if needed)

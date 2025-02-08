@@ -88,6 +88,31 @@ ringhome:
 	cmd.exe /c C:/Users/Panagiotis/ring.bat
 dev: clean disk_dirty qemu_dbg
 
+# Code formatting tools
+FIND_CMD = find src/kernel/ -type f \
+	\( -name *.c -o -name *.h \) \
+	-not -path "src/kernel/acpi/uacpi/*" \
+	-not -path "src/kernel/include/uacpi/*" \
+	-not -path "src/kernel/networking/lwip/*" \
+	-not -name printf.c \
+	-not -name printf.h \
+	-not -name malloc.c \
+	-not -name malloc.h \
+	-not -name limine.h
+CLANG_FORMAT_STYLE:=-style='{ BasedOnStyle: LLVM, AlignConsecutiveDeclarations: true, IndentWidth: 2 }'
+
+# Embedded clang-format (I came across big issues when versions do not match perfectly)
+CLANG_FORMAT_TARGET="$(HOME)/opt/clang-format-cavos"
+format_prerequisites:
+	@chmod +x tools/toolchain/get_formatter.sh
+	@tools/toolchain/get_formatter.sh
+
+format: format_prerequisites
+	@$(FIND_CMD) | xargs $(CLANG_FORMAT_TARGET) $(CLANG_FORMAT_STYLE) -i
+
+format_check: format_prerequisites
+	@$(FIND_CMD) | xargs $(CLANG_FORMAT_TARGET) $(CLANG_FORMAT_STYLE) --dry-run --Werror
+
 # this makefile is designed to work in order..
 # however the -j flag is passed to ones that benefit from multiple jobs (such as the kernel)
 .NOTPARALLEL:
