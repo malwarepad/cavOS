@@ -22,7 +22,7 @@ bool ext2DirAllocate(Ext2 *ext2, uint32_t inodeNum, Ext2Inode *parentDirInode,
 
   int blocksContained = DivRoundUp(ino->size, ext2->blockSize);
   for (int i = 0; i < blocksContained; i++) {
-    size_t block = ext2BlockFetch(ext2, ino, &control, blockNum);
+    size_t block = ext2BlockFetch(ext2, ino, inodeNum, &control, blockNum);
     if (!block)
       break;
     blockNum++;
@@ -99,7 +99,8 @@ cleanup:
   return ret;
 }
 
-bool ext2DirRemove(Ext2 *ext2, Ext2Inode *parentDirInode, char *filename,
+bool ext2DirRemove(Ext2 *ext2, Ext2Inode *parentDirInode,
+                   uint32_t parentDirInodeNum, char *filename,
                    uint8_t filenameLen) {
   spinlockAcquire(&ext2->LOCK_DIRALLOC);
 
@@ -114,7 +115,8 @@ bool ext2DirRemove(Ext2 *ext2, Ext2Inode *parentDirInode, char *filename,
 
   int blocksContained = DivRoundUp(ino->size, ext2->blockSize);
   for (int i = 0; i < blocksContained; i++) {
-    size_t block = ext2BlockFetch(ext2, ino, &control, blockNum);
+    size_t block =
+        ext2BlockFetch(ext2, ino, parentDirInodeNum, &control, blockNum);
     if (!block)
       break;
     blockNum++;
@@ -173,8 +175,8 @@ size_t ext2Getdents64(OpenFile *file, struct linux_dirent64 *start,
 
   int blocksContained = DivRoundUp(ino->size, ext2->blockSize);
   for (int i = 0; i < blocksContained; i++) {
-    size_t block =
-        ext2BlockFetch(ext2, ino, &edir->lookup, edir->ptr / ext2->blockSize);
+    size_t block = ext2BlockFetch(ext2, ino, edir->inodeNum, &edir->lookup,
+                                  edir->ptr / ext2->blockSize);
     if (!block)
       break;
     Ext2Directory *dir =

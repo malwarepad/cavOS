@@ -174,14 +174,13 @@ typedef struct Ext2 {
   // Spinlock LOCK_WRITES;
 
   // regular Spinlock[] array for every bgdt item
-  Spinlock *LOCKS_BLOCK_BITMAP;
-  Spinlock *LOCKS_INODE_BITMAP;
+  SpinlockCnt *WLOCKS_BLOCK_BITMAP;
+  Spinlock    *LOCKS_INODE_BITMAP;
 
   // bgdt & superblock global write locks
   Spinlock LOCK_BGDT_WRITE;
   Spinlock LOCK_SUPERBLOCK_WRITE;
 
-  SpinlockCnt WLOCK_BLOCK;
   SpinlockCnt WLOCK_INODE;
   Spinlock    LOCK_DIRALLOC;
   Spinlock    LOCK_WRITE;
@@ -252,8 +251,8 @@ size_t ext2Touch(MountPoint *mnt, char *filename, uint32_t mode,
 void ext2BlockFetchInit(Ext2 *ext2, Ext2LookupControl *control);
 void ext2BlockFetchCleanup(Ext2LookupControl *control);
 
-uint32_t  ext2BlockFetch(Ext2 *ext2, Ext2Inode *ino, Ext2LookupControl *control,
-                         size_t curr);
+uint32_t  ext2BlockFetch(Ext2 *ext2, Ext2Inode *ino, uint32_t inodeNum,
+                         Ext2LookupControl *control, size_t curr);
 uint32_t *ext2BlockChain(Ext2 *ext2, Ext2OpenFd *fd, size_t curr,
                          size_t blocks);
 
@@ -286,7 +285,8 @@ size_t ext2Getdents64(OpenFile *file, struct linux_dirent64 *start,
 
 void ext2BgdtPushM(Ext2 *ext2);
 void ext2SuperblockPushM(Ext2 *ext2);
-bool ext2DirRemove(Ext2 *ext2, Ext2Inode *parentDirInode, char *filename,
+bool ext2DirRemove(Ext2 *ext2, Ext2Inode *parentDirInode,
+                   uint32_t parentDirInodeNum, char *filename,
                    uint8_t filenameLen);
 
 // finale

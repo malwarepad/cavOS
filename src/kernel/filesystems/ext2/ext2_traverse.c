@@ -18,7 +18,7 @@ uint32_t ext2Traverse(Ext2 *ext2, size_t initInode, char *search,
 
   int blocksContained = DivRoundUp(ino->size, ext2->blockSize);
   for (int i = 0; i < blocksContained; i++) {
-    size_t block = ext2BlockFetch(ext2, ino, &control, blockNum);
+    size_t block = ext2BlockFetch(ext2, ino, initInode, &control, blockNum);
     blockNum++;
     if (!block)
       break;

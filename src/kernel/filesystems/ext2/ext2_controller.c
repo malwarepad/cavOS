@@ -99,9 +99,9 @@ bool ext2Mount(MountPoint *mount) {
 
   // set up counting spinlocks for the BGDTs
   // remember to zero them, just in case
-  int bgdtLockSize = sizeof(Spinlock) * ext2->blockGroups;
-  ext2->LOCKS_BLOCK_BITMAP = (Spinlock *)malloc(bgdtLockSize);
-  memset(ext2->LOCKS_BLOCK_BITMAP, 0, bgdtLockSize);
+  int bgdtLockSize = sizeof(SpinlockCnt) * ext2->blockGroups;
+  ext2->WLOCKS_BLOCK_BITMAP = (SpinlockCnt *)malloc(bgdtLockSize);
+  memset(ext2->WLOCKS_BLOCK_BITMAP, 0, bgdtLockSize);
 
   ext2->LOCKS_INODE_BITMAP = (Spinlock *)malloc(bgdtLockSize);
   memset(ext2->LOCKS_INODE_BITMAP, 0, bgdtLockSize);
@@ -297,8 +297,8 @@ size_t ext2Write(OpenFile *fd, uint8_t *buff, size_t limit) {
 
   if (ptrIgnoredBytes > 0) {
     left = MIN(ext2->blockSize - ptrIgnoredBytes, remainder);
-    uint32_t block =
-        ext2BlockFetch(ext2, &dir->inode, &dir->lookup, ptrIgnoredBlocks);
+    uint32_t block = ext2BlockFetch(ext2, &dir->inode, dir->inodeNum,
+                                    &dir->lookup, ptrIgnoredBlocks);
     uint8_t *tmp = (uint8_t *)malloc(ext2->blockSize);
     getDiskBytes(tmp, BLOCK_TO_LBA(ext2, 0, block),
                  ext2->blockSize / SECTOR_SIZE);
@@ -755,7 +755,7 @@ size_t ext2Delete(MountPoint *mnt, char *filename, bool directory,
       ext2BlockFetchInit(ext2, &control);
       size_t i = 0;
       while (true) {
-        uint32_t block = ext2BlockFetch(ext2, inode, &control, i++);
+        uint32_t block = ext2BlockFetch(ext2, inode, inodeNum, &control, i++);
         if (!block)
           break;
 
@@ -774,7 +774,8 @@ size_t ext2Delete(MountPoint *mnt, char *filename, bool directory,
 
   // keep only the last part of filename, let's recycle parent
   memmove(parent, &filename[parentLen + 1], filenameLen - parentLen - 1);
-  ret = ext2DirRemove(ext2, parentInode, parent, filenameLen - parentLen - 1)
+  ret = ext2DirRemove(ext2, parentInode, parentInodeNum, parent,
+                      filenameLen - parentLen - 1)
             ? 0
             : -1;
   free(parent);

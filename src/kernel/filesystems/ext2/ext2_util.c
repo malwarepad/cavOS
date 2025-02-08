@@ -17,10 +17,12 @@ void ext2BlockFetchCleanup(Ext2LookupControl *control) {
   control->tmp2Block = 0;
 }
 
-uint32_t ext2BlockFetch(Ext2 *ext2, Ext2Inode *ino, Ext2LookupControl *control,
-                        size_t curr) {
+uint32_t ext2BlockFetch(Ext2 *ext2, Ext2Inode *ino, uint32_t inodeNum,
+                        Ext2LookupControl *control, size_t curr) {
   int result = 0;
-  spinlockCntReadAcquire(&ext2->WLOCK_BLOCK);
+
+  uint32_t group = INODE_TO_BLOCK_GROUP(ext2, inodeNum);
+  spinlockCntReadAcquire(&ext2->WLOCKS_BLOCK_BITMAP[group]);
 
   uint32_t itemsPerBlock = ext2->blockSize / sizeof(uint32_t);
   size_t   baseSingly = 12 + itemsPerBlock;
@@ -77,13 +79,14 @@ uint32_t ext2BlockFetch(Ext2 *ext2, Ext2Inode *ino, Ext2LookupControl *control,
   return 0;
 
 cleanup:
-  spinlockCntReadRelease(&ext2->WLOCK_BLOCK);
+  spinlockCntReadRelease(&ext2->WLOCKS_BLOCK_BITMAP[group]);
   return result;
 }
 
 void ext2BlockAssign(Ext2 *ext2, Ext2Inode *ino, uint32_t inodeNum,
                      Ext2LookupControl *control, size_t curr, uint32_t val) {
-  spinlockCntWriteAcquire(&ext2->WLOCK_BLOCK);
+  uint32_t group = INODE_TO_BLOCK_GROUP(ext2, inodeNum);
+  spinlockCntWriteAcquire(&ext2->WLOCKS_BLOCK_BITMAP[group]);
   // uint32_t itemsPerBlock = ext2->blockSize / sizeof(uint32_t);
   // size_t   baseSingly = 12 + itemsPerBlock;
   // size_t   baseDoubly = baseSingly + ext2->blockSize * itemsPerBlock;
@@ -132,7 +135,7 @@ void ext2BlockAssign(Ext2 *ext2, Ext2Inode *ino, uint32_t inodeNum,
   panic();
 
 cleanup:
-  spinlockCntWriteRelease(&ext2->WLOCK_BLOCK);
+  spinlockCntWriteRelease(&ext2->WLOCKS_BLOCK_BITMAP[group]);
 }
 
 uint32_t ext2BlockFind(Ext2 *ext2, int groupSuggestion, uint32_t amnt) {
@@ -162,7 +165,7 @@ uint32_t ext2BlockFindL(Ext2 *ext2, int group, uint32_t amnt) {
   if (ext2->bgdts[group].free_blocks < amnt)
     return 0;
 
-  spinlockAcquire(&ext2->LOCKS_BLOCK_BITMAP[group]);
+  spinlockCntWriteAcquire(&ext2->WLOCKS_BLOCK_BITMAP[group]);
 
   uint32_t ret = 0;
   uint8_t *buff = malloc(ext2->blockSize);
@@ -211,12 +214,12 @@ cleanup:
     spinlockRelease(&ext2->LOCK_SUPERBLOCK_WRITE);
   }
 
-  spinlockRelease(&ext2->LOCKS_BLOCK_BITMAP[group]);
+  spinlockCntWriteRelease(&ext2->WLOCKS_BLOCK_BITMAP[group]);
   return ret ? (group * ext2->superblock.blocks_per_group + ret) : 0;
 }
 
 void ext2BlockDelete(Ext2 *ext2, uint32_t group, uint32_t index) {
-  spinlockAcquire(&ext2->LOCKS_BLOCK_BITMAP[group]);
+  spinlockCntWriteAcquire(&ext2->WLOCKS_BLOCK_BITMAP[group]);
 
   uint8_t *buff = malloc(ext2->blockSize);
 
@@ -241,7 +244,7 @@ void ext2BlockDelete(Ext2 *ext2, uint32_t group, uint32_t index) {
   ext2SuperblockPushM(ext2);
   spinlockRelease(&ext2->LOCK_SUPERBLOCK_WRITE);
 
-  spinlockRelease(&ext2->LOCKS_BLOCK_BITMAP[group]);
+  spinlockCntWriteRelease(&ext2->WLOCKS_BLOCK_BITMAP[group]);
 }
 
 uint32_t *ext2BlockChain(Ext2 *ext2, Ext2OpenFd *fd, size_t curr,
@@ -249,7 +252,7 @@ uint32_t *ext2BlockChain(Ext2 *ext2, Ext2OpenFd *fd, size_t curr,
   uint32_t *ret = (uint32_t *)malloc((1 + blocks) * sizeof(uint32_t));
   for (int i = 0; i < (1 + blocks); i++) // will take care of curr too
   {
-    ret[i] = ext2BlockFetch(ext2, &fd->inode, &fd->lookup, curr);
+    ret[i] = ext2BlockFetch(ext2, &fd->inode, fd->inodeNum, &fd->lookup, curr);
     curr++;
   }
   return ret;
