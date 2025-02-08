@@ -154,8 +154,8 @@ force_inline HBA_CMD_TBL *ahciSetUpCmd(ahci *ahciPtr, uint32_t portId,
   }
 
   if (i > AHCI_PRDTS) {
-    debugf("[ahci] FATAL! Mis-calculation, i{%ld} exceeds AHCI_PRDTS!\n", i,
-           AHCI_PRDTS);
+    debugf("[ahci] FATAL! Mis-calculation, i{%ld} exceeds AHCI_PRDTS{%ld}!\n",
+           i, AHCI_PRDTS);
     panic();
   }
 
