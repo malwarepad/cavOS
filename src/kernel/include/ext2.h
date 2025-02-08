@@ -175,15 +175,14 @@ typedef struct Ext2 {
 
   // regular Spinlock[] array for every bgdt item
   SpinlockCnt *WLOCKS_BLOCK_BITMAP;
-  Spinlock    *LOCKS_INODE_BITMAP;
+  SpinlockCnt *WLOCKS_INODE; // not just for bitmap operations!
 
   // bgdt & superblock global write locks
   Spinlock LOCK_BGDT_WRITE;
   Spinlock LOCK_SUPERBLOCK_WRITE;
 
-  SpinlockCnt WLOCK_INODE;
-  Spinlock    LOCK_DIRALLOC;
-  Spinlock    LOCK_WRITE;
+  Spinlock LOCK_DIRALLOC;
+  Spinlock LOCK_WRITE;
 } Ext2;
 
 typedef struct Ext2LookupControl {

@@ -103,8 +103,8 @@ bool ext2Mount(MountPoint *mount) {
   ext2->WLOCKS_BLOCK_BITMAP = (SpinlockCnt *)malloc(bgdtLockSize);
   memset(ext2->WLOCKS_BLOCK_BITMAP, 0, bgdtLockSize);
 
-  ext2->LOCKS_INODE_BITMAP = (Spinlock *)malloc(bgdtLockSize);
-  memset(ext2->LOCKS_INODE_BITMAP, 0, bgdtLockSize);
+  ext2->WLOCKS_INODE = (SpinlockCnt *)malloc(bgdtLockSize);
+  memset(ext2->WLOCKS_INODE, 0, bgdtLockSize);
 
   ext2->inodeSize = ext2->superblock.extended.inode_size;
   ext2->inodeSizeRounded =

@@ -4,9 +4,10 @@
 #include <util.h>
 
 Ext2Inode *ext2InodeFetch(Ext2 *ext2, size_t inode) {
-  spinlockCntReadAcquire(&ext2->WLOCK_INODE);
   uint32_t group = INODE_TO_BLOCK_GROUP(ext2, inode);
   uint32_t index = INODE_TO_INDEX(ext2, inode);
+
+  spinlockCntReadAcquire(&ext2->WLOCKS_INODE[group]);
 
   size_t leftovers = index * ext2->inodeSize;
   size_t leftoversLba = leftovers / SECTOR_SIZE;
@@ -25,15 +26,16 @@ Ext2Inode *ext2InodeFetch(Ext2 *ext2, size_t inode) {
   memcpy(ret, tmp, ext2->inodeSize);
 
   free(buf);
-  spinlockCntReadRelease(&ext2->WLOCK_INODE);
+  spinlockCntReadRelease(&ext2->WLOCKS_INODE[group]);
   return ret;
 }
 
 // IMPORTANT! Remember to manually set the lock **before** calling
 void ext2InodeModifyM(Ext2 *ext2, size_t inode, Ext2Inode *target) {
-  spinlockCntWriteAcquire(&ext2->WLOCK_INODE);
   uint32_t group = INODE_TO_BLOCK_GROUP(ext2, inode);
   uint32_t index = INODE_TO_INDEX(ext2, inode);
+
+  spinlockCntWriteAcquire(&ext2->WLOCKS_INODE[group]);
 
   size_t leftovers = index * ext2->inodeSize;
   size_t leftoversLba = leftovers / SECTOR_SIZE;
@@ -51,13 +53,14 @@ void ext2InodeModifyM(Ext2 *ext2, size_t inode, Ext2Inode *target) {
   setDiskBytes(buf, lba, len / SECTOR_SIZE);
 
   free(buf);
-  spinlockCntWriteRelease(&ext2->WLOCK_INODE);
+  spinlockCntWriteRelease(&ext2->WLOCKS_INODE[group]);
 }
 
 void ext2InodeDelete(Ext2 *ext2, size_t inode) {
-  spinlockCntWriteAcquire(&ext2->WLOCK_INODE);
   uint32_t group = INODE_TO_BLOCK_GROUP(ext2, inode);
   uint32_t index = INODE_TO_INDEX(ext2, inode);
+
+  spinlockCntWriteAcquire(&ext2->WLOCKS_INODE[group]);
 
   uint32_t where = index / 8;
   uint32_t remainder = index % 8;
@@ -71,7 +74,7 @@ void ext2InodeDelete(Ext2 *ext2, size_t inode) {
   setDiskBytes(buf, lba, ext2->blockSize / SECTOR_SIZE);
 
   free(buf);
-  spinlockCntWriteRelease(&ext2->WLOCK_INODE);
+  spinlockCntWriteRelease(&ext2->WLOCKS_INODE[group]);
 }
 
 uint32_t ext2InodeFind(Ext2 *ext2, int groupSuggestion) {
@@ -101,7 +104,7 @@ uint32_t ext2InodeFindL(Ext2 *ext2, int group) {
   if (ext2->bgdts[group].free_inodes < 1)
     return 0;
 
-  spinlockAcquire(&ext2->LOCKS_INODE_BITMAP[group]);
+  spinlockCntWriteAcquire(&ext2->WLOCKS_INODE[group]);
 
   uint32_t ret = 0;
   uint8_t *buff = malloc(ext2->blockSize);
@@ -150,7 +153,7 @@ cleanup:
     spinlockRelease(&ext2->LOCK_SUPERBLOCK_WRITE);
   }
 
-  spinlockRelease(&ext2->LOCKS_INODE_BITMAP[group]);
+  spinlockCntWriteRelease(&ext2->WLOCKS_INODE[group]);
   // +1 necessary because inodes start at inode number 1
   return ret ? (group * ext2->superblock.inodes_per_group + ret + 1) : 0;
 }
