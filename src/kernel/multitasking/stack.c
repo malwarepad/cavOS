@@ -49,7 +49,7 @@ StackStorePtrStyle stackStorePtrStyle(Task *target, int ptrc, char **ptrv) {
 
 void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint32_t envc,
                        char **envv, uint8_t *out, size_t filesize,
-                       void *elf_ehdr_ptr) {
+                       void *elf_ehdr_ptr, size_t at_base) {
   Elf64_Ehdr *elf_ehdr = (Elf64_Ehdr *)(elf_ehdr_ptr);
 
   // yeah, we will need to construct a stackframe...
@@ -110,7 +110,7 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint32_t envc,
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, elf_ehdr->e_entry);
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 9);
   // aux: AT_BASE // todo: not hardcode
-  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 0x100000000000);
+  PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, at_base);
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 7);
   // aux: AT_FLAGS
   PUSH_TO_STACK(target->registers.usermode_rsp, uint64_t, 0);

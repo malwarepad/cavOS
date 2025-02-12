@@ -223,7 +223,8 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
   target->cwd[1] = '\0';
 
   // User stack generation: the stack itself, AUXs, etc...
-  stackGenerateUser(target, argc, argv, envc, envv, out, filesize, elf_ehdr);
+  stackGenerateUser(target, argc, argv, envc, envv, out, filesize, elf_ehdr,
+                    interpreterEntry ? 0x100000000000 : 0);
   VirtualFree(out, outSize);
 
   // void **a = (void **)(&target->firstSpecialFile);
