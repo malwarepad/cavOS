@@ -10,7 +10,7 @@ compile:
 
 install:
 	mkdir -p $(TARGET)
-	cp $(OUTPUT) $(TARGET)
+	sudo cp $(OUTPUT) $(TARGET)
 
 clean:
 	rm -f $(OUTPUT)
