@@ -67,6 +67,8 @@ else
 	sudo cp -r ${1}/boot/* "${2}/boot/"
 fi
 
+sudo rm -f "${2}/.gitignore"
+
 CURRENT_DIRECTORY=$(dirname "$0")
 chmod +x "${CURRENT_DIRECTORY}/cleanup.sh"
 "${CURRENT_DIRECTORY}/cleanup.sh" "${2}"
