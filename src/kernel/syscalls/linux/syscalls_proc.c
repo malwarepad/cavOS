@@ -42,6 +42,33 @@ cleanup:
   return out;
 }
 
+#define SYSCALL_CLONE 56
+static size_t syscallClone(uint64_t flags, uint64_t newsp, void *parent_tid,
+                           void *child_tid, uint64_t tid) {
+  // 17 is SIGCHLD which we ignore
+  uint64_t supported_flags = CLONE_VFORK | CLONE_VM | 17;
+  if ((flags & ~supported_flags) != 0) {
+    dbgSysStubf("todo more flags %lx", (flags & ~supported_flags));
+    return ERR(ENOSYS);
+  }
+
+  bool  copyPages = !(flags & CLONE_VM);
+  Task *newTask =
+      taskFork(currentTask->syscallRegs,
+               newsp ? newsp : currentTask->syscallRsp, copyPages, false);
+  uint64_t id = newTask->id;
+
+  // no race condition today :")
+  taskCreateFinish(newTask);
+
+  if (flags & CLONE_VFORK) {
+    currentTask->state = TASK_STATE_WAITING_VFORK;
+    handControl();
+  }
+
+  return id;
+}
+
 #define SYSCALL_FORK 57
 static size_t syscallFork() {
   return taskFork(currentTask->syscallRegs, currentTask->syscallRsp, true, true)
@@ -238,6 +265,7 @@ void syscallsRegProc() {
   registerSyscall(SYSCALL_PIPE, syscallPipe);
   registerSyscall(SYSCALL_PIPE2, syscallPipe2);
   registerSyscall(SYSCALL_EXIT_TASK, syscallExitTask);
+  registerSyscall(SYSCALL_CLONE, syscallClone);
   registerSyscall(SYSCALL_FORK, syscallFork);
   registerSyscall(SYSCALL_VFORK, syscallVfork);
   registerSyscall(SYSCALL_WAIT4, syscallWait4);
