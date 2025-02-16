@@ -4,6 +4,7 @@
 #include <linked_list.h>
 #include <malloc.h>
 #include <string.h>
+#include <syscalls.h>
 #include <system.h>
 #include <task.h>
 #include <util.h>
@@ -60,10 +61,10 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
   char *strippedFilename = fsStripMountpoint(safeFilename, mnt);
   // check for open handler
   if (target->handlers->open) {
-    char *symlink = 0;
-    int   ret =
+    char  *symlink = 0;
+    size_t ret =
         target->handlers->open(strippedFilename, flags, mode, target, &symlink);
-    if (ret < 0) {
+    if (RET_IS_ERR(ret)) {
       // failed to open
       fsUnregisterNode(task, target);
       free(target);
@@ -77,7 +78,7 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
         free(symlinkResolved);
         return res;
       }
-      return (OpenFile *)((size_t)(-ret));
+      return (OpenFile *)((size_t)(ret));
     }
     free(safeFilename);
   }
@@ -133,7 +134,7 @@ OpenFile *fsUserGetNode(void *task, int fd) {
 OpenFile *fsKernelOpen(char *filename, int flags, uint32_t mode) {
   Task     *target = taskGet(KERNEL_TASK_ID);
   OpenFile *ret = fsOpenGeneric(filename, target, flags, mode);
-  if ((size_t)(ret) < 1024)
+  if (RET_IS_ERR((size_t)(ret)))
     return 0;
   return ret;
 }
@@ -144,8 +145,8 @@ size_t fsUserOpen(void *task, char *filename, int flags, int mode) {
     return ERR(ENOSYS);
   }
   OpenFile *file = fsOpenGeneric(filename, (Task *)task, flags, mode);
-  if ((size_t)(file) < 1024)
-    return -((size_t)file);
+  if (RET_IS_ERR((size_t)file))
+    return (size_t)file;
 
   return file->id;
 }
