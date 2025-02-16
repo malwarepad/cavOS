@@ -3,6 +3,7 @@
 #include <malloc.h>
 #include <paging.h>
 #include <string.h>
+#include <syscalls.h>
 #include <system.h>
 #include <task.h>
 #include <timer.h>
@@ -140,9 +141,9 @@ size_t ext2Open(char *filename, int flags, int mode, OpenFile *fd,
   if (!inode) {
     if (flags & O_CREAT) {
       // create this thing
-      int ret = ext2Touch(fd->mountPoint, filename, mode, symlinkResolve);
+      size_t ret = ext2Touch(fd->mountPoint, filename, mode, symlinkResolve);
       // debugf("creation: %d\n", ret);
-      if (ret < 0)
+      if (RET_IS_ERR(ret))
         return ret;
 
       // created successfully

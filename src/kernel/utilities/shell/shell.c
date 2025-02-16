@@ -240,7 +240,7 @@ void launch_shell(int n) {
       printf("\n");
     } else if (strEql(ch, "bash")) {
       printf("\n");
-      run("/usr/bin/bash", true, 0, 0);
+      run("/bin/bash", true, 0, 0);
     } else if (strEql(ch, "net")) {
       printf("\nWarning: networking is still very early in testing!\n");
       printf("=========================================\n");
