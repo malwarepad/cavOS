@@ -33,13 +33,21 @@ size_t pciConfigRead(OpenFile *fd, uint8_t *out, size_t limit) {
   return toCopy;
 }
 
+size_t pciConfigSeek(OpenFile *file, size_t target, long int offset,
+                     int whence) {
+  // we're using the official ->pointer so no need to worry about much
+  file->pointer = target;
+  return 0;
+}
+
 VfsHandlers handlePciConfig = {.read = pciConfigRead,
                                .write = 0,
                                .stat = fakefsFstat,
                                .duplicate = 0,
                                .ioctl = 0,
                                .mmap = 0,
-                               .getdents64 = 0};
+                               .getdents64 = 0,
+                               .seek = pciConfigSeek};
 
 void sysSetupPci(FakefsFile *devices) {
   PCIdevice        *device = (PCIdevice *)malloc(sizeof(PCIdevice));
@@ -87,6 +95,14 @@ void sysSetupPci(FakefsFile *devices) {
             fakefsAddFile(&rootSys, dir, "irq", 0, S_IFREG | S_IRUSR | S_IWUSR,
                           &fakefsSimpleReadHandlers);
         fakefsAttachFile(irqFile, irqStr, 4096);
+
+        // [..]/revision
+        char *revisionStr = (char *)malloc(8);
+        sprintf(revisionStr, "0x%02x\n", device->revision);
+        FakefsFile *revisionFile = fakefsAddFile(&rootSys, dir, "revision", 0,
+                                                 S_IFREG | S_IRUSR | S_IWUSR,
+                                                 &fakefsSimpleReadHandlers);
+        fakefsAttachFile(revisionFile, revisionStr, 4096);
 
         // [..]/device
         char *deviceStr = (char *)malloc(8);
