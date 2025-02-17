@@ -2,6 +2,7 @@
 #include <linked_list.h>
 #include <linux.h>
 #include <malloc.h>
+#include <string.h>
 #include <syscalls.h>
 #include <task.h>
 #include <util.h>
@@ -335,54 +336,87 @@ static size_t syscallSelect(int nfds, fd_set *readfds, fd_set *writefds,
   return syscallPselect6(nfds, readfds, writefds, exceptfds, 0, 0);
 }
 
+char *atResolvePathname(int dirfd, char *pathname) {
+  assert(pathname[0] != '\0'); // by fd, should've checked before running!
+  if (pathname[0] == '/') {    // by absolute pathname
+    return pathname;
+  } else if (pathname[0] != '/') {
+    if (dirfd == AT_FDCWD) { // relative to cwd
+      return pathname;
+    } else { // relative to dirfd, resolve accordingly
+      OpenFile *fd = fsUserGetNode(currentTask, dirfd);
+      if (!fd)
+        return (char *)ERR(EBADF);
+      if (!fd->dirname)
+        return (char *)ERR(ENOTDIR);
+
+      int prefixLen = strlength(fd->mountPoint->prefix);
+      int rootDirLen = strlength(fd->dirname);
+      int pathnameLen = strlength(pathname) + 1;
+
+      char *out = malloc(prefixLen + rootDirLen + 1 + pathnameLen);
+
+      memcpy(out, fd->mountPoint->prefix, prefixLen);
+      memcpy(&out[prefixLen], fd->dirname, rootDirLen);
+      out[prefixLen + rootDirLen] = '/'; // better be safe than sorry
+      memcpy(&out[prefixLen + rootDirLen + 1], pathname, pathnameLen);
+      return out;
+    }
+  }
+
+  assert(false); // will never be reached
+  return 0;
+}
+
+void atResolvePathnameCleanup(char *pathname, char *resolved) {
+  if ((size_t)pathname != (size_t)resolved)
+    free(resolved);
+}
+
 #define SYSCALL_OPENAT 257
 static size_t syscallOpenat(int dirfd, char *pathname, int flags, int mode) {
   if (pathname[0] == '\0') { // by fd
     return dirfd;
-  } else if (pathname[0] == '/') { // by absolute pathname
-    return syscallOpen(pathname, flags, mode);
-  } else if (pathname[0] != '/') {
-    if (dirfd == AT_FDCWD) { // relative to cwd
-      return syscallOpen(pathname, flags, mode);
-    } else {
-      dbgSysStubf("todo: relative to dirfd{%d}", dirfd);
-      return -1;
-    }
-  } else {
-    dbgSysFailf("unsupported!");
-    return -1;
   }
-  return ERR(ENOSYS);
+
+  char *resolved = atResolvePathname(dirfd, pathname);
+  if (RET_IS_ERR((size_t)resolved))
+    return (size_t)resolved;
+
+  size_t ret = syscallOpen(resolved, flags, mode);
+  atResolvePathnameCleanup(pathname, resolved);
+  return ret;
 }
 
 #define SYSCALL_MKDIRAT 258
 static size_t syscallMkdirAt(int dirfd, char *pathname, int mode) {
   if (pathname[0] == '\0') { // by fd
-    return dirfd;
-  } else if (pathname[0] == '/') { // by absolute pathname
-    return syscallMkdir(pathname, mode);
-  } else if (pathname[0] != '/') {
-    if (dirfd == AT_FDCWD) { // relative to cwd
-      return syscallMkdir(pathname, mode);
-    } else {
-      dbgSysStubf("todo: relative to dirfd{%d}", dirfd);
-      return -1;
-    }
-  } else {
-    dbgSysFailf("unsupported!");
-    return -1;
+    return ERR(ENOENT);
   }
-  return ERR(ENOSYS);
+
+  char *resolved = atResolvePathname(dirfd, pathname);
+  if (RET_IS_ERR((size_t)resolved))
+    return (size_t)resolved;
+
+  size_t ret = syscallMkdir(resolved, mode);
+  atResolvePathnameCleanup(pathname, resolved);
+  return ret;
 }
 
 #define SYSCALL_NEWFSTATAT 262
-static size_t syscallNewfstatat(int dfd, char *filename, struct stat *statbuf,
+static size_t syscallNewfstatat(int dirfd, char *pathname, struct stat *statbuf,
                                 int flag) {
-  if (filename[0] == '\0')
-    return syscallFstat(dfd, statbuf);
+  if (pathname[0] == '\0')
+    return syscallFstat(dirfd, statbuf);
 
-  debugf("[syscalls::newfstatat] Not implemented!\n");
-  return ERR(ENOSYS);
+  char *resolved = atResolvePathname(dirfd, pathname);
+  if (RET_IS_ERR((size_t)resolved))
+    return (size_t)resolved;
+
+  size_t ret = flag & AT_SYMLINK_NOFOLLOW ? syscallLstat(resolved, statbuf)
+                                          : syscallStat(resolved, statbuf);
+  atResolvePathnameCleanup(pathname, resolved);
+  return ret;
 }
 
 #define SYSCALL_UNLINKAT 263
@@ -390,82 +424,40 @@ static size_t syscallUnlinkat(int dirfd, char *pathname, int mode) {
   bool directory = mode & 0x200;
   if (pathname[0] == '\0') { // by fd
     dbgSysFailf("unsupported!");
-    return -1;
-  } else if (pathname[0] == '/') { // by absolute pathname
-    return fsUnlink(currentTask, pathname, directory);
-  } else if (pathname[0] != '/') {
-    if (dirfd == AT_FDCWD) { // relative to cwd
-      return fsUnlink(currentTask, pathname, directory);
-    } else {
-      dbgSysStubf("todo: relative to dirfd{%d}", dirfd);
-      return -1;
-    }
-  } else {
-    dbgSysFailf("unsupported!");
-    return -1;
+    return ERR(ENOSYS);
   }
-  return ERR(ENOSYS);
+
+  char *resolved = atResolvePathname(dirfd, pathname);
+  if (RET_IS_ERR((size_t)resolved))
+    return (size_t)resolved;
+
+  size_t ret = fsUnlink(currentTask, resolved, directory);
+  atResolvePathnameCleanup(pathname, resolved);
+  return ret;
 }
 
 #define SYSCALL_FACCESSAT 269
 static size_t syscallFaccessat(int dirfd, char *pathname, int mode) {
   if (pathname[0] == '\0') { // by fd
     return 0;
-  } else if (pathname[0] == '/') { // by absolute pathname
-    return syscallAccess(pathname, mode);
-  } else if (pathname[0] != '/') {
-    if (dirfd == AT_FDCWD) { // relative to cwd
-      return syscallAccess(pathname, mode);
-    } else {
-      dbgSysStubf("todo: relative to dirfd{%d}", dirfd);
-      return -1;
-    }
-  } else {
-    dbgSysFailf("unsupported!");
-    return -1;
   }
-  return ERR(ENOSYS);
+
+  char *resolved = atResolvePathname(dirfd, pathname);
+  if (RET_IS_ERR((size_t)resolved))
+    return (size_t)resolved;
+
+  size_t ret = syscallAccess(resolved, mode);
+  atResolvePathnameCleanup(pathname, resolved);
+  return ret;
 }
 
 #define SYSCALL_STATX 332
 static size_t syscallStatx(int dirfd, char *pathname, int flags, uint32_t mask,
                            struct statx *buff) {
   struct stat simple = {0};
-  if (pathname[0] == '\0') { // by fd
-    OpenFile *file = fsUserGetNode(currentTask, dirfd);
-    if (!file)
-      return ERR(ENOENT);
-    if (!fsStat(file, &simple))
-      return ERR(EBADF);
-  } else if (pathname[0] == '/') { // by absolute pathname
-    char *safeFilename = fsSanitize(currentTask->cwd, pathname);
-    bool  ret = false;
-    if (flags & AT_SYMLINK_NOFOLLOW)
-      ret = fsLstatByFilename(currentTask, safeFilename, &simple);
-    else
-      ret = fsStatByFilename(currentTask, safeFilename, &simple);
-    free(safeFilename);
-    if (!ret)
-      return ERR(ENOENT);
-  } else if (pathname[0] != '/') {
-    if (dirfd == AT_FDCWD) { // relative to cwd
-      char *safeFilename = fsSanitize(currentTask->cwd, pathname);
-      bool  ret = false;
-      if (flags & AT_SYMLINK_NOFOLLOW)
-        ret = fsLstatByFilename(currentTask, safeFilename, &simple);
-      else
-        ret = fsStatByFilename(currentTask, safeFilename, &simple);
-      free(safeFilename);
-      if (!ret)
-        return ERR(ENOENT);
-    } else {
-      dbgSysStubf("todo: relative to dirfd{%d}", dirfd);
-      return -1;
-    }
-  } else {
-    dbgSysFailf("unsupported!");
-    return -1;
-  }
+  size_t      statRet = syscallNewfstatat(dirfd, pathname, &simple, flags);
+  if (RET_IS_ERR(statRet))
+    return statRet;
 
   memset(buff, 0, sizeof(struct statx));
 
