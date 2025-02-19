@@ -247,6 +247,7 @@ static size_t syscallMkdir(char *path, uint32_t mode) {
 
 #define SYSCALL_UNLINK 87
 static size_t syscallUnlink(char *path) {
+  dbgSysExtraf("path{%s}", path);
   return fsUnlink(currentTask, path, false);
 }
 
@@ -430,6 +431,8 @@ static size_t syscallUnlinkat(int dirfd, char *pathname, int mode) {
   char *resolved = atResolvePathname(dirfd, pathname);
   if (RET_IS_ERR((size_t)resolved))
     return (size_t)resolved;
+
+  dbgSysExtraf("path{%s}", resolved);
 
   size_t ret = fsUnlink(currentTask, resolved, directory);
   atResolvePathnameCleanup(pathname, resolved);
