@@ -74,10 +74,12 @@ bool pipeDuplicate(OpenFile *original, OpenFile *orphan) {
   PipeSpecific *spec = (PipeSpecific *)original->dir;
   PipeInfo     *pipe = spec->info;
 
+  spinlockAcquire(&pipe->LOCK);
   if (spec->write)
     pipe->writeFds++;
   else
     pipe->readFds++;
+  spinlockRelease(&pipe->LOCK);
 
   return true;
 }
@@ -171,10 +173,12 @@ bool pipeCloseEnd(OpenFile *readFd) {
   PipeSpecific *spec = (PipeSpecific *)readFd->dir;
   PipeInfo     *pipe = spec->info;
 
+  spinlockAcquire(&pipe->LOCK);
   if (spec->write)
     pipe->writeFds--;
   else
     pipe->readFds--;
+  spinlockRelease(&pipe->LOCK);
 
   if (!pipe->readFds && !pipe->writeFds) {
     spinlockAcquire(&pipe->LOCK);
