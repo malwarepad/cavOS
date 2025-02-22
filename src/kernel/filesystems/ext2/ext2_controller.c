@@ -167,12 +167,40 @@ size_t ext2Open(char *filename, int flags, int mode, OpenFile *fd,
     ext2InodeModifyM(ext2, inode, inodeFetched);
   }
 
+  spinlockAcquire(&ext2->LOCK_OBJECT);
+  Ext2FoundObject *targetObject = ext2->firstObject;
+  while (targetObject) {
+    if (targetObject->inode == inode)
+      break;
+    targetObject = targetObject->next;
+  }
+  spinlockRelease(&ext2->LOCK_OBJECT);
+  if (!targetObject) {
+    targetObject =
+        calloc(sizeof(Ext2FoundObject), 1); // out of the locks in case
+    spinlockAcquire(&ext2->LOCK_OBJECT);
+    targetObject->inode = inode;
+
+    targetObject->next = ext2->firstObject; // dll stuff
+    ext2->firstObject = targetObject;
+    if (targetObject->next)
+      targetObject->next->prev = targetObject;
+    spinlockRelease(&ext2->LOCK_OBJECT);
+  }
+
+  // we opened a file!
+  spinlockAcquire(&targetObject->LOCK_PROP);
+  targetObject->openFds++;
+  spinlockRelease(&targetObject->LOCK_PROP);
+
   Ext2OpenFd *dir = (Ext2OpenFd *)malloc(sizeof(Ext2OpenFd));
   memset(dir, 0, sizeof(Ext2OpenFd));
   fd->dir = dir;
 
   dir->inodeNum = inode;
   memcpy(&dir->inode, inodeFetched, sizeof(Ext2Inode));
+
+  dir->globalObject = targetObject;
 
   if ((dir->inode.permission & 0xF000) == EXT2_S_IFDIR) {
     size_t len = strlength(filename) + 1;
@@ -196,6 +224,8 @@ size_t ext2Read(OpenFile *fd, uint8_t *buff, size_t naiveLimit) {
   if (dir->inode.permission & S_IFDIR)
     return ERR(EISDIR);
 
+  ext2CachePush(ext2, dir);
+
   size_t filesize = ext2GetFilesize(fd);
   if (dir->ptr >= filesize)
     return 0;
@@ -204,10 +234,65 @@ size_t ext2Read(OpenFile *fd, uint8_t *buff, size_t naiveLimit) {
   if (limit > (filesize - dir->ptr))
     limit = filesize - dir->ptr;
 
+  size_t blocksRequired = DivRoundUp(limit, ext2->blockSize);
+
+  spinlockCntReadAcquire(&dir->globalObject->WLOCK_FILE);
+
+  // find anything as a start that is close
+  spinlockCntReadAcquire(&dir->globalObject->WLOCK_CACHE);
+  size_t           blockIndexStart = dir->ptr / ext2->blockSize;
+  Ext2CacheObject *cacheObj = dir->globalObject->firstCacheObj;
+  while (cacheObj) {
+    if (cacheObj->blockIndex >= blockIndexStart &&
+        cacheObj->blockIndex < (blockIndexStart + blocksRequired))
+      break;
+    cacheObj = cacheObj->next;
+  }
+  spinlockCntReadRelease(&dir->globalObject->WLOCK_CACHE);
+
+  size_t left = limit;
+  for (size_t i = 0; i < (blocksRequired + 1); i++) {
+    if (cacheObj && cacheObj->blockIndex == (blockIndexStart + i)) {
+      // we are in a valid cache region
+      spinlockCntReadAcquire(&dir->globalObject->WLOCK_CACHE);
+      uint32_t rem = dir->ptr % ext2->blockSize;
+      size_t   toCopy = MIN(left, cacheObj->blocks * ext2->blockSize - rem);
+      memcpy(&buff[limit - left], &cacheObj->buff[rem], toCopy);
+      left -= toCopy;
+      i += cacheObj->blocks - 1; // -1 cause it's added automatically
+      dir->ptr += toCopy;
+      cacheObj = cacheObj->next;
+      spinlockCntReadRelease(&dir->globalObject->WLOCK_CACHE);
+    } else {
+      // we are not inside caching, let's see if we're close to it
+      size_t blocksToScan = blocksRequired - i;
+      if (!blocksToScan) // the extra block caused by the rem thing
+        blocksToScan = 1;
+      if (cacheObj)
+        // to_be_scanned = target_location - current_location;
+        blocksToScan = cacheObj->blockIndex - (dir->ptr / ext2->blockSize);
+      uint32_t rem = dir->ptr % ext2->blockSize;
+      size_t   toCopy = MIN(left, blocksToScan * ext2->blockSize - rem);
+      assert(ext2ReadInner(fd, &buff[limit - left], toCopy) == toCopy);
+      left -= toCopy;
+      i += blocksToScan - 1; // -1 cause it's added automatically
+    }
+    if (left == 0)
+      break;
+  }
+
+  assert(left == 0);
+  spinlockCntReadRelease(&dir->globalObject->WLOCK_FILE);
+  return limit;
+}
+
+size_t ext2ReadInner(OpenFile *fd, uint8_t *buff, size_t limit) {
+  Ext2       *ext2 = EXT2_PTR(fd->mountPoint->fsInfo);
+  Ext2OpenFd *dir = EXT2_DIR_PTR(fd->dir);
+
   size_t    blocksRequired = DivRoundUp(limit, ext2->blockSize);
   uint32_t *blocks =
       ext2BlockChain(ext2, dir, dir->ptr / ext2->blockSize, blocksRequired);
-
   size_t tmpSize =
       DivRoundUp((blocksRequired + 1) * ext2->blockSize, BLOCK_SIZE);
   uint8_t *tmp = (uint8_t *)VirtualAllocate(tmpSize);
@@ -264,11 +349,15 @@ size_t ext2Read(OpenFile *fd, uint8_t *buff, size_t naiveLimit) {
     memcpy(&buff[headtoCopy], &tmp[ext2->blockSize], limit - headtoCopy);
   }
 
+  // cache it for later
+  ext2CacheAddSecurely(ext2, dir->globalObject, tmp, dir->ptr / ext2->blockSize,
+                       blocksRequired);
+
   dir->ptr += limit; // set pointer
 
   // cleanup
   free(blocks);
-  VirtualFree(tmp, tmpSize);
+  // VirtualFree(tmp, tmpSize);
 
   // debugf("[fd:%d id:%d] read %d bytes\n", fd->id, currentTask->id, curr);
   // debugf("%d / %d\n", dir->ptr, dir->inode.size);
@@ -279,10 +368,17 @@ size_t ext2Write(OpenFile *fd, uint8_t *buff, size_t limit) {
   Ext2       *ext2 = EXT2_PTR(fd->mountPoint->fsInfo);
   Ext2OpenFd *dir = EXT2_DIR_PTR(fd->dir);
 
+  ext2CachePush(ext2, dir);
+
+  // todo! memory leak!
+  spinlockCntWriteAcquire(&dir->globalObject->WLOCK_CACHE);
+  dir->globalObject->firstCacheObj = 0;
+  spinlockCntWriteRelease(&dir->globalObject->WLOCK_CACHE);
+
   if (dir->inode.permission & S_IFDIR)
     return ERR(EISDIR);
 
-  spinlockAcquire(&ext2->LOCK_WRITE);
+  spinlockCntWriteAcquire(&dir->globalObject->WLOCK_FILE);
 
   size_t appendCursor = (size_t)(-1);
   if (fd->flags & O_APPEND) {
@@ -424,7 +520,7 @@ size_t ext2Write(OpenFile *fd, uint8_t *buff, size_t limit) {
   if (fd->flags & O_APPEND)
     dir->ptr = appendCursor;
 
-  spinlockRelease(&ext2->LOCK_WRITE);
+  spinlockCntWriteRelease(&dir->globalObject->WLOCK_FILE);
 
   // debugf("[fd:%d id:%d] read %d bytes\n", fd->id, currentTask->id, curr);
   // debugf("%d / %d\n", dir->ptr, dir->inode.size);
@@ -584,6 +680,10 @@ bool ext2Close(OpenFile *fd) {
   Ext2OpenFd *dir = EXT2_DIR_PTR(fd->dir);
 
   ext2BlockFetchCleanup(&dir->lookup);
+
+  spinlockAcquire(&dir->globalObject->LOCK_PROP);
+  dir->globalObject->openFds--;
+  spinlockRelease(&dir->globalObject->LOCK_PROP);
 
   free(fd->dir);
   return true;

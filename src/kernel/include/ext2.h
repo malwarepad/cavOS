@@ -137,6 +137,37 @@ typedef struct Ext2Directory {
 #define EXT2_MAX_CONSEC_INODE 32
 #define EXT2_MAX_CONSEC_WRITE 32
 
+typedef struct Ext2CacheObject {
+  struct Ext2CacheObject *next;
+  struct Ext2CacheObject *prev;
+
+  uint32_t blockIndex;
+  uint8_t *buff;
+  uint32_t blocks; // size = this * ext2->blockSize
+} Ext2CacheObject;
+
+// basically something that has been accessed even once in the whole system
+typedef struct Ext2FoundObject {
+  struct Ext2FoundObject *next;
+  struct Ext2FoundObject *prev;
+
+  // id
+  uint32_t inode;
+  uint32_t openFds;
+
+  // properties lock
+  Spinlock LOCK_PROP;
+
+  // global file lock
+  SpinlockCnt WLOCK_FILE; // todo
+
+  // cache lock
+  SpinlockCnt WLOCK_CACHE;
+
+  // caching
+  Ext2CacheObject *firstCacheObj;
+} Ext2FoundObject;
+
 typedef struct Ext2 {
   // various offsets
   size_t offsetBase;
@@ -156,6 +187,11 @@ typedef struct Ext2 {
   // max block size is 8KiB and bgdts are forced to be 1 block long soooooo
   Ext2BlockGroup *bgdts; // regular old array
   Ext2Superblock  superblock;
+
+  // list for low-memory pruning (LRU discarding system)
+  Spinlock         LOCK_OBJECT;
+  Ext2FoundObject *firstObject;
+  size_t           blocksCached;
 
   // special locks for ext2Dir(De)Allocate
   // uint32_t dirOperations[EXT2_MAX_CONSEC_DIRALLOC];
@@ -182,7 +218,6 @@ typedef struct Ext2 {
   Spinlock LOCK_SUPERBLOCK_WRITE;
 
   Spinlock LOCK_DIRALLOC;
-  Spinlock LOCK_WRITE;
 } Ext2;
 
 typedef struct Ext2LookupControl {
@@ -199,6 +234,8 @@ typedef struct Ext2LookupControl {
 typedef struct Ext2OpenFd {
   Ext2LookupControl lookup;
   // ^ serves as our inodeCurr somewhat
+
+  Ext2FoundObject *globalObject;
 
   // size_t   blockNum;
   uint64_t ptr;
@@ -228,6 +265,7 @@ size_t ext2Open(char *filename, int flags, int mode, OpenFile *fd,
                 char **symlinkResolve);
 bool   ext2Close(OpenFile *fd);
 size_t ext2Read(OpenFile *fd, uint8_t *buff, size_t limit);
+size_t ext2ReadInner(OpenFile *fd, uint8_t *buff, size_t limit);
 bool   ext2Stat(MountPoint *mnt, char *filename, struct stat *target,
                 char **symlinkResolve);
 bool   ext2Lstat(MountPoint *mnt, char *filename, struct stat *target,
@@ -287,6 +325,11 @@ void ext2SuperblockPushM(Ext2 *ext2);
 bool ext2DirRemove(Ext2 *ext2, Ext2Inode *parentDirInode,
                    uint32_t parentDirInodeNum, char *filename,
                    uint8_t filenameLen);
+
+// ext2_caching.c
+void ext2CacheAddSecurely(Ext2 *ext2, Ext2FoundObject *global, uint8_t *buff,
+                          size_t blockIndex, size_t blocks);
+void ext2CachePush(Ext2 *ext2, Ext2OpenFd *fd);
 
 // finale
 VfsHandlers ext2Handlers;
