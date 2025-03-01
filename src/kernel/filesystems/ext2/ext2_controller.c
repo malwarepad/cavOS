@@ -350,8 +350,8 @@ size_t ext2ReadInner(OpenFile *fd, uint8_t *buff, size_t limit) {
   }
 
   // cache it for later
-  ext2CacheAddSecurely(ext2, dir->globalObject, tmp, dir->ptr / ext2->blockSize,
-                       blocksRequired);
+  ext2CacheAddSecurely(fd->mountPoint, dir->globalObject, tmp,
+                       dir->ptr / ext2->blockSize, blocksRequired);
 
   dir->ptr += limit; // set pointer
 

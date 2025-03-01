@@ -1,4 +1,5 @@
 #include <bootloader.h>
+#include <caching.h>
 #include <malloc.h>
 #include <proc.h>
 #include <system.h>
@@ -16,12 +17,16 @@ size_t meminfoRead(OpenFile *fd, uint8_t *out, size_t limit) {
   size_t total = bootloader.mmTotal / 1024;
   size_t free = total - allocated;
 
-  size_t length =
-      snprintf(buff, 1024,
-               "%-15s %10lu kB\n"
-               "%-15s %10lu kB\n"
-               "%-15s %10lu kB\n",
-               "MemTotal:", total, "MemFree:", free, "MemAvailable:", free);
+  size_t cached = cachingInfoBlocks() * BLOCK_SIZE / 1024;
+  size_t available = free + cached;
+
+  size_t length = snprintf(buff, 1024,
+                           "%-15s %10lu kB\n"
+                           "%-15s %10lu kB\n"
+                           "%-15s %10lu kB\n"
+                           "%-15s %10lu kB\n",
+                           "MemTotal:", total, "MemFree:", free,
+                           "MemAvailable:", available, "Cached:", cached);
 
   size_t toCopy = MIN(length - fd->pointer, limit);
   memcpy(out, buff, toCopy);

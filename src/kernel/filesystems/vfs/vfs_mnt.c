@@ -15,6 +15,8 @@
 // Different mount point separation
 // Copyright (C) 2024 Panagiotis
 
+// todo: add LL lock to mountPoints
+
 bool fsUnmount(MountPoint *mnt) {
   debugf("[vfs] Tried to unmount!\n");
   panic();

@@ -10,8 +10,10 @@
 #include <util.h>
 #include <vmm.h>
 
-void ext2CacheAddSecurely(Ext2 *ext2, Ext2FoundObject *global, uint8_t *buff,
-                          size_t blockIndex, size_t blocks) {
+void ext2CacheAddSecurely(MountPoint *mnt, Ext2FoundObject *global,
+                          uint8_t *buff, size_t blockIndex, size_t blocks) {
+  Ext2 *ext2 = EXT2_PTR(mnt->fsInfo);
+
   spinlockCntWriteAcquire(&global->WLOCK_CACHE);
   // find anything as a start that is close
   Ext2CacheObject *cacheObj = global->firstCacheObj;
@@ -39,7 +41,7 @@ void ext2CacheAddSecurely(Ext2 *ext2, Ext2FoundObject *global, uint8_t *buff,
       }
     }
     Ext2CacheObject *target = calloc(sizeof(Ext2CacheObject), 1);
-    ext2->blocksCached += blocks;
+    mnt->blocksCached += blocks;
     target->blockIndex = blockIndex;
     target->blocks = blocks;
     target->buff = buff;
@@ -78,7 +80,7 @@ void ext2CacheAddSecurely(Ext2 *ext2, Ext2FoundObject *global, uint8_t *buff,
       VirtualFree(
           browse->buff,
           DivRoundUp((browse->blocks + 1) * ext2->blockSize, BLOCK_SIZE));
-      ext2->blocksCached -= browse->blocks;
+      mnt->blocksCached -= browse->blocks;
 
       Ext2CacheObject *next = browse->next;
       if (!browse->prev) {
@@ -98,7 +100,7 @@ void ext2CacheAddSecurely(Ext2 *ext2, Ext2FoundObject *global, uint8_t *buff,
 
     // continue normally now
     spinlockCntWriteRelease(&global->WLOCK_CACHE);
-    ext2CacheAddSecurely(ext2, global, buff, blockIndex, blocks);
+    ext2CacheAddSecurely(mnt, global, buff, blockIndex, blocks);
     return;
   }
   spinlockCntWriteRelease(&global->WLOCK_CACHE);

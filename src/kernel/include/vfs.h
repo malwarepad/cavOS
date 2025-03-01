@@ -126,6 +126,9 @@ struct MountPoint {
   uint8_t   partition; // mbr allows for 4 partitions / disk
   CONNECTOR connector;
 
+  // essential for mm
+  size_t blocksCached;
+
   FS filesystem;
 
   VfsHandlers *handlers;

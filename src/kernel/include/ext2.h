@@ -191,7 +191,6 @@ typedef struct Ext2 {
   // list for low-memory pruning (LRU discarding system)
   Spinlock         LOCK_OBJECT;
   Ext2FoundObject *firstObject;
-  size_t           blocksCached;
 
   // special locks for ext2Dir(De)Allocate
   // uint32_t dirOperations[EXT2_MAX_CONSEC_DIRALLOC];
@@ -327,8 +326,8 @@ bool ext2DirRemove(Ext2 *ext2, Ext2Inode *parentDirInode,
                    uint8_t filenameLen);
 
 // ext2_caching.c
-void ext2CacheAddSecurely(Ext2 *ext2, Ext2FoundObject *global, uint8_t *buff,
-                          size_t blockIndex, size_t blocks);
+void ext2CacheAddSecurely(MountPoint *mnt, Ext2FoundObject *global,
+                          uint8_t *buff, size_t blockIndex, size_t blocks);
 void ext2CachePush(Ext2 *ext2, Ext2OpenFd *fd);
 
 // finale
