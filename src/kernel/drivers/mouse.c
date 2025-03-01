@@ -3,7 +3,9 @@
 #include <isr.h>
 #include <mouse.h>
 #include <system.h>
+#include <timer.h>
 #include <util.h>
+#include <vga.h>
 
 // PS/2 mouse driver, should work with USB mice too
 // Copyright (C) 2024 Panagiotis
@@ -41,8 +43,13 @@ int mouseCycle = 0;
 int mouse1 = 0;
 int mouse2 = 0;
 
+int gx = 0;
+int gy = 0;
+
 void mouseIrq() {
   uint8_t byte = mouseRead();
+  return;
+  // rest are just for demonstration
 
   // debugf("%d %d %d\n", byte1, byte2, byte3);
   if (mouseCycle == 0)
@@ -53,10 +60,34 @@ void mouseIrq() {
     int mouse3 = byte;
 
     do {
+      assert(mouse1 & (1 << 3));
       // if (byte & (1 << 6) || byte & (1 << 7))
       //   break;
 
-      // debugf("%d ", !!(mouse1 & (1 << 0)));
+      int x = mouse2;
+      int y = mouse3;
+      if (x && mouse1 & (1 << 4))
+        x -= 0x100;
+      if (y && mouse1 & (1 << 5))
+        y -= 0x100;
+
+      gx += x;
+      gy += -y;
+      if (gx < 0)
+        gx = 0;
+      if (gy < 0)
+        gy = 0;
+      if (gx > framebufferWidth)
+        gx = framebufferWidth;
+      if (gy > framebufferHeight)
+        gy = framebufferHeight;
+
+      bool click = mouse1 & (1 << 0);
+      bool rclick = mouse1 & (1 << 1);
+      drawRect(0, 0, framebufferWidth, framebufferHeight, 255, 255, 255);
+      drawRect(gx, gy, 20, 20, click ? 255 : 0, rclick ? 255 : 0, 0);
+
+      // debugf("(%d, %d)", gx, gy);
 
       // do nothing... seriously!
       (void)mouse3;
@@ -69,13 +100,6 @@ void mouseIrq() {
 }
 
 void initiateMouse() {
-  // irq handler
-  debugf("m. redirecting\n");
-  uint8_t targIrq = ioApicRedirect(12, false);
-  debugf("m. redirected\n");
-  registerIRQhandler(targIrq, mouseIrq);
-  debugf("m. registered\n");
-
   // enable the auxiliary mouse
   mouseWait(1);
   outportb(0x64, 0xA8);
@@ -83,7 +107,9 @@ void initiateMouse() {
   // enable interrupts
   mouseWait(1);
   outportb(0x64, 0x20);
+  sleep(100);
   mouseWait(0);
+  sleep(100);
   uint8_t status;
   status = (inportb(0x60) | 2);
   mouseWait(1);
@@ -98,4 +124,8 @@ void initiateMouse() {
   // enable device
   mouseWrite(0xF4);
   mouseRead();
+
+  // irq handler
+  uint8_t targIrq = ioApicRedirect(12, false);
+  registerIRQhandler(targIrq, mouseIrq);
 }
