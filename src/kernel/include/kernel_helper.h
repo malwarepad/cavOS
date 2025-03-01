@@ -7,6 +7,9 @@
 Task *netHelperTask;
 void  kernelHelpEntry();
 
+Spinlock LOCK_REAPER;
+Task    *reaperTask;
+
 void initiateKernelThreads();
 
 #endif

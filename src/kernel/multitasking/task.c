@@ -1,5 +1,6 @@
 #include <gdt.h>
 #include <isr.h>
+#include <kernel_helper.h>
 #include <linked_list.h>
 #include <linux.h>
 #include <malloc.h>
@@ -155,6 +156,19 @@ void taskAdjustHeap(Task *task, size_t new_heap_end, size_t *start,
   *end = new_heap_end;
 }
 
+void taskCallReaper(Task *target) {
+  while (true) {
+    spinlockAcquire(&LOCK_REAPER);
+    if (!reaperTask) {
+      // there is space!
+      reaperTask = target;
+      spinlockRelease(&LOCK_REAPER);
+      return;
+    }
+    spinlockRelease(&LOCK_REAPER);
+  }
+}
+
 void taskKill(uint32_t id, uint16_t ret) {
   Task *task = taskGet(id);
   if (!task)
@@ -191,24 +205,12 @@ void taskKill(uint32_t id, uint16_t ret) {
     fsUserClose(task, id);
   }
 
-  spinlockCntWriteAcquire(&TASK_LL_MODIFY);
-  Task *browse = firstTask;
-  while (browse) {
-    if (browse->next && browse->next->id == task->id)
-      break;
-    browse = browse->next;
-  }
-  spinlockCntWriteRelease(&TASK_LL_MODIFY);
-
   if (!parentVfork)
     PageDirectoryFree(task->pagedir);
   // ^ only changes userspace locations so we don't need to change our pagedir
 
-  // tssRsp, syscalltssRsp left
-
-  // also the stuff below can easily be affected by race conditions
-  browse->next = task->next;
-
+  // the "reaper" thread will finish everything in a safe context
+  taskCallReaper(task);
   task->state = TASK_STATE_DEAD;
 
   if (currentTask == task) {
@@ -220,21 +222,6 @@ void taskKill(uint32_t id, uint16_t ret) {
       //   debugf("GET ME OUT ");
     }
   }
-
-  taskKillCleanup(task);
-}
-
-void taskKillCleanup(Task *task) {
-  if (task->state != TASK_STATE_DEAD)
-    return;
-
-  return;
-  VirtualFree((void *)task->whileTssRsp, USER_STACK_PAGES);
-  VirtualFree((void *)task->whileSyscallRsp, USER_STACK_PAGES);
-  free(task);
-
-  // taskKillChildren(task); // wait()
-  taskFreeChildren(task);
 }
 
 void taskFreeChildren(Task *task) {
