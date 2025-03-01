@@ -1055,6 +1055,11 @@ struct pollfd {
   short revents; /* returned events */
 };
 
+typedef struct {
+  uint16_t sa_family;
+  char     sa_data[];
+} sockaddr_linux;
+
 #define SOCK_CLOEXEC 02000000
 #define SOCK_NONBLOCK 04000
 

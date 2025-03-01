@@ -14,4 +14,7 @@ typedef struct UserSocket {
 
 VfsHandlers socketHandlers;
 
+uint16_t sockaddrLinuxToLwip(void *dest_addr, uint32_t addrlen);
+void     sockaddrLwipToLinux(void *dest_addr, uint16_t initialFamily);
+
 #endif

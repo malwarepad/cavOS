@@ -24,6 +24,7 @@
 #define LWIP_CHKSUM_ALGORITHM 3
 
 #define SYS_LIGHTWEIGHT_PROT 0
+#define LWIP_COMPAT_SOCKETS 0
 
 typedef struct {
   Spinlock LOCK;

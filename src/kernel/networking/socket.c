@@ -6,6 +6,8 @@
 
 #include <lwip/sockets.h>
 
+// todo! fix errnos!
+
 size_t socketRead(OpenFile *fd, uint8_t *out, size_t limit) {
   UserSocket *userSocket = (UserSocket *)fd->dir;
 
@@ -74,9 +76,48 @@ bool socketPoll(OpenFile *fd, struct pollfd *pollfd, int timeout) {
   return ret == 1;
 }
 
+size_t socketBind(OpenFile *fd, sockaddr_linux *addr, size_t len) {
+  addr->sa_family = AF_INET;
+
+  UserSocket *userSocket = (UserSocket *)fd->dir;
+
+  int lwipOut = lwip_bind(userSocket->lwipFd, (struct sockaddr *)addr, len);
+  if (lwipOut < 0)
+    return -errno;
+  return lwipOut;
+}
+
+size_t socketConnect(OpenFile *fd, sockaddr_linux *addr, uint32_t len) {
+  UserSocket *userSocket = (UserSocket *)fd->dir;
+
+  uint16_t initialFamily = sockaddrLinuxToLwip((void *)addr, len);
+  int      lwipOut = lwip_connect(userSocket->lwipFd, (void *)addr, len);
+  sockaddrLwipToLinux(addr, initialFamily);
+  if (lwipOut < 0)
+    return -errno;
+  return lwipOut;
+}
+
+size_t socketSendto(OpenFile *fd, uint8_t *buff, size_t len, int flags,
+                    sockaddr_linux *dest_addr, socklen_t addrlen) {
+  UserSocket *userSocket = (UserSocket *)fd->dir;
+
+  uint16_t initialFamily = sockaddrLinuxToLwip(dest_addr, addrlen);
+  int      lwipOut = lwip_sendto(userSocket->lwipFd, buff, len, flags,
+                                 (void *)dest_addr, addrlen);
+  sockaddrLwipToLinux(dest_addr, initialFamily);
+
+  if (lwipOut < 0)
+    return -errno;
+  return lwipOut;
+}
+
 VfsHandlers socketHandlers = {.read = socketRead,
                               .write = socketWrite,
                               .fcntl = socketFcntl,
                               .poll = socketPoll,
+                              .bind = socketBind,
+                              .connect = socketConnect,
+                              .sendto = socketSendto,
                               .duplicate = socketDuplicate,
                               .close = socketClose};

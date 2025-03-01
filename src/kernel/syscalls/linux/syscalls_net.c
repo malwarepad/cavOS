@@ -4,26 +4,21 @@
 #include <system.h>
 #include <task.h>
 #include <timer.h>
+#include <unixSocket.h>
 
 #include <lwip/sockets.h>
 
-typedef struct {
-  uint16_t sa_family;
-  char     sa_data[];
-} sockaddr_linux;
-
 // Lwip uses BSD-style sockaddr structs. We need to convert them appropriately!
-force_inline uint16_t sockaddrLinuxToLwip(struct sockaddr *dest_addr,
-                                          uint32_t         addrlen) {
-  sockaddr_linux *linuxHandle = (sockaddr_linux *)dest_addr;
-  uint16_t        initialFamily = linuxHandle->sa_family;
-  dest_addr->sa_len = addrlen;
-  dest_addr->sa_family = AF_INET;
+uint16_t sockaddrLinuxToLwip(void *dest_addr, uint32_t addrlen) {
+  sockaddr_linux  *linuxHandle = (sockaddr_linux *)dest_addr;
+  struct sockaddr *handle = (struct sockaddr *)dest_addr;
+  uint16_t         initialFamily = linuxHandle->sa_family;
+  handle->sa_len = addrlen;
+  handle->sa_family = AF_INET;
   return initialFamily;
 }
 
-force_inline void sockaddrLwipToLinux(struct sockaddr *dest_addr,
-                                      uint16_t         initialFamily) {
+void sockaddrLwipToLinux(void *dest_addr, uint16_t initialFamily) {
   sockaddr_linux *linuxHandle = (sockaddr_linux *)dest_addr;
   linuxHandle->sa_family = initialFamily;
 }
@@ -31,6 +26,10 @@ force_inline void sockaddrLwipToLinux(struct sockaddr *dest_addr,
 #define SYSCALL_SOCKET 41
 static size_t syscallSocket(int family, int type, int protocol) {
   switch (family) {
+  case 1: { // AF_UNIX
+    return unixSocketOpen(currentTask, type, protocol);
+    break;
+  }
   case 2: {
     bool cloexec = type & SOCK_CLOEXEC;
     bool nonblock = type & SOCK_NONBLOCK;
@@ -80,54 +79,74 @@ static size_t syscallSocket(int family, int type, int protocol) {
 }
 
 #define SYSCALL_CONNECT 42
-static size_t syscallConnect(int fd, struct sockaddr *addr, size_t len) {
+static size_t syscallConnect(int fd, sockaddr_linux *addr, size_t len) {
   OpenFile *fileNode = fsUserGetNode(currentTask, fd);
   if (!fileNode)
     return ERR(EBADF);
 
-  UserSocket *userSocket = (UserSocket *)fileNode->dir;
+  if (!fileNode->handlers->connect)
+    return ERR(ENOTSOCK);
 
-  uint16_t initialFamily = sockaddrLinuxToLwip(addr, len);
-  int      lwipOut = lwip_connect(userSocket->lwipFd, addr, len);
-  sockaddrLwipToLinux(addr, initialFamily);
-  if (lwipOut < 0)
-    return -errno;
-  return lwipOut;
+  return fileNode->handlers->connect(fileNode, addr, len);
+}
+
+#define SYSCALL_ACCEPT 43
+static size_t syscallAccept(int fd, sockaddr_linux *addr, uint32_t *len) {
+  OpenFile *fileNode = fsUserGetNode(currentTask, fd);
+  if (!fileNode)
+    return ERR(EBADF);
+
+  if (!fileNode->handlers->accept)
+    return -ENOTSOCK;
+  return fileNode->handlers->accept(fileNode, addr, len);
 }
 
 #define SYSCALL_BIND 49
-static size_t syscallBind(int fd, struct sockaddr *addr, size_t len) {
+static size_t syscallBind(int fd, sockaddr_linux *addr, size_t len) {
   OpenFile *fileNode = fsUserGetNode(currentTask, fd);
   if (!fileNode)
     return ERR(EBADF);
 
-  addr->sa_family = AF_INET;
+  if (!fileNode->handlers->bind)
+    return ERR(ENOTSOCK);
+  return fileNode->handlers->bind(fileNode, addr, len);
+}
 
-  UserSocket *userSocket = (UserSocket *)fileNode->dir;
+#define SYSCALL_LISTEN 50
+static size_t syscallListen(int fd, int backlog) {
+  OpenFile *fileNode = fsUserGetNode(currentTask, fd);
+  if (!fileNode)
+    return ERR(EBADF);
 
-  int lwipOut = lwip_bind(userSocket->lwipFd, addr, len);
-  if (lwipOut < 0)
-    return -errno;
-  return lwipOut;
+  if (!fileNode->handlers->listen)
+    return ERR(ENOTSOCK);
+  return fileNode->handlers->listen(fileNode, backlog);
 }
 
 #define SYSCALL_SENDTO 44
 static size_t syscallSendto(int fd, void *buff, size_t len, int flags,
-                            struct sockaddr *dest_addr, socklen_t addrlen) {
+                            sockaddr_linux *dest_addr, socklen_t addrlen) {
   OpenFile *fileNode = fsUserGetNode(currentTask, fd);
   if (!fileNode)
     return ERR(EBADF);
 
-  UserSocket *userSocket = (UserSocket *)fileNode->dir;
+  if (!fileNode->handlers->sendto)
+    return ERR(ENOTSOCK);
+  return fileNode->handlers->sendto(fileNode, buff, len, flags, dest_addr,
+                                    addrlen);
+}
 
-  uint16_t initialFamily = sockaddrLinuxToLwip(dest_addr, addrlen);
-  int      lwipOut =
-      lwip_sendto(userSocket->lwipFd, buff, len, flags, dest_addr, addrlen);
-  sockaddrLwipToLinux(dest_addr, initialFamily);
+#define SYSCALL_RECVFROM 45
+static size_t syscallRecvfrom(int fd, void *buff, size_t len, int flags,
+                              sockaddr_linux *dest_addr, socklen_t *addrlen) {
+  OpenFile *fileNode = fsUserGetNode(currentTask, fd);
+  if (!fileNode)
+    return ERR(EBADF);
 
-  if (lwipOut < 0)
-    return -errno;
-  return lwipOut;
+  if (!fileNode->handlers->recvfrom)
+    return ERR(ENOTSOCK);
+  return fileNode->handlers->recvfrom(fileNode, buff, len, flags, dest_addr,
+                                      addrlen);
 }
 
 #define SYSCALL_RECVMSG 47
@@ -149,7 +168,10 @@ void syscallsRegNet() {
   // a
   registerSyscall(SYSCALL_SOCKET, syscallSocket);
   registerSyscall(SYSCALL_CONNECT, syscallConnect);
+  registerSyscall(SYSCALL_ACCEPT, syscallAccept);
   registerSyscall(SYSCALL_BIND, syscallBind);
   registerSyscall(SYSCALL_SENDTO, syscallSendto);
+  registerSyscall(SYSCALL_RECVFROM, syscallRecvfrom);
   registerSyscall(SYSCALL_RECVMSG, syscallRecvmsg);
+  registerSyscall(SYSCALL_LISTEN, syscallListen);
 }

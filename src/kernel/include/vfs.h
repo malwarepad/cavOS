@@ -68,6 +68,17 @@ typedef bool (*SpecialClose)(OpenFile *fd);
 typedef size_t (*SpecialGetFilesize)(OpenFile *fd);
 typedef void (*SpecialFcntl)(OpenFile *fd, int cmd, uint64_t arg);
 typedef bool (*SpecialPoll)(OpenFile *fd, struct pollfd *pollFd, int timeout);
+typedef size_t (*SpecialBind)(OpenFile *fd, sockaddr_linux *addr, size_t len);
+typedef size_t (*SpecialListen)(OpenFile *fd, int backlog);
+typedef size_t (*SpecialAccept)(OpenFile *fd, sockaddr_linux *addr,
+                                uint32_t *len);
+typedef size_t (*SpecialConnect)(OpenFile *fd, sockaddr_linux *addr,
+                                 uint32_t len);
+typedef size_t (*SpecialRecvfrom)(OpenFile *fd, uint8_t *out, size_t limit,
+                                  int flags, sockaddr_linux *addr,
+                                  uint32_t *len);
+typedef size_t (*SpecialSendto)(OpenFile *fd, uint8_t *in, size_t limit,
+                                int flags, sockaddr_linux *addr, uint32_t len);
 
 typedef struct VfsHandlers {
   SpecialReadHandler  read;
@@ -80,6 +91,14 @@ typedef struct VfsHandlers {
   SpecialGetFilesize  getFilesize;
   SpecialPoll         poll;
   SpecialFcntl        fcntl; // it's extra
+
+  // networking
+  SpecialBind     bind;
+  SpecialListen   listen;
+  SpecialAccept   accept;
+  SpecialConnect  connect;
+  SpecialRecvfrom recvfrom;
+  SpecialSendto   sendto;
 
   SpecialDuplicate duplicate;
   SpecialOpen      open;
