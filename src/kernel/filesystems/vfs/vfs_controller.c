@@ -222,19 +222,9 @@ size_t fsReadlink(void *task, char *path, char *buf, int size) {
   size_t      ret = -1;
 
   char *symlink = 0;
-  switch (mnt->filesystem) {
-  case FS_FATFS:
-    ret = ERR(EINVAL);
-    break;
-  case FS_EXT2:
-    ret =
-        ext2Readlink((Ext2 *)(mnt->fsInfo), safeFilename, buf, size, &symlink);
-    break;
-  default:
-    debugf("[vfs] Tried to readLink() with bad filesystem! id{%d}\n",
-           mnt->filesystem);
-    break;
-  }
+  if (!mnt->readlink)
+    return ERR(EINVAL);
+  ret = mnt->readlink(mnt, safeFilename, buf, size, &symlink);
 
   free(safeFilename);
 

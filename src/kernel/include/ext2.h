@@ -272,7 +272,7 @@ bool   ext2Lstat(MountPoint *mnt, char *filename, struct stat *target,
 size_t ext2StatFd(OpenFile *fd, struct stat *target);
 size_t ext2Seek(OpenFile *fd, size_t target, long int offset, int whence);
 size_t ext2GetFilesize(OpenFile *fd);
-size_t ext2Readlink(Ext2 *ext2, char *path, char *buf, int size,
+size_t ext2Readlink(MountPoint *mnt, char *path, char *buf, int size,
                     char **symlinkResolve);
 size_t ext2Delete(MountPoint *mnt, char *filename, bool directory,
                   char **symlinkResolve);

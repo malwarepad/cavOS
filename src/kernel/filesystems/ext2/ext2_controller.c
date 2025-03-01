@@ -18,6 +18,7 @@ bool ext2Mount(MountPoint *mount) {
 
   mount->mkdir = ext2Mkdir;
   mount->delete = ext2Delete;
+  mount->readlink = ext2Readlink;
 
   // assign fsInfo
   mount->fsInfo = malloc(sizeof(Ext2));
@@ -637,8 +638,9 @@ size_t ext2StatFd(OpenFile *fd, struct stat *target) {
   return 0;
 }
 
-size_t ext2Readlink(Ext2 *ext2, char *path, char *buf, int size,
+size_t ext2Readlink(MountPoint *mnt, char *path, char *buf, int size,
                     char **symlinkResolve) {
+  Ext2 *ext2 = EXT2_PTR(mnt->fsInfo);
   if (size < 0)
     return ERR(EINVAL);
   else if (!size)
