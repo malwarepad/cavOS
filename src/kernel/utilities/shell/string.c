@@ -1,3 +1,4 @@
+#include <malloc.h>
 #include <string.h>
 #include <util.h>
 
@@ -29,6 +30,13 @@ int strncmp(const char *str1, const char *str2, size_t n) {
   }
 
   return 0;
+}
+
+char *strdup(char *source) {
+  int   len = strlength(source) + 1;
+  char *target = (char *)malloc(len);
+  memcpy(target, source, len);
+  return target;
 }
 
 void strncpy(char *dest, const char *src, size_t n) {

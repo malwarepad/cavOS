@@ -1,3 +1,4 @@
+#include <bootloader.h>
 #include <elf.h>
 #include <linked_list.h>
 #include <linux.h>
@@ -116,13 +117,92 @@ CopyPtrStyle copyPtrStyle(char **ptr) {
   return ret;
 }
 
+void freeItemsIfNeeded(char **argv) {
+  int index = 0;
+  while (argv[index]) {
+    char *backing = argv[index];
+    if (IS_INSIDE_HHDM(backing)) {
+      free(backing);
+      argv[index] = 0; // should be a fake argv, thus no userspace interference
+    }
+    index++;
+  }
+}
+
+void freeArgvIfNeeded(char **argv) {
+  if (IS_INSIDE_HHDM(argv)) {
+    // previous was a shebang
+    free(argv);
+  }
+}
+
 #define SYSCALL_EXECVE 59
 static size_t syscallExecve(char *filename, char **argv, char **envp) {
+  assert(argv[0]); // shebang support depends on it atm. check (dep)
   dbgSysExtraf("filename{%s}", filename);
+  char    *filenameSanitized = fsSanitize(currentTask->cwd, filename);
+  uint8_t *buff = calloc(256, 1);
+
+  // do a read to check for alternatives, elfExecute() still does its checks
+  OpenFile *preScan = fsKernelOpen(filenameSanitized, O_RDONLY, 0);
+  if (!preScan) {
+    free(filenameSanitized);
+    return ERR(ENOENT);
+  }
+  size_t max = fsRead(preScan, buff, 255); // 1 less so there's always a \0
+  fsKernelClose(preScan);
+  if (RET_IS_ERR(max)) {
+    free(filenameSanitized);
+    return max;
+  }
+
+  if (max > 2 && buff[0] == '#' && buff[1] == '!') {
+    // shebang detected!
+    char *arg2 = (char *)0;
+    int   spaces = 0;
+    for (int i = 0; i < max; i++) {
+      if (buff[i] == ' ') {
+        if (spaces == 0) {
+          buff[i] = '\0'; // needs to be null terminated
+          arg2 = (char *)&buff[i + 1];
+        }
+        spaces++;
+      } else if (buff[i] == '\n') {
+        buff[i] = '\0'; // for the last arg (if none, 256-255=1 calloc)
+        break;          // no longer needed + don't risk above
+      }
+    }
+    int argc = 0;
+    while (argv[argc++])
+      ; // why not just pass argc. truly beyond me...
+    int    amnt = arg2 ? 2 : 1;
+    char **injectedArgv = calloc((amnt + argc + 1) * sizeof(char *), 1);
+    memcpy(&injectedArgv[amnt], argv, argc * sizeof(char *));
+    injectedArgv[amnt] = strdup(filename); // replace [0] w/original (dep)
+
+    freeArgvIfNeeded(argv); // ! don't use argv anymore
+
+    char *arg1 = (char *)&buff[2];
+    if (arg2 && arg2[0] != '\0')
+      injectedArgv[1] = strdup(arg2);
+    injectedArgv[0] = strdup(arg1);
+
+    free(buff); // ! don't use anything defined before after this
+    syscallExecve(injectedArgv[0], injectedArgv, envp);
+    assert(false); // won't return, injectedArgv & buff are above HHDM
+  } else if (max > 4 && buff[EI_MAG0] == ELFMAG0 && buff[EI_MAG1] == ELFMAG1 &&
+             buff[EI_MAG2] == ELFMAG2 && buff[EI_MAG3] == ELFMAG3) {
+    // standard elf executable, go on
+  } else {
+    // both unnecessary, won't do anything w/them :^)
+    freeItemsIfNeeded(argv); // depends on the argv so NEEDS to be first
+    freeArgvIfNeeded(argv);
+    return ERR(ENOEXEC);
+  }
+
   CopyPtrStyle arguments = copyPtrStyle(argv);
   CopyPtrStyle environment = copyPtrStyle(envp);
 
-  char *filenameSanitized = fsSanitize(currentTask->cwd, filename);
   Task *ret = elfExecute(filenameSanitized, arguments.count, arguments.ptrPlace,
                          environment.count, environment.ptrPlace, 0);
   free(filenameSanitized);
@@ -130,6 +210,8 @@ static size_t syscallExecve(char *filename, char **argv, char **envp) {
   free(arguments.valPlace);
   free(environment.ptrPlace);
   free(environment.valPlace);
+  freeItemsIfNeeded(argv); // depends on the argv so NEEDS to be first
+  freeArgvIfNeeded(argv);  // ! don't use ANY argv after this
   if (!ret)
     return ERR(ENOENT);
 

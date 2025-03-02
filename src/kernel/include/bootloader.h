@@ -26,6 +26,10 @@ typedef struct Bootloader {
 
 Bootloader bootloader;
 
+#define IS_INSIDE_HHDM(a)                                                      \
+  ((size_t)a >= bootloader.hhdmOffset &&                                       \
+   (size_t)a <= (bootloader.hhdmOffset + bootloader.mmTotal))
+
 void initialiseBootloaderParser();
 
 #endif

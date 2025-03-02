@@ -13,5 +13,6 @@ int    strncmp(const char *str1, const char *str2, size_t n);
 bool   check_string(char *str);
 long   strtol(const char *s, char **endptr, int base);
 void   strncpy(char *dest, const char *src, size_t n);
+char  *strdup(char *source);
 
 #endif
