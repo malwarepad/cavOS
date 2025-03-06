@@ -101,11 +101,11 @@ void syscallHandler(AsmPassedInterrupt *regs) {
   (void)timeTook; // just in case
 
 #if DEBUG_SYSCALLS_STRACE
-  int errNum = (int)ret;
-  if (errNum < 0) { // error occurred
+  if (RET_IS_ERR((size_t)ret)) { // error occurred
+    int         errIndex = (size_t)(-1) - (size_t)ret;
     const char *errStr = defaultErrStr;
-    if (errNum >= -37)
-      errStr = LINUX_ERRNO[-errNum - 1];
+    if (errIndex < (sizeof(LINUX_ERRNO) / sizeof(LINUX_ERRNO[0])))
+      errStr = LINUX_ERRNO[errIndex];
     debugf("%s = %d (-%s) (%ldms)%s\n", ANSI_RED, ret, errStr, timeTook,
            ANSI_RESET);
   } else
