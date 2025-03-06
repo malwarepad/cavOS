@@ -191,6 +191,8 @@ size_t fsMkdir(void *task, char *path, uint32_t mode);
 size_t fsUnlink(void *task, char *path, bool directory);
 size_t fsGetFilesize(OpenFile *file);
 
+size_t fsSimpleSeek(OpenFile *file, size_t target, long int offset, int whence);
+
 // vfs_sanitize.c
 char *fsStripMountpoint(const char *filename, MountPoint *mnt);
 char *fsSanitize(char *prefix, char *filename);

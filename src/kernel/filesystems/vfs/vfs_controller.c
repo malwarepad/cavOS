@@ -288,3 +288,11 @@ size_t fsUnlink(void *task, char *path, bool directory) {
 
   return ret;
 }
+
+// shared for fake filesystems etc
+size_t fsSimpleSeek(OpenFile *file, size_t target, long int offset,
+                    int whence) {
+  // we're using the official ->pointer so no need to worry about much
+  file->pointer = target;
+  return 0;
+}

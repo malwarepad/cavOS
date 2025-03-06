@@ -33,13 +33,6 @@ size_t pciConfigRead(OpenFile *fd, uint8_t *out, size_t limit) {
   return toCopy;
 }
 
-size_t pciConfigSeek(OpenFile *file, size_t target, long int offset,
-                     int whence) {
-  // we're using the official ->pointer so no need to worry about much
-  file->pointer = target;
-  return 0;
-}
-
 VfsHandlers handlePciConfig = {.read = pciConfigRead,
                                .write = 0,
                                .stat = fakefsFstat,
@@ -47,7 +40,7 @@ VfsHandlers handlePciConfig = {.read = pciConfigRead,
                                .ioctl = 0,
                                .mmap = 0,
                                .getdents64 = 0,
-                               .seek = pciConfigSeek};
+                               .seek = fsSimpleSeek};
 
 void sysSetupPci(FakefsFile *devices) {
   PCIdevice        *device = (PCIdevice *)malloc(sizeof(PCIdevice));

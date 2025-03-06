@@ -33,7 +33,8 @@ size_t meminfoRead(OpenFile *fd, uint8_t *out, size_t limit) {
   fd->pointer += toCopy;
   return toCopy;
 }
-VfsHandlers handleMeminfo = {.read = meminfoRead, .stat = fakefsFstat};
+VfsHandlers handleMeminfo = {
+    .read = meminfoRead, .seek = fsSimpleSeek, .stat = fakefsFstat};
 
 size_t uptimeRead(OpenFile *fd, uint8_t *out, size_t limit) {
   char   buff[1024] = {0};
@@ -47,7 +48,8 @@ size_t uptimeRead(OpenFile *fd, uint8_t *out, size_t limit) {
   fd->pointer += toCopy;
   return toCopy;
 }
-VfsHandlers handleUptime = {.read = uptimeRead, .stat = fakefsFstat};
+VfsHandlers handleUptime = {
+    .read = uptimeRead, .seek = fsSimpleSeek, .stat = fakefsFstat};
 
 void procSetup() {
   fakefsAddFile(&rootProc, rootProc.rootFile, "meminfo", 0,
