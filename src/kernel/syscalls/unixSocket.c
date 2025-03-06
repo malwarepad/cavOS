@@ -306,8 +306,9 @@ size_t unixSocketConnect(OpenFile *fd, sockaddr_linux *addr, uint32_t len) {
   spinlockRelease(&LOCK_LL_UNIX_SOCKET);
   free(safe); // no longer needed
 
+  // todo: actual filesystem contact
   if (!parent)
-    return ERR(ENOTSOCK);
+    return ERR(ENOENT);
 
   // nonblock edge case, check man page
   if (parent->acceptWouldBlock && fd->flags & O_NONBLOCK)
