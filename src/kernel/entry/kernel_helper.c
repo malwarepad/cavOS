@@ -43,8 +43,22 @@ void helperReaper() {
     VirtualFree(tssRsp, USER_STACK_PAGES);
     VirtualFree(syscallRsp, USER_STACK_PAGES);
 
+    // weird queue spinlock thing
+    spinlockAcquire(&LOCK_SPINLOCK_QUEUE);
+    if (reaperTask->spinlockQueueEntry) {
+      SpinlockHelperQueue *entry = reaperTask->spinlockQueueEntry;
+      if (entry->valid) // do it here
+        spinlockRelease(entry->target);
+      entry->valid = false;
+    }
+    spinlockRelease(&LOCK_SPINLOCK_QUEUE);
+
     // todo: free() the task in a safe manner. also implement some system for
     // editing the global LL without race conditions
+    // (*) depends: task blocking, task adding, forking, etc.
+
+    // will need a good system for that so maybe delay it to when multithreading
+    // is implemented!
 
     // done! continue listening
     reaperTask = 0;
@@ -54,9 +68,25 @@ end:
   spinlockRelease(&LOCK_REAPER);
 }
 
+SpinlockHelperQueue spinlockHelperQueue[MAX_SPINLOCK_QUEUE] = {0};
+
+void helperSpinlock() {
+  spinlockAcquire(&LOCK_SPINLOCK_QUEUE);
+  for (int i = 0; i < MAX_SPINLOCK_QUEUE; i++) {
+    if (!spinlockHelperQueue[i].valid ||
+        spinlockHelperQueue[i].task->state == TASK_STATE_READY)
+      continue;
+    spinlockRelease(spinlockHelperQueue[i].target);
+    spinlockHelperQueue[i].task->spinlockQueueEntry = 0;
+    spinlockHelperQueue[i].valid = false;
+  }
+  spinlockRelease(&LOCK_SPINLOCK_QUEUE);
+}
+
 void kernelHelpEntry() {
   while (true) {
     helperNet();
+    helperSpinlock();
     helperReaper();
 
     handControl();

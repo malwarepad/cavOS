@@ -17,6 +17,8 @@ typedef struct PipeInfo {
   int readFds;
 
   Spinlock LOCK;
+  Blocking blockingRead;
+  Blocking blockingWrite;
 } PipeInfo;
 
 typedef struct PipeSpecific PipeSpecific;
@@ -90,33 +92,25 @@ size_t pipeRead(OpenFile *fd, uint8_t *out, size_t limit) {
   PipeSpecific *spec = (PipeSpecific *)fd->dir;
   PipeInfo     *pipe = spec->info;
 
-  // check write items in this process (so we don't hang unreasonably)
-  // apparently not needed :")
-  // OpenFile *browse = currentTask->firstFile;
-  // int       ourWriteFds = 0;
-  // while (browse) {
-  //   if (browse->handlers->close != pipeCloseEnd) {
-  //     browse = browse->next;
-  //     continue;
-  //   }
-  //   PipeSpecific *spec = (PipeSpecific *)browse->dir;
-  //   if (spec->write)
-  //     ourWriteFds++;
-  //   browse = browse->next;
-  // }
-
   // if there are no more write items, don't hang
-  while (pipe->writeFds != 0 && !pipe->assigned) {
-    if (fd->flags & O_NONBLOCK)
+  while (true) {
+    spinlockAcquire(&pipe->LOCK);
+    if (pipe->writeFds == 0 || pipe->assigned > 0)
+      break;
+    if (fd->flags & O_NONBLOCK) {
+      spinlockRelease(&pipe->LOCK);
       return ERR(EWOULDBLOCK);
-    // debugf("write{%d} curr{%d}\n", pipe->writeFds, currentTask->id);
-    asm volatile("pause");
+    }
+    taskBlock(&pipe->blockingRead, currentTask, &pipe->LOCK, true);
+    handControl();
   }
 
-  if (!pipe->assigned)
+  if (!pipe->assigned) {
+    spinlockRelease(&pipe->LOCK);
     return 0;
+  }
 
-  spinlockAcquire(&pipe->LOCK);
+  // we already have a spinlock!
   int toCopy = pipe->assigned;
   if (toCopy > limit)
     toCopy = limit;
@@ -124,6 +118,7 @@ size_t pipeRead(OpenFile *fd, uint8_t *out, size_t limit) {
   memcpy(out, pipe->buf, toCopy);
   pipe->assigned -= toCopy;
   memmove(pipe->buf, &pipe->buf[toCopy], 65536 - toCopy);
+  taskUnblock(&pipe->blockingWrite);
   spinlockRelease(&pipe->LOCK);
 
   return toCopy;
@@ -132,15 +127,26 @@ size_t pipeRead(OpenFile *fd, uint8_t *out, size_t limit) {
 size_t pipeWriteInner(OpenFile *fd, uint8_t *in, size_t limit) {
   PipeSpecific *spec = (PipeSpecific *)fd->dir;
   PipeInfo     *pipe = spec->info;
-  while ((pipe->assigned + limit) > 65536) {
-    if (fd->flags & O_NONBLOCK)
+  while (true) {
+    spinlockAcquire(&pipe->LOCK);
+    if ((pipe->assigned + limit) <= 65536)
+      break;
+    if (!pipe->readFds) { // we are notified, no worries
+      debugf("[pipe] Should send SIGPIPE leading to termination! todo!\n");
+      panic();
+    }
+    if (fd->flags & O_NONBLOCK) {
+      spinlockRelease(&pipe->LOCK);
       return ERR(EWOULDBLOCK);
-    asm volatile("pause");
+    }
+    taskBlock(&pipe->blockingWrite, currentTask, &pipe->LOCK, true);
+    handControl();
   }
 
-  spinlockAcquire(&pipe->LOCK);
+  // we already have a spinlock!
   memcpy(&pipe->buf[pipe->assigned], in, limit);
   pipe->assigned += limit;
+  taskUnblock(&pipe->blockingRead);
   spinlockRelease(&pipe->LOCK);
 
   return limit;
@@ -178,6 +184,11 @@ bool pipeCloseEnd(OpenFile *readFd) {
     pipe->writeFds--;
   else
     pipe->readFds--;
+
+  if (!pipe->writeFds) // edge case
+    taskUnblock(&pipe->blockingRead);
+  if (!pipe->readFds) // edge case (more aggressive)
+    taskUnblock(&pipe->blockingWrite);
   spinlockRelease(&pipe->LOCK);
 
   if (!pipe->readFds && !pipe->writeFds) {

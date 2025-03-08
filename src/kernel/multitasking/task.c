@@ -406,6 +406,65 @@ Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, bool copyPages,
   return target;
 }
 
+void taskBlock(Blocking *blocking, Task *task, Spinlock *releaseAfter,
+               bool apply) {
+  if (!apply)
+    assert(!releaseAfter);
+  spinlockAcquire(&blocking->LOCK_LL_BLOCKED);
+
+  // it's rare enough more than one task is blocked together, go through it
+  BlockedTask *browse = blocking->firstBlockedTask;
+  while (browse) {
+    if (browse->task == task)
+      debugf("[task::blocking] WARNING! Duplicate task!\n");
+    browse = browse->next;
+  }
+
+  BlockedTask *blockedTask = LinkedListAllocate(
+      (void **)(&blocking->firstBlockedTask), sizeof(BlockedTask));
+  blockedTask->task = task;
+  spinlockRelease(&blocking->LOCK_LL_BLOCKED);
+
+  // finally block
+  if (apply) {
+    if (releaseAfter)
+      taskSpinlockExit(task, releaseAfter);
+    task->state = TASK_STATE_BLOCKED;
+  }
+}
+
+void taskUnblock(Blocking *blocking) {
+  spinlockAcquire(&blocking->LOCK_LL_BLOCKED);
+  BlockedTask *browse = blocking->firstBlockedTask;
+  while (browse) {
+    BlockedTask *next = browse->next;
+    if (browse->task) {
+      browse->task->state = TASK_STATE_READY;
+    }
+    LinkedListRemove((void **)(&blocking->firstBlockedTask), browse);
+    browse = next;
+  }
+  spinlockRelease(&blocking->LOCK_LL_BLOCKED);
+}
+
+// Will release lock when task isn't running via the kernel helper
+void taskSpinlockExit(Task *task, Spinlock *lock) {
+  assert(!task->spinlockQueueEntry);
+  spinlockAcquire(&LOCK_SPINLOCK_QUEUE);
+  for (int i = 0; i < MAX_SPINLOCK_QUEUE; i++) {
+    if (!spinlockHelperQueue[i].valid) {
+      spinlockHelperQueue[i].target = lock;
+      spinlockHelperQueue[i].task = task;
+      spinlockHelperQueue[i].valid = true;
+      spinlockRelease(&LOCK_SPINLOCK_QUEUE);
+      return;
+    }
+  }
+
+  debugf("[task::spinlock_exit] FATAL! Could not find a slot!\n");
+  panic();
+}
+
 void kernelDummyEntry() {
   while (true)
     dummyTask->state = TASK_STATE_DUMMY;

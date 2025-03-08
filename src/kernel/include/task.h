@@ -28,6 +28,7 @@ typedef enum TASK_STATE {
   TASK_STATE_WAITING_CHILD = 5,
   TASK_STATE_WAITING_CHILD_SPECIFIC = 6, // task->waitingForPid
   TASK_STATE_WAITING_VFORK = 7,
+  TASK_STATE_BLOCKED = 8,
   TASK_STATE_DUMMY = 69,
 } TASK_STATE;
 
@@ -81,6 +82,7 @@ struct Task {
 
   termios  term;
   uint32_t tmpRecV;
+  void    *spinlockQueueEntry; // check on kill!
 
   char    *cwd;
   uint32_t umask;
@@ -109,6 +111,23 @@ Task *currentTask;
 Task *dummyTask;
 
 bool tasksInitiated;
+
+typedef struct BlockedTask {
+  struct BlockedTask *next;
+
+  Task *task;
+} BlockedTask;
+
+typedef struct Blocking {
+  // also needs a parent lock to be reliable! this is just for the LL
+  Spinlock     LOCK_LL_BLOCKED;
+  BlockedTask *firstBlockedTask;
+} Blocking;
+
+void taskBlock(Blocking *blocking, Task *task, Spinlock *releaseAfter,
+               bool apply);
+void taskUnblock(Blocking *blocking);
+void taskSpinlockExit(Task *task, Spinlock *lock);
 
 void  initiateTasks();
 Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
