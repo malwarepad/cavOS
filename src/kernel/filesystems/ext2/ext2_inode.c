@@ -74,6 +74,19 @@ void ext2InodeDelete(Ext2 *ext2, size_t inode) {
   setDiskBytes(buf, lba, ext2->blockSize / SECTOR_SIZE);
 
   free(buf);
+
+  // set the bgdt accordingly
+  spinlockAcquire(&ext2->LOCK_BGDT_WRITE);
+  ext2->bgdts[group].free_inodes++;
+  ext2BgdtPushM(ext2);
+  spinlockRelease(&ext2->LOCK_BGDT_WRITE);
+
+  // and the superblock
+  spinlockAcquire(&ext2->LOCK_SUPERBLOCK_WRITE);
+  ext2->superblock.free_inodes++;
+  ext2SuperblockPushM(ext2);
+  spinlockRelease(&ext2->LOCK_SUPERBLOCK_WRITE);
+
   spinlockCntWriteRelease(&ext2->WLOCKS_INODE[group]);
 }
 

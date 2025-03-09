@@ -28,13 +28,16 @@ uint32_t ext2Traverse(Ext2 *ext2, size_t initInode, char *search,
                  ext2->blockSize / SECTOR_SIZE);
 
     while (((size_t)dir - (size_t)names) < ext2->blockSize) {
-      if (!dir->inode)
+      if (!dir->inode) {
+        goto traverse;
         continue;
+      }
       if (dir->filenameLength == searchLength &&
           memcmp(dir->filename, search, searchLength) == 0) {
         ret = dir->inode;
         goto cleanup;
       }
+    traverse:
       dir = (void *)((size_t)dir + dir->size);
     }
   }

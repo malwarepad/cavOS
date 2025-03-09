@@ -186,8 +186,10 @@ size_t ext2Getdents64(OpenFile *file, struct linux_dirent64 *start,
                  ext2->blockSize / SECTOR_SIZE);
 
     while (((size_t)dir - (size_t)names) < ext2->blockSize) {
-      if (!dir->inode)
+      if (!dir->inode) {
+        goto traverse;
         continue;
+      }
 
       unsigned char type = 0;
       if (dir->type == 2)
@@ -208,6 +210,8 @@ size_t ext2Getdents64(OpenFile *file, struct linux_dirent64 *start,
         goto cleanup;
 
       edir->ptr += dir->size;
+
+    traverse:
       dir = (void *)((size_t)dir + dir->size);
     }
 

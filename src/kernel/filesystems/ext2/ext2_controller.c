@@ -859,15 +859,24 @@ size_t ext2Delete(MountPoint *mnt, char *filename, bool directory,
       size_t i = 0;
       while (true) {
         uint32_t block = ext2BlockFetch(ext2, inode, inodeNum, &control, i++);
-        if (!block)
+        if (!block || (i * ext2->blockSize) >= (inode->num_sectors * 512))
           break;
 
         uint32_t group = block / ext2->superblock.blocks_per_group;
         uint32_t index = block % ext2->superblock.blocks_per_group;
         ext2BlockDelete(ext2, group, index);
+        // todo: free indirect blocks
       }
       ext2BlockFetchCleanup(&control);
     }
+
+    // before deleting, do some sanity stuff
+    inode->dtime = timerBootUnix + timerTicks / 1000; // needed
+    memset(&inode->blocks, 0, sizeof(inode->blocks));
+    inode->num_sectors = 0;
+    inode->size = 0;
+    inode->size_high = 0;
+    ext2InodeModifyM(ext2, inodeNum, inode);
 
     // get rid of this inode
     ext2InodeDelete(ext2, inodeNum);
