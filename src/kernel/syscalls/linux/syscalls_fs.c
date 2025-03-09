@@ -238,6 +238,14 @@ static size_t syscallFcntl(int fd, int cmd, uint64_t arg) {
   }
 }
 
+#define SYSCALL_FSYNC 74
+static size_t syscallFsync(int fd) {
+  OpenFile *browse = fsUserGetNode(currentTask, fd);
+  if (!browse)
+    return ERR(EBADF);
+  return 0; // none of our filesystems care enough about write caching
+}
+
 #define SYSCALL_MKDIR 83
 static size_t syscallMkdir(char *path, uint32_t mode) {
   dbgSysExtraf("path{%s}", path);
@@ -517,6 +525,7 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_UMASK, syscallUmask);
   registerSyscall(SYSCALL_PREAD64, syscallPread64);
   registerSyscall(SYSCALL_UNLINK, syscallUnlink);
+  registerSyscall(SYSCALL_FSYNC, syscallFsync);
 
   registerSyscall(SYSCALL_IOCTL, syscallIoctl);
   registerSyscall(SYSCALL_READV, syscallReadV);

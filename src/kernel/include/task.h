@@ -80,6 +80,8 @@ struct Task {
   uint64_t mmap_start;
   uint64_t mmap_end;
 
+  size_t sleepUntil;
+
   termios  term;
   uint32_t tmpRecV;
   void    *spinlockQueueEntry; // check on kill!

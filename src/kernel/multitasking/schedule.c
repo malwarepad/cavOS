@@ -6,6 +6,7 @@
 #include <schedule.h>
 #include <system.h>
 #include <task.h>
+#include <timer.h>
 #include <util.h>
 #include <vmm.h>
 
@@ -28,7 +29,8 @@ void schedule(uint64_t rsp) {
     next = firstTask;
 
   int fullRun = 0;
-  while (next->state != TASK_STATE_READY) {
+  while (next->state != TASK_STATE_READY ||
+         (next->sleepUntil && next->sleepUntil > timerTicks)) {
     next = next->next;
     if (!next) {
       fullRun++;
