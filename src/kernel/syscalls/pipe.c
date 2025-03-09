@@ -9,8 +9,9 @@
 // Industrial two-way solid steel pipe()
 // Copyright (C) 2024 Panagiotis
 
+#define PIPE_BUFF 65536
 typedef struct PipeInfo {
-  char buf[65536];
+  char buf[PIPE_BUFF];
   int  assigned;
 
   int writeFds;
@@ -87,8 +88,8 @@ bool pipeDuplicate(OpenFile *original, OpenFile *orphan) {
 }
 
 size_t pipeRead(OpenFile *fd, uint8_t *out, size_t limit) {
-  if (limit > 65536)
-    limit = 65536;
+  if (limit > PIPE_BUFF)
+    limit = PIPE_BUFF;
   PipeSpecific *spec = (PipeSpecific *)fd->dir;
   PipeInfo     *pipe = spec->info;
 
@@ -117,7 +118,7 @@ size_t pipeRead(OpenFile *fd, uint8_t *out, size_t limit) {
 
   memcpy(out, pipe->buf, toCopy);
   pipe->assigned -= toCopy;
-  memmove(pipe->buf, &pipe->buf[toCopy], 65536 - toCopy);
+  memmove(pipe->buf, &pipe->buf[toCopy], PIPE_BUFF - toCopy);
   taskUnblock(&pipe->blockingWrite);
   spinlockRelease(&pipe->LOCK);
 
@@ -129,7 +130,7 @@ size_t pipeWriteInner(OpenFile *fd, uint8_t *in, size_t limit) {
   PipeInfo     *pipe = spec->info;
   while (true) {
     spinlockAcquire(&pipe->LOCK);
-    if ((pipe->assigned + limit) <= 65536)
+    if ((pipe->assigned + limit) <= PIPE_BUFF)
       break;
     if (!pipe->readFds) { // we are notified, no worries
       debugf("[pipe] Should send SIGPIPE leading to termination! todo!\n");
@@ -154,21 +155,22 @@ size_t pipeWriteInner(OpenFile *fd, uint8_t *in, size_t limit) {
 
 size_t pipeWrite(OpenFile *fd, uint8_t *in, size_t limit) {
   int    ret = 0;
-  size_t chunks = limit / 65536;
-  size_t remainder = limit % 65536;
+  size_t chunks = limit / PIPE_BUFF;
+  size_t remainder = limit % PIPE_BUFF;
   if (chunks)
     for (size_t i = 0; i < chunks; i++) {
       int cycle = 0;
-      while (cycle != 65536)
-        cycle += pipeWriteInner(fd, in + i * 65536 + cycle, 65536 - cycle);
+      while (cycle != PIPE_BUFF)
+        cycle +=
+            pipeWriteInner(fd, in + i * PIPE_BUFF + cycle, PIPE_BUFF - cycle);
       ret += cycle;
     }
 
   if (remainder) {
     int cycle = 0;
     while (cycle != remainder)
-      cycle +=
-          pipeWriteInner(fd, in + chunks * 65536 + cycle, remainder - cycle);
+      cycle += pipeWriteInner(fd, in + chunks * PIPE_BUFF + cycle,
+                              remainder - cycle);
     ret += cycle;
   }
 
