@@ -150,7 +150,10 @@ size_t unixSocketAcceptWrite(OpenFile *fd, uint8_t *in, size_t limit) {
 
 size_t unixSocketOpen(void *taskPtr, int type, int protocol) {
   // rest are not supported yet, only SOCK_STREAM
-  assert(type == 1);
+  if (type != 1) {
+    dbgSysStubf("unsupported type{%x}", type);
+    return ERR(ENOSYS);
+  }
 
   Task  *task = (Task *)taskPtr;
   size_t sockFd = fsUserOpen(task, "/dev/null", O_RDWR, 0);
@@ -210,7 +213,10 @@ size_t unixSocketBind(OpenFile *fd, sockaddr_linux *addr, size_t len) {
 size_t unixSocketListen(OpenFile *fd, int backlog) {
   if (backlog == 0) // newer kernel behavior
     backlog = 1;
+  if (backlog < 0)
+    backlog = 128;
 
+  // maybe do a typical array here
   UnixSocket *sock = fd->dir;
   spinlockAcquire(&sock->LOCK_SOCK);
   sock->connMax = backlog;
