@@ -1,4 +1,5 @@
 #include "spinlock.h"
+#include "task.h"
 #include "types.h"
 #include "vfs.h"
 
@@ -15,18 +16,23 @@ VfsHandlers unixAcceptHandlers;
 
 #define CONN_VALID(conn) (conn && conn != CONN_DISCONNECTED)
 
-typedef struct UnixSocketConn {
-  struct UnixSocketConn *next;
-  struct UnixSocket     *parent;
-  struct UnixSocket     *connected;
+typedef struct UnixSocketPair {
+  // common mutex
+  Spinlock LOCK_PAIR;
 
-  uint8_t *buff;
-  int      posBuff;
-  int      sizeBuff;
+  // accept()/server
+  bool     established;
+  int      serverFds;
+  uint8_t *serverBuff;
+  int      serverBuffPos;
+  int      serverBuffSize;
 
-  Spinlock LOCK_PROP;
-  int      timesOpened;
-} UnixSocketConn;
+  // connect()/client
+  int      clientFds;
+  uint8_t *clientBuff;
+  int      clientBuffPos;
+  int      clientBuffSize;
+} UnixSocketPair;
 
 typedef struct UnixSocket {
   struct UnixSocket *next;
@@ -36,24 +42,17 @@ typedef struct UnixSocket {
 
   // accept()
   bool acceptWouldBlock;
-  bool accepting;
-
-  uint8_t *buff;
-  int      posBuff;
-  int      sizeBuff;
 
   // bind()
   char *bindAddr;
 
   // listen()
-  int             connMax; // if 0, listen() hasn't ran
-  int             connEstablished;
-  int             connCurr;
-  UnixSocketConn *firstConn;
+  int              connMax; // if 0, listen() hasn't ran
+  int              connCurr;
+  UnixSocketPair **backlog;
 
   // connect()
-  // should make it directly r/w
-  struct UnixSocketConn *connected;
+  UnixSocketPair *pair;
 } UnixSocket;
 
 UnixSocket *firstUnixSocket;
@@ -65,7 +64,8 @@ Spinlock    LOCK_LL_UNIX_SOCKET;
 
 // avoids both spinlocks inside close functions waiting for eachother and it
 // becoming a hardlock. check (1)
-Spinlock LOCK_UNIX_CLOSE;
+// Spinlock LOCK_UNIX_CLOSE;
+// not needed with the new design, keep it as an idea
 
 size_t unixSocketOpen(void *taskPtr, int type, int protocol);
 

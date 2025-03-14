@@ -15,7 +15,7 @@
 #define debugf(...) ((void)0)
 #endif
 
-OpenFile *unixSocketAcceptCreate(UnixSocketConn *dir) {
+OpenFile *unixSocketAcceptCreate(UnixSocketPair *dir) {
   size_t sockFd = fsUserOpen(currentTask, "/dev/null", O_RDWR, 0);
   assert(!RET_IS_ERR(sockFd));
 
@@ -30,43 +30,40 @@ OpenFile *unixSocketAcceptCreate(UnixSocketConn *dir) {
 
 bool unixSocketAcceptDuplicate(OpenFile *original, OpenFile *orphan) {
   orphan->dir = original->dir;
-  UnixSocketConn *unixSocket = original->dir;
-  spinlockAcquire(&unixSocket->LOCK_PROP);
-  unixSocket->timesOpened++;
-  spinlockRelease(&unixSocket->LOCK_PROP);
+  UnixSocketPair *pair = original->dir;
+  spinlockAcquire(&pair->LOCK_PAIR);
+  pair->serverFds++;
+  spinlockRelease(&pair->LOCK_PAIR);
 
   return true;
 }
 
+UnixSocketPair *unixSocketAllocatePair() {
+  UnixSocketPair *pair = calloc(sizeof(UnixSocketPair), 1);
+  pair->clientBuffSize = UNIX_SOCK_BUFF_DEFAULT;
+  pair->serverBuffSize = UNIX_SOCK_BUFF_DEFAULT;
+  pair->serverBuff = malloc(pair->serverBuffSize);
+  pair->clientBuff = malloc(pair->clientBuffSize);
+  return pair;
+}
+
+void unixSocketFreePair(UnixSocketPair *pair) {
+  assert(pair->serverFds == 0 && pair->clientFds == 0);
+  free(pair->clientBuff);
+  free(pair->serverBuff);
+  free(pair);
+}
+
 bool unixSocketAcceptClose(OpenFile *fd) {
-  spinlockAcquire(&LOCK_UNIX_CLOSE);
-  UnixSocketConn *unixSocket = fd->dir;
-  spinlockAcquire(&unixSocket->LOCK_PROP);
-  unixSocket->timesOpened--;
-  if (unixSocket->timesOpened == 0) {
-    // destroy it
+  UnixSocketPair *pair = fd->dir;
+  spinlockAcquire(&pair->LOCK_PAIR);
+  pair->serverFds--;
 
-    // connected
-    if (CONN_VALID(unixSocket->connected)) {
-      spinlockAcquire(&unixSocket->connected->LOCK_SOCK);
-      assert(unixSocket->connected->connected == unixSocket);
-      debugf("[unix::accept::close] connected{%lx} connected_conn{%lx}\n",
-             unixSocket->connected, unixSocket->connected->connected);
-      unixSocket->connected->connected = CONN_DISCONNECTED;
-      spinlockRelease(&unixSocket->connected->LOCK_SOCK);
-    }
+  if (pair->serverFds == 0 && pair->clientFds == 0)
+    unixSocketFreePair(pair);
+  else
+    spinlockRelease(&pair->LOCK_PAIR);
 
-    // parent
-    free(unixSocket->buff);
-    UnixSocket *parent = unixSocket->parent;
-    spinlockAcquire(&parent->LOCK_SOCK);
-    assert(LinkedListRemove((void **)&parent->firstConn, unixSocket));
-    spinlockRelease(&parent->LOCK_SOCK);
-    spinlockRelease(&LOCK_UNIX_CLOSE);
-    return true;
-  }
-  spinlockRelease(&unixSocket->LOCK_PROP);
-  spinlockRelease(&LOCK_UNIX_CLOSE);
   return true;
 }
 
@@ -77,28 +74,30 @@ size_t unixSocketAcceptRecvfrom(OpenFile *fd, uint8_t *out, size_t limit,
   (void)addr;
   (void)len;
 
-  UnixSocketConn *unixConn = fd->dir;
-  if (!unixConn->connected)
+  UnixSocketPair *pair = fd->dir;
+  if (!pair->clientFds && pair->serverBuffPos == 0)
     return ERR(ENOTCONN);
   while (true) {
-    spinlockAcquire(&unixConn->LOCK_PROP);
-    if (unixConn->connected == CONN_DISCONNECTED && unixConn->posBuff == 0) {
-      spinlockRelease(&unixConn->LOCK_PROP);
+    spinlockAcquire(&pair->LOCK_PAIR);
+    if (!pair->clientFds && pair->serverBuffPos == 0) {
+      spinlockRelease(&pair->LOCK_PAIR);
       return 0;
     } else if ((fd->flags & O_NONBLOCK || flags & MSG_DONTWAIT) &&
-               unixConn->posBuff == 0) {
-      spinlockRelease(&unixConn->LOCK_PROP);
+               pair->serverBuffPos == 0) {
+      spinlockRelease(&pair->LOCK_PAIR);
       return ERR(EWOULDBLOCK);
-    } else if (unixConn->posBuff > 0)
+    } else if (pair->serverBuffPos > 0)
       break;
-    spinlockRelease(&unixConn->LOCK_PROP);
+    spinlockRelease(&pair->LOCK_PAIR);
   }
 
   // spinlock already acquired
-  size_t toCopy = MIN(limit, unixConn->posBuff);
-  memcpy(out, unixConn->buff, toCopy);
-  unixConn->posBuff -= toCopy;
-  spinlockRelease(&unixConn->LOCK_PROP);
+  size_t toCopy = MIN(limit, pair->serverBuffPos);
+  memcpy(out, pair->serverBuff, toCopy);
+  memmove(pair->serverBuff, &pair->serverBuff[toCopy],
+          pair->serverBuffPos - toCopy);
+  pair->serverBuffPos -= toCopy;
+  spinlockRelease(&pair->LOCK_PAIR);
 
   return toCopy;
 }
@@ -113,33 +112,30 @@ size_t unixSocketAcceptSendto(OpenFile *fd, uint8_t *in, size_t limit,
   (void)addr;
   (void)len;
 
-  UnixSocketConn *unixConn = fd->dir;
-  if (!unixConn->connected)
+  UnixSocketPair *pair = fd->dir;
+  if (!pair->clientFds)
     return ERR(ENOTCONN);
-  if (limit > unixConn->connected->sizeBuff)
-    limit = unixConn->connected->sizeBuff;
+  if (limit > pair->clientBuffSize)
+    limit = pair->clientBuffSize;
 
   while (true) {
-    if (CONN_VALID(unixConn->connected))
-      spinlockAcquire(&unixConn->connected->LOCK_SOCK);
-    if (unixConn->connected == CONN_DISCONNECTED) {
-      spinlockRelease(&unixConn->connected->LOCK_SOCK);
+    spinlockAcquire(&pair->LOCK_PAIR);
+    if (!pair->clientFds) {
+      spinlockRelease(&pair->LOCK_PAIR);
       return ERR(EPIPE);
     } else if ((fd->flags & O_NONBLOCK || flags & MSG_DONTWAIT) &&
-               (unixConn->connected->posBuff + limit) >
-                   unixConn->connected->sizeBuff) {
-      spinlockRelease(&unixConn->connected->LOCK_SOCK);
+               (pair->clientBuffPos + limit) > pair->clientBuffSize) {
+      spinlockRelease(&pair->LOCK_PAIR);
       return ERR(EWOULDBLOCK);
-    } else if ((unixConn->connected->posBuff + limit) <=
-               unixConn->connected->sizeBuff)
+    } else if ((pair->clientBuffPos + limit) <= pair->clientBuffSize)
       break;
-    spinlockRelease(&unixConn->connected->LOCK_SOCK);
+    spinlockRelease(&pair->LOCK_PAIR);
   }
 
   // spinlock already acquired
-  memcpy(&unixConn->connected->buff[unixConn->connected->posBuff], in, limit);
-  unixConn->connected->posBuff += limit;
-  spinlockRelease(&unixConn->connected->LOCK_SOCK);
+  memcpy(&pair->clientBuff[pair->clientBuffPos], in, limit);
+  pair->clientBuffPos += limit;
+  spinlockRelease(&pair->LOCK_PAIR);
 
   return limit;
 }
@@ -170,9 +166,6 @@ size_t unixSocketOpen(void *taskPtr, int type, int protocol) {
   sockNode->dir = unixSocket;
 
   unixSocket->timesOpened = 1;
-
-  unixSocket->buff = malloc(UNIX_SOCK_BUFF_DEFAULT);
-  unixSocket->sizeBuff = UNIX_SOCK_BUFF_DEFAULT;
 
   return sockFd;
 }
@@ -220,6 +213,7 @@ size_t unixSocketListen(OpenFile *fd, int backlog) {
   UnixSocket *sock = fd->dir;
   spinlockAcquire(&sock->LOCK_SOCK);
   sock->connMax = backlog;
+  sock->backlog = calloc(sock->connMax * sizeof(UnixSocketPair *), 1);
   spinlockRelease(&sock->LOCK_SOCK);
   return 0;
 }
@@ -230,45 +224,34 @@ size_t unixSocketAccept(OpenFile *fd, sockaddr_linux *addr, uint32_t *len) {
     dbgSysStubf("todo addr");
   }
 
-  sock->accepting = true;
-  while (sock->connCurr == 0) {
+  while (true) {
+    spinlockAcquire(&sock->LOCK_SOCK);
+    if (sock->connCurr > 0)
+      break;
     if (fd->flags & O_NONBLOCK) {
       sock->acceptWouldBlock = true;
-      sock->accepting = false;
+      spinlockRelease(&sock->LOCK_SOCK);
       return ERR(EWOULDBLOCK);
     } else
       sock->acceptWouldBlock = false;
+    spinlockRelease(&sock->LOCK_SOCK);
     handControl();
   }
-  sock->accepting = false;
 
-  // now run through the list and pick the correct thing!
-  spinlockAcquire(&sock->LOCK_SOCK);
-  UnixSocketConn *conn = sock->firstConn;
-  while (conn) {
-    if (!conn->parent) {
-      // we got one that hasn't been verified yet
-      sock->connCurr--;
-      sock->connEstablished++;
+  // now pick the first thing! (sock spinlock already engaged)
+  UnixSocketPair *pair = sock->backlog[0];
+  spinlockAcquire(&pair->LOCK_PAIR);
+  assert(pair->serverFds == 0);
+  pair->serverFds++;
+  pair->established = true;
+  spinlockRelease(&pair->LOCK_PAIR);
 
-      // race
-      conn->connected->connected = conn;
-
-      conn->parent = sock;
-      conn->timesOpened = 1;
-      conn->buff = malloc(UNIX_SOCK_BUFF_DEFAULT);
-      conn->sizeBuff = UNIX_SOCK_BUFF_DEFAULT;
-      OpenFile *acceptFd = unixSocketAcceptCreate(conn);
-      spinlockRelease(&sock->LOCK_SOCK);
-      return acceptFd->id;
-    }
-    conn = conn->next;
-  }
+  OpenFile *acceptFd = unixSocketAcceptCreate(pair);
+  memmove(&sock->backlog[1], sock->backlog,
+          (sock->connMax - 1) * sizeof(UnixSocketPair *));
+  sock->connCurr--;
   spinlockRelease(&sock->LOCK_SOCK);
-
-  // should never be reached
-  assert(false);
-  return -1;
+  return acceptFd->id;
 }
 
 size_t unixSocketConnect(OpenFile *fd, sockaddr_linux *addr, uint32_t len) {
@@ -276,7 +259,7 @@ size_t unixSocketConnect(OpenFile *fd, sockaddr_linux *addr, uint32_t len) {
   if (sock->connMax != 0) // already ran listen()
     return ERR(ECONNREFUSED);
 
-  if (sock->connected) // already ran connect()
+  if (sock->pair) // already ran connect()
     return ERR(EISCONN);
 
   if (addr->sa_family != AF_UNIX)
@@ -303,9 +286,11 @@ size_t unixSocketConnect(OpenFile *fd, sockaddr_linux *addr, uint32_t len) {
       continue;
     }
 
+    spinlockAcquire(&parent->LOCK_SOCK);
     if (parent->bindAddr && strlength(parent->bindAddr) == safeLen &&
         memcmp(safe, parent->bindAddr, safeLen) == 0)
       break;
+    spinlockRelease(&parent->LOCK_SOCK);
 
     parent = parent->next;
   }
@@ -317,37 +302,41 @@ size_t unixSocketConnect(OpenFile *fd, sockaddr_linux *addr, uint32_t len) {
     return ERR(ENOENT);
 
   // nonblock edge case, check man page
-  if (parent->acceptWouldBlock && fd->flags & O_NONBLOCK)
+  if (parent->acceptWouldBlock && fd->flags & O_NONBLOCK) {
+    spinlockRelease(&parent->LOCK_SOCK);
     return ERR(EINPROGRESS); // use select, poll, or epoll
+  }
 
-  if (!parent->connMax) // listen() hasn't yet ran
+  // listen() hasn't yet ran
+  if (!parent->connMax) {
+    spinlockRelease(&parent->LOCK_SOCK);
     return ERR(ECONNREFUSED);
+  }
 
   // todo!
   assert(!(fd->flags & O_NONBLOCK));
-  while (!parent->accepting) {
-    handControl();
-  }
-
-  if (parent->connCurr >= parent->connMax)
+  // spinlockAcquire(&parent->LOCK_SOCK);
+  if (parent->connCurr >= parent->connMax) {
+    spinlockRelease(&parent->LOCK_SOCK);
     return ERR(ECONNREFUSED); // no slot
-
-  spinlockAcquire(&parent->LOCK_SOCK);
-  UnixSocketConn *conn =
-      LinkedListAllocate((void **)&parent->firstConn, sizeof(UnixSocketConn));
-  // conn->parent = parent; parent hasn't accepted yet
-  conn->connected = sock;
-  parent->connCurr++;
+  }
+  UnixSocketPair *pair = unixSocketAllocatePair();
+  sock->pair = pair;
+  pair->clientFds = 1;
+  parent->backlog[parent->connCurr++] = pair;
   spinlockRelease(&parent->LOCK_SOCK);
 
   // todo!
   assert(!(fd->flags & O_NONBLOCK));
-  while (!conn->parent) {
+  while (true) {
+    spinlockAcquire(&pair->LOCK_PAIR);
+    if (pair->established)
+      break;
+    spinlockRelease(&pair->LOCK_PAIR);
     // wait for parent to accept this thing and have it's own fd on the side
     handControl();
   }
-
-  // sock->connected = conn; done by the parent so I can avoid race conditions
+  spinlockRelease(&pair->LOCK_PAIR);
 
   return 0;
 }
@@ -363,7 +352,6 @@ bool unixSocketDuplicate(OpenFile *original, OpenFile *orphan) {
 }
 
 bool unixSocketClose(OpenFile *fd) {
-  spinlockAcquire(&LOCK_UNIX_CLOSE);
   UnixSocket *unixSocket = fd->dir;
   debugf("[unix::sock::close] sock{%lx} connected{%lx}\n", unixSocket,
          unixSocket->connected);
@@ -373,21 +361,13 @@ bool unixSocketClose(OpenFile *fd) {
   unixSocket->timesOpened--;
   if (unixSocket->timesOpened == 0) {
     // destroy it
-    if (CONN_VALID(unixSocket->connected)) {
-      spinlockAcquire(&unixSocket->connected->LOCK_PROP);
-      unixSocket->connected->connected = CONN_DISCONNECTED;
-      spinlockRelease(&unixSocket->connected->LOCK_PROP);
-    }
-    free(unixSocket->buff);
     spinlockAcquire(&LOCK_LL_UNIX_SOCKET);
     assert(LinkedListRemove((void **)&firstUnixSocket, unixSocket));
     spinlockRelease(&LOCK_LL_UNIX_SOCKET);
     debugf("[unix::sock::close] Closed successfully!\n");
-    spinlockRelease(&LOCK_UNIX_CLOSE);
     return true;
   }
   spinlockRelease(&unixSocket->LOCK_SOCK);
-  spinlockRelease(&LOCK_UNIX_CLOSE);
   return true;
 }
 
@@ -397,29 +377,31 @@ size_t unixSocketRecvfrom(OpenFile *fd, uint8_t *out, size_t limit, int flags,
   (void)addr;
   (void)len;
 
-  UnixSocket *unixSocket = fd->dir;
-  if (!unixSocket->connected)
+  UnixSocket     *socket = fd->dir;
+  UnixSocketPair *pair = socket->pair;
+  if (!pair || (!pair->serverFds && pair->clientBuffPos == 0))
     return ERR(ENOTCONN);
   while (true) {
-    spinlockAcquire(&unixSocket->LOCK_SOCK);
-    if (unixSocket->connected == CONN_DISCONNECTED &&
-        unixSocket->posBuff == 0) {
-      spinlockRelease(&unixSocket->LOCK_SOCK);
+    spinlockAcquire(&pair->LOCK_PAIR);
+    if (!pair->serverFds && pair->clientBuffPos == 0) {
+      spinlockRelease(&pair->LOCK_PAIR);
       return 0;
     } else if ((fd->flags & O_NONBLOCK || flags & MSG_DONTWAIT) &&
-               unixSocket->posBuff == 0) {
-      spinlockRelease(&unixSocket->LOCK_SOCK);
+               pair->clientBuffPos == 0) {
+      spinlockRelease(&pair->LOCK_PAIR);
       return ERR(EWOULDBLOCK);
-    } else if (unixSocket->posBuff > 0)
+    } else if (pair->clientBuffPos > 0)
       break;
-    spinlockRelease(&unixSocket->LOCK_SOCK);
+    spinlockRelease(&pair->LOCK_PAIR);
   }
 
   // spinlock already acquired
-  size_t toCopy = MIN(limit, unixSocket->posBuff);
-  memcpy(out, unixSocket->buff, toCopy);
-  unixSocket->posBuff -= toCopy;
-  spinlockRelease(&unixSocket->LOCK_SOCK);
+  size_t toCopy = MIN(limit, pair->clientBuffPos);
+  memcpy(out, pair->clientBuff, toCopy);
+  memmove(pair->clientBuff, &pair->clientBuff[toCopy],
+          pair->clientBuffPos - toCopy);
+  pair->clientBuffPos -= toCopy;
+  spinlockRelease(&pair->LOCK_PAIR);
 
   return toCopy;
 }
@@ -434,34 +416,31 @@ size_t unixSocketSendto(OpenFile *fd, uint8_t *in, size_t limit, int flags,
   (void)addr;
   (void)len;
 
-  UnixSocket *unixSocket = fd->dir;
-  if (!unixSocket->connected)
+  UnixSocket     *socket = fd->dir;
+  UnixSocketPair *pair = socket->pair;
+  if (!pair || !pair->serverFds)
     return ERR(ENOTCONN);
-  if (limit > unixSocket->connected->sizeBuff)
-    limit = unixSocket->connected->sizeBuff;
+  if (limit > pair->serverBuffSize)
+    limit = pair->serverBuffSize;
 
   while (true) {
-    if (CONN_VALID(unixSocket->connected))
-      spinlockAcquire(&unixSocket->connected->LOCK_PROP);
-    if (unixSocket->connected == CONN_DISCONNECTED) {
-      spinlockRelease(&unixSocket->connected->LOCK_PROP);
+    spinlockAcquire(&pair->LOCK_PAIR);
+    if (!pair->serverFds) {
+      spinlockRelease(&pair->LOCK_PAIR);
       return ERR(EPIPE);
     } else if ((fd->flags & O_NONBLOCK || flags & MSG_DONTWAIT) &&
-               (unixSocket->connected->posBuff + limit) >
-                   unixSocket->connected->sizeBuff) {
-      spinlockRelease(&unixSocket->connected->LOCK_PROP);
+               (pair->serverBuffPos + limit) > pair->serverBuffSize) {
+      spinlockRelease(&pair->LOCK_PAIR);
       return ERR(EWOULDBLOCK);
-    } else if ((unixSocket->connected->posBuff + limit) <=
-               unixSocket->connected->sizeBuff)
+    } else if ((pair->serverBuffPos + limit) <= pair->serverBuffSize)
       break;
-    spinlockRelease(&unixSocket->connected->LOCK_PROP);
+    spinlockRelease(&pair->LOCK_PAIR);
   }
 
   // spinlock already acquired
-  memcpy(&unixSocket->connected->buff[unixSocket->connected->posBuff], in,
-         limit);
-  unixSocket->connected->posBuff += limit;
-  spinlockRelease(&unixSocket->connected->LOCK_PROP);
+  memcpy(&pair->serverBuff[pair->serverBuffPos], in, limit);
+  pair->serverBuffPos += limit;
+  spinlockRelease(&pair->LOCK_PAIR);
 
   return limit;
 }
