@@ -180,16 +180,22 @@ size_t fsGetFilesize(OpenFile *file) {
 }
 
 size_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit) {
-  if (!file->handlers->read)
+  if (!file->handlers->read) {
+    if (file->handlers->recvfrom) // we got a socket!
+      return file->handlers->recvfrom(file, out, limit, 0, 0, 0);
     return ERR(EBADF);
+  }
   return file->handlers->read(file, out, limit);
 }
 
 size_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit) {
   if (!(file->flags & O_RDWR) && !(file->flags & O_WRONLY))
     return ERR(EBADF);
-  if (!file->handlers->write)
+  if (!file->handlers->write) {
+    if (file->handlers->sendto) // we got a socket!
+      return file->handlers->sendto(file, in, limit, 0, 0, 0);
     return ERR(EBADF);
+  }
   return file->handlers->write(file, in, limit);
 }
 

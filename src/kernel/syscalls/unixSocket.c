@@ -102,10 +102,6 @@ size_t unixSocketAcceptRecvfrom(OpenFile *fd, uint8_t *out, size_t limit,
   return toCopy;
 }
 
-size_t unixSocketAcceptRead(OpenFile *fd, uint8_t *out, size_t limit) {
-  return unixSocketAcceptRecvfrom(fd, out, limit, 0, 0, 0);
-}
-
 size_t unixSocketAcceptSendto(OpenFile *fd, uint8_t *in, size_t limit,
                               int flags, sockaddr_linux *addr, uint32_t len) {
   // useless unless SOCK_DGRAM
@@ -138,10 +134,6 @@ size_t unixSocketAcceptSendto(OpenFile *fd, uint8_t *in, size_t limit,
   spinlockRelease(&pair->LOCK_PAIR);
 
   return limit;
-}
-
-size_t unixSocketAcceptWrite(OpenFile *fd, uint8_t *in, size_t limit) {
-  return unixSocketAcceptSendto(fd, in, limit, 0, 0, 0);
 }
 
 size_t unixSocketOpen(void *taskPtr, int type, int protocol) {
@@ -406,10 +398,6 @@ size_t unixSocketRecvfrom(OpenFile *fd, uint8_t *out, size_t limit, int flags,
   return toCopy;
 }
 
-size_t unixSocketRead(OpenFile *fd, uint8_t *out, size_t limit) {
-  return unixSocketRecvfrom(fd, out, limit, 0, 0, 0);
-}
-
 size_t unixSocketSendto(OpenFile *fd, uint8_t *in, size_t limit, int flags,
                         sockaddr_linux *addr, uint32_t len) {
   // useless unless SOCK_DGRAM
@@ -445,13 +433,7 @@ size_t unixSocketSendto(OpenFile *fd, uint8_t *in, size_t limit, int flags,
   return limit;
 }
 
-size_t unixSocketWrite(OpenFile *fd, uint8_t *in, size_t limit) {
-  return unixSocketSendto(fd, in, limit, 0, 0, 0);
-}
-
-VfsHandlers unixSocketHandlers = {.read = unixSocketRead,
-                                  .write = unixSocketWrite,
-                                  .sendto = unixSocketSendto,
+VfsHandlers unixSocketHandlers = {.sendto = unixSocketSendto,
                                   .recvfrom = unixSocketRecvfrom,
                                   .bind = unixSocketBind,
                                   .listen = unixSocketListen,
@@ -460,9 +442,7 @@ VfsHandlers unixSocketHandlers = {.read = unixSocketRead,
                                   .duplicate = unixSocketDuplicate,
                                   .close = unixSocketClose};
 
-VfsHandlers unixAcceptHandlers = {.read = unixSocketAcceptRead,
-                                  .write = unixSocketAcceptWrite,
-                                  .sendto = unixSocketAcceptSendto,
+VfsHandlers unixAcceptHandlers = {.sendto = unixSocketAcceptSendto,
                                   .recvfrom = unixSocketAcceptRecvfrom,
                                   .duplicate = unixSocketAcceptDuplicate,
                                   .close = unixSocketAcceptClose};
