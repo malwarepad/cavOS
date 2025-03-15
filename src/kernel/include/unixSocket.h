@@ -68,5 +68,6 @@ Spinlock    LOCK_LL_UNIX_SOCKET;
 // not needed with the new design, keep it as an idea
 
 size_t unixSocketOpen(void *taskPtr, int type, int protocol);
+size_t unixSocketPair(int type, int protocol, int *sv);
 
 #endif

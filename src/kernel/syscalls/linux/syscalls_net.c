@@ -123,6 +123,18 @@ static size_t syscallListen(int fd, int backlog) {
   return fileNode->handlers->listen(fileNode, backlog);
 }
 
+#define SYSCALL_SOCKETPAIR 53
+static size_t syscallSocketpair(int family, int type, int protocol, int *sv) {
+  switch (family) {
+  case AF_UNIX:
+    return unixSocketPair(type, protocol, sv);
+    break;
+  default:
+    return ERR(ENOSYS);
+    break;
+  }
+}
+
 #define SYSCALL_SENDTO 44
 static size_t syscallSendto(int fd, void *buff, size_t len, int flags,
                             sockaddr_linux *dest_addr, socklen_t addrlen) {
@@ -167,6 +179,7 @@ static size_t syscallRecvmsg(int fd, struct msghdr *msg, int flags) {
 void syscallsRegNet() {
   // a
   registerSyscall(SYSCALL_SOCKET, syscallSocket);
+  registerSyscall(SYSCALL_SOCKETPAIR, syscallSocketpair);
   registerSyscall(SYSCALL_CONNECT, syscallConnect);
   registerSyscall(SYSCALL_ACCEPT, syscallAccept);
   registerSyscall(SYSCALL_BIND, syscallBind);

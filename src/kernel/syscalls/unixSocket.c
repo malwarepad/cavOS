@@ -433,6 +433,29 @@ size_t unixSocketSendto(OpenFile *fd, uint8_t *in, size_t limit, int flags,
   return limit;
 }
 
+size_t unixSocketPair(int type, int protocol, int *sv) {
+  size_t sock1 = unixSocketOpen(currentTask, type, protocol);
+  if (RET_IS_ERR(sock1))
+    return sock1;
+
+  OpenFile *sock1Fd = fsUserGetNode(currentTask, sock1);
+  assert(sock1Fd);
+
+  UnixSocketPair *pair = unixSocketAllocatePair();
+  pair->clientFds = 1;
+  pair->serverFds = 1;
+
+  UnixSocket *sock = sock1Fd->dir;
+  sock->pair = pair;
+
+  OpenFile *sock2Fd = unixSocketAcceptCreate(pair);
+
+  // finish it off
+  sv[0] = sock1Fd->id;
+  sv[1] = sock2Fd->id;
+  return 0;
+}
+
 VfsHandlers unixSocketHandlers = {.sendto = unixSocketSendto,
                                   .recvfrom = unixSocketRecvfrom,
                                   .bind = unixSocketBind,
