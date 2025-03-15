@@ -439,7 +439,9 @@ void taskUnblock(Blocking *blocking) {
   while (browse) {
     BlockedTask *next = browse->next;
     if (browse->task) {
-      browse->task->state = TASK_STATE_READY;
+      Task *task = browse->task;
+      if (task->state != TASK_STATE_DEAD)
+        task->state = TASK_STATE_READY;
     }
     LinkedListRemove((void **)(&blocking->firstBlockedTask), browse);
     browse = next;
