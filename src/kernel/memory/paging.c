@@ -305,6 +305,7 @@ void PageDirectoryFree(uint64_t *page_dir) {
 
           uint64_t phys = PTE_GET_ADDR(pt[pt_index]);
           PhysicalFree(phys, 1);
+          pt[pt_index] = 0;
         }
       }
     }

@@ -3,6 +3,7 @@
 #include <fat32.h>
 #include <linked_list.h>
 #include <malloc.h>
+#include <poll.h>
 #include <string.h>
 #include <syscalls.h>
 #include <system.h>
@@ -155,6 +156,7 @@ bool fsCloseGeneric(OpenFile *file, Task *task) {
   fsUnregisterNode(task, file);
 
   bool res = file->handlers->close ? file->handlers->close(file) : true;
+  epollCloseNotify(file);
   free(file);
   return res;
 }

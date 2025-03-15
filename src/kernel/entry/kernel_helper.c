@@ -55,7 +55,7 @@ void helperReaper() {
 
     // todo: free() the task in a safe manner. also implement some system for
     // editing the global LL without race conditions
-    // (*) depends: task blocking, task adding, forking, etc.
+    // (*) depends: task blocking, watchlists, task adding, forking, etc.
 
     // will need a good system for that so maybe delay it to when multithreading
     // is implemented!

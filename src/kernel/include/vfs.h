@@ -79,6 +79,8 @@ typedef size_t (*SpecialRecvfrom)(OpenFile *fd, uint8_t *out, size_t limit,
                                   uint32_t *len);
 typedef size_t (*SpecialSendto)(OpenFile *fd, uint8_t *in, size_t limit,
                                 int flags, sockaddr_linux *addr, uint32_t len);
+typedef int (*SpecialInternalPoll)(OpenFile *fd, int events);
+typedef int (*SpecialAddWatchlist)(OpenFile *fd, int rwsLevel, bool add);
 
 typedef struct VfsHandlers {
   SpecialReadHandler  read;
@@ -99,6 +101,10 @@ typedef struct VfsHandlers {
   SpecialConnect  connect;
   SpecialRecvfrom recvfrom;
   SpecialSendto   sendto;
+
+  // polling
+  SpecialInternalPoll internalPoll;
+  SpecialAddWatchlist addWatchlist;
 
   SpecialDuplicate duplicate;
   SpecialOpen      open;

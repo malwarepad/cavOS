@@ -36,6 +36,7 @@ void syscallsRegEnv();
 void syscallsRegProc();
 void syscallsRegClock();
 void syscallsRegNet();
+void syscallsRegPoll();
 
 void registerSyscall(uint32_t id, void *handler); // <- the master
 

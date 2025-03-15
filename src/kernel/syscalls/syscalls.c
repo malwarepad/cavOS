@@ -162,6 +162,9 @@ void initiateSyscalls() {
   // Filesystem operations
   syscallRegFs();
 
+  // Polling
+  syscallsRegPoll();
+
   // Memory management
   syscallRegMem();
 
