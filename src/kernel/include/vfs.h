@@ -124,6 +124,8 @@ typedef size_t (*MntDelete)(MountPoint *mnt, char *path, bool directory,
                             char **symlinkResolve);
 typedef size_t (*MntReadlink)(MountPoint *mnt, char *path, char *buf, int size,
                               char **symlinkResolve);
+typedef size_t (*MntLink)(MountPoint *mnt, char *filename, char *target,
+                          char **symlinkResolve, char **symlinkResolveTarget);
 
 struct MountPoint {
   MountPoint *next;
@@ -145,6 +147,7 @@ struct MountPoint {
   MntMkdir     mkdir;
   MntDelete delete;
   MntReadlink readlink;
+  MntLink     link;
 
   mbr_partition mbr;
   void         *fsInfo;
@@ -195,6 +198,7 @@ void   fsReadFullFile(OpenFile *file, uint8_t *out);
 size_t fsReadlink(void *task, char *path, char *buf, int size);
 size_t fsMkdir(void *task, char *path, uint32_t mode);
 size_t fsUnlink(void *task, char *path, bool directory);
+size_t fsLink(void *task, char *oldpath, char *newpath);
 size_t fsGetFilesize(OpenFile *file);
 
 size_t fsSimpleSeek(OpenFile *file, size_t target, long int offset, int whence);

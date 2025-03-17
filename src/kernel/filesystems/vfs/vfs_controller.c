@@ -297,6 +297,53 @@ size_t fsUnlink(void *task, char *path, bool directory) {
   return ret;
 }
 
+size_t fsLink(void *task, char *oldpath, char *newpath) {
+  Task       *target = (Task *)task;
+  char       *oldpathSafe = fsSanitize(target->cwd, oldpath);
+  char       *newpathSafe = fsSanitize(target->cwd, newpath);
+  MountPoint *mnt = fsDetermineMountPoint(oldpathSafe);
+  if (fsDetermineMountPoint(newpathSafe) != mnt) {
+    free(oldpathSafe);
+    free(newpathSafe);
+    return ERR(EXDEV);
+  }
+
+  size_t ret = 0;
+
+  char *symlinkold = 0;
+  char *symlinknew = 0;
+  if (mnt->delete) {
+    ret = mnt->link(mnt, oldpathSafe, newpathSafe, &symlinkold, &symlinknew);
+  } else {
+    ret = ERR(EPERM);
+  }
+
+  free(oldpathSafe);
+  free(newpathSafe);
+
+  char *old = oldpath;
+  char *new = newpath;
+  if (symlinkold)
+    old = fsResolveSymlink(mnt, symlinkold);
+  if (symlinknew)
+    new = fsResolveSymlink(mnt, symlinknew);
+
+  if (symlinkold)
+    free(symlinkold);
+  if (symlinknew)
+    free(symlinknew);
+
+  if (symlinkold || symlinknew)
+    ret = fsLink(task, old, new);
+
+  if (symlinkold)
+    free(old);
+  if (symlinknew)
+    free(new);
+
+  return ret;
+}
+
 // shared for fake filesystems etc
 size_t fsSimpleSeek(OpenFile *file, size_t target, long int offset,
                     int whence) {

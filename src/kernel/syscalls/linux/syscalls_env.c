@@ -53,6 +53,25 @@ static size_t syscallFchdir(int fd) {
   return syscallChdir(file->dirname);
 }
 
+struct rlimit {
+  size_t rlim_cur; /* Soft limit */
+  size_t rlim_max; /* Hard limit (ceiling for rlim_cur) */
+};
+
+#define SYSCALL_GETRLIMIT 97
+static size_t syscallGetrlimit(int resource, struct rlimit *rlim) {
+  switch (resource) {
+  case 7: // max open fds
+    rlim->rlim_cur = 1024;
+    rlim->rlim_max = 1024;
+    return 0;
+    break;
+  default:
+    return ERR(ENOSYS);
+    break;
+  }
+}
+
 #define SYSCALL_GETUID 102
 static size_t syscallGetuid() {
   return 0; // root ;)
@@ -145,6 +164,7 @@ void syscallsRegEnv() {
   registerSyscall(SYSCALL_GETPID, syscallGetPid);
   registerSyscall(SYSCALL_GETCWD, syscallGetcwd);
   registerSyscall(SYSCALL_CHDIR, syscallChdir);
+  registerSyscall(SYSCALL_GETRLIMIT, syscallGetrlimit);
   registerSyscall(SYSCALL_GETUID, syscallGetuid);
   registerSyscall(SYSCALL_GETEUID, syscallGeteuid);
   registerSyscall(SYSCALL_GETGID, syscallGetgid);

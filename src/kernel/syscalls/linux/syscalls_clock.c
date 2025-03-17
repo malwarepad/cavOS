@@ -25,6 +25,7 @@ static int syscallNanosleep(struct timespec *duration, struct timespec *rem) {
 static size_t syscallClockGettime(int which, timespec *spec) {
   switch (which) {
   case CLOCK_MONOTONIC: // <- todo
+  case 6:               // CLOCK_MONOTONIC_COARSE
   case CLOCK_REALTIME: {
     spec->tv_sec = timerBootUnix + timerTicks / 1000;
     size_t remainingInMs = timerTicks - (spec->tv_sec * 1000);
@@ -40,7 +41,14 @@ static size_t syscallClockGettime(int which, timespec *spec) {
   }
 }
 
+#define SYSCALL_CLOCK_GETRES 229
+static size_t syscallClockGetres(int which, timespec *spec) {
+  spec->tv_nsec = 1000000; // 1ms for every clock
+  return 0;
+}
+
 void syscallsRegClock() {
   registerSyscall(SYSCALL_NANOSLEEP, syscallNanosleep);
   registerSyscall(SYSCALL_CLOCK_GETTIME, syscallClockGettime);
+  registerSyscall(SYSCALL_CLOCK_GETRES, syscallClockGetres);
 }

@@ -19,6 +19,7 @@ bool ext2Mount(MountPoint *mount) {
   mount->mkdir = ext2Mkdir;
   mount->delete = ext2Delete;
   mount->readlink = ext2Readlink;
+  mount->link = ext2Link;
 
   // assign fsInfo
   mount->fsInfo = malloc(sizeof(Ext2));
@@ -895,6 +896,59 @@ size_t ext2Delete(MountPoint *mnt, char *filename, bool directory,
 cleanup:
   free(inode);
   return ret;
+}
+
+size_t ext2Link(MountPoint *mnt, char *filename, char *target,
+                char **symlinkResolve, char **symlinkResolveTarget) {
+  Ext2    *ext2 = EXT2_PTR(mnt->fsInfo);
+  uint32_t inodeNum =
+      ext2TraversePath(ext2, filename, 2, false, symlinkResolve);
+  if (!inodeNum)
+    return ERR(ENOENT);
+
+  Ext2Inode *inode = ext2InodeFetch(ext2, inodeNum);
+  if (!inode)
+    return ERR(ENOENT);
+  if (!(inode->permission & S_IFREG || inode->permission & S_IFDIR)) {
+    free(inode);
+    return ERR(EPERM);
+  }
+
+  char *targetDir = strdup(target);
+  char *targetFilename = strrchr(targetDir, '/');
+  if (!targetFilename) {
+    free(inode);
+    free(targetDir);
+    return ERR(ENOENT);
+  }
+  *targetFilename = '\0'; // zero so targetDir works
+  targetFilename++;       // targetFilename starts afterwards
+
+  uint32_t targetDirInodeNum =
+      ext2TraversePath(ext2, targetDir, 2, false, symlinkResolveTarget);
+  if (!targetDirInodeNum) {
+    free(inode);
+    free(targetDir);
+    return ERR(ENOENT);
+  }
+
+  Ext2Inode *targetDirInode = ext2InodeFetch(ext2, targetDirInodeNum);
+  assert(targetDirInode->permission & S_IFDIR); // not checking again
+
+  // make it hard
+  inode->hard_links++;
+  ext2InodeModifyM(ext2, inodeNum, inode);
+
+  // create a directory entry
+  uint8_t dirType = inode->permission & S_IFREG ? 1 : 2;
+  ext2DirAllocate(ext2, targetDirInodeNum, targetDirInode, targetFilename,
+                  strlength(targetFilename), dirType, inodeNum);
+
+  // cleanup
+  free(inode);
+  free(targetDirInode);
+  free(targetDir);
+  return 0;
 }
 
 VfsHandlers ext2Handlers = {.open = ext2Open,

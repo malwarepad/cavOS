@@ -276,6 +276,8 @@ size_t ext2Readlink(MountPoint *mnt, char *path, char *buf, int size,
                     char **symlinkResolve);
 size_t ext2Delete(MountPoint *mnt, char *filename, bool directory,
                   char **symlinkResolve);
+size_t ext2Link(MountPoint *mnt, char *filename, char *target,
+                char **symlinkResolve, char **symlinkResolveTarget);
 
 // ext2_create.c
 size_t ext2Mkdir(MountPoint *mnt, char *dirname, uint32_t mode,

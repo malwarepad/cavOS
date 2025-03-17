@@ -253,6 +253,11 @@ static size_t syscallMkdir(char *path, uint32_t mode) {
   return fsMkdir(currentTask, path, mode);
 }
 
+#define SYSCALL_LINK 86
+static size_t syscallLink(char *oldpath, char *newpath) {
+  return fsLink(currentTask, oldpath, newpath);
+}
+
 #define SYSCALL_UNLINK 87
 static size_t syscallUnlink(char *path) {
   dbgSysExtraf("path{%s}", path);
@@ -290,6 +295,30 @@ typedef unsigned long fd_mask;
 typedef struct {
   unsigned long fds_bits[FD_SETSIZE / 8 / sizeof(long)];
 } fd_set;
+
+// todo: some issues with flags, last symlink etc. Check others too.
+#define SYSCALL_LINKAT 265
+static size_t syscallLinkat(int oldfd, char *oldname, int newfd, char *newname,
+                            int flags) {
+  if (oldname[0] == '\0' || newname[0] == '\0') { // by fd
+    return ERR(ENOSYS);
+  }
+
+  char *old = atResolvePathname(oldfd, oldname);
+  if (RET_IS_ERR((size_t)old))
+    return (size_t)old;
+
+  char *new = atResolvePathname(newfd, newname);
+  if (RET_IS_ERR((size_t)new)) {
+    atResolvePathnameCleanup(oldname, old);
+    return (size_t)new;
+  }
+
+  size_t ret = syscallLink(old, new);
+  atResolvePathnameCleanup(oldname, old);
+  atResolvePathnameCleanup(newname, new);
+  return ret;
+}
 
 #define SYSCALL_PSELECT6 270
 static size_t syscallPselect6(int nfds, fd_set *readfds, fd_set *writefds,
@@ -525,6 +554,8 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_UMASK, syscallUmask);
   registerSyscall(SYSCALL_PREAD64, syscallPread64);
   registerSyscall(SYSCALL_UNLINK, syscallUnlink);
+  registerSyscall(SYSCALL_LINK, syscallLink);
+  registerSyscall(SYSCALL_LINKAT, syscallLinkat);
   registerSyscall(SYSCALL_FSYNC, syscallFsync);
 
   registerSyscall(SYSCALL_IOCTL, syscallIoctl);

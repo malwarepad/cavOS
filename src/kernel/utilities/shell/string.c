@@ -165,3 +165,16 @@ long strtol(const char *s, char **endptr, int base) {
   }
   return (neg ? -val : val);
 }
+
+char *strrchr(const char *str, int c) {
+  const char *last = 0;
+
+  while (*str) {
+    if (*str == (char)c) {
+      last = str; // Update last occurrence
+    }
+    str++;
+  }
+
+  return (char *)last; // Cast to non-const to match standard `strrchr()`
+}

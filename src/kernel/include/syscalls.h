@@ -59,6 +59,9 @@ int dbgSysStubf(const char *format, ...);
 #define dbgSysStubf(...) ((void)0)
 #endif
 
+char *atResolvePathname(int dirfd, char *pathname);
+void  atResolvePathnameCleanup(char *pathname, char *resolved);
+
 /* Standard output handlers (io.c) */
 size_t readHandler(OpenFile *fd, uint8_t *in, size_t limit);
 size_t writeHandler(OpenFile *fd, uint8_t *out, size_t limit);
