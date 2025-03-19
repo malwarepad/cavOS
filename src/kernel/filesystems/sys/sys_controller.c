@@ -135,6 +135,21 @@ void sysSetup() {
       fakefsAddFile(&rootSys, pci, "devices", 0, S_IFDIR | S_IRUSR | S_IWUSR,
                     &fakefsRootHandlers);
 
+  FakefsFile *class =
+      fakefsAddFile(&rootSys, rootSys.rootFile, "class", 0,
+                    S_IFDIR | S_IRUSR | S_IWUSR, &fakefsRootHandlers);
+  FakefsFile *graphics =
+      fakefsAddFile(&rootSys, class, "graphics", 0, S_IFDIR | S_IRUSR | S_IWUSR,
+                    &fakefsRootHandlers);
+  FakefsFile *fb0 =
+      fakefsAddFile(&rootSys, graphics, "fb0", 0, S_IFDIR | S_IRUSR | S_IWUSR,
+                    &fakefsRootHandlers);
+  FakefsFile *device =
+      fakefsAddFile(&rootSys, fb0, "device", 0, S_IFDIR | S_IRUSR | S_IWUSR,
+                    &fakefsRootHandlers);
+  fakefsAddFile(&rootSys, device, "subsystem", "/dev/null",
+                S_IFLNK | S_IRUSR | S_IWUSR, &fakefsNoHandlers);
+
   sysSetupPci(devices);
 }
 
@@ -143,6 +158,7 @@ bool sysMount(MountPoint *mount) {
   mount->handlers = &fakefsHandlers;
   mount->stat = fakefsStat;
   mount->lstat = fakefsLstat;
+  mount->readlink = fakefsReadlink;
 
   mount->fsInfo = malloc(sizeof(FakefsOverlay));
   memset(mount->fsInfo, 0, sizeof(FakefsOverlay));

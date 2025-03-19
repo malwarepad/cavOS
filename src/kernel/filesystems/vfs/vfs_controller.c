@@ -231,9 +231,12 @@ size_t fsReadlink(void *task, char *path, char *buf, int size) {
   size_t      ret = -1;
 
   char *symlink = 0;
-  if (!mnt->readlink)
+  if (!mnt->readlink) {
+    free(safeFilename);
     return ERR(EINVAL);
-  ret = mnt->readlink(mnt, safeFilename, buf, size, &symlink);
+  }
+  char *strippedFilename = fsStripMountpoint(safeFilename, mnt);
+  ret = mnt->readlink(mnt, strippedFilename, buf, size, &symlink);
 
   free(safeFilename);
 

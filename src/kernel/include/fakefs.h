@@ -44,8 +44,11 @@ bool        fakefsStat(MountPoint *mnt, char *filename, struct stat *target,
 bool        fakefsLstat(MountPoint *mnt, char *filename, struct stat *target,
                         char **symlinkResolve);
 size_t      fakefsFstat(OpenFile *fd, stat *target);
+size_t      fakefsReadlink(MountPoint *mnt, char *path, char *buf, int size,
+                           char **symlinkResolve);
 size_t      fakefsSimpleRead(OpenFile *fd, uint8_t *out, size_t limit);
 
+VfsHandlers fakefsNoHandlers;
 VfsHandlers fakefsHandlers;
 VfsHandlers fakefsRootHandlers;
 VfsHandlers fakefsSimpleReadHandlers;

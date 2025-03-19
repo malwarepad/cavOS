@@ -177,6 +177,25 @@ VfsHandlers fakefsHandlers = {.open = fakefsOpen,
                               .write = 0,
                               .getdents64 = 0};
 
+size_t fakefsReadlink(MountPoint *mnt, char *path, char *buf, int size,
+                      char **symlinkResolve) {
+  if (size < 1)
+    return ERR(EINVAL);
+
+  FakefsOverlay *fakefs = (FakefsOverlay *)mnt->fsInfo;
+  FakefsFile    *entry = fakefsTraversePath(fakefs->fakefs->rootFile, path);
+  if (!entry)
+    return ERR(ENOENT);
+
+  if (!(entry->filetype & S_IFLNK))
+    return ERR(EINVAL);
+  assert(entry->symlink && entry->symlinkLength > 0);
+
+  size_t out = MIN(entry->symlinkLength, size);
+  memcpy(buf, entry->symlink, out);
+  return out;
+}
+
 size_t fakefsGetDents64(OpenFile *fd, struct linux_dirent64 *start,
                         unsigned int hardlimit) {
   FakefsOverlay *fakefs = (FakefsOverlay *)fd->mountPoint->fsInfo;
@@ -242,6 +261,8 @@ size_t fakefsSimpleSeek(OpenFile *file, size_t target, long int offset,
   file->pointer = target;
   return 0;
 }
+
+VfsHandlers fakefsNoHandlers = {0};
 
 VfsHandlers fakefsRootHandlers = {.open = 0,
                                   .close = 0,
