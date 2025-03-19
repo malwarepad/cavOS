@@ -109,7 +109,7 @@ size_t epollCtl(OpenFile *epollFd, int op, int fd, struct epoll_event *event) {
   }
 
   // todo
-  if (!fdNode->handlers->internalPoll || !fdNode->handlers->addWatchlist) {
+  if (!fdNode->handlers->internalPoll) {
     ret = ERR(EPERM);
     goto cleanup;
   }
@@ -136,6 +136,7 @@ size_t epollCtl(OpenFile *epollFd, int op, int fd, struct epoll_event *event) {
     }
     browse->watchEvents = event->events;
     browse->userlandData = event->data;
+    break;
   }
   case EPOLL_CTL_DEL: {
     EpollWatch *browse = epoll->firstEpollWatch;
@@ -149,10 +150,11 @@ size_t epollCtl(OpenFile *epollFd, int op, int fd, struct epoll_event *event) {
       goto cleanup;
     }
     assert(LinkedListRemove((void **)(&epoll->firstEpollWatch), browse));
+    break;
   }
   default:
     debugf("[epoll] Unhandled opcode{%d}\n", op);
-    panic();
+    panic(); // should've already been checked!
     break;
   }
 

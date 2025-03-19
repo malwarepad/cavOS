@@ -82,6 +82,20 @@ static size_t syscallGetgid() {
   return 0; // root ;)
 }
 
+#define SYSCALL_SETUID 105
+static size_t syscallSetuid(size_t uid) {
+  if (uid != 0) // no getting out of root for you :^)
+    return ERR(EPERM);
+  return 0;
+}
+
+#define SYSCALL_SETGID 106
+static size_t syscallSetgid(size_t gid) {
+  if (gid != 0) // no getting out of root for you :^)
+    return ERR(EPERM);
+  return 0;
+}
+
 #define SYSCALL_GETEUID 107
 static size_t syscallGeteuid() {
   return 0; // root ;)
@@ -172,6 +186,8 @@ void syscallsRegEnv() {
   registerSyscall(SYSCALL_GETPPID, syscallGetppid);
   registerSyscall(SYSCALL_GETPGID, syscallGetpgid);
   registerSyscall(SYSCALL_SETPGID, syscallSetpgid);
+  registerSyscall(SYSCALL_SETUID, syscallSetuid);
+  registerSyscall(SYSCALL_SETGID, syscallSetgid);
   registerSyscall(SYSCALL_PRCTL, syscallPrctl);
   registerSyscall(SYSCALL_SET_TID_ADDR, syscallSetTidAddr);
   registerSyscall(SYSCALL_GET_TID, syscallGetTid);
