@@ -8,6 +8,7 @@
 #include <syscalls.h>
 #include <system.h>
 #include <task.h>
+#include <unixSocket.h>
 #include <util.h>
 #include <vfs.h>
 
@@ -277,6 +278,10 @@ size_t fsUnlink(void *task, char *path, bool directory) {
   MountPoint *mnt = fsDetermineMountPoint(safeFilename);
 
   size_t ret = 0;
+  if (unixSocketUnlinkNotify(safeFilename)) {
+    free(safeFilename);
+    return 0;
+  }
 
   char *symlink = 0;
   if (mnt->delete) {

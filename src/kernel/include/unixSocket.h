@@ -70,4 +70,7 @@ Spinlock    LOCK_LL_UNIX_SOCKET;
 size_t unixSocketOpen(void *taskPtr, int type, int protocol);
 size_t unixSocketPair(int type, int protocol, int *sv);
 
+// "hack" since we aren't using the filename to stop bound sockets
+bool unixSocketUnlinkNotify(char *filename);
+
 #endif

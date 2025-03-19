@@ -162,23 +162,57 @@ size_t unixSocketOpen(void *taskPtr, int type, int protocol) {
   return sockFd;
 }
 
-size_t unixSocketBind(OpenFile *fd, sockaddr_linux *addr, size_t len) {
+char *unixSocketAddrSafe(sockaddr_linux *addr, size_t len) {
   if (addr->sa_family != AF_UNIX)
-    return ERR(EAFNOSUPPORT);
+    return (void *)ERR(EAFNOSUPPORT);
 
-  size_t addrLen = len - sizeof(addr->sa_family) + 1;
-  if (addrLen <= 1)
-    return ERR(EINVAL);
+  size_t addrLen = len - sizeof(addr->sa_family);
+  if (addrLen <= 0)
+    return (void *)ERR(EINVAL);
 
+  char *unsafe = calloc(addrLen + 1, 1);     // ENSURE there's a null char
+  bool  abstract = addr->sa_data[0] == '\0'; // todo: not all sockets!
+  int   skip = abstract ? 1 : 0;
+  memcpy(unsafe, &addr->sa_data[skip], addrLen - skip);
+  char *safe = fsSanitize(currentTask->cwd, unsafe);
+  free(unsafe);
+
+  return safe;
+}
+
+bool unixSocketUnlinkNotify(char *filename) {
+  size_t len = strlength(filename);
+  spinlockAcquire(&LOCK_LL_UNIX_SOCKET);
+  UnixSocket *browse = firstUnixSocket;
+  while (browse) {
+    spinlockAcquire(&browse->LOCK_SOCK);
+    if (browse->bindAddr && strlength(browse->bindAddr) == len &&
+        memcmp(browse->bindAddr, filename, len) == 0)
+      break;
+    spinlockRelease(&browse->LOCK_SOCK);
+    browse = browse->next;
+  }
+  spinlockRelease(&LOCK_LL_UNIX_SOCKET);
+
+  if (browse) {
+    // spinlock already here!
+    browse->bindAddr = 0;
+    spinlockRelease(&browse->LOCK_SOCK);
+  }
+
+  return !!browse;
+}
+
+size_t unixSocketBind(OpenFile *fd, sockaddr_linux *addr, size_t len) {
   UnixSocket *sock = fd->dir;
   if (sock->bindAddr)
     return ERR(EINVAL);
 
   // sanitize the filename
-  char *unsafe = malloc(addrLen);
-  memcpy(unsafe, addr->sa_data, addrLen);
-  char *safe = fsSanitize(currentTask->cwd, unsafe);
-  free(unsafe);
+  char *safe = unixSocketAddrSafe(addr, len);
+  if (RET_IS_ERR((size_t)(safe)))
+    return (size_t)safe;
+  dbgSysExtraf("safe{%s}", safe);
 
   // check if it already exists
   struct stat statTarg = {0};
@@ -189,6 +223,27 @@ size_t unixSocketBind(OpenFile *fd, sockaddr_linux *addr, size_t len) {
       return ERR(ENOTSOCK);
     else
       return ERR(EADDRINUSE);
+  }
+
+  // make sure there are no duplicates
+  size_t safeLen = strlength(safe);
+  spinlockAcquire(&LOCK_LL_UNIX_SOCKET);
+  UnixSocket *browse = firstUnixSocket;
+  while (browse) {
+    spinlockAcquire(&browse->LOCK_SOCK);
+    if (browse->bindAddr && strlength(browse->bindAddr) == safeLen &&
+        memcmp(safe, browse->bindAddr, safeLen) == 0)
+      break;
+    spinlockRelease(&browse->LOCK_SOCK);
+    browse = browse->next;
+  }
+  spinlockRelease(&LOCK_LL_UNIX_SOCKET);
+
+  // found a duplicate!
+  if (browse) {
+    spinlockRelease(&browse->LOCK_SOCK);
+    free(safe);
+    return ERR(EADDRINUSE);
   }
 
   sock->bindAddr = safe;
@@ -254,20 +309,11 @@ size_t unixSocketConnect(OpenFile *fd, sockaddr_linux *addr, uint32_t len) {
   if (sock->pair) // already ran connect()
     return ERR(EISCONN);
 
-  if (addr->sa_family != AF_UNIX)
-    return ERR(EAFNOSUPPORT);
-
-  // find the length
-  int addrLen = len - sizeof(addr->sa_family) + 1;
-  if (addrLen <= 1)
-    return ERR(EINVAL);
-
-  // sanitize properly
-  char *unsafe = malloc(addrLen);
-  memcpy(unsafe, addr->sa_data, addrLen);
-  char *safe = fsSanitize(currentTask->cwd, unsafe);
-  free(unsafe);
-  int safeLen = strlength(safe);
+  char *safe = unixSocketAddrSafe(addr, len);
+  if (RET_IS_ERR((size_t)(safe)))
+    return (size_t)safe;
+  size_t safeLen = strlength(safe);
+  dbgSysExtraf("safe{%s}", safe);
 
   // find object
   spinlockAcquire(&LOCK_LL_UNIX_SOCKET);
