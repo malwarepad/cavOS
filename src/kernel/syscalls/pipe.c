@@ -177,6 +177,30 @@ size_t pipeWrite(OpenFile *fd, uint8_t *in, size_t limit) {
   return ret;
 }
 
+int pipeInternalPoll(OpenFile *fd, int events) {
+  PipeSpecific *spec = (PipeSpecific *)fd->dir;
+  PipeInfo     *pipe = spec->info;
+
+  int out = 0;
+
+  spinlockAcquire(&pipe->LOCK);
+  if (events & EPOLLIN) {
+    if (!pipe->writeFds)
+      out |= EPOLLHUP;
+    else if (pipe->assigned > 0)
+      out |= EPOLLIN;
+  }
+
+  if (events & EPOLLOUT) {
+    if (!pipe->readFds)
+      out |= EPOLLERR;
+    else if (pipe->assigned < PIPE_BUFF)
+      out |= POLLOUT;
+  }
+  spinlockRelease(&pipe->LOCK);
+  return out;
+}
+
 bool pipeCloseEnd(OpenFile *readFd) {
   PipeSpecific *spec = (PipeSpecific *)readFd->dir;
   PipeInfo     *pipe = spec->info;
@@ -235,6 +259,7 @@ VfsHandlers pipeReadEnd = {.open = 0,
                            .stat = pipeStat,
                            .read = pipeRead,
                            .write = pipeBadWrite,
+                           .internalPoll = pipeInternalPoll,
                            .getdents64 = 0};
 VfsHandlers pipeWriteEnd = {.open = 0,
                             .close = pipeCloseEnd,
@@ -244,4 +269,5 @@ VfsHandlers pipeWriteEnd = {.open = 0,
                             .stat = pipeStat,
                             .read = pipeBadRead,
                             .write = pipeWrite,
+                            .internalPoll = pipeInternalPoll,
                             .getdents64 = 0};

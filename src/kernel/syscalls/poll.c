@@ -7,6 +7,7 @@
 #include <poll.h>
 #include <syscalls.h>
 #include <task.h>
+#include <timer.h>
 
 // Polling APIs & kernel helper utility
 // Copyright (C) 2025 Panagiotis
@@ -167,16 +168,32 @@ size_t epollWait(OpenFile *epollFd, struct epoll_event *events, int maxevents,
                  int timeout) {
   if (maxevents < 1)
     return ERR(EINVAL);
+  Epoll *epoll = epollFd->dir;
 
-  Epoll      *epoll = epollFd->dir;
-  EpollWatch *browse = epoll->firstEpollWatch;
-  while (browse) {
-    debugf("[x] %lx\n", browse->fd);
-    browse = browse->next;
-  }
+  // hack'y way but until I implement wake queues, it is what it is
+  int    ready = 0;
+  size_t target = timerTicks + timeout;
+  do {
+    spinlockAcquire(&epoll->LOCK_EPOLL);
+    EpollWatch *browse = epoll->firstEpollWatch;
+    while (browse && ready < maxevents) {
+      int revents =
+          browse->fd->handlers->internalPoll(browse->fd, browse->watchEvents);
+      if (revents != 0 && ready < maxevents) {
+        events[ready].events = revents;
+        events[ready].data = browse->userlandData;
+        ready++;
+      }
+      browse = browse->next;
+    }
+    spinlockRelease(&epoll->LOCK_EPOLL);
 
-  // panic(); // todo
-  return ERR(ENOSYS);
+    if (ready > 0) // break immidiately!
+      break;
+    handControl();
+  } while (timeout != 0 && (timeout == -1 || timerTicks < target));
+
+  return ready;
 }
 
 VfsHandlers epollHandlers = {.duplicate = epollDuplicate, .close = epollClose};
