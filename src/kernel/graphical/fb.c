@@ -52,8 +52,8 @@ size_t fbUserIoctl(OpenFile *fd, uint64_t request, void *arg) {
     memcpy(fb->id, "BIOS", 5);
     fb->smem_start = VirtualToPhysical((size_t)framebuffer);
     fb->smem_len = framebufferWidth * framebufferHeight * 4;
-    fb->type = FB_TYPE_VGA_PLANES;
-    fb->type_aux = FB_TYPE_VGA_PLANES;
+    fb->type = FB_TYPE_PACKED_PIXELS;
+    fb->type_aux = 0;
     fb->visual = FB_VISUAL_TRUECOLOR;
     fb->xpanstep = 0;
     fb->ypanstep = 0;
@@ -63,6 +63,14 @@ size_t fbUserIoctl(OpenFile *fd, uint64_t request, void *arg) {
     fb->mmio_len = framebufferWidth * framebufferHeight * 4;
     fb->capabilities = 0;
     return 0;
+    break;
+  }
+  case FBIOPUT_VSCREENINFO: {
+    struct fb_var_screeninfo *fb = arg;
+    (void)fb;
+    // debugf("%dx%d\n", fb->xres, fb->yres);
+    return 0;
+    break;
   }
   case FBIOGET_VSCREENINFO: {
     struct fb_var_screeninfo *fb = arg;
