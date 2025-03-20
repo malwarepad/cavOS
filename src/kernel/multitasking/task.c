@@ -45,6 +45,39 @@ void taskAttachDefTermios(Task *task) {
   }
 }
 
+TaskInfoFs *taskInfoFsAllocate() {
+  TaskInfoFs *target = calloc(sizeof(TaskInfoFs), 1);
+  target->utilizedBy = 1;
+  target->cwd = calloc(2, 1);
+  target->cwd[0] = '/';
+  target->umask = S_IWGRP | S_IWOTH;
+  return target;
+}
+
+void taskInfoFsDiscard(TaskInfoFs *target) {
+  spinlockAcquire(&target->LOCK_FS);
+  target->utilizedBy--;
+  if (!target->utilizedBy) {
+    free(target->cwd);
+    free(target);
+  } else
+    spinlockRelease(&target->LOCK_FS);
+}
+
+TaskInfoFs *taskInfoFsClone(TaskInfoFs *old) {
+  TaskInfoFs *new = taskInfoFsAllocate();
+
+  spinlockAcquire(&old->LOCK_FS);
+  new->umask = old->umask;
+  size_t len = strlength(old->cwd) + 1;
+  free(new->cwd); // no more default
+  new->cwd = malloc(len);
+  memcpy(new->cwd, old->cwd, len);
+  spinlockRelease(&old->LOCK_FS);
+
+  return new;
+}
+
 Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
                  uint32_t argc, char **argv) {
   spinlockCntWriteAcquire(&TASK_LL_MODIFY);
@@ -97,7 +130,7 @@ Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
   target->mmap_start = USER_MMAP_START;
   target->mmap_end = USER_MMAP_START;
 
-  target->umask = S_IWGRP | S_IWOTH;
+  target->infoFs = taskInfoFsAllocate();
 
   memset(target->fpuenv, 0, 512);
   ((uint16_t *)target->fpuenv)[0] = 0x37f;
@@ -277,8 +310,10 @@ int16_t taskGenerateId() {
 }
 
 size_t taskChangeCwd(char *newdir) {
-  stat  stat = {0};
-  char *safeNewdir = fsSanitize(currentTask->cwd, newdir);
+  stat stat = {0};
+  spinlockAcquire(&currentTask->infoFs->LOCK_FS);
+  char *safeNewdir = fsSanitize(currentTask->infoFs->cwd, newdir);
+  spinlockRelease(&currentTask->infoFs->LOCK_FS);
   if (!fsStatByFilename(currentTask, safeNewdir, &stat)) {
     free(safeNewdir);
     return ERR(ENOENT);
@@ -290,8 +325,10 @@ size_t taskChangeCwd(char *newdir) {
   }
 
   size_t len = strlength(safeNewdir) + 1;
-  currentTask->cwd = realloc(currentTask->cwd, len);
-  memcpy(currentTask->cwd, safeNewdir, len);
+  spinlockAcquire(&currentTask->infoFs->LOCK_FS);
+  currentTask->infoFs->cwd = realloc(currentTask->infoFs->cwd, len);
+  memcpy(currentTask->infoFs->cwd, safeNewdir, len);
+  spinlockRelease(&currentTask->infoFs->LOCK_FS);
 
   free(safeNewdir);
   return 0;
@@ -374,11 +411,8 @@ Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, bool copyPages,
 
   target->tmpRecV = currentTask->tmpRecV;
   target->firstFile = 0;
-  size_t cmwdLen = strlength(currentTask->cwd) + 1;
-  char  *newcwd = (char *)malloc(cmwdLen);
-  memcpy(newcwd, currentTask->cwd, cmwdLen);
-  target->cwd = newcwd;
-  target->umask = currentTask->umask;
+
+  target->infoFs = taskInfoFsClone(currentTask->infoFs);
 
   taskFilesCopy(currentTask, target, false);
 
@@ -481,9 +515,7 @@ void initiateTasks() {
   currentTask->state = TASK_STATE_READY;
   currentTask->pagedir = GetPageDirectory();
   currentTask->kernel_task = true;
-  currentTask->cwd = malloc(2);
-  currentTask->cwd[0] = '/';
-  currentTask->cwd[1] = '\0';
+  currentTask->infoFs = taskInfoFsAllocate();
 
   void  *tssRsp = VirtualAllocate(USER_STACK_PAGES);
   size_t tssRspSize = USER_STACK_PAGES * BLOCK_SIZE;

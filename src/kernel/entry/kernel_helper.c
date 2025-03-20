@@ -43,6 +43,9 @@ void helperReaper() {
     VirtualFree(tssRsp, USER_STACK_PAGES);
     VirtualFree(syscallRsp, USER_STACK_PAGES);
 
+    // free info splits
+    taskInfoFsDiscard(reaperTask->infoFs);
+
     // weird queue spinlock thing
     spinlockAcquire(&LOCK_SPINLOCK_QUEUE);
     if (reaperTask->spinlockQueueEntry) {

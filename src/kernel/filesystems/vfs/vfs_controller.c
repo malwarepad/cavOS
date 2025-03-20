@@ -36,7 +36,9 @@ bool fsUnregisterNode(Task *task, OpenFile *file) {
 char     *prefix = "/";
 int       openId = 3;
 OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
-  char *safeFilename = fsSanitize(task ? task->cwd : prefix, filename);
+  spinlockAcquire(&task->infoFs->LOCK_FS);
+  char *safeFilename = fsSanitize(task ? task->infoFs->cwd : prefix, filename);
+  spinlockRelease(&task->infoFs->LOCK_FS);
 
   OpenFile *target = fsRegisterNode(task);
   target->id = openId++;
@@ -225,8 +227,10 @@ size_t fsUserSeek(void *task, uint32_t fd, int offset, int whence) {
 }
 
 size_t fsReadlink(void *task, char *path, char *buf, int size) {
-  Task       *target = task;
-  char       *safeFilename = fsSanitize(target->cwd, path);
+  Task *target = task;
+  spinlockAcquire(&target->infoFs->LOCK_FS);
+  char *safeFilename = fsSanitize(target->infoFs->cwd, path);
+  spinlockRelease(&target->infoFs->LOCK_FS);
   MountPoint *mnt = fsDetermineMountPoint(safeFilename);
   size_t      ret = -1;
 
@@ -250,8 +254,10 @@ size_t fsReadlink(void *task, char *path, char *buf, int size) {
 }
 
 size_t fsMkdir(void *task, char *path, uint32_t mode) {
-  Task       *target = (Task *)task;
-  char       *safeFilename = fsSanitize(target->cwd, path);
+  Task *target = (Task *)task;
+  spinlockAcquire(&target->infoFs->LOCK_FS);
+  char *safeFilename = fsSanitize(target->infoFs->cwd, path);
+  spinlockRelease(&target->infoFs->LOCK_FS);
   MountPoint *mnt = fsDetermineMountPoint(safeFilename);
 
   size_t ret = 0;
@@ -276,8 +282,10 @@ size_t fsMkdir(void *task, char *path, uint32_t mode) {
 }
 
 size_t fsUnlink(void *task, char *path, bool directory) {
-  Task       *target = (Task *)task;
-  char       *safeFilename = fsSanitize(target->cwd, path);
+  Task *target = (Task *)task;
+  spinlockAcquire(&target->infoFs->LOCK_FS);
+  char *safeFilename = fsSanitize(target->infoFs->cwd, path);
+  spinlockRelease(&target->infoFs->LOCK_FS);
   MountPoint *mnt = fsDetermineMountPoint(safeFilename);
 
   size_t ret = 0;
@@ -306,9 +314,11 @@ size_t fsUnlink(void *task, char *path, bool directory) {
 }
 
 size_t fsLink(void *task, char *oldpath, char *newpath) {
-  Task       *target = (Task *)task;
-  char       *oldpathSafe = fsSanitize(target->cwd, oldpath);
-  char       *newpathSafe = fsSanitize(target->cwd, newpath);
+  Task *target = (Task *)task;
+  spinlockAcquire(&target->infoFs->LOCK_FS);
+  char *oldpathSafe = fsSanitize(target->infoFs->cwd, oldpath);
+  char *newpathSafe = fsSanitize(target->infoFs->cwd, newpath);
+  spinlockRelease(&target->infoFs->LOCK_FS);
   MountPoint *mnt = fsDetermineMountPoint(oldpathSafe);
   if (fsDetermineMountPoint(newpathSafe) != mnt) {
     free(oldpathSafe);

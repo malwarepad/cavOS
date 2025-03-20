@@ -11,11 +11,15 @@ static size_t syscallGetPid() { return currentTask->id; }
 
 #define SYSCALL_GETCWD 79
 static size_t syscallGetcwd(char *buff, size_t size) {
-  size_t realLength = strlength(currentTask->cwd) + 1;
-  if (size < realLength)
+  spinlockAcquire(&currentTask->infoFs->LOCK_FS);
+  size_t realLength = strlength(currentTask->infoFs->cwd) + 1;
+  if (size < realLength) {
+    spinlockRelease(&currentTask->infoFs->LOCK_FS);
     return ERR(ERANGE);
-  memcpy(buff, currentTask->cwd, realLength);
+  }
+  memcpy(buff, currentTask->infoFs->cwd, realLength);
 
+  spinlockRelease(&currentTask->infoFs->LOCK_FS);
   return realLength;
 }
 

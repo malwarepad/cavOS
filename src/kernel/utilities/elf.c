@@ -217,10 +217,10 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
     ChangePageDirectory(oldpagedir);
   }*/
 
-  // Current working directory init
-  target->cwd = (char *)malloc(2);
-  target->cwd[0] = '/';
-  target->cwd[1] = '\0';
+  // Current working directory init (should be already done in task.c)
+  // target->cwd = (char *)malloc(2);
+  // target->cwd[0] = '/';
+  // target->cwd[1] = '\0';
 
   // User stack generation: the stack itself, AUXs, etc...
   stackGenerateUser(target, argc, argv, envc, envv, out, filesize, elf_ehdr,

@@ -140,7 +140,9 @@ void freeArgvIfNeeded(char **argv) {
 static size_t syscallExecve(char *filename, char **argv, char **envp) {
   assert(argv[0]); // shebang support depends on it atm. check (dep)
   dbgSysExtraf("filename{%s}", filename);
-  char    *filenameSanitized = fsSanitize(currentTask->cwd, filename);
+  spinlockAcquire(&currentTask->infoFs->LOCK_FS);
+  char *filenameSanitized = fsSanitize(currentTask->infoFs->cwd, filename);
+  spinlockRelease(&currentTask->infoFs->LOCK_FS);
   uint8_t *buff = calloc(256, 1);
 
   // do a read to check for alternatives, elfExecute() still does its checks
@@ -220,10 +222,8 @@ static size_t syscallExecve(char *filename, char **argv, char **envp) {
 
   ret->id = targetId;
   ret->parent = currentTask->parent;
-  size_t cwdLen = strlength(currentTask->cwd) + 1;
-  ret->cwd = malloc(cwdLen);
-  memcpy(ret->cwd, currentTask->cwd, cwdLen);
-  ret->umask = currentTask->umask;
+  taskInfoFsDiscard(ret->infoFs);
+  ret->infoFs = taskInfoFsClone(currentTask->infoFs);
 
   taskFilesEmpty(ret);
   taskFilesCopy(currentTask, ret, true);

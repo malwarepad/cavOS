@@ -174,7 +174,9 @@ char *unixSocketAddrSafe(sockaddr_linux *addr, size_t len) {
   bool  abstract = addr->sa_data[0] == '\0'; // todo: not all sockets!
   int   skip = abstract ? 1 : 0;
   memcpy(unsafe, &addr->sa_data[skip], addrLen - skip);
-  char *safe = fsSanitize(currentTask->cwd, unsafe);
+  spinlockAcquire(&currentTask->infoFs->LOCK_FS);
+  char *safe = fsSanitize(currentTask->infoFs->cwd, unsafe);
+  spinlockRelease(&currentTask->infoFs->LOCK_FS);
   free(unsafe);
 
   return safe;

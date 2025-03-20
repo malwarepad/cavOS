@@ -16,7 +16,10 @@ bool fsStat(OpenFile *fd, stat *target) {
 }
 
 bool fsStatByFilename(void *task, char *filename, stat *target) {
-  char *safeFilename = fsSanitize(((Task *)task)->cwd, filename);
+  Task *t = (Task *)task;
+  spinlockAcquire(&t->infoFs->LOCK_FS);
+  char *safeFilename = fsSanitize(t->infoFs->cwd, filename);
+  spinlockRelease(&t->infoFs->LOCK_FS);
 
   MountPoint *mnt = fsDetermineMountPoint(safeFilename);
   bool        ret = false;
@@ -42,7 +45,10 @@ cleanup:
 }
 
 bool fsLstatByFilename(void *task, char *filename, stat *target) {
-  char *safeFilename = fsSanitize(((Task *)task)->cwd, filename);
+  Task *t = (Task *)task;
+  spinlockAcquire(&t->infoFs->LOCK_FS);
+  char *safeFilename = fsSanitize(t->infoFs->cwd, filename);
+  spinlockRelease(&t->infoFs->LOCK_FS);
 
   MountPoint *mnt = fsDetermineMountPoint(safeFilename);
   bool        ret = false;

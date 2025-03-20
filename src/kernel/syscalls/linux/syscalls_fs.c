@@ -249,7 +249,9 @@ static size_t syscallFsync(int fd) {
 #define SYSCALL_MKDIR 83
 static size_t syscallMkdir(char *path, uint32_t mode) {
   dbgSysExtraf("path{%s}", path);
-  mode &= ~(currentTask->umask);
+  spinlockAcquire(&currentTask->infoFs->LOCK_FS);
+  mode &= ~(currentTask->infoFs->umask);
+  spinlockRelease(&currentTask->infoFs->LOCK_FS);
   return fsMkdir(currentTask, path, mode);
 }
 
@@ -272,8 +274,10 @@ static size_t syscallReadlink(char *path, char *buf, int size) {
 
 #define SYSCALL_UMASK 95
 static size_t syscallUmask(uint32_t mask) {
-  int old = currentTask->umask;
-  currentTask->umask = mask & 0777;
+  spinlockAcquire(&currentTask->infoFs->LOCK_FS);
+  int old = currentTask->infoFs->umask;
+  currentTask->infoFs->umask = mask & 0777;
+  spinlockRelease(&currentTask->infoFs->LOCK_FS);
   return old;
 }
 

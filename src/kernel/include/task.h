@@ -51,6 +51,18 @@ typedef struct KilledInfo {
 
 typedef struct Task Task;
 
+typedef struct TaskInfoFs {
+  Spinlock LOCK_FS;
+  int      utilizedBy;
+
+  char    *cwd;
+  uint32_t umask;
+} TaskInfoFs;
+
+TaskInfoFs *taskInfoFsAllocate();
+TaskInfoFs *taskInfoFsClone(TaskInfoFs *old);
+void        taskInfoFsDiscard(TaskInfoFs *target);
+
 struct Task {
   uint64_t id;
   int      pgid;
@@ -86,8 +98,7 @@ struct Task {
   uint32_t tmpRecV;
   void    *spinlockQueueEntry; // check on kill!
 
-  char    *cwd;
-  uint32_t umask;
+  TaskInfoFs *infoFs;
 
   SpinlockCnt WLOCK_FILES;
   OpenFile   *firstFile;
