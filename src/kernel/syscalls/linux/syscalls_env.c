@@ -161,7 +161,7 @@ static size_t syscallGetTid() { return currentTask->id; }
 
 #define SYSCALL_SET_TID_ADDR 218
 static size_t syscallSetTidAddr(int *tidptr) {
-  *tidptr = currentTask->id;
+  // todo: tidptr + futex() WAKEUP!
   return currentTask->id;
 }
 
