@@ -54,7 +54,9 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint32_t envc,
 
   // yeah, we will need to construct a stackframe...
   void *oldPagedir = GetPageDirectory();
-  ChangePageDirectory(target->pagedir);
+  spinlockAcquire(&target->infoPd->LOCK_PD);
+  ChangePageDirectory(target->infoPd->pagedir);
+  spinlockRelease(&target->infoPd->LOCK_PD);
 
   stackGenerateMutual(target);
 
@@ -174,7 +176,9 @@ void taskKernelReturn() {
 
 void stackGenerateKernel(Task *target, uint64_t parameter) {
   void *oldPagedir = GetPageDirectory();
-  ChangePageDirectory(target->pagedir);
+  spinlockAcquire(&target->infoPd->LOCK_PD);
+  ChangePageDirectory(target->infoPd->pagedir);
+  spinlockRelease(&target->infoPd->LOCK_PD);
 
   stackGenerateMutual(target);
   target->registers.rdi = parameter;

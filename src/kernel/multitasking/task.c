@@ -45,39 +45,6 @@ void taskAttachDefTermios(Task *task) {
   }
 }
 
-TaskInfoFs *taskInfoFsAllocate() {
-  TaskInfoFs *target = calloc(sizeof(TaskInfoFs), 1);
-  target->utilizedBy = 1;
-  target->cwd = calloc(2, 1);
-  target->cwd[0] = '/';
-  target->umask = S_IWGRP | S_IWOTH;
-  return target;
-}
-
-void taskInfoFsDiscard(TaskInfoFs *target) {
-  spinlockAcquire(&target->LOCK_FS);
-  target->utilizedBy--;
-  if (!target->utilizedBy) {
-    free(target->cwd);
-    free(target);
-  } else
-    spinlockRelease(&target->LOCK_FS);
-}
-
-TaskInfoFs *taskInfoFsClone(TaskInfoFs *old) {
-  TaskInfoFs *new = taskInfoFsAllocate();
-
-  spinlockAcquire(&old->LOCK_FS);
-  new->umask = old->umask;
-  size_t len = strlength(old->cwd) + 1;
-  free(new->cwd); // no more default
-  new->cwd = malloc(len);
-  memcpy(new->cwd, old->cwd, len);
-  spinlockRelease(&old->LOCK_FS);
-
-  return new;
-}
-
 Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
                  uint32_t argc, char **argv) {
   spinlockCntWriteAcquire(&TASK_LL_MODIFY);
@@ -112,7 +79,9 @@ Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
   target->id = id;
   target->kernel_task = kernel_task;
   target->state = TASK_STATE_CREATED; // TASK_STATE_READY
-  target->pagedir = pagedir;
+  // target->pagedir = pagedir;
+  target->infoPd = taskInfoPdAllocate(false);
+  target->infoPd->pagedir = pagedir; // no lock cause only we use it
 
   void  *tssRsp = VirtualAllocate(USER_STACK_PAGES);
   size_t tssRspSize = USER_STACK_PAGES * BLOCK_SIZE;
@@ -208,7 +177,7 @@ void taskKill(uint32_t id, uint16_t ret) {
     return;
 
   // We'll need this later
-  bool parentVfork = task->parent->state == TASK_STATE_WAITING_VFORK;
+  // bool parentVfork = task->parent->state == TASK_STATE_WAITING_VFORK;
 
   // Notify that poor parent... they must've been searching all over the
   // place!
@@ -238,8 +207,9 @@ void taskKill(uint32_t id, uint16_t ret) {
     fsUserClose(task, id);
   }
 
-  if (!parentVfork)
-    PageDirectoryFree(task->pagedir);
+  // if (!parentVfork)
+  //   PageDirectoryFree(task->pagedir);
+  taskInfoPdDiscard(task->infoPd);
   // ^ only changes userspace locations so we don't need to change our pagedir
 
   // the "reaper" thread will finish everything in a safe context
@@ -356,7 +326,7 @@ void taskFilesCopy(Task *original, Task *target, bool respectCOE) {
   }
 }
 
-Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, bool copyPages,
+Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
                bool spinup) {
   spinlockCntWriteAcquire(&TASK_LL_MODIFY);
   Task *browse = firstTask;
@@ -374,12 +344,15 @@ Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, bool copyPages,
   browse->next = target;
   spinlockCntWriteRelease(&TASK_LL_MODIFY);
 
-  if (copyPages) {
-    uint64_t *targetPagedir = PageDirectoryAllocate();
-    PageDirectoryUserDuplicate(currentTask->pagedir, targetPagedir);
-    target->pagedir = targetPagedir;
-  } else
-    target->pagedir = currentTask->pagedir;
+  if (!(cloneFlags & CLONE_VM)) {
+    target->infoPd = taskInfoPdClone(currentTask->infoPd);
+  } else {
+    TaskInfoPagedir *share = currentTask->infoPd;
+    spinlockAcquire(&share->LOCK_PD);
+    share->utilizedBy++;
+    spinlockRelease(&share->LOCK_PD);
+    target->infoPd = share; // share it yk!
+  }
 
   target->id = taskGenerateId();
   target->pgid = currentTask->pgid;
@@ -513,7 +486,8 @@ void initiateTasks() {
   currentTask = firstTask;
   currentTask->id = KERNEL_TASK_ID;
   currentTask->state = TASK_STATE_READY;
-  currentTask->pagedir = GetPageDirectory();
+  currentTask->infoPd = taskInfoPdAllocate(false);
+  currentTask->infoPd->pagedir = GetPageDirectory();
   currentTask->kernel_task = true;
   currentTask->infoFs = taskInfoFsAllocate();
 

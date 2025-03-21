@@ -104,7 +104,9 @@ void schedule(uint64_t rsp) {
   //   - applies the new pagetable
   //   - cleanups old killed task (if necessary)
   // .. basically replaces all (not needed!) stuff
-  ChangePageDirectoryFake(next->pagedir); // just for globalPagedir to update
-  asm_finalize_sched((size_t)iretqRsp, VirtualToPhysical((size_t)next->pagedir),
-                     old);
+  uint64_t *pagedir =
+      next->pagedirOverride ? next->pagedirOverride : next->infoPd->pagedir;
+  ChangePageDirectoryFake(pagedir);
+  // ^ just for globalPagedir to update (note potential race cond)
+  asm_finalize_sched((size_t)iretqRsp, VirtualToPhysical((size_t)pagedir), old);
 }

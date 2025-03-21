@@ -51,6 +51,7 @@ typedef struct KilledInfo {
 
 typedef struct Task Task;
 
+// task_info.c
 typedef struct TaskInfoFs {
   Spinlock LOCK_FS;
   int      utilizedBy;
@@ -63,6 +64,17 @@ TaskInfoFs *taskInfoFsAllocate();
 TaskInfoFs *taskInfoFsClone(TaskInfoFs *old);
 void        taskInfoFsDiscard(TaskInfoFs *target);
 
+typedef struct TaskInfoPagedir {
+  Spinlock LOCK_PD;
+  int      utilizedBy;
+
+  uint64_t *pagedir;
+} TaskInfoPagedir;
+
+TaskInfoPagedir *taskInfoPdAllocate(bool pagedir);
+TaskInfoPagedir *taskInfoPdClone(TaskInfoPagedir *old);
+void             taskInfoPdDiscard(TaskInfoPagedir *target);
+
 struct Task {
   uint64_t id;
   int      pgid;
@@ -72,9 +84,12 @@ struct Task {
   uint64_t waitingForPid; // wait4()
 
   AsmPassedInterrupt registers;
-  uint64_t          *pagedir;
-  uint64_t           whileTssRsp;
-  uint64_t           whileSyscallRsp;
+  // uint64_t          *pagedir;
+  uint64_t whileTssRsp;
+  uint64_t whileSyscallRsp;
+
+  // needed for syscalls
+  uint64_t *pagedirOverride;
 
   bool systemCallInProgress;
   bool schedPageFault;
@@ -98,7 +113,8 @@ struct Task {
   uint32_t tmpRecV;
   void    *spinlockQueueEntry; // check on kill!
 
-  TaskInfoFs *infoFs;
+  TaskInfoFs      *infoFs;
+  TaskInfoPagedir *infoPd;
 
   SpinlockCnt WLOCK_FILES;
   OpenFile   *firstFile;
@@ -156,7 +172,7 @@ void  taskFreeChildren(Task *task);
 Task *taskGet(uint32_t id);
 int16_t taskGenerateId();
 size_t  taskChangeCwd(char *newdir);
-Task   *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, bool copyPages,
+Task   *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
                  bool spinup);
 void    taskFilesCopy(Task *original, Task *target, bool respectCOE);
 void    taskFilesEmpty(Task *task);

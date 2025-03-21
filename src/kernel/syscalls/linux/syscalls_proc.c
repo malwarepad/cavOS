@@ -53,15 +53,15 @@ static size_t syscallClone(uint64_t flags, uint64_t newsp, void *parent_tid,
     return ERR(ENOSYS);
   }
 
-  bool  copyPages = !(flags & CLONE_VM);
   Task *newTask =
       taskFork(currentTask->syscallRegs,
-               newsp ? newsp : currentTask->syscallRsp, copyPages, false);
+               newsp ? newsp : currentTask->syscallRsp, flags, false);
   uint64_t id = newTask->id;
 
   // no race condition today :")
   taskCreateFinish(newTask);
 
+  // potential race condition here and on the respective one below
   if (flags & CLONE_VFORK) {
     currentTask->state = TASK_STATE_WAITING_VFORK;
     handControl();
@@ -72,15 +72,15 @@ static size_t syscallClone(uint64_t flags, uint64_t newsp, void *parent_tid,
 
 #define SYSCALL_FORK 57
 static size_t syscallFork() {
-  return taskFork(currentTask->syscallRegs, currentTask->syscallRsp, true, true)
+  return taskFork(currentTask->syscallRegs, currentTask->syscallRsp, 0, true)
       ->id;
 }
 
 #define SYSCALL_VFORK 58
 static size_t syscallVfork() {
-  Task *newTask =
-      taskFork(currentTask->syscallRegs, currentTask->syscallRsp, false, false);
-  int id = newTask->id;
+  Task *newTask = taskFork(currentTask->syscallRegs, currentTask->syscallRsp,
+                           CLONE_VM, false);
+  int   id = newTask->id;
 
   // no race condition today :")
   taskCreateFinish(newTask);

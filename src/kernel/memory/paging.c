@@ -130,12 +130,29 @@ void ChangePageDirectoryFake(uint64_t *pd) {
 }
 
 void ChangePageDirectory(uint64_t *pd) {
-  if (tasksInitiated)
-    currentTask->pagedir = pd;
+  if (tasksInitiated) {
+    spinlockAcquire(&currentTask->infoPd->LOCK_PD);
+    if (pd == currentTask->infoPd->pagedir)
+      currentTask->pagedirOverride = 0;
+    else
+      currentTask->pagedirOverride = pd;
+    spinlockRelease(&currentTask->infoPd->LOCK_PD);
+  }
   ChangePageDirectoryUnsafe(pd);
 }
 
 uint64_t *GetPageDirectory() { return (uint64_t *)globalPagedir; }
+
+uint64_t *GetTaskPageDirectory(void *taskPtr) {
+  Task *task = (Task *)taskPtr;
+
+  TaskInfoPagedir *info = task->infoPd;
+  spinlockAcquire(&info->LOCK_PD);
+  uint64_t *ret = task->pagedirOverride ? task->pagedirOverride : info->pagedir;
+  spinlockRelease(&info->LOCK_PD);
+
+  return ret;
+}
 
 void invalidate(uint64_t vaddr) { asm volatile("invlpg %0" ::"m"(vaddr)); }
 
@@ -268,7 +285,7 @@ uint64_t *PageDirectoryAllocate() {
 
   memset(out, 0, PAGE_SIZE);
 
-  uint64_t *model = taskGet(KERNEL_TASK_ID)->pagedir;
+  uint64_t *model = GetTaskPageDirectory(taskGet(KERNEL_TASK_ID));
   for (int i = 0; i < 512; i++)
     out[i] = model[i];
 

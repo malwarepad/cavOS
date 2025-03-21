@@ -115,6 +115,7 @@ void syscallHandler(AsmPassedInterrupt *regs) {
   regs->rax = ret;
 
 cleanup:
+  assert(!currentTask->pagedirOverride); // no overrides on kernel space leave!
   currentTask->syscallRsp = 0;
   currentTask->syscallRegs = 0;
   currentTask->systemCallInProgress = false;
