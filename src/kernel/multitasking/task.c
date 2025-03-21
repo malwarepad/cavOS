@@ -200,8 +200,15 @@ void taskKill(uint32_t id, uint16_t ret) {
     task->parent->state = TASK_STATE_READY;
 
   // close any left open files
-  taskInfoFilesDiscard(task->infoFiles, task);
+  OpenFile *file = task->firstFile;
+  while (file) {
+    int id = file->id;
+    file = file->next;
+    fsUserClose(task, id);
+  }
 
+  // if (!parentVfork)
+  //   PageDirectoryFree(task->pagedir);
   taskInfoPdDiscard(task->infoPd);
   // ^ only changes userspace locations so we don't need to change our pagedir
 
@@ -297,24 +304,26 @@ size_t taskChangeCwd(char *newdir) {
   return 0;
 }
 
-void taskFilesCopy(Task *original, Task *target, bool respectCOE) {
-  TaskInfoFiles *originalInfo = original->infoFiles;
-  TaskInfoFiles *targetInfo = target->infoFiles;
+void taskFilesEmpty(Task *task) {
+  OpenFile *realFile = task->firstFile;
+  while (realFile) {
+    OpenFile *next = realFile->next;
+    fsUserClose(task, realFile->id);
+    realFile = next;
+  }
+}
 
-  spinlockCntReadAcquire(&originalInfo->WLOCK_FILES);
-  spinlockCntWriteAcquire(&targetInfo->WLOCK_FILES);
-  OpenFile *realFile = originalInfo->firstFile;
+void taskFilesCopy(Task *original, Task *target, bool respectCOE) {
+  OpenFile *realFile = original->firstFile;
   while (realFile) {
     if (respectCOE && realFile->closeOnExec) {
       realFile = realFile->next;
       continue;
     }
     OpenFile *targetFile = fsUserDuplicateNodeUnsafe(realFile);
-    LinkedListPushFrontUnsafe((void **)(&targetInfo->firstFile), targetFile);
+    LinkedListPushFrontUnsafe((void **)(&target->firstFile), targetFile);
     realFile = realFile->next;
   }
-  spinlockCntWriteRelease(&targetInfo->WLOCK_FILES);
-  spinlockCntReadRelease(&originalInfo->WLOCK_FILES);
 }
 
 Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
@@ -374,7 +383,7 @@ Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
   target->term = currentTask->term;
 
   target->tmpRecV = currentTask->tmpRecV;
-  // target->firstFile = 0;
+  target->firstFile = 0;
 
   if (!(cloneFlags & CLONE_FS))
     target->infoFs = taskInfoFsClone(currentTask->infoFs);
@@ -386,7 +395,6 @@ Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
     target->infoFs = share;
   }
 
-  target->infoFiles = taskInfoFilesAllocate();
   taskFilesCopy(currentTask, target, false);
 
   // returns zero yk
@@ -490,7 +498,6 @@ void initiateTasks() {
   currentTask->infoPd->pagedir = GetPageDirectory();
   currentTask->kernel_task = true;
   currentTask->infoFs = taskInfoFsAllocate();
-  currentTask->infoFiles = taskInfoFilesAllocate();
 
   void  *tssRsp = VirtualAllocate(USER_STACK_PAGES);
   size_t tssRspSize = USER_STACK_PAGES * BLOCK_SIZE;

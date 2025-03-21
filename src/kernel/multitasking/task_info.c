@@ -75,31 +75,6 @@ void taskInfoPdDiscard(TaskInfoPagedir *target) {
   target->utilizedBy--;
   if (!target->utilizedBy) {
     PageDirectoryFree(target->pagedir);
-    free(target);
   } else
     spinlockRelease(&target->LOCK_PD);
-}
-
-// CLONE_FILES
-TaskInfoFiles *taskInfoFilesAllocate() {
-  TaskInfoFiles *target = calloc(sizeof(TaskInfoFiles), 1);
-  target->utilizedBy = 1;
-  return target;
-}
-
-void taskInfoFilesDiscard(TaskInfoFiles *target, void *task) {
-  spinlockCntWriteAcquire(&target->WLOCK_FILES);
-  target->utilizedBy--;
-  if (!target->utilizedBy) {
-    // we don't care about locks anymore (we are alone in the darkness)
-    spinlockCntWriteRelease(&target->WLOCK_FILES);
-    OpenFile *file = target->firstFile;
-    while (file) {
-      int id = file->id;
-      file = file->next;
-      fsUserClose(task, id);
-    }
-    free(target);
-  } else
-    spinlockCntWriteRelease(&target->WLOCK_FILES);
 }

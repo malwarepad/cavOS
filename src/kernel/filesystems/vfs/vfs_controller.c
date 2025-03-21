@@ -16,19 +16,17 @@
 // Copyright (C) 2024 Panagiotis
 
 OpenFile *fsRegisterNode(Task *task) {
-  TaskInfoFiles *info = task->infoFiles;
-  spinlockCntWriteAcquire(&info->WLOCK_FILES);
+  spinlockCntWriteAcquire(&task->WLOCK_FILES);
   OpenFile *ret =
-      LinkedListAllocate((void **)&info->firstFile, sizeof(OpenFile));
-  spinlockCntWriteRelease(&info->WLOCK_FILES);
+      LinkedListAllocate((void **)&task->firstFile, sizeof(OpenFile));
+  spinlockCntWriteRelease(&task->WLOCK_FILES);
   return ret;
 }
 
 bool fsUnregisterNode(Task *task, OpenFile *file) {
-  TaskInfoFiles *info = task->infoFiles;
-  spinlockCntWriteAcquire(&info->WLOCK_FILES);
-  bool ret = LinkedListUnregister((void **)&info->firstFile, file);
-  spinlockCntWriteRelease(&info->WLOCK_FILES);
+  spinlockCntWriteAcquire(&task->WLOCK_FILES);
+  bool ret = LinkedListUnregister((void **)&task->firstFile, file);
+  spinlockCntWriteRelease(&task->WLOCK_FILES);
   return ret;
 }
 
@@ -110,31 +108,29 @@ OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original) {
 }
 
 OpenFile *fsUserDuplicateNode(void *taskPtr, OpenFile *original) {
-  Task          *task = (Task *)taskPtr;
-  TaskInfoFiles *info = task->infoFiles;
+  Task *task = (Task *)taskPtr;
 
   OpenFile *target = fsUserDuplicateNodeUnsafe(original);
   target->id = openId++;
 
-  spinlockCntWriteAcquire(&info->WLOCK_FILES);
-  LinkedListPushFrontUnsafe((void **)(&info->firstFile), target);
-  spinlockCntWriteRelease(&info->WLOCK_FILES);
+  spinlockCntWriteAcquire(&task->WLOCK_FILES);
+  LinkedListPushFrontUnsafe((void **)(&task->firstFile), target);
+  spinlockCntWriteRelease(&task->WLOCK_FILES);
 
   return target;
 }
 
 OpenFile *fsUserGetNode(void *task, int fd) {
-  Task          *target = (Task *)task;
-  TaskInfoFiles *info = target->infoFiles;
-  spinlockCntReadAcquire(&info->WLOCK_FILES);
-  OpenFile *browse = info->firstFile;
+  Task *target = (Task *)task;
+  spinlockCntReadAcquire(&target->WLOCK_FILES);
+  OpenFile *browse = target->firstFile;
   while (browse) {
     if (browse->id == fd)
       break;
 
     browse = browse->next;
   }
-  spinlockCntReadRelease(&info->WLOCK_FILES);
+  spinlockCntReadRelease(&target->WLOCK_FILES);
 
   return browse;
 }

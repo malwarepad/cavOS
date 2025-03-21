@@ -128,31 +128,12 @@ bool run(char *binary, bool wait, int _argc, char **_argv) {
   char *argv[] = {binary};
   Task *task = 0;
   if (_argc > 0)
-    task = elfExecute(binary, _argc, _argv, 0, 0, false);
+    task = elfExecute(binary, _argc, _argv, 0, 0, true);
   else
-    task = elfExecute(binary, 1, argv, 0, 0, false);
-  if (!task)
-    return false;
-
+    task = elfExecute(binary, 1, argv, 0, 0, true);
   task->parent = currentTask;
-  int stdin = fsUserOpen(task, "/dev/stdin", O_RDWR | O_APPEND, 0);
-  int stdout = fsUserOpen(task, "/dev/stdout", O_RDWR | O_APPEND, 0);
-  int stderr = fsUserOpen(task, "/dev/stderr", O_RDWR | O_APPEND, 0);
 
-  if (stdin < 0 || stdout < 0 || stderr < 0) {
-    debugf("[elf] Couldn't establish basic IO!\n");
-    panic();
-  }
-
-  OpenFile *fdStdin = fsUserGetNode(task, stdin);
-  OpenFile *fdStdout = fsUserGetNode(task, stdout);
-  OpenFile *fdStderr = fsUserGetNode(task, stderr);
-
-  fdStdin->id = 0;
-  fdStdout->id = 1;
-  fdStderr->id = 2;
-
-  taskCreateFinish(task);
+  bool ret = !!task;
 
   if (task && wait) {
     currentTask->state = TASK_STATE_WAITING_CHILD;
@@ -161,7 +142,7 @@ bool run(char *binary, bool wait, int _argc, char **_argv) {
     //   ;
   }
 
-  return true;
+  return ret;
 }
 
 void launch_shell(int n) {
