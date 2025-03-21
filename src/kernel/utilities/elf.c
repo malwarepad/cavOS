@@ -235,23 +235,7 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
   // fsUserOpenSpecial(a, "/dev/fb0", target, -1, &fb0);
   // fsUserOpenSpecial(a, "/dev/tty", target, -1, &stdio);
 
-  int stdin = fsUserOpen(target, "/dev/stdin", O_RDWR | O_APPEND, 0);
-  int stdout = fsUserOpen(target, "/dev/stdout", O_RDWR | O_APPEND, 0);
-  int stderr = fsUserOpen(target, "/dev/stderr", O_RDWR | O_APPEND, 0);
-
-  if (stdin < 0 || stdout < 0 || stderr < 0) {
-    debugf("[elf] Couldn't establish basic IO!\n");
-    panic();
-  }
-
-  OpenFile *fdStdin = fsUserGetNode(target, stdin);
-  OpenFile *fdStdout = fsUserGetNode(target, stdout);
-  OpenFile *fdStderr = fsUserGetNode(target, stderr);
-
-  fdStdin->id = 0;
-  fdStdout->id = 1;
-  fdStderr->id = 2;
-  // todo fixup all of the ^
+  target->infoFiles = taskInfoFilesAllocate();
 
   // Align it, just in case...
   taskAdjustHeap(target, DivRoundUp(target->heap_end, 0x1000) * 0x1000,

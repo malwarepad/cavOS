@@ -75,6 +75,16 @@ TaskInfoPagedir *taskInfoPdAllocate(bool pagedir);
 TaskInfoPagedir *taskInfoPdClone(TaskInfoPagedir *old);
 void             taskInfoPdDiscard(TaskInfoPagedir *target);
 
+typedef struct TaskInfoFiles {
+  SpinlockCnt WLOCK_FILES;
+  int         utilizedBy;
+
+  OpenFile *firstFile;
+} TaskInfoFiles;
+
+TaskInfoFiles *taskInfoFilesAllocate();
+void           taskInfoFilesDiscard(TaskInfoFiles *target, void *task);
+
 struct Task {
   uint64_t id;
   int      pgid;
@@ -115,9 +125,7 @@ struct Task {
 
   TaskInfoFs      *infoFs;
   TaskInfoPagedir *infoPd;
-
-  SpinlockCnt WLOCK_FILES;
-  OpenFile   *firstFile;
+  TaskInfoFiles   *infoFiles;
 
   __attribute__((aligned(16))) uint8_t fpuenv[512];
   uint32_t                             mxcsr;
@@ -175,6 +183,5 @@ size_t  taskChangeCwd(char *newdir);
 Task   *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
                  bool spinup);
 void    taskFilesCopy(Task *original, Task *target, bool respectCOE);
-void    taskFilesEmpty(Task *task);
 
 #endif

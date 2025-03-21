@@ -225,7 +225,6 @@ static size_t syscallExecve(char *filename, char **argv, char **envp) {
   taskInfoFsDiscard(ret->infoFs);
   ret->infoFs = taskInfoFsClone(currentTask->infoFs);
 
-  taskFilesEmpty(ret);
   taskFilesCopy(currentTask, ret, true);
 
   taskCreateFinish(ret);

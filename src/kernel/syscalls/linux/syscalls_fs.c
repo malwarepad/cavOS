@@ -185,7 +185,10 @@ static size_t syscallDup2(uint32_t oldFd, uint32_t newFd) {
   OpenFile *targetFile = fsUserDuplicateNodeUnsafe(realFile);
   targetFile->closeOnExec = 0; // does not persist
 
-  LinkedListPushFrontUnsafe((void **)(&currentTask->firstFile), targetFile);
+  TaskInfoFiles *info = currentTask->infoFiles;
+  spinlockCntWriteAcquire(&info->WLOCK_FILES);
+  LinkedListPushFrontUnsafe((void **)(&info->firstFile), targetFile);
+  spinlockCntWriteRelease(&info->WLOCK_FILES);
 
   targetFile->id = newFd;
   return newFd;
