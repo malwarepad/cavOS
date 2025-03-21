@@ -47,7 +47,7 @@ cleanup:
 static size_t syscallClone(uint64_t flags, uint64_t newsp, void *parent_tid,
                            void *child_tid, uint64_t tid) {
   // 17 is SIGCHLD which we ignore
-  uint64_t supported_flags = CLONE_VFORK | CLONE_VM | 17;
+  uint64_t supported_flags = CLONE_VFORK | CLONE_VM | CLONE_FS | 17;
   if ((flags & ~supported_flags) != 0) {
     dbgSysStubf("todo more flags %lx", (flags & ~supported_flags));
     return ERR(ENOSYS);

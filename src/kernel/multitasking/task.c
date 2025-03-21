@@ -385,7 +385,15 @@ Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
   target->tmpRecV = currentTask->tmpRecV;
   target->firstFile = 0;
 
-  target->infoFs = taskInfoFsClone(currentTask->infoFs);
+  if (!(cloneFlags & CLONE_FS))
+    target->infoFs = taskInfoFsClone(currentTask->infoFs);
+  else {
+    TaskInfoFs *share = currentTask->infoFs;
+    spinlockAcquire(&share->LOCK_FS);
+    share->utilizedBy++;
+    spinlockRelease(&share->LOCK_FS);
+    target->infoFs = share;
+  }
 
   taskFilesCopy(currentTask, target, false);
 
