@@ -6,6 +6,7 @@
 #include <paging.h>
 #include <pmm.h>
 #include <stack.h>
+#include <string.h>
 #include <syscalls.h>
 #include <system.h>
 #include <task.h>
@@ -193,6 +194,20 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
                  interpreterEntry ? (interpreterBase + interpreterEntry)
                                   : elf_ehdr->e_entry,
                  false, pagedir, argc, argv);
+
+  size_t totalLen = 0;
+  for (int curr = 0; curr < argc; curr++)
+    totalLen += strlength(argv[curr]) + 1;
+  char  *cmdline = malloc(totalLen);
+  size_t strCurr = 0;
+  for (int curr = 0; curr < argc; curr++) {
+    int f = strlength(argv[curr]) + 1;
+    memcpy(&cmdline[strCurr], argv[curr], f);
+    strCurr += f;
+  }
+
+  target->cmdline = cmdline;
+  target->cmdlineLen = totalLen;
 
   // libc takes care of tls lmao
   /*if (tls) {

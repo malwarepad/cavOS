@@ -2,7 +2,9 @@
 #include <caching.h>
 #include <malloc.h>
 #include <proc.h>
+#include <string.h>
 #include <system.h>
+#include <task.h>
 #include <timer.h>
 #include <util.h>
 
@@ -51,11 +53,53 @@ size_t uptimeRead(OpenFile *fd, uint8_t *out, size_t limit) {
 VfsHandlers handleUptime = {
     .read = uptimeRead, .seek = fsSimpleSeek, .stat = fakefsFstat};
 
+size_t sRead(OpenFile *fd, uint8_t *out, size_t limit) {
+  int   pid = (int)(size_t)fd->dir;
+  Task *target = taskGet(pid);
+  assert(target);
+  size_t toCopy = MIN(target->cmdlineLen - fd->pointer, limit);
+  memcpy(out, &target->cmdline[fd->pointer], toCopy);
+  fd->pointer += toCopy;
+  return toCopy;
+}
+
+size_t procEachOpen(char *filename, int flags, int mode, OpenFile *fd,
+                    char **symlinkResolve) {
+  char *badFn = strdup(filename);
+  int   len = strlength(badFn);
+  int   lastPos = 0;
+  for (int i = 0; i < len; i++) {
+    if (badFn[i] == '/') {
+      lastPos = i;
+      badFn[i] = '\0';
+    }
+  }
+  char *decisionStr = &badFn[lastPos + 1];
+  char *pidStr = &badFn[1];
+  int   pid = atoi(pidStr);
+  if (!strEql(decisionStr, "cmdline")) {
+    free(badFn);
+    return ERR(ENOENT);
+  }
+  free(badFn);
+
+  fd->dir = (void *)(size_t)pid;
+  return 0;
+}
+
+VfsHandlers handleProcEach = {
+    .read = sRead, .stat = fakefsFstat, .open = procEachOpen};
+
 void procSetup() {
   fakefsAddFile(&rootProc, rootProc.rootFile, "meminfo", 0,
                 S_IFREG | S_IRUSR | S_IRGRP | S_IROTH, &handleMeminfo);
   fakefsAddFile(&rootProc, rootProc.rootFile, "uptime", 0,
                 S_IFREG | S_IRUSR | S_IRGRP | S_IROTH, &handleUptime);
+  FakefsFile *id =
+      fakefsAddFile(&rootProc, rootProc.rootFile, "*", 0,
+                    S_IFREG | S_IRUSR | S_IRGRP | S_IROTH, &fakefsNoHandlers);
+  fakefsAddFile(&rootProc, id, "*", 0, S_IFREG | S_IRUSR | S_IRGRP | S_IROTH,
+                &handleProcEach);
 }
 
 bool procMount(MountPoint *mount) {

@@ -125,6 +125,9 @@ struct Task {
   uint32_t tmpRecV;
   void    *spinlockQueueEntry; // check on kill!
 
+  char  *cmdline;
+  size_t cmdlineLen;
+
   TaskInfoFs      *infoFs;
   TaskInfoPagedir *infoPd;
   TaskInfoFiles   *infoFiles;
