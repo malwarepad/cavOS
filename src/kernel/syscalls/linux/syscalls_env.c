@@ -66,8 +66,9 @@ struct rlimit {
 static size_t syscallGetrlimit(int resource, struct rlimit *rlim) {
   switch (resource) {
   case 7: // max open fds
-    rlim->rlim_cur = 1024;
-    rlim->rlim_max = 1024;
+    rlim->rlim_cur = UINT64_MAX - 69;
+    rlim->rlim_max = UINT64_MAX - 69;
+    // todo: be realistic about this and have a bitmap or smth
     return 0;
     break;
   default:

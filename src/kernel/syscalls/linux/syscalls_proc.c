@@ -332,10 +332,8 @@ static size_t syscallWait4(int pid, int *wstatus, int options,
   if (wstatus)
     *wstatus = (ret & 0xff) << 8;
 
-#if DEBUG_SYSCALLS_EXTRA
-  debugf("\n%d [RET] [syscall::wait4] pid{%d} ret{%d}", currentTask->id, output,
-         ret);
-#endif
+  dbgSysExtraf("\n%d [RET] [syscall::wait4] pid{%d} ret{%d}", currentTask->id,
+               output, ret);
   return output;
 }
 

@@ -32,6 +32,7 @@ bool fsUnregisterNode(Task *task, OpenFile *file) {
 
 // TODO! flags! modes!
 // todo: openId in a bitmap or smth, per task/kernel
+// note the dup2() syscall!
 
 char     *prefix = "/";
 int       openId = 3;
