@@ -181,13 +181,11 @@ static size_t syscallDup2(uint32_t oldFd, uint32_t newFd) {
   if (fsUserGetNode(currentTask, newFd))
     fsUserClose(currentTask, newFd);
 
-  // OpenFile    *realFile = currentTask->firstFile;
-  OpenFile *targetFile = fsUserDuplicateNodeUnsafe(realFile);
-  targetFile->closeOnExec = 0; // does not persist
-
-  LinkedListPushFrontUnsafe((void **)(&currentTask->firstFile), targetFile);
-
+  size_t new = syscallDup(oldFd);
+  assert(!RET_IS_ERR(new));
+  OpenFile *targetFile = fsUserGetNode(currentTask, new);
   targetFile->id = newFd;
+
   return newFd;
 }
 
