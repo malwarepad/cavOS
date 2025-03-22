@@ -124,10 +124,12 @@ cleanup:
 #if DEBUG_SYSCALLS_FAILS
 int dbgSysFailf(const char *format, ...) {
   debugf(" %s//%s ", ANSI_RED, ANSI_RESET);
+  spinlockAcquire(&LOCK_DEBUGF);
   va_list va;
   va_start(va, format);
   int ret = vfctprintf(debug, 0, format, va);
   va_end(va);
+  spinlockRelease(&LOCK_DEBUGF);
   return ret;
 }
 #endif
@@ -135,10 +137,12 @@ int dbgSysFailf(const char *format, ...) {
 #if DEBUG_SYSCALLS_EXTRA
 int dbgSysExtraf(const char *format, ...) {
   debugf(" %s//%s ", ANSI_BLUE, ANSI_RESET);
+  spinlockAcquire(&LOCK_DEBUGF);
   va_list va;
   va_start(va, format);
   int ret = vfctprintf(debug, 0, format, va);
   va_end(va);
+  spinlockRelease(&LOCK_DEBUGF);
   return ret;
 }
 #endif
@@ -146,10 +150,12 @@ int dbgSysExtraf(const char *format, ...) {
 #if DEBUG_SYSCALLS_STUB
 int dbgSysStubf(const char *format, ...) {
   debugf(" %s//%s ", ANSI_BLACK, ANSI_RESET);
+  spinlockAcquire(&LOCK_DEBUGF);
   va_list va;
   va_start(va, format);
   int ret = vfctprintf(debug, 0, format, va);
   va_end(va);
+  spinlockRelease(&LOCK_DEBUGF);
   return ret;
 }
 #endif

@@ -1,3 +1,4 @@
+#include "system.h"
 #include "types.h"
 
 #define COM1 0x3F8
@@ -10,6 +11,8 @@
 
 #ifndef SERIAL_H
 #define SERIAL_H
+
+Spinlock LOCK_DEBUGF;
 
 void serial_send(int device, char out);
 char serial_recv_async(int device);
