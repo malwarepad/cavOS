@@ -75,6 +75,38 @@ void taskInfoPdDiscard(TaskInfoPagedir *target) {
   target->utilizedBy--;
   if (!target->utilizedBy) {
     PageDirectoryFree(target->pagedir);
+    // todo: find a safe way to free target
+    // cannot be done w/the current layout as it's done inside taskKill and the
+    // scheduler needs it in case it's switched in between (will point to
+    // invalid/unsafe memory). maybe with overrides but we'll see later when the
+    // system is more stable.
   } else
     spinlockRelease(&target->LOCK_PD);
+}
+
+// CLONE_FILES
+TaskInfoFiles *taskInfoFilesAllocate() {
+  TaskInfoFiles *target = calloc(sizeof(TaskInfoFiles), 1);
+  target->utilizedBy = 1;
+  return target;
+}
+
+// not needed since it's handled in vfs_controller.c
+// TaskInfoFiles *taskInfoFilesClone(TaskInfoFiles *old);
+
+void taskInfoFilesDiscard(TaskInfoFiles *target, void *task) {
+  spinlockCntWriteAcquire(&target->WLOCK_FILES);
+  target->utilizedBy--;
+  if (!target->utilizedBy) {
+    // we don't care about locks anymore (we are alone in the darkness)
+    spinlockCntWriteRelease(&target->WLOCK_FILES);
+    OpenFile *file = target->firstFile;
+    while (file) {
+      int id = file->id;
+      file = file->next;
+      fsUserClose(task, id);
+    }
+    free(target);
+  } else
+    spinlockCntWriteRelease(&target->WLOCK_FILES);
 }

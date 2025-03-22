@@ -100,6 +100,7 @@ Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
   target->mmap_end = USER_MMAP_START;
 
   target->infoFs = taskInfoFsAllocate();
+  target->infoFiles = taskInfoFilesAllocate();
 
   memset(target->fpuenv, 0, 512);
   ((uint16_t *)target->fpuenv)[0] = 0x37f;
@@ -200,12 +201,7 @@ void taskKill(uint32_t id, uint16_t ret) {
     task->parent->state = TASK_STATE_READY;
 
   // close any left open files
-  OpenFile *file = task->firstFile;
-  while (file) {
-    int id = file->id;
-    file = file->next;
-    fsUserClose(task, id);
-  }
+  taskInfoFilesDiscard(task->infoFiles, task);
 
   // if (!parentVfork)
   //   PageDirectoryFree(task->pagedir);
@@ -305,16 +301,22 @@ size_t taskChangeCwd(char *newdir) {
 }
 
 void taskFilesCopy(Task *original, Task *target, bool respectCOE) {
-  OpenFile *realFile = original->firstFile;
+  TaskInfoFiles *originalInfo = original->infoFiles;
+  TaskInfoFiles *targetInfo = target->infoFiles;
+  spinlockCntReadAcquire(&originalInfo->WLOCK_FILES);
+  spinlockCntWriteAcquire(&targetInfo->WLOCK_FILES);
+  OpenFile *realFile = originalInfo->firstFile;
   while (realFile) {
     if (respectCOE && realFile->closeOnExec) {
       realFile = realFile->next;
       continue;
     }
     OpenFile *targetFile = fsUserDuplicateNodeUnsafe(realFile);
-    LinkedListPushFrontUnsafe((void **)(&target->firstFile), targetFile);
+    LinkedListPushFrontUnsafe((void **)(&targetInfo->firstFile), targetFile);
     realFile = realFile->next;
   }
+  spinlockCntWriteRelease(&targetInfo->WLOCK_FILES);
+  spinlockCntReadRelease(&originalInfo->WLOCK_FILES);
 }
 
 Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
@@ -374,7 +376,6 @@ Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
   target->term = currentTask->term;
 
   target->tmpRecV = currentTask->tmpRecV;
-  target->firstFile = 0;
 
   if (!(cloneFlags & CLONE_FS))
     target->infoFs = taskInfoFsClone(currentTask->infoFs);
@@ -386,7 +387,16 @@ Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
     target->infoFs = share;
   }
 
-  taskFilesCopy(currentTask, target, false);
+  if (!(cloneFlags & CLONE_FILES)) {
+    target->infoFiles = taskInfoFilesAllocate();
+    taskFilesCopy(currentTask, target, false);
+  } else {
+    TaskInfoFiles *share = currentTask->infoFiles;
+    spinlockCntWriteAcquire(&share->WLOCK_FILES);
+    share->utilizedBy++;
+    spinlockCntWriteRelease(&share->WLOCK_FILES);
+    target->infoFiles = share;
+  }
 
   // returns zero yk
   target->registers.rax = 0;
@@ -489,6 +499,7 @@ void initiateTasks() {
   currentTask->infoPd->pagedir = GetPageDirectory();
   currentTask->kernel_task = true;
   currentTask->infoFs = taskInfoFsAllocate();
+  currentTask->infoFiles = taskInfoFilesAllocate();
 
   void  *tssRsp = VirtualAllocate(USER_STACK_PAGES);
   size_t tssRspSize = USER_STACK_PAGES * BLOCK_SIZE;
