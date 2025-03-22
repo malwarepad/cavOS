@@ -7,7 +7,7 @@
 #include <util.h>
 
 #define SYSCALL_GETPID 39
-static size_t syscallGetPid() { return currentTask->id; }
+static size_t syscallGetPid() { return currentTask->tgid; }
 
 #define SYSCALL_GETCWD 79
 static size_t syscallGetcwd(char *buff, size_t size) {
@@ -166,7 +166,8 @@ static size_t syscallGetTid() { return currentTask->id; }
 
 #define SYSCALL_SET_TID_ADDR 218
 static size_t syscallSetTidAddr(int *tidptr) {
-  // todo: tidptr + futex() WAKEUP!
+  // todo: futex() WAKEUP!
+  currentTask->tidptr = tidptr;
   return currentTask->id;
 }
 

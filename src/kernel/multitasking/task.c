@@ -77,6 +77,7 @@ Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
   target->registers.rip = rip;
 
   target->id = id;
+  target->tgid = id;
   target->kernel_task = kernel_task;
   target->state = TASK_STATE_CREATED; // TASK_STATE_READY
   // target->pagedir = pagedir;
@@ -199,6 +200,9 @@ void taskKill(uint32_t id, uint16_t ret) {
   // vfork() children need to notify parents no matter what
   if (task->parent->state == TASK_STATE_WAITING_VFORK)
     task->parent->state = TASK_STATE_READY;
+
+  if (task->tidptr)
+    *task->tidptr = 0; // todo: futex wakeup
 
   // close any left open files
   taskInfoFilesDiscard(task->infoFiles, task);
@@ -348,9 +352,13 @@ Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
   }
 
   target->id = taskGenerateId();
+  target->tgid = target->id;
   target->pgid = currentTask->pgid;
   target->kernel_task = currentTask->kernel_task;
   target->state = TASK_STATE_CREATED;
+
+  if (cloneFlags & CLONE_THREAD)
+    target->tgid = currentTask->tgid;
 
   // target->registers = currentTask->registers;
   memcpy(&target->registers, cpu, sizeof(AsmPassedInterrupt));
@@ -411,6 +419,7 @@ Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
 
   // yk
   target->parent = currentTask;
+  target->pgid = currentTask->pgid;
 
   // fpu stuff
   memcpy(target->fpuenv, currentTask->fpuenv, 512);

@@ -44,11 +44,14 @@ cleanup:
 }
 
 #define SYSCALL_CLONE 56
-static size_t syscallClone(uint64_t flags, uint64_t newsp, void *parent_tid,
-                           void *child_tid, uint64_t tid) {
+static size_t syscallClone(uint64_t flags, uint64_t newsp, int *parent_tid,
+                           int *child_tid, uint64_t tls) {
   // 17 is SIGCHLD which we ignore
+  // CLONE_DETACHED, CLONE_SIGHAND, CLONE_SYSVSEM(*) are also ignored
   uint64_t supported_flags =
-      CLONE_VFORK | CLONE_VM | CLONE_FILES | CLONE_FS | 17;
+      CLONE_VFORK | CLONE_VM | CLONE_FILES | CLONE_SYSVSEM |
+      CLONE_CHILD_CLEARTID | CLONE_PARENT_SETTID | CLONE_DETACHED |
+      CLONE_THREAD | CLONE_SETTLS | CLONE_FS | CLONE_SIGHAND | 17;
   if ((flags & ~supported_flags) != 0) {
     dbgSysStubf("todo more flags %lx", (flags & ~supported_flags));
     return ERR(ENOSYS);
@@ -58,6 +61,15 @@ static size_t syscallClone(uint64_t flags, uint64_t newsp, void *parent_tid,
       taskFork(currentTask->syscallRegs,
                newsp ? newsp : currentTask->syscallRsp, flags, false);
   uint64_t id = newTask->id;
+
+  if (flags & CLONE_SETTLS)
+    newTask->fsbase = tls;
+
+  if (flags & CLONE_CHILD_CLEARTID)
+    newTask->tidptr = child_tid;
+
+  if (flags & CLONE_PARENT_SETTID)
+    *parent_tid = newTask->id;
 
   // no race condition today :")
   taskCreateFinish(newTask);
@@ -220,9 +232,13 @@ static size_t syscallExecve(char *filename, char **argv, char **envp) {
 
   int targetId = currentTask->id;
   currentTask->id = taskGenerateId();
+  int targetTgid = currentTask->tgid;
+  currentTask->tgid = currentTask->id; // better way to do alladat
 
   ret->id = targetId;
+  ret->tgid = targetTgid;
   ret->parent = currentTask->parent;
+  ret->pgid = currentTask->pgid;
   taskInfoFsDiscard(ret->infoFs);
   ret->infoFs = taskInfoFsClone(currentTask->infoFs);
 

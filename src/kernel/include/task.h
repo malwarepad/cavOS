@@ -89,6 +89,7 @@ void taskInfoFilesDiscard(TaskInfoFiles *target, void *task);
 struct Task {
   uint64_t id;
   int      pgid;
+  int      tgid;
   bool     kernel_task;
   uint8_t  state;
 
@@ -136,6 +137,7 @@ struct Task {
   Spinlock    LOCK_CHILD_TERM;
   KilledInfo *firstChildTerminated;
   int         childrenTerminatedAmnt;
+  int        *tidptr;
 
   Task *parent;
   Task *next;
