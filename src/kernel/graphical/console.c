@@ -12,6 +12,8 @@
 // Kernel console implementation
 // Copyright (C) 2024 Panagiotis
 
+Spinlock LOCK_CONSOLE = ATOMIC_FLAG_INIT;
+
 int bg_color[] = {0, 0, 0};
 int textcolor[] = {255, 255, 255};
 
@@ -171,7 +173,9 @@ void drawCharacter(int charnum) {
 
 void printfch(char character) {
   // debugf("%c", character);
+  spinlockAcquire(&LOCK_CONSOLE);
   drawCharacter(character);
+  spinlockRelease(&LOCK_CONSOLE);
 }
 
 // printf.c uses this

@@ -6,6 +6,8 @@
 // Simple serial driver for debugging
 // Copyright (C) 2024 Panagiotis
 
+Spinlock LOCK_DEBUGF = {0};
+
 void serial_enable(int device) {
   outportb(device + 1, 0x00);
   outportb(device + 3, 0x80); /* Enable divisor mode */
@@ -52,10 +54,11 @@ void debug(char c, void *arg) {
 }
 
 int debugf(const char *format, ...) {
-
+  spinlockAcquire(&LOCK_DEBUGF);
   va_list va;
   va_start(va, format);
   int ret = vfctprintf(debug, 0, format, va);
   va_end(va);
+  spinlockRelease(&LOCK_DEBUGF);
   return ret;
 }
