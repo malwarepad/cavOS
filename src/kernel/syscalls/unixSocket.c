@@ -10,11 +10,6 @@
 // AF_UNIX socket implementation (still needs a lot of testing)
 // Copyright (C) 2025 Panagiotis
 
-#define DEBUG_SOCK 0
-#if !DEBUG_SOCK
-#define debugf(...) ((void)0)
-#endif
-
 OpenFile *unixSocketAcceptCreate(UnixSocketPair *dir) {
   size_t sockFd = fsUserOpen(currentTask, "/dev/null", O_RDWR, 0);
   assert(!RET_IS_ERR(sockFd));
@@ -134,6 +129,25 @@ size_t unixSocketAcceptSendto(OpenFile *fd, uint8_t *in, size_t limit,
   spinlockRelease(&pair->LOCK_PAIR);
 
   return limit;
+}
+
+int unixSocketAcceptInternalPoll(OpenFile *fd, int events) {
+  UnixSocketPair *pair = fd->dir;
+  int             revents = 0;
+
+  spinlockAcquire(&pair->LOCK_PAIR);
+  if (!pair->clientFds)
+    revents |= EPOLLHUP;
+
+  if (events & EPOLLOUT && pair->clientFds &&
+      pair->clientBuffPos < pair->clientBuffSize)
+    revents |= EPOLLOUT;
+
+  if (events & EPOLLIN && pair->serverBuffPos > 0)
+    revents |= EPOLLIN;
+  spinlockRelease(&pair->LOCK_PAIR);
+
+  return revents;
 }
 
 size_t unixSocketOpen(void *taskPtr, int type, int protocol) {
@@ -393,18 +407,13 @@ bool unixSocketDuplicate(OpenFile *original, OpenFile *orphan) {
 
 bool unixSocketClose(OpenFile *fd) {
   UnixSocket *unixSocket = fd->dir;
-  debugf("[unix::sock::close] sock{%lx} connected{%lx}\n", unixSocket,
-         unixSocket->connected);
   spinlockAcquire(&unixSocket->LOCK_SOCK);
-  debugf("[unix::sock::close] Post-spinlock: timesOpened{%d}\n",
-         unixSocket->timesOpened);
   unixSocket->timesOpened--;
   if (unixSocket->timesOpened == 0) {
     // destroy it
     spinlockAcquire(&LOCK_LL_UNIX_SOCKET);
     assert(LinkedListRemove((void **)&firstUnixSocket, unixSocket));
     spinlockRelease(&LOCK_LL_UNIX_SOCKET);
-    debugf("[unix::sock::close] Closed successfully!\n");
     return true;
   }
   spinlockRelease(&unixSocket->LOCK_SOCK);
@@ -481,6 +490,38 @@ size_t unixSocketSendto(OpenFile *fd, uint8_t *in, size_t limit, int flags,
   return limit;
 }
 
+int unixSocketInternalPoll(OpenFile *fd, int events) {
+  UnixSocket *socket = fd->dir;
+  int         revents = 0;
+
+  if (socket->connMax > 0) {
+    // listen()
+    spinlockAcquire(&socket->LOCK_SOCK);
+    if (socket->connCurr < socket->connMax) // can connect()
+      revents |= (events & EPOLLOUT) ? EPOLLOUT : 0;
+    if (socket->connCurr > 0) // can accept()
+      revents |= (events & EPOLLIN) ? EPOLLIN : 0;
+    spinlockRelease(&socket->LOCK_SOCK);
+  } else if (socket->pair) {
+    // connect()
+    UnixSocketPair *pair = socket->pair;
+    spinlockAcquire(&pair->LOCK_PAIR);
+    if (!pair->serverFds)
+      revents |= EPOLLHUP;
+
+    if (events & EPOLLOUT && pair->serverFds &&
+        pair->serverBuffPos < pair->serverBuffSize)
+      revents |= EPOLLOUT;
+
+    if (events & EPOLLIN && pair->clientBuffPos > 0)
+      revents |= EPOLLIN;
+    spinlockRelease(&pair->LOCK_PAIR);
+  } else
+    revents |= EPOLLHUP;
+
+  return revents;
+}
+
 size_t unixSocketPair(int type, int protocol, int *sv) {
   size_t sock1 = unixSocketOpen(currentTask, type, protocol);
   if (RET_IS_ERR(sock1))
@@ -511,9 +552,11 @@ VfsHandlers unixSocketHandlers = {.sendto = unixSocketSendto,
                                   .accept = unixSocketAccept,
                                   .connect = unixSocketConnect,
                                   .duplicate = unixSocketDuplicate,
-                                  .close = unixSocketClose};
+                                  .close = unixSocketClose,
+                                  .internalPoll = unixSocketInternalPoll};
 
 VfsHandlers unixAcceptHandlers = {.sendto = unixSocketAcceptSendto,
                                   .recvfrom = unixSocketAcceptRecvfrom,
                                   .duplicate = unixSocketAcceptDuplicate,
-                                  .close = unixSocketAcceptClose};
+                                  .close = unixSocketAcceptClose,
+                                  .internalPoll = unixSocketAcceptInternalPoll};
