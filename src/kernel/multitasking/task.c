@@ -304,15 +304,6 @@ size_t taskChangeCwd(char *newdir) {
   return 0;
 }
 
-void taskFilesEmpty(Task *task) {
-  OpenFile *realFile = task->firstFile;
-  while (realFile) {
-    OpenFile *next = realFile->next;
-    fsUserClose(task, realFile->id);
-    realFile = next;
-  }
-}
-
 void taskFilesCopy(Task *original, Task *target, bool respectCOE) {
   OpenFile *realFile = original->firstFile;
   while (realFile) {

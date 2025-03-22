@@ -175,6 +175,5 @@ size_t  taskChangeCwd(char *newdir);
 Task   *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
                  bool spinup);
 void    taskFilesCopy(Task *original, Task *target, bool respectCOE);
-void    taskFilesEmpty(Task *task);
 
 #endif
