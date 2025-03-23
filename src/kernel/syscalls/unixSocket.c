@@ -152,7 +152,7 @@ int unixSocketAcceptInternalPoll(OpenFile *fd, int events) {
 
 size_t unixSocketOpen(void *taskPtr, int type, int protocol) {
   // rest are not supported yet, only SOCK_STREAM
-  if (type != 1) {
+  if (!(type & 1)) {
     dbgSysStubf("unsupported type{%x}", type);
     return ERR(ENOSYS);
   }
@@ -172,6 +172,11 @@ size_t unixSocketOpen(void *taskPtr, int type, int protocol) {
   sockNode->dir = unixSocket;
 
   unixSocket->timesOpened = 1;
+
+  if (type | SOCK_CLOEXEC)
+    sockNode->closeOnExec = true;
+  if (type | SOCK_NONBLOCK)
+    sockNode->flags |= O_NONBLOCK;
 
   return sockFd;
 }
