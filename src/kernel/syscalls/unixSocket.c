@@ -46,6 +46,7 @@ void unixSocketFreePair(UnixSocketPair *pair) {
   assert(pair->serverFds == 0 && pair->clientFds == 0);
   free(pair->clientBuff);
   free(pair->serverBuff);
+  free(pair->filename);
   free(pair);
 }
 
@@ -175,8 +176,8 @@ size_t unixSocketOpen(void *taskPtr, int type, int protocol) {
 
   if (type | SOCK_CLOEXEC)
     sockNode->closeOnExec = true;
-  if (type | SOCK_NONBLOCK)
-    sockNode->flags |= O_NONBLOCK;
+  // if (type | SOCK_NONBLOCK)
+  //   sockNode->flags |= O_NONBLOCK;
 
   return sockFd;
 }
@@ -312,6 +313,7 @@ size_t unixSocketAccept(OpenFile *fd, sockaddr_linux *addr, uint32_t *len) {
   assert(pair->serverFds == 0);
   pair->serverFds++;
   pair->established = true;
+  pair->filename = strdup(sock->bindAddr);
   spinlockRelease(&pair->LOCK_PAIR);
 
   OpenFile *acceptFd = unixSocketAcceptCreate(pair);
@@ -495,6 +497,66 @@ size_t unixSocketSendto(OpenFile *fd, uint8_t *in, size_t limit, int flags,
   return limit;
 }
 
+size_t unixSocketGetpeername(OpenFile *fd, sockaddr_linux *addr,
+                             uint32_t *len) {
+  UnixSocket     *socket = fd->dir;
+  UnixSocketPair *pair = socket->pair;
+  if (!pair)
+    return ERR(ENOTCONN);
+
+  int actualLen = sizeof(addr->sa_family) + strlength(pair->filename);
+  int toCopy = MIN(*len, actualLen);
+  if (toCopy < sizeof(addr->sa_family)) // you're POOR!
+    return ERR(EINVAL);
+  addr->sa_family = AF_UNIX;
+  memcpy(addr->sa_data, pair->filename, toCopy - sizeof(addr->sa_family));
+  *len = toCopy;
+  return 0;
+}
+
+size_t unixSocketRecvmsg(OpenFile *fd, struct msghdr_linux *msg, int flags) {
+  if (msg->msg_name || msg->msg_namelen > 0) {
+    dbgSysStubf("todo optional addr");
+    return ERR(ENOSYS);
+  }
+  size_t cnt = 0;
+  bool   noblock = flags & MSG_DONTWAIT;
+  for (int i = 0; i < msg->msg_iovlen; i++) {
+    struct iovec *curr =
+        (struct iovec *)((size_t)msg->msg_iov + i * sizeof(struct iovec));
+    size_t singleCnt = unixSocketRecvfrom(fd, curr->iov_base, curr->iov_len,
+                                          noblock ? MSG_DONTWAIT : 0, 0, 0);
+    if (RET_IS_ERR(singleCnt))
+      return singleCnt;
+
+    cnt += singleCnt;
+  }
+
+  return cnt;
+}
+
+size_t unixSocketAcceptRecvmsg(OpenFile *fd, struct msghdr_linux *msg,
+                               int flags) {
+  if (msg->msg_name || msg->msg_namelen > 0) {
+    dbgSysStubf("todo optional addr");
+    return ERR(ENOSYS);
+  }
+  size_t cnt = 0;
+  bool   noblock = flags & MSG_DONTWAIT;
+  for (int i = 0; i < msg->msg_iovlen; i++) {
+    struct iovec *curr =
+        (struct iovec *)((size_t)msg->msg_iov + i * sizeof(struct iovec));
+    size_t singleCnt = unixSocketAcceptRecvfrom(
+        fd, curr->iov_base, curr->iov_len, noblock ? MSG_DONTWAIT : 0, 0, 0);
+    if (RET_IS_ERR(singleCnt))
+      return singleCnt;
+
+    cnt += singleCnt;
+  }
+
+  return cnt;
+}
+
 int unixSocketInternalPoll(OpenFile *fd, int events) {
   UnixSocket *socket = fd->dir;
   int         revents = 0;
@@ -556,12 +618,15 @@ VfsHandlers unixSocketHandlers = {.sendto = unixSocketSendto,
                                   .listen = unixSocketListen,
                                   .accept = unixSocketAccept,
                                   .connect = unixSocketConnect,
+                                  .getpeername = unixSocketGetpeername,
+                                  .recvmsg = unixSocketRecvmsg,
                                   .duplicate = unixSocketDuplicate,
                                   .close = unixSocketClose,
                                   .internalPoll = unixSocketInternalPoll};
 
 VfsHandlers unixAcceptHandlers = {.sendto = unixSocketAcceptSendto,
                                   .recvfrom = unixSocketAcceptRecvfrom,
+                                  .recvmsg = unixSocketAcceptRecvmsg,
                                   .duplicate = unixSocketAcceptDuplicate,
                                   .close = unixSocketAcceptClose,
                                   .internalPoll = unixSocketAcceptInternalPoll};

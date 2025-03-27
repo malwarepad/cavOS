@@ -1164,4 +1164,20 @@ struct epoll_event {
   __u64    data;
 } EPOLL_PACKED;
 
+struct ucred {
+  pid_t    pid; /* Process ID of the sending process */
+  uid_t    uid; /* User ID of the sending process */
+  unsigned gid; /* Group ID of the sending process */
+};
+
+struct msghdr_linux {
+  void         *msg_name;    /* Socket name          */
+  int           msg_namelen; /* Length of name       */
+  struct iovec *msg_iov;     /* Data blocks          */
+  size_t        msg_iovlen;  /* Number of blocks     */
+  void  *msg_control; /* Per protocol magic (eg BSD file descriptor passing) */
+  size_t msg_controllen; /* Length of cmsg list */
+  unsigned int msg_flags;
+};
+
 #endif

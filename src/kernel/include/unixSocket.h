@@ -27,6 +27,11 @@ typedef struct UnixSocketPair {
   int      serverBuffPos;
   int      serverBuffSize;
 
+  struct ucred server;
+  struct ucred client;
+
+  char *filename;
+
   // connect()/client
   int      clientFds;
   uint8_t *clientBuff;

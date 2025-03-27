@@ -123,6 +123,18 @@ static size_t syscallListen(int fd, int backlog) {
   return fileNode->handlers->listen(fileNode, backlog);
 }
 
+#define SYSCALL_GETPEERNAME 52
+static size_t syscallGetpeername(int fd, sockaddr_linux *sockaddr,
+                                 socklen_t *len) {
+  OpenFile *fileNode = fsUserGetNode(currentTask, fd);
+  if (!fileNode)
+    return ERR(EBADF);
+
+  if (!fileNode->handlers->getpeername)
+    return ERR(ENOTSOCK);
+  return fileNode->handlers->getpeername(fileNode, sockaddr, len);
+}
+
 #define SYSCALL_SOCKETPAIR 53
 static size_t syscallSocketpair(int family, int type, int protocol, int *sv) {
   switch (family) {
@@ -133,6 +145,19 @@ static size_t syscallSocketpair(int family, int type, int protocol, int *sv) {
     return ERR(ENOSYS);
     break;
   }
+}
+
+#define SYSCALL_GETSOCKOPT 55
+static size_t syscallGetsockopt(int fd, int level, int optname, void *optval,
+                                uint32_t *socklen) {
+  OpenFile *fileNode = fsUserGetNode(currentTask, fd);
+  if (!fileNode)
+    return ERR(EBADF);
+
+  if (!fileNode->handlers->getsockopts)
+    return ERR(ENOTSOCK);
+  return fileNode->handlers->getsockopts(fileNode, level, optname, optval,
+                                         socklen);
 }
 
 #define SYSCALL_SENDTO 44
@@ -162,14 +187,17 @@ static size_t syscallRecvfrom(int fd, void *buff, size_t len, int flags,
 }
 
 #define SYSCALL_RECVMSG 47
-static size_t syscallRecvmsg(int fd, struct msghdr *msg, int flags) {
+static size_t syscallRecvmsg(int fd, struct msghdr_linux *msg, int flags) {
   OpenFile *fileNode = fsUserGetNode(currentTask, fd);
   if (!fileNode)
     return ERR(EBADF);
 
+  if (fileNode->handlers->recvmsg)
+    return fileNode->handlers->recvmsg(fileNode, msg, flags);
+
   UserSocket *userSocket = (UserSocket *)fileNode->dir;
 
-  int lwipOut = lwip_recvmsg(userSocket->lwipFd, msg, flags);
+  int lwipOut = lwip_recvmsg(userSocket->lwipFd, (void *)msg, flags);
   sockaddrLwipToLinux(msg->msg_name, AF_INET);
   if (lwipOut < 0)
     return -errno;
@@ -187,4 +215,6 @@ void syscallsRegNet() {
   registerSyscall(SYSCALL_RECVFROM, syscallRecvfrom);
   registerSyscall(SYSCALL_RECVMSG, syscallRecvmsg);
   registerSyscall(SYSCALL_LISTEN, syscallListen);
+  registerSyscall(SYSCALL_GETSOCKOPT, syscallGetsockopt);
+  registerSyscall(SYSCALL_GETPEERNAME, syscallGetpeername);
 }

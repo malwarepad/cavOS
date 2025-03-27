@@ -77,6 +77,12 @@ typedef size_t (*SpecialConnect)(OpenFile *fd, sockaddr_linux *addr,
 typedef size_t (*SpecialRecvfrom)(OpenFile *fd, uint8_t *out, size_t limit,
                                   int flags, sockaddr_linux *addr,
                                   uint32_t *len);
+typedef size_t (*SpecialGetsockopts)(OpenFile *fd, int level, int optname,
+                                     void *optval, uint32_t *socklen);
+typedef size_t (*SpecialGetpeername)(OpenFile *fd, sockaddr_linux *addr,
+                                     uint32_t *len);
+typedef size_t (*SpecialRecvMsg)(OpenFile *fd, struct msghdr_linux *msg,
+                                 int flags);
 typedef size_t (*SpecialSendto)(OpenFile *fd, uint8_t *in, size_t limit,
                                 int flags, sockaddr_linux *addr, uint32_t len);
 typedef int (*SpecialInternalPoll)(OpenFile *fd, int events);
@@ -95,12 +101,15 @@ typedef struct VfsHandlers {
   SpecialFcntl        fcntl; // it's extra
 
   // networking
-  SpecialBind     bind;
-  SpecialListen   listen;
-  SpecialAccept   accept;
-  SpecialConnect  connect;
-  SpecialRecvfrom recvfrom;
-  SpecialSendto   sendto;
+  SpecialBind        bind;
+  SpecialListen      listen;
+  SpecialAccept      accept;
+  SpecialConnect     connect;
+  SpecialRecvfrom    recvfrom;
+  SpecialSendto      sendto;
+  SpecialRecvMsg     recvmsg;
+  SpecialGetsockopts getsockopts;
+  SpecialGetpeername getpeername;
 
   // polling
   SpecialInternalPoll internalPoll;
