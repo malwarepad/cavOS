@@ -80,6 +80,12 @@ size_t fbUserIoctl(OpenFile *fd, uint64_t request, void *arg) {
     fb->xres_virtual = framebufferWidth;
     fb->yres_virtual = framebufferHeight;
 
+    fb->red = (struct fb_bitfield){.offset = 16, .length = 8, .msb_right = 0};
+    fb->green = (struct fb_bitfield){.offset = 8, .length = 8, .msb_right = 0};
+    fb->blue = (struct fb_bitfield){.offset = 0, .length = 8, .msb_right = 0};
+    fb->transp = (struct fb_bitfield){
+        .offset = 24, .length = 8, .msb_right = 0}; // May be ignored
+
     fb->bits_per_pixel = 32;
     fb->grayscale = 0;
     // fb->red = 0;
@@ -93,7 +99,7 @@ size_t fbUserIoctl(OpenFile *fd, uint64_t request, void *arg) {
     break;
   }
   default:
-    return -1;
+    return ERR(ENOTTY);
     break;
   }
 }
