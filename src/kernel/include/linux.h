@@ -1240,15 +1240,12 @@ typedef __restorefn_t *__sigrestore_t;
 #define SIG_IGN ((__sighandler_t)1)    /* ignore signal */
 #define SIG_ERR ((__sighandler_t) - 1) /* error return from signal */
 
-// include/asm/signal.h
+// musl sources (include/asm/signal.h was bad)
 struct sigaction {
-  union {
-    __sighandler_t _sa_handler;
-    void (*_sa_sigaction)(int, void *, void *); // 2nd arg: struct siginfo*
-  } _u;
-  sigset_t      sa_mask;
+  void (*sa_handler)(int);
   unsigned long sa_flags;
   void (*sa_restorer)(void);
+  sigset_t sa_mask;
 };
 
 #endif
