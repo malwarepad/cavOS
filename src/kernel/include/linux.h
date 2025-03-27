@@ -226,12 +226,6 @@ typedef struct {
   } _sifields;
 } siginfo_t;
 
-// /usr/include/bits/types/__sigset_t.h
-#define _SIGSET_NWORDS (1024 / (8 * sizeof(unsigned long int)))
-typedef struct {
-  unsigned long int __val[_SIGSET_NWORDS];
-} __sigset_t;
-
 // /usr/include/linux/time.h
 typedef struct timespec {
   int64_t tv_sec;  // seconds
@@ -262,17 +256,6 @@ typedef struct rusage {
   long    ru_nvcsw;    /* voluntary context switches */
   long    ru_nivcsw;   /* involuntary context switches */
 } rusage;
-
-// /usr/include/bits/sigaction.h
-struct sigaction {
-  union {
-    void (*sa_handler)(int);
-    void (*sa_sigaction)(int, siginfo_t *, void *);
-  } __sa_handler;
-  __sigset_t sa_mask;
-  int        sa_flags;
-  void (*sa_restorer)(void);
-};
 
 // /usr/include/asm-generic/ioctls.h
 #define TCGETS 0x5401
@@ -1178,6 +1161,94 @@ struct msghdr_linux {
   void  *msg_control; /* Per protocol magic (eg BSD file descriptor passing) */
   size_t msg_controllen; /* Length of cmsg list */
   unsigned int msg_flags;
+};
+
+// include/asm-generic/signal.h
+#define __BITS_PER_LONG 64
+#define _NSIG 64
+#define _NSIG_BPW __BITS_PER_LONG
+#define _NSIG_WORDS (_NSIG / _NSIG_BPW)
+
+#define SIGHUP 1
+#define SIGINT 2
+#define SIGQUIT 3
+#define SIGILL 4
+#define SIGTRAP 5
+#define SIGABRT 6
+#define SIGIOT 6
+#define SIGBUS 7
+#define SIGFPE 8
+#define SIGKILL 9
+#define SIGUSR1 10
+#define SIGSEGV 11
+#define SIGUSR2 12
+#define SIGPIPE 13
+#define SIGALRM 14
+#define SIGTERM 15
+#define SIGSTKFLT 16
+#define SIGCHLD 17
+#define SIGCONT 18
+#define SIGSTOP 19
+#define SIGTSTP 20
+#define SIGTTIN 21
+#define SIGTTOU 22
+#define SIGURG 23
+#define SIGXCPU 24
+#define SIGXFSZ 25
+#define SIGVTALRM 26
+#define SIGPROF 27
+#define SIGWINCH 28
+#define SIGIO 29
+#define SIGPOLL SIGIO
+/*
+#define SIGLOST		29
+*/
+#define SIGPWR 30
+#define SIGSYS 31
+#define SIGUNUSED 31
+
+/* These should not be considered constants from userland.  */
+#define SIGRTMIN 32
+#ifndef SIGRTMAX
+#define SIGRTMAX _NSIG
+#endif
+
+#if !defined MINSIGSTKSZ || !defined SIGSTKSZ
+#define MINSIGSTKSZ 2048
+#define SIGSTKSZ 8192
+#endif
+
+// typedef struct {
+//   unsigned long sig[_NSIG_WORDS];
+// } sigset_t;
+
+// !! Modified for ease of use! If _NSIG_WORDS > 1, this will NOT work!
+typedef uint64_t sigset_t;
+
+// include/asm-generic/signal-defs.h
+#define SIG_BLOCK 0   /* for blocking signals */
+#define SIG_UNBLOCK 1 /* for unblocking signals */
+#define SIG_SETMASK 2 /* for setting the signal mask */
+
+typedef void          __signalfn_t(int);
+typedef __signalfn_t *__sighandler_t;
+
+typedef void           __restorefn_t(void);
+typedef __restorefn_t *__sigrestore_t;
+
+#define SIG_DFL ((__sighandler_t)0)    /* default signal handling */
+#define SIG_IGN ((__sighandler_t)1)    /* ignore signal */
+#define SIG_ERR ((__sighandler_t) - 1) /* error return from signal */
+
+// include/asm/signal.h
+struct sigaction {
+  union {
+    __sighandler_t _sa_handler;
+    void (*_sa_sigaction)(int, void *, void *); // 2nd arg: struct siginfo*
+  } _u;
+  sigset_t      sa_mask;
+  unsigned long sa_flags;
+  void (*sa_restorer)(void);
 };
 
 #endif

@@ -128,6 +128,8 @@ struct Task {
   char  *cmdline;
   size_t cmdlineLen;
 
+  sigset_t sigBlockList;
+
   TaskInfoFs      *infoFs;
   TaskInfoPagedir *infoPd;
   TaskInfoFiles   *infoFiles;

@@ -406,6 +406,10 @@ Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
     target->infoFiles = share;
   }
 
+  // only in this case it gets inherited!
+  if (cloneFlags & CLONE_THREAD)
+    target->sigBlockList = currentTask->sigBlockList;
+
   // returns zero yk
   target->registers.rax = 0;
 

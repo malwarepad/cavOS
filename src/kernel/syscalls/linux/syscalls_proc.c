@@ -239,6 +239,7 @@ static size_t syscallExecve(char *filename, char **argv, char **envp) {
   ret->tgid = targetTgid;
   ret->parent = currentTask->parent;
   ret->pgid = currentTask->pgid;
+  ret->sigBlockList = currentTask->sigBlockList;
   taskInfoFsDiscard(ret->infoFs);
   ret->infoFs = taskInfoFsClone(currentTask->infoFs);
 
