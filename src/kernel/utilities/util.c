@@ -70,9 +70,8 @@ void atomicBitmapClear(volatile uint64_t *bitmap, unsigned int bit) {
   atomic_fetch_and((volatile _Atomic uint64_t *)bitmap, ~(1UL << bit));
 }
 
-int atomicBitmapGet(volatile uint64_t *bitmap, unsigned int bit) {
-  uint64_t current = atomic_load((volatile _Atomic uint64_t *)bitmap);
-  return (current >> bit) & 1;
+uint64_t atomicBitmapGet(volatile uint64_t *bitmap) {
+  return atomic_load((volatile _Atomic uint64_t *)bitmap);
 }
 
 static unsigned long int next = 1;
