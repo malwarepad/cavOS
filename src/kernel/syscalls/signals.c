@@ -68,8 +68,8 @@ void signalsPendingHandle(void *taskPtr) {
     signal = signalsPendingFind(pendingList);
     if (signal == -1)
       return;
-    if (currentTask->sigBlockList & (1 << signal)) // blocked but somehow hit
-      atomicBitmapClear(&currentTask->sigPendingList, signal);
+    if (task->sigBlockList & (1 << signal)) // blocked but somehow hit
+      atomicBitmapClear(&task->sigPendingList, signal);
     else // valid signal
       break;
   }
