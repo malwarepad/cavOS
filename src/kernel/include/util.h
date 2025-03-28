@@ -36,9 +36,14 @@ void *memcpy(void *restrict dstptr, const void *restrict srcptr, size_t size);
 void *memmove(void *dstptr, const void *srcptr, size_t size);
 void  memset(void *_dst, int val, size_t len);
 int   memcmp(const void *aptr, const void *bptr, size_t size);
-int   rand(void);
-void  srand(unsigned int seed);
-void  hexDump(const char *desc, const void *addr, const int len, int perLine,
-              int (*f)(const char *fmt, ...));
+
+void atomicBitmapSet(volatile uint64_t *bitmap, unsigned int bit);
+void atomicBitmapClear(volatile uint64_t *bitmap, unsigned int bit);
+int  atomicBitmapGet(volatile uint64_t *bitmap, unsigned int bit);
+
+int  rand(void);
+void srand(unsigned int seed);
+void hexDump(const char *desc, const void *addr, const int len, int perLine,
+             int (*f)(const char *fmt, ...));
 
 #endif
