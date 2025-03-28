@@ -109,7 +109,7 @@ void syscallHandler(AsmPassedInterrupt *regs) {
     debugf("%s = %d (-%s) (%ldms)%s\n", ANSI_RED, ret, errStr, timeTook,
            ANSI_RESET);
   } else
-    debugf(" = %d (%ldms)\n", ret, timeTook);
+    debugf(" = %d (0x%lx) (%ldms)\n", ret, ret, timeTook);
 #endif
 
   regs->rax = ret;
@@ -119,6 +119,9 @@ cleanup:
   currentTask->syscallRsp = 0;
   currentTask->syscallRegs = 0;
   currentTask->systemCallInProgress = false;
+
+  // now safely handle whatever signal is left
+  signalsPendingHandle(currentTask);
 }
 
 #if DEBUG_SYSCALLS_FAILS

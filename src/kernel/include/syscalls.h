@@ -82,4 +82,15 @@ size_t pipeOpen(int *fds);
 
 #define RET_IS_ERR(syscall_return) ((syscall_return) > -4096UL)
 
+/* Signal stuff */
+typedef enum SignalInternal {
+  SIGNAL_INTERNAL_CORE = 0,
+  SIGNAL_INTERNAL_TERM,
+  SIGNAL_INTERNAL_IGN,
+  SIGNAL_INTERNAL_STOP,
+  SIGNAL_INTERNAL_CONT
+} SignalInternal;
+
+void signalsPendingHandle(void *taskPtr);
+
 #endif

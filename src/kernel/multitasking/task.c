@@ -102,6 +102,7 @@ Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
 
   target->infoFs = taskInfoFsAllocate();
   target->infoFiles = taskInfoFilesAllocate();
+  target->infoSignals = taskInfoSignalAllocate();
 
   memset(target->fpuenv, 0, 512);
   ((uint16_t *)target->fpuenv)[0] = 0x37f;
@@ -406,6 +407,16 @@ Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
     target->infoFiles = share;
   }
 
+  if (!(cloneFlags & CLONE_THREAD))
+    target->infoSignals = taskInfoSignalClone(currentTask->infoSignals);
+  else {
+    TaskInfoSignal *share = currentTask->infoSignals;
+    spinlockAcquire(&share->LOCK_SIGNAL);
+    share->utilizedBy++;
+    spinlockRelease(&share->LOCK_SIGNAL);
+    target->infoSignals = share;
+  }
+
   // only in this case it gets inherited!
   if (cloneFlags & CLONE_THREAD)
     target->sigBlockList = currentTask->sigBlockList;
@@ -513,6 +524,7 @@ void initiateTasks() {
   currentTask->kernel_task = true;
   currentTask->infoFs = taskInfoFsAllocate();
   currentTask->infoFiles = taskInfoFilesAllocate();
+  currentTask->infoSignals = 0; // no, just no!
 
   void  *tssRsp = VirtualAllocate(USER_STACK_PAGES);
   size_t tssRspSize = USER_STACK_PAGES * BLOCK_SIZE;

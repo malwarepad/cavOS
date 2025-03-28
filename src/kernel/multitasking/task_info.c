@@ -110,3 +110,28 @@ void taskInfoFilesDiscard(TaskInfoFiles *target, void *task) {
   } else
     spinlockCntWriteRelease(&target->WLOCK_FILES);
 }
+
+// Signal stuff
+TaskInfoSignal *taskInfoSignalAllocate() {
+  // everything will be initiated to 0, standing for SIG_DFL (default handling)
+  TaskInfoSignal *target = calloc(sizeof(TaskInfoSignal), 1);
+  target->utilizedBy = 1;
+  return target;
+}
+TaskInfoSignal *taskInfoSignalClone(TaskInfoSignal *old) {
+  TaskInfoSignal *target = taskInfoSignalAllocate();
+
+  spinlockAcquire(&old->LOCK_SIGNAL);
+  memcpy(target->signals, old->signals, sizeof(old->signals));
+  spinlockRelease(&old->LOCK_SIGNAL);
+
+  return target;
+}
+void taskInfoSignalDiscard(TaskInfoSignal *target) {
+  spinlockAcquire(&target->LOCK_SIGNAL);
+  target->utilizedBy--;
+  if (!target->utilizedBy) {
+    free(target);
+  } else
+    spinlockRelease(&target->LOCK_SIGNAL);
+}

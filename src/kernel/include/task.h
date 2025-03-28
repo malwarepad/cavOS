@@ -75,6 +75,17 @@ TaskInfoPagedir *taskInfoPdAllocate(bool pagedir);
 TaskInfoPagedir *taskInfoPdClone(TaskInfoPagedir *old);
 void             taskInfoPdDiscard(TaskInfoPagedir *target);
 
+typedef struct TaskInfoSignal {
+  Spinlock LOCK_SIGNAL;
+  int      utilizedBy;
+
+  struct sigaction signals[_NSIG];
+} TaskInfoSignal;
+
+TaskInfoSignal *taskInfoSignalAllocate();
+TaskInfoSignal *taskInfoSignalClone(TaskInfoSignal *old);
+void            taskInfoSignalDiscard(TaskInfoSignal *target);
+
 typedef struct TaskInfoFiles {
   SpinlockCnt WLOCK_FILES;
   int         utilizedBy;
@@ -128,11 +139,14 @@ struct Task {
   char  *cmdline;
   size_t cmdlineLen;
 
+  // Remember, this is per THREAD! It just gets cloned
   sigset_t sigBlockList;
+  sigset_t sigPendingList;
 
   TaskInfoFs      *infoFs;
   TaskInfoPagedir *infoPd;
   TaskInfoFiles   *infoFiles;
+  TaskInfoSignal  *infoSignals;
 
   __attribute__((aligned(16))) uint8_t fpuenv[512];
   uint32_t                             mxcsr;

@@ -1,11 +1,47 @@
 #include <linux.h>
 #include <syscalls.h>
 #include <task.h>
+#include <util.h>
+
+/*if (act && act->sa_handler != SIG_DFL && act->sa_handler != SIG_IGN &&
+      act->sa_handler != SIG_ERR)
+    debugf("%d %lx\n", sig, (size_t)act->sa_restorer);*/
 
 #define SYSCALL_RT_SIGACTION 13
 static size_t syscallRtSigaction(int sig, const struct sigaction *act,
                                  struct sigaction *oact, size_t sigsetsize) {
-  dbgSysStubf("todo signals");
+  if (sig < 0 || sig > _NSIG)
+    return ERR(EINVAL);
+  if (sigsetsize < sizeof(sigset_t)) {
+    dbgSysFailf("weird sigset size");
+    return ERR(EINVAL);
+  }
+  if (sig >= SIGRTMIN) { // [min, +inf)
+    dbgSysStubf("todo real-time signals");
+    return ERR(ENOSYS);
+  }
+
+  if (oact) {
+    TaskInfoSignal *info = currentTask->infoSignals;
+    spinlockAcquire(&info->LOCK_SIGNAL);
+    memcpy(oact, &info->signals[sig], sizeof(struct sigaction));
+    spinlockRelease(&info->LOCK_SIGNAL);
+  }
+  if (act) {
+    if (sig == SIGKILL || sig == SIGSTOP)
+      return ERR(EINVAL);
+
+    TaskInfoSignal *info = currentTask->infoSignals;
+    spinlockAcquire(&info->LOCK_SIGNAL);
+    // do it manually to be safe with the masks
+    struct sigaction *target = &info->signals[sig];
+    target->sa_handler = act->sa_handler;
+    target->sa_flags = act->sa_flags;
+    target->sa_restorer = act->sa_restorer;
+    target->sa_mask = act->sa_mask & ~(SIGKILL | SIGSTOP);
+    spinlockRelease(&info->LOCK_SIGNAL);
+  }
+
   return 0;
 }
 

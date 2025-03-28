@@ -242,6 +242,7 @@ static size_t syscallExecve(char *filename, char **argv, char **envp) {
   ret->sigBlockList = currentTask->sigBlockList;
   taskInfoFsDiscard(ret->infoFs);
   ret->infoFs = taskInfoFsClone(currentTask->infoFs);
+  ret->infoSignals = taskInfoSignalClone(currentTask->infoSignals);
 
   taskFilesCopy(currentTask, ret, true);
 

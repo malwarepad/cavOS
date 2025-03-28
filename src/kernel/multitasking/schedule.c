@@ -4,6 +4,7 @@
 #include <malloc.h>
 #include <paging.h>
 #include <schedule.h>
+#include <syscalls.h>
 #include <system.h>
 #include <task.h>
 #include <timer.h>
@@ -56,6 +57,9 @@ void schedule(uint64_t rsp) {
          next->registers.usermode_rsp, next->registers.rip, old->fsbase,
          old->gsbase);
 #endif
+
+  // Before doing anything, handle any signals
+  signalsPendingHandle(next);
 
   // Change TSS rsp0 (software multitasking)
   tssPtr->rsp0 = next->whileTssRsp;
