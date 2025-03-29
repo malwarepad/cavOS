@@ -54,11 +54,14 @@ void debug(char c, void *arg) {
 }
 
 int debugf(const char *format, ...) {
-  spinlockAcquire(&LOCK_DEBUGF);
+  bool ints = checkInterrupts();
+  if (ints)
+    spinlockAcquire(&LOCK_DEBUGF);
   va_list va;
   va_start(va, format);
   int ret = vfctprintf(debug, 0, format, va);
   va_end(va);
-  spinlockRelease(&LOCK_DEBUGF);
+  if (ints)
+    spinlockRelease(&LOCK_DEBUGF);
   return ret;
 }
