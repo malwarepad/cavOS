@@ -219,8 +219,8 @@ void VirtualMapL(uint64_t *pagedir, uint64_t virt_addr, uint64_t phys_addr,
 #endif
 }
 
-size_t VirtualToPhysical(size_t virt_addr) {
-  if (!globalPagedir)
+size_t VirtualToPhysicalL(uint64_t *pagedir, size_t virt_addr) {
+  if (!pagedir)
     return 0;
 
   if (virt_addr >= HHDMoffset && virt_addr <= (HHDMoffset + bootloader.mmTotal))
@@ -237,14 +237,13 @@ size_t VirtualToPhysical(size_t virt_addr) {
   uint32_t pt_index = PTE(virt_addr);
 
   spinlockCntReadAcquire(&WLOCK_PAGING);
-  if (!(globalPagedir[pml4_index] & PF_PRESENT))
+  if (!(pagedir[pml4_index] & PF_PRESENT))
     goto error;
-  /*else if (globalPagedir[pml4_index] & PF_PRESENT &&
-           globalPagedir[pml4_index] & PF_PS)
-    return (void *)(PTE_GET_ADDR(globalPagedir[pml4_index] +
+  /*else if (pagedir[pml4_index] & PF_PRESENT &&
+           pagedir[pml4_index] & PF_PS)
+    return (void *)(PTE_GET_ADDR(pagedir[pml4_index] +
                                  (virt_addr & PAGE_MASK(12 + 9 + 9 + 9))));*/
-  size_t *pdp =
-      (size_t *)(PTE_GET_ADDR(globalPagedir[pml4_index]) + HHDMoffset);
+  size_t *pdp = (size_t *)(PTE_GET_ADDR(pagedir[pml4_index]) + HHDMoffset);
 
   if (!(pdp[pdp_index] & PF_PRESENT))
     goto error;
@@ -269,6 +268,10 @@ size_t VirtualToPhysical(size_t virt_addr) {
 error:
   spinlockCntReadRelease(&WLOCK_PAGING);
   return 0;
+}
+
+size_t VirtualToPhysical(size_t virt_addr) {
+  return VirtualToPhysicalL(globalPagedir, virt_addr);
 }
 
 uint32_t VirtualUnmap(uint32_t virt_addr) {
