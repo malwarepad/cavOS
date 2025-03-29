@@ -32,6 +32,9 @@ const char *ANSI_WHITE;
 
 const char *LINUX_ERRNO[37];
 
+const char *SIGNALS[34];
+const char *signalStr(int signum);
+
 void *memcpy(void *restrict dstptr, const void *restrict srcptr, size_t size);
 void *memmove(void *dstptr, const void *srcptr, size_t size);
 void  memset(void *_dst, int val, size_t len);

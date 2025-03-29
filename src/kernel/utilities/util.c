@@ -22,6 +22,21 @@ const char *LINUX_ERRNO[37] = {
     "EMLINK", "EPIPE",   "EDOM",    "ERANGE", "EDEADLK", "ENAMETOOLONG",
     "ENOLCK"};
 
+const char *SIGNALS[34] = {
+    "ZERO?",   "SIGHUP",  "SIGINT",    "SIGQUIT", "SIGILL",    "SIGTRAP",
+    "SIGABRT", "SIGBUS",  "SIGFPE",    "SIGKILL", "SIGUSR1",   "SIGSEGV",
+    "SIGUSR2", "SIGPIPE", "SIGALRM",   "SIGTERM", "SIGSTKFLT", "SIGCHLD",
+    "SIGCONT", "SIGSTOP", "SIGTSTP",   "SIGTTIN", "SIGTTOU",   "SIGURG",
+    "SIGXCPU", "SIGXFSZ", "SIGVTALRM", "SIGPROF", "SIGWINCH",  "SIGIO",
+    "SIGPWR",  "SIGSYS",  "SIGUNUSED",
+};
+const char *sigStrDefault = "SIGRTn";
+const char *signalStr(int signum) {
+  if (signum < 32)
+    return SIGNALS[signum];
+  return sigStrDefault;
+}
+
 void memset(void *_dst, int val, size_t len) {
   asm volatile("pushf; cld; rep stosb; popf"
                :
