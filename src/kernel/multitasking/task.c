@@ -432,6 +432,10 @@ Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
   target->registers.usermode_rsp = rsp;
   target->registers.usermode_ss = GDT_USER_DATA | DPL_USER;
 
+  // since the scheduler, our fpu state might've changed
+  asm volatile(" fxsave %0 " ::"m"(currentTask->fpuenv));
+  asm("stmxcsr (%%rax)" : : "a"(&currentTask->mxcsr));
+
   // yk
   target->parent = currentTask;
   target->pgid = currentTask->pgid;
