@@ -44,6 +44,11 @@ void     atomicBitmapSet(volatile uint64_t *bitmap, unsigned int bit);
 void     atomicBitmapClear(volatile uint64_t *bitmap, unsigned int bit);
 uint64_t atomicBitmapGet(volatile uint64_t *bitmap);
 
+uint8_t  atomicRead8(volatile uint8_t *target);
+uint16_t atomicRead16(volatile uint16_t *target);
+uint32_t atomicRead32(volatile uint32_t *target);
+uint64_t atomicRead64(volatile uint64_t *target);
+
 int  rand(void);
 void srand(unsigned int seed);
 void hexDump(const char *desc, const void *addr, const int len, int perLine,

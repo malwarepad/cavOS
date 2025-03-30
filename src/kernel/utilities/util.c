@@ -89,6 +89,22 @@ uint64_t atomicBitmapGet(volatile uint64_t *bitmap) {
   return atomic_load((volatile _Atomic uint64_t *)bitmap);
 }
 
+uint8_t atomicRead8(volatile uint8_t *target) {
+  return atomic_load((volatile _Atomic uint8_t *)target);
+}
+
+uint16_t atomicRead16(volatile uint16_t *target) {
+  return atomic_load((volatile _Atomic uint16_t *)target);
+}
+
+uint32_t atomicRead32(volatile uint32_t *target) {
+  return atomic_load((volatile _Atomic uint32_t *)target);
+}
+
+uint64_t atomicRead64(volatile uint64_t *target) {
+  return atomic_load((volatile _Atomic uint64_t *)target);
+}
+
 static unsigned long int next = 1;
 
 int rand(void) {
