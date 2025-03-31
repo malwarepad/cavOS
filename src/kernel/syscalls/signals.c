@@ -60,14 +60,6 @@ void initiateSignalDefs() {
   signalInternalDecisions[SIGWINCH] = SIGNAL_INTERNAL_IGN;
 }
 
-int signalsPendingFind(uint64_t bitmap) {
-  for (int i = 0; i < _NSIG; i++) {
-    if (bitmap & (1 << i))
-      return i;
-  }
-  return -1;
-}
-
 void signalsAsmPassedToUcontext(const AsmPassedInterrupt *passed,
                                 struct sigcontext        *ucontext) {
   ucontext->r8 = passed->r8;
@@ -144,17 +136,12 @@ bool signalsPendingQuick(void *taskPtr) {
 // interrupt contexts and unsafe syscall positions!
 int signalsPendingDecide(Task *task) {
   // find a single valid pending signal
-  int signal = -1;
-  while (true) {
-    uint64_t pendingList = atomicBitmapGet(&task->sigPendingList);
-    signal = signalsPendingFind(pendingList);
-    if (signal == -1) // fail
-      return signal;
-    if (task->sigBlockList & (1 << signal)) // blocked but somehow hit
-      atomicBitmapClear(&task->sigPendingList, signal);
-    else // valid signal
-      return signal;
+  uint64_t pendingList = atomicBitmapGet(&task->sigPendingList);
+  for (int i = 0; i < _NSIG; i++) {
+    if (pendingList & (1 << i) && !(task->sigBlockList & (1 << i)))
+      return i;
   }
+  return -1;
 }
 
 // ! alignemnt for below functions: the structs NEED TO BE CALCULATED so that
@@ -358,6 +345,8 @@ size_t signalsSigreturnSyscall(void *taskPtr) {
   signalsUcontextToAsmPassed(ucontext, &regs);
 
   task->sigBlockList = ucontext->oldmask & ~(SIGKILL | SIGSTOP);
+
+  // if (SA_RESTART)
 
   asm volatile("cli"); // we're using whileTssRsp which is strictly for sched
   AsmPassedInterrupt *iretqRsp =
