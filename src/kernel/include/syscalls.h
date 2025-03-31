@@ -106,14 +106,14 @@ size_t signalsSigreturnSyscall(void *taskPtr);
 bool   signalsPendingQuick(void *taskPtr);
 
 #if DEBUG_SIGNALS_HITS
-#define signalHitf debugf
+#define dbgSigHitf debugf
 #else
-#define signalHitf(...) ((void)0)
+#define dbgSigHitf(...) ((void)0)
 #endif
 #if DEBUG_SIGNALS_STUB
-#define signalStubf debugf
+#define dbgSigStubf debugf
 #else
-#define signalStubf(...) ((void)0)
+#define dbgSigStubf(...) ((void)0)
 #endif
 
 #endif
