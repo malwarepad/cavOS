@@ -43,6 +43,9 @@ bool systemDiskInit;
 // Hand down control to the scheduler
 void handControl();
 
+// Switch contexts
+extern void asm_finalize(uint64_t rsp, uint64_t cr3);
+
 // Endianness
 uint16_t switch_endian_16(uint16_t val);
 uint32_t switch_endian_32(uint32_t val);

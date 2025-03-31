@@ -121,7 +121,7 @@ cleanup:
   currentTask->systemCallInProgress = false;
 
   // now safely handle whatever signal is left
-  signalsPendingHandle(currentTask);
+  signalsPendingHandleSys(currentTask, rspPtr, regs);
 }
 
 #if DEBUG_SYSCALLS_FAILS

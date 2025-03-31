@@ -75,8 +75,14 @@ static size_t syscallRtSigprocmask(int how, sigset_t *nset, sigset_t *oset,
   return 0;
 }
 
+#define SYSCALL_RT_SIGRETURN 15
+static size_t syscallRtSigreturn() {
+  return signalsSigreturnSyscall(currentTask);
+}
+
 void syscallRegSig() {
   // a
   registerSyscall(SYSCALL_RT_SIGACTION, syscallRtSigaction);
   registerSyscall(SYSCALL_RT_SIGPROCMASK, syscallRtSigprocmask);
+  registerSyscall(SYSCALL_RT_SIGRETURN, syscallRtSigreturn);
 }

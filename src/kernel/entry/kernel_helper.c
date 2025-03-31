@@ -30,6 +30,8 @@ void helperNet() {
 void helperReaper() {
   spinlockAcquire(&LOCK_REAPER);
   if (reaperTask) {
+    if (reaperTask->state == TASK_STATE_SIGKILLED)
+      taskKill(reaperTask->id, 128 + reaperTask->tmpRecV);
     if (reaperTask->state != TASK_STATE_DEAD)
       goto end;
 

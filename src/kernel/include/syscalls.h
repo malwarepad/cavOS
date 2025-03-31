@@ -25,6 +25,14 @@
 #define DEBUG_SYSCALLS_MISSING 1
 #endif
 
+/* Signal Debugging: None */
+#define NO_DEBUG_SIGNALS 1
+
+#if !NO_DEBUG_SIGNALS
+#define DEBUG_SIGNALS_HITS 1
+#define DEBUG_SIGNALS_STUB 1
+#endif
+
 void syscallHandler(AsmPassedInterrupt *regs);
 void initiateSyscalls();
 
@@ -91,6 +99,21 @@ typedef enum SignalInternal {
   SIGNAL_INTERNAL_CONT
 } SignalInternal;
 
-void signalsPendingHandle(void *taskPtr);
+void   signalsPendingHandleSys(void *taskPtr, uint64_t *rsp,
+                               AsmPassedInterrupt *registers);
+void   signalsPendingHandleSched(void *taskPtr);
+size_t signalsSigreturnSyscall(void *taskPtr);
+bool   signalsPendingQuick(void *taskPtr);
+
+#if DEBUG_SIGNALS_HITS
+#define signalHitf debugf
+#else
+#define signalHitf(...) ((void)0)
+#endif
+#if DEBUG_SIGNALS_STUB
+#define signalStubf debugf
+#else
+#define signalStubf(...) ((void)0)
+#endif
 
 #endif

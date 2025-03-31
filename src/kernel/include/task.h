@@ -29,6 +29,7 @@ typedef enum TASK_STATE {
   TASK_STATE_WAITING_CHILD_SPECIFIC = 6, // task->waitingForPid
   TASK_STATE_WAITING_VFORK = 7,
   TASK_STATE_BLOCKED = 8,
+  TASK_STATE_SIGKILLED = 9,
   TASK_STATE_DUMMY = 69,
 } TASK_STATE;
 
@@ -205,5 +206,6 @@ size_t  taskChangeCwd(char *newdir);
 Task   *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
                  bool spinup);
 void    taskFilesCopy(Task *original, Task *target, bool respectCOE);
+void    taskCallReaper(Task *target);
 
 #endif
