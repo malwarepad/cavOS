@@ -243,6 +243,11 @@ static size_t syscallExecve(char *filename, char **argv, char **envp) {
   taskInfoFsDiscard(ret->infoFs);
   ret->infoFs = taskInfoFsClone(currentTask->infoFs);
   ret->infoSignals = taskInfoSignalClone(currentTask->infoSignals);
+  for (int i = 0; i < _NSIG; i++) {
+    // restore non-ignored handlers to defaults
+    if (ret->infoSignals->signals[i].sa_handler != SIG_IGN)
+      ret->infoSignals->signals[i].sa_handler = SIG_DFL;
+  }
 
   taskFilesCopy(currentTask, ret, true);
 
