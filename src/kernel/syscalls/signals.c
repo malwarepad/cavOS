@@ -132,6 +132,11 @@ bool signalsPendingQuick(void *taskPtr) {
   return pendingList & ~task->sigBlockList;
 }
 
+bool signalsRevivableState(int state) {
+  return state == TASK_STATE_WAITING_CHILD ||
+         state == TASK_STATE_WAITING_CHILD_SPECIFIC;
+}
+
 // these functions should be fairly bare-bones as they are invoked from
 // interrupt contexts and unsafe syscall positions!
 int signalsPendingDecide(Task *task) {

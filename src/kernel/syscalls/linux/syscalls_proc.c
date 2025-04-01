@@ -316,6 +316,8 @@ static size_t syscallWait4(int pid, int *wstatus, int options,
       currentTask->waitingForPid = pid;
       currentTask->state = TASK_STATE_WAITING_CHILD_SPECIFIC;
       handControl();
+      if (signalsPendingQuick(currentTask))
+        return ERR(EINTR);
 
       // we're back
       currentTask->waitingForPid = 0; // just for good measure
@@ -330,11 +332,14 @@ static size_t syscallWait4(int pid, int *wstatus, int options,
       spinlockRelease(&currentTask->LOCK_CHILD_TERM);
     }
   } else {
+    // todo: process group stuff! also pid vs tgid!
     // we got children, wait for any changes
     // OR just continue :")
     if (!currentTask->childrenTerminatedAmnt) {
       currentTask->state = TASK_STATE_WAITING_CHILD;
       handControl();
+      if (signalsPendingQuick(currentTask))
+        return ERR(EINTR);
     }
     target = currentTask->firstChildTerminated;
   }

@@ -104,6 +104,7 @@ void   signalsPendingHandleSys(void *taskPtr, uint64_t *rsp,
 void   signalsPendingHandleSched(void *taskPtr);
 size_t signalsSigreturnSyscall(void *taskPtr);
 bool   signalsPendingQuick(void *taskPtr);
+bool   signalsRevivableState(int state);
 
 #if DEBUG_SIGNALS_HITS
 #define dbgSigHitf debugf

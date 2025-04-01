@@ -31,6 +31,12 @@ void schedule(uint64_t rsp) {
   int fullRun = 0;
   while (next->state != TASK_STATE_READY ||
          (next->sleepUntil && next->sleepUntil > timerTicks)) {
+    if (signalsRevivableState(next->state) && signalsPendingQuick(next)) {
+      // back to the syscall handler which returns -EINTR (& handles the signal)
+      assert(next->registers.cs & GDT_KERNEL_CODE);
+      next->state = TASK_STATE_READY;
+      break;
+    }
     next = next->next;
     if (!next) {
       fullRun++;
