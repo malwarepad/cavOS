@@ -58,6 +58,14 @@ void helperReaper() {
     }
     spinlockRelease(&LOCK_SPINLOCK_QUEUE);
 
+    // interrupted syscalls
+    TaskSysInterrupted *intrBrowse = reaperTask->firstSysIntr;
+    while (intrBrowse) {
+      TaskSysInterrupted *next = intrBrowse->next;
+      free(next); // quick n dirty
+      intrBrowse = next;
+    }
+
     // todo: free() the task in a safe manner. also implement some system for
     // editing the global LL without race conditions
     // (*) depends: task blocking, watchlists, task adding, forking, etc.

@@ -1,5 +1,6 @@
 #include <bootloader.h>
 #include <gdt.h>
+#include <linked_list.h>
 #include <paging.h>
 #include <stdatomic.h>
 #include <syscalls.h>
@@ -230,6 +231,7 @@ void signalsPendingHandleSys(void *taskPtr, uint64_t *rsp,
   signalsAsmPassedToUcontext(&oldstate, ucontext);
   ucontext->oldmask = oldMask;
   ucontext->fpstate = fpu;
+  ucontext->reserved1[0] = signal;
 
   sigrsp -= sizeof(void *);
   *((void **)sigrsp) =
@@ -318,6 +320,7 @@ void signalsPendingHandleSched(void *taskPtr) {
   struct sigcontext *ucontext = (struct sigcontext *)(region + top);
   signalsAsmPassedToUcontext(&oldstate, ucontext);
   ucontext->oldmask = oldMask;
+  ucontext->reserved1[0] = signal;
 
   // point fpstate properly
   ucontext->fpstate = (void *)(task->registers.usermode_rsp + fpuoffset);
@@ -332,6 +335,8 @@ void signalsPendingHandleSched(void *taskPtr) {
   task->registers.rdi = signal;
 }
 
+extern void syscall_entry();
+
 // this will be called strictly from a syscall handler environment
 size_t signalsSigreturnSyscall(void *taskPtr) {
   Task *task = (Task *)taskPtr; // avoid currentTask
@@ -345,13 +350,36 @@ size_t signalsSigreturnSyscall(void *taskPtr) {
 
   // return ptr has already been pushed
   struct sigcontext *ucontext = (struct sigcontext *)saveStackBrowse;
+  int                signal = ucontext->reserved1[0];
+  struct sigaction  *action = &task->infoSignals->signals[signal];
+
+  int flags = atomicRead64(&action->sa_flags);
 
   AsmPassedInterrupt regs = {0};
   signalsUcontextToAsmPassed(ucontext, &regs);
 
   task->sigBlockList = ucontext->oldmask & ~(SIGKILL | SIGSTOP);
 
-  // if (SA_RESTART)
+  if (flags & SA_RESTART && regs.rax == ERR(EINTR) && task->firstSysIntr) {
+    TaskSysInterrupted *sysIntr = task->firstSysIntr;
+    assert(sysIntr);
+
+    int number = sysIntr->number;
+    LinkedListRemove((void **)&task->firstSysIntr, sysIntr);
+    dbgSigHitf("%ld [signals] Re-running handler{%ld} after EINTR!\n", task->id,
+               number);
+
+    // actually repeat the syscall. no need to check anything, since they've
+    // already been verified once! here we're overriding our stack to fake
+    // another syscall entry (to satisfy sysret)
+    regs.rax = number;
+    regs.r11 = regs.rflags;
+    regs.rcx = regs.rip;
+    regs.cs = GDT_KERNEL_CODE;
+    regs.ds = GDT_KERNEL_DATA;
+    regs.usermode_ss = GDT_KERNEL_DATA;
+    regs.rip = (size_t)syscall_entry;
+  }
 
   asm volatile("cli"); // we're using whileTssRsp which is strictly for sched
   AsmPassedInterrupt *iretqRsp =

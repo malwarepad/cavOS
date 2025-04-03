@@ -98,6 +98,12 @@ TaskInfoFiles *taskInfoFilesAllocate();
 // TaskInfoFiles *taskInfoFilesClone(TaskInfoFiles *old);
 void taskInfoFilesDiscard(TaskInfoFiles *target, void *task);
 
+typedef struct TaskSysInterrupted {
+  struct TaskSysInterrupted *next;
+
+  uint64_t number; // rax
+} TaskSysInterrupted;
+
 struct Task {
   uint64_t id;
   int      pgid;
@@ -120,6 +126,9 @@ struct Task {
 
   AsmPassedInterrupt *syscallRegs;
   uint64_t            syscallRsp;
+
+  TaskSysInterrupted *firstSysIntr;
+  // no need for a lock, only we access it directly
 
   // Useful to switch, for when TLS is available
   uint64_t fsbase;

@@ -12,6 +12,9 @@
 #include <timer.h>
 #include <util.h>
 
+#include <linked_list.h>
+#include <malloc.h>
+
 #if DEBUG_SYSCALLS_STRACE
 #include <linux_syscalls.h>
 const char *defaultErrStr = "unknown";
@@ -111,6 +114,12 @@ void syscallHandler(AsmPassedInterrupt *regs) {
   } else
     debugf(" = %d (0x%lx) (%ldms)\n", ret, ret, timeTook);
 #endif
+
+  if (RET_IS_ERR((size_t)ret) && (size_t)ret == ERR(EINTR)) {
+    TaskSysInterrupted *sysIntr = calloc(sizeof(TaskSysInterrupted), 1);
+    sysIntr->number = regs->rax;
+    LinkedListPushFrontUnsafe((void **)&currentTask->firstSysIntr, sysIntr);
+  }
 
   regs->rax = ret;
 
