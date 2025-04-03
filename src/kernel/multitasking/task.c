@@ -196,6 +196,7 @@ void taskKill(uint32_t id, uint16_t ret) {
          task->parent->waitingForPid == task->id))
       task->parent->state = TASK_STATE_READY;
     spinlockRelease(&task->parent->LOCK_CHILD_TERM);
+    atomicBitmapSet(&task->parent->sigPendingList, SIGCHLD);
   }
 
   // vfork() children need to notify parents no matter what

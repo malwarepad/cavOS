@@ -202,6 +202,7 @@ void initiateSyscalls() {
   // Networking
   syscallsRegNet();
 
+  initiateSignalDefs();
   debugf("[syscalls] System calls are ready to fire: %d/%d\n", syscallCnt,
          MAX_SYSCALLS);
 }

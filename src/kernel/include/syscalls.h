@@ -99,6 +99,7 @@ typedef enum SignalInternal {
   SIGNAL_INTERNAL_CONT
 } SignalInternal;
 
+void   initiateSignalDefs();
 void   signalsPendingHandleSys(void *taskPtr, uint64_t *rsp,
                                AsmPassedInterrupt *registers);
 void   signalsPendingHandleSched(void *taskPtr);

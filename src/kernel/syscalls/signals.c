@@ -14,6 +14,7 @@
 #define currentTask (youWillNotUseThisInNoWayImaginable())
 
 SignalInternal signalInternalDecisions[_NSIG] = {0};
+extern void    syscall_entry();
 
 // stack is laid out like this afterwards
 // * uint64_t retaddr;
@@ -262,10 +263,20 @@ void signalsPendingHandleSched(void *taskPtr) {
     case SIGNAL_INTERNAL_CORE:
     case SIGNAL_INTERNAL_TERM:
       dbgSigHitf("--- %ld [signals] Killing! ---\n", task->id);
-      task->tmpRecV = signal;
-      task->state = TASK_STATE_SIGKILLED;
-      handler = SIG_IGN;
-      debugf("[signals] Todo: actually kill from scheduler context!\n");
+
+      // do the termination on a safer context than here, fake a syscall
+      task->registers.rax = 60;           // void sys_exit(...)
+      task->registers.rdi = 128 + signal; // int return_code
+      task->registers.r11 = task->registers.rflags;
+      task->registers.rcx = task->registers.rip;
+      task->registers.rflags &= ~(rdmsr(0xC0000084)); // IA32_FMASK
+      task->registers.cs = GDT_KERNEL_CODE;
+      task->registers.ds = GDT_KERNEL_DATA;
+      task->registers.usermode_ss = GDT_KERNEL_DATA;
+      task->registers.rip = (size_t)syscall_entry;
+      atomicBitmapClear(&task->sigPendingList, signal);
+      return; // get it done with
+
       break;
     case SIGNAL_INTERNAL_IGN:
       handler = SIG_IGN; // hence no else if
@@ -335,8 +346,6 @@ void signalsPendingHandleSched(void *taskPtr) {
   task->registers.rdi = signal;
 }
 
-extern void syscall_entry();
-
 // this will be called strictly from a syscall handler environment
 size_t signalsSigreturnSyscall(void *taskPtr) {
   Task *task = (Task *)taskPtr; // avoid currentTask
@@ -375,6 +384,7 @@ size_t signalsSigreturnSyscall(void *taskPtr) {
     regs.rax = number;
     regs.r11 = regs.rflags;
     regs.rcx = regs.rip;
+    regs.rflags &= ~(rdmsr(0xC0000084)); // IA32_FMASK
     regs.cs = GDT_KERNEL_CODE;
     regs.ds = GDT_KERNEL_DATA;
     regs.usermode_ss = GDT_KERNEL_DATA;

@@ -312,6 +312,8 @@ static size_t syscallWait4(int pid, int *wstatus, int options,
 
     // not there? wait for it!
     if (!target) {
+      if (options & WNOHANG)
+        return 0;
       // "poll"
       currentTask->waitingForPid = pid;
       currentTask->state = TASK_STATE_WAITING_CHILD_SPECIFIC;
@@ -336,6 +338,8 @@ static size_t syscallWait4(int pid, int *wstatus, int options,
     // we got children, wait for any changes
     // OR just continue :")
     if (!currentTask->childrenTerminatedAmnt) {
+      if (options & WNOHANG)
+        return 0;
       currentTask->state = TASK_STATE_WAITING_CHILD;
       handControl();
       if (signalsPendingQuick(currentTask))
@@ -358,8 +362,14 @@ static size_t syscallWait4(int pid, int *wstatus, int options,
   currentTask->childrenTerminatedAmnt--;
   spinlockRelease(&currentTask->LOCK_CHILD_TERM);
 
-  if (wstatus)
-    *wstatus = (ret & 0xff) << 8;
+  if (wstatus) {
+    if (ret < 128)
+      *wstatus = (ret & 0xff) << 8;
+    else {
+      int sig = ret - 128;
+      *wstatus = (sig & 0xff);
+    }
+  }
 
   dbgSysExtraf("\n%d [RET] [syscall::wait4] pid{%d} ret{%d}", currentTask->id,
                output, ret);
