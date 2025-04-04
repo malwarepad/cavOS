@@ -2,6 +2,7 @@
 #include <linked_list.h>
 #include <linux.h>
 #include <malloc.h>
+#include <poll.h>
 #include <string.h>
 #include <syscalls.h>
 #include <task.h>
@@ -67,6 +68,9 @@ static size_t syscallLstat(char *filename, stat *statbuf) {
 #include <timer.h>
 #define SYSCALL_POLL 7
 static size_t syscallPoll(struct pollfd *fds, int nfds, int timeout) {
+  return poll(fds, nfds, timeout);
+
+  // todo: fixup below
   int ret = 0;
   for (int i = 0; i < nfds; i++) {
     uint64_t start = timerTicks;

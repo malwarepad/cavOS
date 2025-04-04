@@ -197,3 +197,82 @@ size_t epollWait(OpenFile *epollFd, struct epoll_event *events, int maxevents,
 }
 
 VfsHandlers epollHandlers = {.duplicate = epollDuplicate, .close = epollClose};
+
+// poll API
+uint32_t epollToPollComp(uint32_t epoll_events) {
+  uint32_t poll_events = 0;
+
+  if (epoll_events & EPOLLIN)
+    poll_events |= POLLIN;
+  if (epoll_events & EPOLLOUT)
+    poll_events |= POLLOUT;
+  if (epoll_events & EPOLLPRI)
+    poll_events |= POLLPRI;
+  if (epoll_events & EPOLLERR)
+    poll_events |= POLLERR;
+  if (epoll_events & EPOLLHUP)
+    poll_events |= POLLHUP;
+#ifdef POLLRDHUP
+  if (epoll_events & EPOLLRDHUP)
+    poll_events |= POLLRDHUP;
+#endif
+
+  // EPOLLET and EPOLLONESHOT have no POLL equivalents, so they are ignored
+
+  return poll_events;
+}
+
+uint32_t pollToEpollComp(uint32_t poll_events) {
+  uint32_t epoll_events = 0;
+
+  if (poll_events & POLLIN)
+    epoll_events |= EPOLLIN;
+  if (poll_events & POLLOUT)
+    epoll_events |= EPOLLOUT;
+  if (poll_events & POLLPRI)
+    epoll_events |= EPOLLPRI;
+  if (poll_events & POLLERR)
+    epoll_events |= EPOLLERR;
+  if (poll_events & POLLHUP)
+    epoll_events |= EPOLLHUP;
+#ifdef POLLRDHUP
+  if (poll_events & POLLRDHUP)
+    epoll_events |= EPOLLRDHUP;
+#endif
+
+  // No way to infer EPOLLET or EPOLLONESHOT from poll events
+
+  return epoll_events;
+}
+
+size_t poll(struct pollfd *fds, int nfds, int timeout) {
+  if (nfds < 1)
+    return ERR(EINVAL);
+  int    ret = 0;
+  size_t target = timerTicks + timeout;
+  do {
+    for (int i = 0; i < nfds; i++) {
+      fds[i].revents = 0; // zero it out first
+      OpenFile *fd = fsUserGetNode(currentTask, fds[i].fd);
+      if (!fd)
+        continue;
+      if (!fd->handlers->internalPoll) {
+        fds[i].revents = fds[i].events & POLLIN ? POLLIN : POLLOUT;
+        ret++;
+        continue;
+      }
+      int revents =
+          fd->handlers->internalPoll(fd, pollToEpollComp(fds[i].events));
+      if (revents != 0) {
+        fds[i].revents = epollToPollComp(revents);
+        ret++;
+      }
+    }
+
+    if (ret > 0) // return immidiately!
+      break;
+    handControl();
+  } while (timeout != 0 && (timeout == -1 || timerTicks < target));
+
+  return ret;
+}

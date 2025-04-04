@@ -63,6 +63,8 @@ size_t pipeOpen(int *fds) {
   fds[0] = readFd;
   fds[1] = writeFd;
 
+  dbgSysExtraf("fds{%d, %d}", fds[0], fds[1]);
+
   return 0;
 
 bad_error:
