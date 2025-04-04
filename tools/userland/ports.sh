@@ -56,7 +56,7 @@ fi
 # Basic software
 source "${SCRIPTPATH}/../shared/chroot.sh"
 chroot_establish "$USR_PATHNAME/../"
-sudo chroot "target/" /bin/bash -c "apk add coreutils procps vim findutils diffutils patch grep sed gawk gzip xz make file tar nasm python3 gcc musl-dev pciutils fastfetch figlet"
+sudo chroot "target/" /bin/bash -c "apk add coreutils procps vim findutils diffutils patch grep sed gawk gzip xz make file tar nasm python3 gcc musl-dev pciutils fastfetch figlet xorg-server xinit xf86-input-evdev xf86-video-fbdev twm xsetroot xeyes"
 chroot_drop "$USR_PATHNAME/../"
 
 # Empty for the time being
