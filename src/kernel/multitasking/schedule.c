@@ -54,6 +54,12 @@ void schedule(uint64_t rsp) {
 
   currentTask = next;
 
+  if (old->state != TASK_STATE_READY && old->spinlockQueueEntry) {
+    // taskSpinlockExit(). maybe also todo on exit cleanup
+    spinlockRelease(old->spinlockQueueEntry);
+    old->spinlockQueueEntry = 0;
+  }
+
 #if SCHEDULE_DEBUG
   // if (old->id != 0 || next->id != 0)
   debugf("[scheduler] Switching context: id{%d} -> id{%d}\n", old->id,
