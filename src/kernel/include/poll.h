@@ -30,6 +30,8 @@ size_t epollCreate1(int flags);
 size_t epollCtl(OpenFile *epollFd, int op, int fd, struct epoll_event *event);
 size_t epollWait(OpenFile *epollFd, struct epoll_event *events, int maxevents,
                  int timeout);
+size_t epollPwait(OpenFile *epollFd, struct epoll_event *events, int maxevents,
+                  int timeout, sigset_t *sigmask, size_t sigsetsize);
 
 void epollCloseNotify(OpenFile *fd);
 

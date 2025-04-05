@@ -170,6 +170,8 @@ size_t epollWait(OpenFile *epollFd, struct epoll_event *events, int maxevents,
     return ERR(EINVAL);
   Epoll *epoll = epollFd->dir;
 
+  bool sigexit = false;
+
   // hack'y way but until I implement wake queues, it is what it is
   int    ready = 0;
   size_t target = timerTicks + timeout;
@@ -188,12 +190,35 @@ size_t epollWait(OpenFile *epollFd, struct epoll_event *events, int maxevents,
     }
     spinlockRelease(&epoll->LOCK_EPOLL);
 
-    if (ready > 0) // break immidiately!
+    sigexit = signalsPendingQuick(currentTask);
+    if (ready > 0 || sigexit) // break immidiately!
       break;
     handControl();
   } while (timeout != 0 && (timeout == -1 || timerTicks < target));
 
+  if (!ready && sigexit)
+    return ERR(EINTR);
+
   return ready;
+}
+
+size_t syscallRtSigprocmask(int how, sigset_t *nset, sigset_t *oset,
+                            size_t sigsetsize);
+size_t epollPwait(OpenFile *epollFd, struct epoll_event *events, int maxevents,
+                  int timeout, sigset_t *sigmask, size_t sigsetsize) {
+  if (sigsetsize < sizeof(sigset_t)) {
+    dbgSysFailf("weird sigset size");
+    return ERR(EINVAL);
+  }
+
+  sigset_t origmask;
+  if (sigmask)
+    syscallRtSigprocmask(SIG_SETMASK, sigmask, &origmask, sigsetsize);
+  size_t epollRet = epollWait(epollFd, events, maxevents, timeout);
+  if (sigmask)
+    syscallRtSigprocmask(SIG_SETMASK, &origmask, 0, sigsetsize);
+
+  return epollRet;
 }
 
 VfsHandlers epollHandlers = {.duplicate = epollDuplicate, .close = epollClose};
@@ -249,6 +274,7 @@ size_t poll(struct pollfd *fds, int nfds, int timeout) {
   if (nfds < 1)
     return ERR(EINVAL);
   int    ret = 0;
+  bool   sigexit = false;
   size_t target = timerTicks + timeout;
   do {
     for (int i = 0; i < nfds; i++) {
@@ -269,10 +295,14 @@ size_t poll(struct pollfd *fds, int nfds, int timeout) {
       }
     }
 
-    if (ret > 0) // return immidiately!
+    sigexit = signalsPendingQuick(currentTask);
+    if (ret > 0 || sigexit) // return immidiately!
       break;
     handControl();
   } while (timeout != 0 && (timeout == -1 || timerTicks < target));
+
+  if (!ret && sigexit)
+    return ERR(EINTR);
 
   return ret;
 }

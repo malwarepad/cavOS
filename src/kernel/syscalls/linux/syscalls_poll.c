@@ -29,6 +29,16 @@ static size_t syscallEpollCtl(int epfd, int op, int fd,
   return epollCtl(epollFd, op, fd, event);
 }
 
+#define SYSCALL_EPOLL_PWAIT 281
+static size_t syscallEpollPwait(int epfd, struct epoll_event *events,
+                                int maxevents, int timeout, sigset_t *sigmask,
+                                size_t sigsetsize) {
+  OpenFile *epollFd = fsUserGetNode(currentTask, epfd);
+  if (!epollFd)
+    return ERR(EBADF);
+  return epollPwait(epollFd, events, maxevents, timeout, sigmask, sigsetsize);
+}
+
 #define SYSCALL_EPOLL_CREATE1 291
 static size_t syscallEpollCreate1(int flags) { return epollCreate1(flags); }
 
@@ -37,4 +47,5 @@ void syscallsRegPoll() {
   registerSyscall(SYSCALL_EPOLL_CREATE1, syscallEpollCreate1);
   registerSyscall(SYSCALL_EPOLL_CTL, syscallEpollCtl);
   registerSyscall(SYSCALL_EPOLL_WAIT, syscallEpollWait);
+  registerSyscall(SYSCALL_EPOLL_PWAIT, syscallEpollPwait);
 }

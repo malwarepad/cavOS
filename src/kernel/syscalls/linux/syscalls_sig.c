@@ -62,8 +62,8 @@ static size_t syscallRtSigaction(int sig, const struct sigaction *act,
 // handlers after this syscall is completed and only we (meaning this thread)
 // can change the mask. Reads will be performed afterwards anyways.
 #define SYSCALL_RT_SIGPROCMASK 14
-static size_t syscallRtSigprocmask(int how, sigset_t *nset, sigset_t *oset,
-                                   size_t sigsetsize) {
+size_t syscallRtSigprocmask(int how, sigset_t *nset, sigset_t *oset,
+                            size_t sigsetsize) {
   if (oset)
     *oset = currentTask->sigBlockList;
   if (nset) {
