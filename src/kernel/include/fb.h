@@ -10,6 +10,8 @@ extern uint16_t framebufferWidth;
 extern uint16_t framebufferHeight;
 extern uint32_t framebufferPitch;
 
+struct limine_framebuffer framebufferLimine;
+
 #define drawPixel(x, y, r, g, b)                                               \
   do {                                                                         \
     framebuffer[((x) + (y) * framebufferWidth) * 4] = (b);                     \

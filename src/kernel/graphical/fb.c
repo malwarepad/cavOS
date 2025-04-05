@@ -14,6 +14,8 @@ uint16_t framebufferWidth;
 uint16_t framebufferHeight;
 uint32_t framebufferPitch;
 
+struct limine_framebuffer framebufferLimine = {0};
+
 void drawRect(int x, int y, int w, int h, int r, int g,
               int b) { // Draw a filled rectangle
   unsigned int offset =
@@ -80,13 +82,20 @@ size_t fbUserIoctl(OpenFile *fd, uint64_t request, void *arg) {
     fb->xres_virtual = framebufferWidth;
     fb->yres_virtual = framebufferHeight;
 
-    fb->red = (struct fb_bitfield){.offset = 16, .length = 8, .msb_right = 0};
-    fb->green = (struct fb_bitfield){.offset = 8, .length = 8, .msb_right = 0};
-    fb->blue = (struct fb_bitfield){.offset = 0, .length = 8, .msb_right = 0};
-    fb->transp = (struct fb_bitfield){
-        .offset = 24, .length = 8, .msb_right = 0}; // May be ignored
+    fb->red = (struct fb_bitfield){.offset = framebufferLimine.red_mask_shift,
+                                   .length = framebufferLimine.red_mask_size,
+                                   .msb_right = 1};
+    fb->green =
+        (struct fb_bitfield){.offset = framebufferLimine.green_mask_shift,
+                             .length = framebufferLimine.green_mask_size,
+                             .msb_right = 1};
+    fb->blue = (struct fb_bitfield){.offset = framebufferLimine.blue_mask_shift,
+                                    .length = framebufferLimine.blue_mask_size,
+                                    .msb_right = 1};
+    fb->transp =
+        (struct fb_bitfield){.offset = 24, .length = 8, .msb_right = 1};
 
-    fb->bits_per_pixel = 32;
+    fb->bits_per_pixel = framebufferLimine.bpp;
     fb->grayscale = 0;
     // fb->red = 0;
     // fb->green = 0;
