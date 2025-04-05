@@ -408,7 +408,7 @@ Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
     target->infoFiles = share;
   }
 
-  if (!(cloneFlags & CLONE_THREAD))
+  if (!(cloneFlags & CLONE_SIGHAND))
     target->infoSignals = taskInfoSignalClone(currentTask->infoSignals);
   else {
     TaskInfoSignal *share = currentTask->infoSignals;
@@ -418,9 +418,8 @@ Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
     target->infoSignals = share;
   }
 
-  // only in this case it gets inherited!
-  if (cloneFlags & CLONE_THREAD)
-    target->sigBlockList = currentTask->sigBlockList;
+  // they get inherited, but can still be changed thread-wise!
+  target->sigBlockList = currentTask->sigBlockList;
 
   // returns zero yk
   target->registers.rax = 0;

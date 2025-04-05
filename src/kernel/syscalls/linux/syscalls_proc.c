@@ -47,7 +47,7 @@ cleanup:
 static size_t syscallClone(uint64_t flags, uint64_t newsp, int *parent_tid,
                            int *child_tid, uint64_t tls) {
   // 17 is SIGCHLD which we ignore
-  // CLONE_DETACHED, CLONE_SIGHAND, CLONE_SYSVSEM(*) are also ignored
+  // CLONE_DETACHED, CLONE_SYSVSEM(*) are also ignored
   uint64_t supported_flags =
       CLONE_VFORK | CLONE_VM | CLONE_FILES | CLONE_SYSVSEM |
       CLONE_CHILD_CLEARTID | CLONE_PARENT_SETTID | CLONE_DETACHED |
