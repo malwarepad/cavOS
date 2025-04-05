@@ -76,10 +76,16 @@ TaskInfoPagedir *taskInfoPdAllocate(bool pagedir);
 TaskInfoPagedir *taskInfoPdClone(TaskInfoPagedir *old);
 void             taskInfoPdDiscard(TaskInfoPagedir *target);
 
+typedef struct IntTimerInternal {
+  uint64_t at;    // checked agains timerTicks (ms)
+  uint64_t reset; // reset value (ms)
+} IntTimerInternal;
+
 typedef struct TaskInfoSignal {
   Spinlock LOCK_SIGNAL;
   int      utilizedBy;
 
+  IntTimerInternal itimerReal; // ITIMER_REAL
   struct sigaction signals[_NSIG];
 } TaskInfoSignal;
 

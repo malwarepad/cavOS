@@ -1329,4 +1329,14 @@ struct sigcontext {
   unsigned long   reserved1[8];
 };
 
+// include/linux/time.h
+struct itimerval {
+  struct timeval it_interval; /* timer interval */
+  struct timeval it_value;    /* current value */
+};
+
+#define ITIMER_REAL 0
+#define ITIMER_VIRTUAL 1
+#define ITIMER_PROF 2
+
 #endif

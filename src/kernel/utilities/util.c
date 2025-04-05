@@ -105,6 +105,22 @@ uint64_t atomicRead64(volatile uint64_t *target) {
   return atomic_load((volatile _Atomic uint64_t *)target);
 }
 
+void atomicWrite8(volatile uint8_t *target, uint8_t value) {
+  atomic_store((volatile _Atomic uint8_t *)target, value);
+}
+
+void atomicWrite16(volatile uint16_t *target, uint16_t value) {
+  atomic_store((volatile _Atomic uint16_t *)target, value);
+}
+
+void atomicWrite32(volatile uint32_t *target, uint32_t value) {
+  atomic_store((volatile _Atomic uint32_t *)target, value);
+}
+
+void atomicWrite64(volatile uint64_t *target, uint64_t value) {
+  atomic_store((volatile _Atomic uint64_t *)target, value);
+}
+
 static unsigned long int next = 1;
 
 int rand(void) {
