@@ -61,3 +61,7 @@ chroot_drop "$USR_PATHNAME/../"
 
 # Empty for the time being
 echo "" | sudo tee target/usr/lib/os-release
+
+# For the love of god use bash instead of busybox sh
+sudo rm target/bin/sh
+sudo ln -s "/bin/bash" target/bin/sh
