@@ -60,6 +60,20 @@ void schedule(uint64_t rsp) {
     old->spinlockQueueEntry = 0;
   }
 
+  if (!next->kernel_task) {
+    // per-process timers
+    uint64_t rtAt = atomicRead64(&next->infoSignals->itimerReal.at);
+    uint64_t rtReset = atomicRead64(&next->infoSignals->itimerReal.reset);
+    if (rtAt && rtAt <= timerTicks) {
+      // issue signal
+      atomicBitmapSet(&next->sigPendingList, SIGALRM);
+      if (!rtReset)
+        atomicWrite64(&next->infoSignals->itimerReal.at, 0);
+      else
+        atomicWrite64(&next->infoSignals->itimerReal.at, timerTicks + rtReset);
+    }
+  }
+
 #if SCHEDULE_DEBUG
   // if (old->id != 0 || next->id != 0)
   debugf("[scheduler] Switching context: id{%d} -> id{%d}\n", old->id,
