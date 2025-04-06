@@ -237,3 +237,8 @@
 !etc/profile
 !etc/resolv.conf
 !boot/limine/limine.conf
+
+!etc
+!etc/X11
+!etc/X11/xorg.conf.d
+!etc/X11/xorg.conf.d/69-cavos.conf
