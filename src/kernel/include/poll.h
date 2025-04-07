@@ -37,6 +37,9 @@ void epollCloseNotify(OpenFile *fd);
 
 VfsHandlers epollHandlers;
 
+uint32_t epollToPollComp(uint32_t epoll_events);
+uint32_t pollToEpollComp(uint32_t poll_events);
+
 size_t poll(struct pollfd *fds, int nfds, int timeout);
 
 #endif

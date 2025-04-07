@@ -79,6 +79,8 @@ typedef size_t (*SpecialRecvfrom)(OpenFile *fd, uint8_t *out, size_t limit,
                                   uint32_t *len);
 typedef size_t (*SpecialGetsockopts)(OpenFile *fd, int level, int optname,
                                      void *optval, uint32_t *socklen);
+typedef size_t (*SpecialGetsockname)(OpenFile *fd, sockaddr_linux *addr,
+                                     uint32_t *addrlen);
 typedef size_t (*SpecialGetpeername)(OpenFile *fd, sockaddr_linux *addr,
                                      uint32_t *len);
 typedef size_t (*SpecialRecvMsg)(OpenFile *fd, struct msghdr_linux *msg,
@@ -108,6 +110,7 @@ typedef struct VfsHandlers {
   SpecialRecvfrom    recvfrom;
   SpecialSendto      sendto;
   SpecialRecvMsg     recvmsg;
+  SpecialGetsockname getsockname;
   SpecialGetsockopts getsockopts;
   SpecialGetpeername getpeername;
 

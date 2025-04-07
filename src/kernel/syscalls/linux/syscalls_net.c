@@ -123,6 +123,18 @@ static size_t syscallListen(int fd, int backlog) {
   return fileNode->handlers->listen(fileNode, backlog);
 }
 
+#define SYSCALL_GETSOCKNAME 51
+static size_t syscallGetsockname(int fd, sockaddr_linux *sockaddr,
+                                 socklen_t *len) {
+  OpenFile *fileNode = fsUserGetNode(currentTask, fd);
+  if (!fileNode)
+    return ERR(EBADF);
+
+  if (!fileNode->handlers->getsockname)
+    return ERR(ENOTSOCK);
+  return fileNode->handlers->getsockname(fileNode, sockaddr, len);
+}
+
 #define SYSCALL_GETPEERNAME 52
 static size_t syscallGetpeername(int fd, sockaddr_linux *sockaddr,
                                  socklen_t *len) {
@@ -217,4 +229,5 @@ void syscallsRegNet() {
   registerSyscall(SYSCALL_LISTEN, syscallListen);
   registerSyscall(SYSCALL_GETSOCKOPT, syscallGetsockopt);
   registerSyscall(SYSCALL_GETPEERNAME, syscallGetpeername);
+  registerSyscall(SYSCALL_GETSOCKNAME, syscallGetsockname);
 }
