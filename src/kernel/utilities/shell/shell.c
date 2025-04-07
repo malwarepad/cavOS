@@ -155,7 +155,8 @@ bool run(char *binary, bool wait, int _argc, char **_argv) {
   taskCreateFinish(task);
 
   if (task && wait) {
-    currentTask->state = TASK_STATE_WAITING_CHILD;
+    currentTask->waitingForPid = task->id;
+    currentTask->state = TASK_STATE_WAITING_CHILD_SPECIFIC;
     handControl();
     // while (currentTask->state == TASK_STATE_WAITING_CHILD)
     //   ;

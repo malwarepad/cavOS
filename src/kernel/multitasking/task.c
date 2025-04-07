@@ -230,11 +230,18 @@ void taskKill(uint32_t id, uint16_t ret) {
 }
 
 void taskFreeChildren(Task *task) {
+  if (task->noInformParent)
+    return; // it's execve() trash most likely
   Task *child = firstTask;
   while (child) {
     Task *next = child->next;
-    if (child->parent == task && child->state != TASK_STATE_DEAD)
-      child->parent = firstTask; // ykyk
+    // todo: reparent to init!
+    if (child->parent == task && child->state != TASK_STATE_DEAD) {
+      if (!child->parent)
+        child->parent = firstTask;
+      else
+        child->parent = child->parent->parent;
+    } // ykyk
     child = next;
   }
 }
