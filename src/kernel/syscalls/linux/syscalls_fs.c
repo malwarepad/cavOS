@@ -123,33 +123,61 @@ static size_t syscallPread64(uint64_t fd, char *buff, size_t count,
   return readOp;
 }
 
-#define SYSCALL_WRITEV 20
-static size_t syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
+#define SYSCALL_READV 19
+static size_t syscallReadV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
+  OpenFile *file = fsUserGetNode(currentTask, fd);
+  if (!file)
+    return ERR(EBADF);
+
   size_t cnt = 0;
   for (int i = 0; i < ioVcnt; i++) {
     iovec *curr = (iovec *)((size_t)iov + i * sizeof(iovec));
+    if (!curr->iov_len)
+      continue;
 
-    size_t singleCnt = syscallWrite(fd, curr->iov_base, curr->iov_len);
-    if (RET_IS_ERR(singleCnt))
-      return singleCnt;
+    if (cnt > 0 && file->handlers->internalPoll) {
+      // we already have some data (and are on something that can possibly
+      // block, hence it has internalPoll defined), poll so that it doesn't
+      // block afterwards
+      if (!(file->handlers->internalPoll(file, EPOLLIN) & EPOLLIN))
+        return cnt;
+    }
 
-    cnt += singleCnt;
+    size_t single = fsRead(file, curr->iov_base, curr->iov_len);
+    if (RET_IS_ERR(single))
+      return cnt > 0 ? cnt : single;
+
+    cnt += single;
   }
 
   return cnt;
 }
 
-#define SYSCALL_READV 19
-static size_t syscallReadV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
+#define SYSCALL_WRITEV 20
+static size_t syscallWriteV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
+  OpenFile *file = fsUserGetNode(currentTask, fd);
+  if (!file)
+    return ERR(EBADF);
+
   size_t cnt = 0;
   for (int i = 0; i < ioVcnt; i++) {
     iovec *curr = (iovec *)((size_t)iov + i * sizeof(iovec));
+    if (!curr->iov_len)
+      continue;
 
-    size_t singleCnt = syscallRead(fd, curr->iov_base, curr->iov_len);
-    if (RET_IS_ERR(singleCnt))
-      return singleCnt;
+    if (cnt > 0 && file->handlers->internalPoll) {
+      // we already have some data (and are on something that can possibly
+      // block, hence it has internalPoll defined), poll so that it doesn't
+      // block afterwards
+      if (!(file->handlers->internalPoll(file, EPOLLOUT) & EPOLLOUT))
+        return cnt;
+    }
 
-    cnt += singleCnt;
+    size_t single = fsWrite(file, curr->iov_base, curr->iov_len);
+    if (RET_IS_ERR(single))
+      return cnt > 0 ? cnt : single;
+
+    cnt += single;
   }
 
   return cnt;
