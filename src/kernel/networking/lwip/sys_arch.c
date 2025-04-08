@@ -87,31 +87,53 @@ err_t sys_mbox_new(sys_mbox_t *mbox, int size) {
   memset(mbox, 0, sizeof(sys_mbox_t));
   mbox->invalid = false;
   mbox->size = size;
-  mbox->msges = malloc(sizeof(mbox->msges[0]) * size);
+  mbox->msges = malloc(sizeof(mbox->msges[0]) * (size + 1));
   return ERR_OK;
 }
 
-void sys_mbox_free(sys_mbox_t *mbox) { free(mbox->msges); }
+void sys_mbox_free(sys_mbox_t *mbox) {
+  spinlockAcquire(&mbox->LOCK);
+  assert(mbox->ptrWrite == mbox->ptrRead);
+  free(mbox->msges);
+  spinlockRelease(&mbox->LOCK); // for set_invalid()!
+}
 
-void sys_mbox_set_invalid(sys_mbox_t *mbox) { mbox->invalid = true; }
+void sys_mbox_set_invalid(sys_mbox_t *mbox) {
+  spinlockAcquire(&mbox->LOCK);
+  mbox->invalid = true;
+  spinlockRelease(&mbox->LOCK);
+}
 
-int sys_mbox_valid(sys_mbox_t *mbox) { return !mbox->invalid; }
+int sys_mbox_valid(sys_mbox_t *mbox) {
+  spinlockAcquire(&mbox->LOCK);
+  int ret = !mbox->invalid;
+  spinlockRelease(&mbox->LOCK);
+  return ret;
+}
 
 void sys_mbox_post(sys_mbox_t *q, void *msg) {
-  while ((q->ptrWrite + 1) % q->size == q->ptrRead)
+  while (true) {
+    spinlockAcquire(&q->LOCK);
+    if ((q->ptrWrite + 1) % q->size != q->ptrRead)
+      break;
+    spinlockRelease(&q->LOCK);
     handControl();
+  }
 
-  spinlockAcquire(&q->LOCK);
+  // spinlockAcquire(&q->LOCK);
   q->msges[q->ptrWrite] = msg;
   q->ptrWrite = (q->ptrWrite + 1) % q->size;
   spinlockRelease(&q->LOCK);
 }
 
 err_t sys_mbox_trypost(sys_mbox_t *q, void *msg) {
-  if ((q->ptrWrite + 1) % q->size == q->ptrRead)
-    return ERR_MEM;
-
   spinlockAcquire(&q->LOCK);
+  if ((q->ptrWrite + 1) % q->size == q->ptrRead) {
+    spinlockRelease(&q->LOCK);
+    return ERR_MEM;
+  }
+
+  // spinlockAcquire(&q->LOCK);
   q->msges[q->ptrWrite] = msg;
   q->ptrWrite = (q->ptrWrite + 1) % q->size;
   spinlockRelease(&q->LOCK);
@@ -125,13 +147,17 @@ err_t sys_mbox_trypost_fromisr(sys_mbox_t *q, void *msg) {
 
 u32_t sys_arch_mbox_fetch(sys_mbox_t *q, void **msg, u32_t timeout) {
   uint64_t timeStart = timerTicks;
-  while (q->ptrRead == q->ptrWrite) {
-    if (timeout && timerTicks <= (timeStart + timeout))
+  while (true) {
+    spinlockAcquire(&q->LOCK);
+    if (q->ptrRead != q->ptrWrite)
+      break;
+    spinlockRelease(&q->LOCK);
+    if (timeout && timerTicks >= (timeStart + timeout))
       return SYS_ARCH_TIMEOUT;
     handControl();
   }
 
-  spinlockAcquire(&q->LOCK);
+  // spinlockAcquire(&q->LOCK);
   *msg = q->msges[q->ptrRead];
   q->ptrRead = (q->ptrRead + 1) % q->size;
   spinlockRelease(&q->LOCK);
@@ -140,10 +166,13 @@ u32_t sys_arch_mbox_fetch(sys_mbox_t *q, void **msg, u32_t timeout) {
 }
 
 u32_t sys_arch_mbox_tryfetch(sys_mbox_t *q, void **msg) {
-  if (q->ptrRead == q->ptrWrite)
-    return SYS_MBOX_EMPTY;
-
   spinlockAcquire(&q->LOCK);
+  if (q->ptrRead == q->ptrWrite) {
+    spinlockRelease(&q->LOCK);
+    return SYS_MBOX_EMPTY;
+  }
+
+  // spinlockAcquire(&q->LOCK);
   *msg = q->msges[q->ptrRead];
   q->ptrRead = (q->ptrRead + 1) % q->size;
   spinlockRelease(&q->LOCK);
