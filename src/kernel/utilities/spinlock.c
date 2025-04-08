@@ -79,6 +79,7 @@ bool semaphoreWait(Semaphore *sem, uint32_t timeout) {
     spinlockAcquire(&sem->LOCK);
     if (sem->cnt > 0) {
       sem->cnt--;
+      ret = true;
       goto cleanup;
     }
     spinlockRelease(&sem->LOCK);
