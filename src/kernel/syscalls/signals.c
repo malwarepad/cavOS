@@ -217,11 +217,12 @@ void signalsPendingHandleSys(void *taskPtr, uint64_t *rsp,
 
   size_t sigrsp = *rsp;
 
-  // for alignment. have a (relatively) stable base
-  sigrsp = (sigrsp / PAGE_SIZE) * PAGE_SIZE;
-
   // get down to avoid the red zone
   sigrsp -= 128;
+
+  // for alignment. have a (relatively) stable base
+  sigrsp -= PAGE_SIZE;
+  sigrsp = (sigrsp / PAGE_SIZE) * PAGE_SIZE;
 
   sigrsp -= sizeof(struct fpstate);
   struct fpstate *fpu = (struct fpstate *)sigrsp;
@@ -393,6 +394,9 @@ size_t signalsSigreturnSyscall(void *taskPtr) {
   AsmPassedInterrupt *iretqRsp =
       (AsmPassedInterrupt *)(task->whileTssRsp - sizeof(AsmPassedInterrupt));
   memcpy(iretqRsp, &regs, sizeof(AsmPassedInterrupt));
+
+  // this doesn't matter at all since they will be saved, but better be safe
+  memcpy(&task->registers, iretqRsp, sizeof(AsmPassedInterrupt));
 
   memcpy(task->fpuenv, ucontext->fpstate, sizeof(task->fpuenv));
   task->mxcsr = ucontext->fpstate->mxcsr;
