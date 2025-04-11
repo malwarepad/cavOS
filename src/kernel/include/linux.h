@@ -1339,4 +1339,16 @@ struct itimerval {
 #define ITIMER_VIRTUAL 1
 #define ITIMER_PROF 2
 
+// include/linux/input.h
+struct input_event {
+  uint64_t sec;
+  uint64_t usec;
+  __u16    type;
+  __u16    code;
+  __s32    value;
+};
+
+// include/linux/linux-event-codes.h
+#include "linux_event_codes.h"
+
 #endif

@@ -64,17 +64,17 @@ void _start(void) {
   initiateKb();
 
   debugf("\n====== REACHED SYSTEM ======\n");
-  initiateApicTimer();
-  initiateMouse(); // needs a timer
+  initiateApicTimer(); // mouse needs a timer
+  firstMountPoint = 0;
+  fsMount("/dev/", CONNECTOR_DEV, 0, 0); // mouse & kb need it
+  initiateMouse();
   // any filesystem operations depend on currentTask
   initiateTasks();
   initiateKernelThreads();
   initiateNetworking();
   initiatePCI();
-  firstMountPoint = 0;
   fsMount("/", CONNECTOR_AHCI, 0, 1);
   fsMount("/boot/", CONNECTOR_AHCI, 0, 0);
-  fsMount("/dev/", CONNECTOR_DEV, 0, 0);
   fsMount("/sys/", CONNECTOR_SYS, 0, 0);
   fsMount("/proc/", CONNECTOR_PROC, 0, 0);
 

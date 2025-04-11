@@ -38,6 +38,10 @@ void devSetup() {
                 S_IFCHR | S_IRUSR | S_IWUSR, &handleRandom);
   fakefsAddFile(&rootDev, rootDev.rootFile, "urandom", 0,
                 S_IFCHR | S_IRUSR | S_IWUSR, &handleRandom);
+
+  inputFakedir =
+      fakefsAddFile(&rootDev, rootDev.rootFile, "input", 0,
+                    S_IFDIR | S_IRUSR | S_IWUSR, &fakefsRootHandlers);
 }
 
 bool devMount(MountPoint *mount) {

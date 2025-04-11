@@ -1,3 +1,4 @@
+#include "dev.h"
 #include "types.h"
 
 #ifndef MOUSE_H
@@ -15,5 +16,7 @@
 
 void initiateMouse();
 void mouseIrq();
+
+DevInputEvent *mouseEvent;
 
 #endif

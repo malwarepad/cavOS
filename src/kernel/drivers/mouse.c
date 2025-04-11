@@ -46,9 +46,11 @@ int mouse2 = 0;
 int gx = 0;
 int gy = 0;
 
+DevInputEvent *mouseEvent;
+
 void mouseIrq() {
   uint8_t byte = mouseRead();
-  return;
+  // return;
   // rest are just for demonstration
 
   // debugf("%d %d %d\n", byte1, byte2, byte3);
@@ -82,10 +84,14 @@ void mouseIrq() {
       if (gy > framebufferHeight)
         gy = framebufferHeight;
 
-      bool click = mouse1 & (1 << 0);
-      bool rclick = mouse1 & (1 << 1);
-      drawRect(0, 0, framebufferWidth, framebufferHeight, 255, 255, 255);
-      drawRect(gx, gy, 20, 20, click ? 255 : 0, rclick ? 255 : 0, 0);
+      // bool click = mouse1 & (1 << 0);
+      // bool rclick = mouse1 & (1 << 1);
+      // drawRect(0, 0, framebufferWidth, framebufferHeight, 255, 255, 255);
+      // drawRect(gx, gy, 20, 20, click ? 255 : 0, rclick ? 255 : 0, 0);
+
+      inputGenerateEvent(mouseEvent, EV_ABS, ABS_X, gx);
+      inputGenerateEvent(mouseEvent, EV_ABS, ABS_Y, gy);
+      inputGenerateEvent(mouseEvent, EV_SYN, SYN_REPORT, 0);
 
       // debugf("(%d, %d)", gx, gy);
 
@@ -100,6 +106,8 @@ void mouseIrq() {
 }
 
 void initiateMouse() {
+  mouseEvent = devInputEventSetup("PS/2 Mouse");
+
   // enable the auxiliary mouse
   mouseWait(1);
   outportb(0x64, 0xA8);
