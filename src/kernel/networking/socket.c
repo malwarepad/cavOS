@@ -1,5 +1,7 @@
 #include <linux.h>
+#include <poll.h>
 #include <socket.h>
+#include <syscalls.h>
 #include <system.h>
 #include <task.h>
 #include <timer.h>
@@ -59,26 +61,21 @@ bool socketClose(OpenFile *fd) {
   return true;
 }
 
-bool socketPoll(OpenFile *fd, struct pollfd *pollfd, int timeout) {
+int socketInternalPoll(OpenFile *fd, int events) {
   UserSocket *userSocket = (UserSocket *)fd->dir;
 
-  int initial = pollfd->fd;
-  pollfd->fd = userSocket->lwipFd;
-  int      ret = 0;
-  uint64_t timerStart = timerTicks;
-  do {
-    ret = lwip_poll(pollfd, 1, 0);
-    if (ret == 1)
-      break;
-  } while (timeout && timerTicks < (timerStart + timeout));
-  pollfd->fd = initial;
+  struct pollfd single = {.revents = 0,
+                          .events = epollToPollComp(events),
+                          .fd = userSocket->lwipFd};
 
-  return ret == 1;
+  int ret = lwip_poll(&single, 1, 0);
+  if (ret != 1)
+    return 0;
+
+  return pollToEpollComp(single.revents);
 }
 
 size_t socketBind(OpenFile *fd, sockaddr_linux *addr, size_t len) {
-  addr->sa_family = AF_INET;
-
   UserSocket *userSocket = (UserSocket *)fd->dir;
 
   uint16_t initialFamily = sockaddrLinuxToLwip((void *)addr, len);
@@ -114,10 +111,84 @@ size_t socketSendto(OpenFile *fd, uint8_t *buff, size_t len, int flags,
   return lwipOut;
 }
 
+size_t socketGetsockname(OpenFile *fd, sockaddr_linux *addr, socklen_t *len) {
+  UserSocket *userSocket = (UserSocket *)fd->dir;
+
+  int lwipOut = lwip_getsockname(userSocket->lwipFd, (void *)addr, len);
+  sockaddrLwipToLinux(addr, AF_INET);
+  if (lwipOut < 0)
+    return -errno;
+  return lwipOut;
+}
+
+size_t socketRecvfrom(OpenFile *fd, uint8_t *out, size_t limit, int flags,
+                      sockaddr_linux *addr, uint32_t *len) {
+  UserSocket *userSocket = (UserSocket *)fd->dir;
+
+  if (fd->flags & O_NONBLOCK) {
+    // do a workaround cause lwip's recvfrom() doesn't respect non-blocking fds
+    int events = fd->handlers->internalPoll(fd, POLLIN);
+    if (!(events & POLLIN))
+      return ERR(EAGAIN);
+  }
+
+  int lwipOut =
+      lwip_recvfrom(userSocket->lwipFd, out, limit, flags, (void *)addr, len);
+  sockaddrLwipToLinux(addr, AF_INET);
+  if (lwipOut < 0)
+    return -errno;
+  return lwipOut;
+}
+
+int socketOptLevelConv(int level) {
+  switch (level) {
+  case 1:
+    level = SOL_SOCKET;
+    break;
+  default:
+    level = -1;
+    break;
+  }
+  return level;
+}
+int socketOptOptnameConv(int optname) {
+  switch (optname) {
+  case 4:
+    optname = SO_ERROR;
+    break;
+  default:
+    optname = -1;
+    break;
+  }
+  return optname;
+}
+
+size_t socketGetsockopt(OpenFile *fd, int levelLinux, int optnameLinux,
+                        void *optval, uint32_t *socklen) {
+  UserSocket *userSocket = (UserSocket *)fd->dir;
+
+  int level = socketOptLevelConv(levelLinux);
+  int optname = socketOptOptnameConv(optnameLinux);
+
+  if (level < 0 || optname < 0) {
+    dbgSysFailf("unsupported translation: level{%d} or optname{%d}");
+    return ERR(ENOPROTOOPT);
+  }
+
+  int lwipOut =
+      lwip_getsockopt(userSocket->lwipFd, level, optname, optval, socklen);
+  if (lwipOut < 0)
+    return -errno;
+  return lwipOut;
+}
+
 VfsHandlers socketHandlers = {.read = socketRead,
                               .write = socketWrite,
                               .fcntl = socketFcntl,
-                              .poll = socketPoll,
+                              .recvfrom = socketRecvfrom,
+                              .internalPoll = socketInternalPoll,
+                              .getsockname = socketGetsockname,
+                              .getsockopts = socketGetsockopt,
                               .bind = socketBind,
                               .connect = socketConnect,
                               .sendto = socketSendto,
