@@ -311,6 +311,9 @@ uint8_t irqPerCoreAllocate(uint8_t gsi, uint32_t *lapicId) {
     panic();
   }
 
+  // note to the todo: for when the time comes, keep in mind that a lot of
+  // handlers assume only they are ran and nothing else at the same time sooo
+
   // find the core with the least irqs allocated
   int    min = MAX_IRQ;
   size_t minIndex = 0;
