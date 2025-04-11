@@ -69,6 +69,7 @@ static size_t syscallClockGettime(int which, timespec *spec) {
   switch (which) {
   case CLOCK_MONOTONIC: // <- todo
   case 6:               // CLOCK_MONOTONIC_COARSE
+  case 4:               // CLOCK_MONOTONIC_RAW
   case CLOCK_REALTIME: {
     spec->tv_sec = timerBootUnix + timerTicks / 1000;
     size_t remainingInMs = timerTicks - (spec->tv_sec * 1000);

@@ -11,6 +11,8 @@
 #include <fb.h>
 #include <syscalls.h>
 
+// todo: lay this out a better way
+
 Fakefs rootProc = {0};
 
 size_t meminfoRead(OpenFile *fd, uint8_t *out, size_t limit) {
@@ -76,7 +78,13 @@ size_t procEachOpen(char *filename, int flags, int mode, OpenFile *fd,
   }
   char *decisionStr = &badFn[lastPos + 1];
   char *pidStr = &badFn[1];
-  int   pid = atoi(pidStr);
+  for (int i = 0; i < (lastPos - 1); i++) { // -1 for the start /
+    if (!isdigit(pidStr[i])) {
+      free(badFn);
+      return ERR(ENOENT);
+    }
+  }
+  int pid = atoi(pidStr);
   if (!strEql(decisionStr, "cmdline")) {
     free(badFn);
     return ERR(ENOENT);

@@ -14,7 +14,7 @@ void CircularIntAllocate(CircularInt *circ, size_t size) {
   circ->buff = malloc(size);
 }
 
-size_t CircularIntRead(CircularInt *circ, char *buff, size_t length) {
+size_t CircularIntRead(CircularInt *circ, uint8_t *buff, size_t length) {
   assert(length); // no wasting resources here
 
   spinlockAcquire(&circ->LOCK_READ);
@@ -41,7 +41,7 @@ size_t CircularIntRead(CircularInt *circ, char *buff, size_t length) {
 
 // maybe here we could use a separate lock when smp stuff is established
 // (SPECIFIC for interrupts, since no handControl() can be used)
-size_t CircularIntWrite(CircularInt *circ, const char *buff, size_t length) {
+size_t CircularIntWrite(CircularInt *circ, const uint8_t *buff, size_t length) {
   assert(!checkInterrupts()); // should only be ran from an int context
   assert(length);             // no wasting resources here
 

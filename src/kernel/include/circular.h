@@ -17,7 +17,7 @@ typedef struct CircularInt {
 #define CIRC_WRITABLE(wr, rd, sz) ((rd - wr - 1 + sz) % sz)
 
 void   CircularIntAllocate(CircularInt *circ, size_t size);
-size_t CircularIntRead(CircularInt *circ, char *buff, size_t length);
-size_t CircularIntWrite(CircularInt *circ, const char *buff, size_t length);
+size_t CircularIntRead(CircularInt *circ, uint8_t *buff, size_t length);
+size_t CircularIntWrite(CircularInt *circ, const uint8_t *buff, size_t length);
 
 #endif
