@@ -39,6 +39,16 @@ size_t CircularIntRead(CircularInt *circ, uint8_t *buff, size_t length) {
   return toCopy;
 }
 
+size_t CircularIntReadPoll(CircularInt *circ) {
+  size_t ret = 0;
+  spinlockAcquire(&circ->LOCK_READ);
+  size_t write = atomicRead64(&circ->writePtr);
+  size_t read = atomicRead64(&circ->readPtr);
+  ret = CIRC_READABLE(write, read, circ->buffSize);
+  spinlockRelease(&circ->LOCK_READ);
+  return ret;
+}
+
 // maybe here we could use a separate lock when smp stuff is established
 // (SPECIFIC for interrupts, since no handControl() can be used)
 size_t CircularIntWrite(CircularInt *circ, const uint8_t *buff, size_t length) {

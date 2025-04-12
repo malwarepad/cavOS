@@ -16,13 +16,21 @@ bool devMount(MountPoint *mount);
 // dev_event.c
 #define MAX_EVENTS 8
 #define EVENT_BUFFER_SIZE 16384
+typedef size_t (*EventBit)(OpenFile *fd, uint64_t request, void *arg);
 
 typedef struct DevInputEvent {
   Spinlock LOCK_USERSPACE;
 
-  char       *devname;
-  size_t      timesOpened;
-  CircularInt deviceEvents;
+  char *devname;
+  char *physloc;
+
+  size_t          timesOpened;
+  CircularInt     deviceEvents;
+  struct input_id inputid;
+
+  size_t properties;
+
+  EventBit eventBit;
 } DevInputEvent;
 
 DevInputEvent devInputEvents[MAX_EVENTS];

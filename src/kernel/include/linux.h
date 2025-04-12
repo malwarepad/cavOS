@@ -1339,6 +1339,95 @@ struct itimerval {
 #define ITIMER_VIRTUAL 1
 #define ITIMER_PROF 2
 
+// doesn't exactly belong below but yeah
+#define FIONREAD 0x541B
+#define FIONBIO 0x5421
+
+// include/asm-generic/ioctl.h
+#define _IOC_NRBITS 8
+#define _IOC_TYPEBITS 8
+
+/*
+ * Let any architecture override either of the following before
+ * including this file.
+ */
+
+#ifndef _IOC_SIZEBITS
+#define _IOC_SIZEBITS 14
+#endif
+
+#ifndef _IOC_DIRBITS
+#define _IOC_DIRBITS 2
+#endif
+
+#define _IOC_NRMASK ((1 << _IOC_NRBITS) - 1)
+#define _IOC_TYPEMASK ((1 << _IOC_TYPEBITS) - 1)
+#define _IOC_SIZEMASK ((1 << _IOC_SIZEBITS) - 1)
+#define _IOC_DIRMASK ((1 << _IOC_DIRBITS) - 1)
+
+#define _IOC_NRSHIFT 0
+#define _IOC_TYPESHIFT (_IOC_NRSHIFT + _IOC_NRBITS)
+#define _IOC_SIZESHIFT (_IOC_TYPESHIFT + _IOC_TYPEBITS)
+#define _IOC_DIRSHIFT (_IOC_SIZESHIFT + _IOC_SIZEBITS)
+
+/*
+ * Direction bits, which any architecture can choose to override
+ * before including this file.
+ *
+ * NOTE: _IOC_WRITE means userland is writing and kernel is
+ * reading. _IOC_READ means userland is reading and kernel is writing.
+ */
+
+#ifndef _IOC_NONE
+#define _IOC_NONE 0U
+#endif
+
+#ifndef _IOC_WRITE
+#define _IOC_WRITE 1U
+#endif
+
+#ifndef _IOC_READ
+#define _IOC_READ 2U
+#endif
+
+#define _IOC(dir, type, nr, size)                                              \
+  (((dir) << _IOC_DIRSHIFT) | ((type) << _IOC_TYPESHIFT) |                     \
+   ((nr) << _IOC_NRSHIFT) | ((size) << _IOC_SIZESHIFT))
+
+#define _IOC_TYPECHECK(t) (sizeof(t))
+
+/*
+ * Used to create numbers.
+ *
+ * NOTE: _IOW means userland is writing and kernel is reading. _IOR
+ * means userland is reading and kernel is writing.
+ */
+#define _IO(type, nr) _IOC(_IOC_NONE, (type), (nr), 0)
+#define _IOR(type, nr, size)                                                   \
+  _IOC(_IOC_READ, (type), (nr), (_IOC_TYPECHECK(size)))
+#define _IOW(type, nr, size)                                                   \
+  _IOC(_IOC_WRITE, (type), (nr), (_IOC_TYPECHECK(size)))
+#define _IOWR(type, nr, size)                                                  \
+  _IOC(_IOC_READ | _IOC_WRITE, (type), (nr), (_IOC_TYPECHECK(size)))
+#define _IOR_BAD(type, nr, size) _IOC(_IOC_READ, (type), (nr), sizeof(size))
+#define _IOW_BAD(type, nr, size) _IOC(_IOC_WRITE, (type), (nr), sizeof(size))
+#define _IOWR_BAD(type, nr, size)                                              \
+  _IOC(_IOC_READ | _IOC_WRITE, (type), (nr), sizeof(size))
+
+/* used to decode ioctl numbers.. */
+#define _IOC_DIR(nr) (((nr) >> _IOC_DIRSHIFT) & _IOC_DIRMASK)
+#define _IOC_TYPE(nr) (((nr) >> _IOC_TYPESHIFT) & _IOC_TYPEMASK)
+#define _IOC_NR(nr) (((nr) >> _IOC_NRSHIFT) & _IOC_NRMASK)
+#define _IOC_SIZE(nr) (((nr) >> _IOC_SIZESHIFT) & _IOC_SIZEMASK)
+
+/* ...and for the drivers/sound files... */
+
+#define IOC_IN (_IOC_WRITE << _IOC_DIRSHIFT)
+#define IOC_OUT (_IOC_READ << _IOC_DIRSHIFT)
+#define IOC_INOUT ((_IOC_WRITE | _IOC_READ) << _IOC_DIRSHIFT)
+#define IOCSIZE_MASK (_IOC_SIZEMASK << _IOC_SIZESHIFT)
+#define IOCSIZE_SHIFT (_IOC_SIZESHIFT)
+
 // include/linux/input.h
 struct input_event {
   uint64_t sec;
@@ -1347,6 +1436,48 @@ struct input_event {
   __u16    code;
   __s32    value;
 };
+
+struct input_id {
+  __u16 bustype;
+  __u16 vendor;
+  __u16 product;
+  __u16 version;
+};
+
+struct input_absinfo {
+  __s32 value;
+  __s32 minimum;
+  __s32 maximum;
+  __s32 fuzz;
+  __s32 flat;
+  __s32 resolution;
+};
+
+#define EVIOCGKEY(len)                                                         \
+  _IOC(_IOC_READ, 'E', 0x18, len) /* get global key state */
+#define EVIOCGLED(len) _IOC(_IOC_READ, 'E', 0x19, len) /* get all LEDs */
+#define EVIOCGSND(len)                                                         \
+  _IOC(_IOC_READ, 'E', 0x1a, len) /* get all sounds status */
+#define EVIOCGSW(len)                                                          \
+  _IOC(_IOC_READ, 'E', 0x1b, len) /* get all switch states */
+
+#define EVIOCGBIT(ev, len)                                                     \
+  _IOC(_IOC_READ, 'E', 0x20 + (ev), len) /* get event bits */
+#define EVIOCGABS(abs)                                                         \
+  _IOR('E', 0x40 + (abs), struct input_absinfo) /* get abs value/limits */
+#define EVIOCSABS(abs)                                                         \
+  _IOW('E', 0xc0 + (abs), struct input_absinfo) /* set abs value/limits */
+
+#define EVIOCSFF                                                               \
+  _IOW('E', 0x80,                                                              \
+       struct ff_effect) /* send a force effect to a force feedback device */
+#define EVIOCRMFF _IOW('E', 0x81, int) /* Erase a force effect */
+#define EVIOCGEFFECTS                                                          \
+  _IOR('E', 0x84, int) /* Report number of effects playable at the same time   \
+                        */
+
+#define EVIOCGRAB _IOW('E', 0x90, int)   /* Grab/Release device */
+#define EVIOCREVOKE _IOW('E', 0x91, int) /* Revoke device access */
 
 // include/linux/linux-event-codes.h
 #include "linux_event_codes.h"
