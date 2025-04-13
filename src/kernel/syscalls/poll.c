@@ -271,7 +271,7 @@ uint32_t pollToEpollComp(uint32_t poll_events) {
 }
 
 size_t poll(struct pollfd *fds, int nfds, int timeout) {
-  if (nfds < 1)
+  if (nfds < 0)
     return ERR(EINVAL);
   int    ret = 0;
   bool   sigexit = false;
@@ -283,8 +283,10 @@ size_t poll(struct pollfd *fds, int nfds, int timeout) {
       if (!fd)
         continue;
       if (!fd->handlers->internalPoll) {
-        fds[i].revents = fds[i].events & POLLIN ? POLLIN : POLLOUT;
-        ret++;
+        if (fds[i].events & POLLIN || fds[i].events & POLLOUT) {
+          fds[i].revents = fds[i].events & POLLIN ? POLLIN : POLLOUT;
+          ret++;
+        }
         continue;
       }
       int revents =
@@ -305,4 +307,90 @@ size_t poll(struct pollfd *fds, int nfds, int timeout) {
     return ERR(EINTR);
 
   return ret;
+}
+
+// i hate this obsolete system call and do not plan on making it efficient
+force_inline bool selectBitmap(uint8_t *map, int index) {
+  int div = index / 8;
+  int mod = index % 8;
+  return map[div] & (1 << mod);
+}
+
+force_inline void selectBitmapSet(uint8_t *map, int index) {
+  int div = index / 8;
+  int mod = index % 8;
+  map[div] |= 1 << mod;
+}
+
+force_inline struct pollfd *selectAdd(struct pollfd **comp, size_t *compIndex,
+                                      size_t *compLength, int fd, int events) {
+  if ((*compIndex + 1) * sizeof(struct pollfd) >= *compLength) {
+    *compLength *= 2;
+    *comp = realloc(*comp, *compLength);
+  }
+
+  (*comp)[*compIndex].fd = fd;
+  (*comp)[*compIndex].events = events;
+  (*comp)[*compIndex].revents = 0;
+
+  return &(*comp)[(*compIndex)++];
+}
+
+size_t select(int nfds, uint8_t *read, uint8_t *write, uint8_t *except,
+              struct timeval *timeout) {
+  size_t         compLength = sizeof(struct pollfd);
+  struct pollfd *comp = (struct pollfd *)malloc(compLength);
+  size_t         compIndex = 0;
+  if (read) {
+    for (int i = 0; i < nfds; i++) {
+      if (selectBitmap(read, i))
+        selectAdd(&comp, &compIndex, &compLength, i, POLLIN);
+    }
+  }
+  if (write) {
+    for (int i = 0; i < nfds; i++) {
+      if (selectBitmap(write, i))
+        selectAdd(&comp, &compIndex, &compLength, i, POLLOUT);
+    }
+  }
+  if (except) {
+    for (int i = 0; i < nfds; i++) {
+      if (selectBitmap(except, i))
+        selectAdd(&comp, &compIndex, &compLength, i, POLLPRI | POLLERR);
+    }
+  }
+
+  int toZero = DivRoundUp(nfds, 8);
+  if (read)
+    memset(read, 0, toZero);
+  if (write)
+    memset(write, 0, toZero);
+  if (except)
+    memset(except, 0, toZero);
+
+  size_t res = poll(
+      comp, compIndex,
+      timeout ? (timeout->tv_sec * 1000 + DivRoundUp(timeout->tv_usec, 1000))
+              : -1);
+
+  size_t verify = 0;
+  for (size_t i = 0; i < compIndex; i++) {
+    if (!comp[i].revents)
+      continue;
+    if (comp[i].events & POLLIN && comp[i].revents & POLLIN) {
+      selectBitmapSet(read, comp[i].fd);
+      verify++;
+    } else if (comp[i].events & POLLOUT && comp[i].revents & POLLOUT) {
+      selectBitmapSet(write, comp[i].fd);
+      verify++;
+    } else if ((comp[i].events & POLLPRI && comp[i].revents & POLLPRI) ||
+               (comp[i].events & POLLERR && comp[i].revents & POLLERR)) {
+      selectBitmapSet(except, comp[i].fd);
+      verify++;
+    }
+  }
+
+  assert(verify == res);
+  free(comp);
+  return verify;
 }

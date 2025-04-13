@@ -359,7 +359,7 @@ static size_t syscallPselect6(int nfds, fd_set *readfds, fd_set *writefds,
                               fd_set *exceptfds, struct timespec *timeout,
                               void *smthsignalthing) {
   if (timeout && !timeout->tv_nsec && !timeout->tv_sec)
-    return 0;
+    return 0; // todo: proper polling on kernel stdio
 
   int amnt = 0;
   int bits_per_long = sizeof(unsigned long) * 8;
@@ -399,13 +399,8 @@ static size_t syscallPselect6(int nfds, fd_set *readfds, fd_set *writefds,
 #define SYSCALL_SELECT 23
 static size_t syscallSelect(int nfds, fd_set *readfds, fd_set *writefds,
                             fd_set *exceptfds, struct timeval *timeout) {
-  if (timeout) {
-    struct timespec timeoutformat = {.tv_sec = timeout->tv_sec,
-                                     .tv_nsec = timeout->tv_usec * 1000};
-    return syscallPselect6(nfds, readfds, writefds, exceptfds, &timeoutformat,
-                           0);
-  }
-  return syscallPselect6(nfds, readfds, writefds, exceptfds, 0, 0);
+  return select(nfds, (uint8_t *)readfds, (uint8_t *)writefds,
+                (uint8_t *)exceptfds, timeout);
 }
 
 char *atResolvePathname(int dirfd, char *pathname) {
