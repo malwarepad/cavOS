@@ -165,6 +165,7 @@ struct MountPoint {
   void         *fsInfo;
 };
 
+#define VFS_CLOSE_FLAG_RETAIN_ID (1 << 0)
 struct OpenFile {
   OpenFile *next;
 
@@ -178,6 +179,8 @@ struct OpenFile {
 
   size_t pointer;
   size_t tmp1;
+
+  size_t closeFlags;
 
   VfsHandlers *handlers;
 

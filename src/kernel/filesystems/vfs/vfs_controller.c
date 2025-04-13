@@ -32,19 +32,36 @@ bool fsUnregisterNode(Task *task, OpenFile *file) {
   return ret;
 }
 
-// TODO! flags! modes!
-// todo: openId in a bitmap or smth, per task/kernel
-// note the dup2() syscall!
+size_t fsIdFind(TaskInfoFiles *infoFiles) {
+  size_t ret = -1;
+  spinlockCntWriteAcquire(&infoFiles->WLOCK_FILES);
+  for (size_t i = 0; i < infoFiles->rlimitFdsSoft; i++) {
+    if (!bitmapGenericGet(infoFiles->fdBitmap, i)) {
+      bitmapGenericSet(infoFiles->fdBitmap, i, true);
+      ret = i;
+      break;
+    }
+  }
+  spinlockCntWriteRelease(&infoFiles->WLOCK_FILES);
+
+  assert(ret != -1); // todo: RLIMIT errors
+  return ret;
+}
+
+void fsIdRemove(TaskInfoFiles *infoFiles, size_t fd) {
+  spinlockCntWriteAcquire(&infoFiles->WLOCK_FILES);
+  bitmapGenericSet(infoFiles->fdBitmap, fd, false);
+  spinlockCntWriteRelease(&infoFiles->WLOCK_FILES);
+}
 
 char     *prefix = "/";
-int       openId = 3;
 OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
   spinlockAcquire(&task->infoFs->LOCK_FS);
   char *safeFilename = fsSanitize(task ? task->infoFs->cwd : prefix, filename);
   spinlockRelease(&task->infoFs->LOCK_FS);
 
   OpenFile *target = fsRegisterNode(task);
-  target->id = openId++;
+  target->id = fsIdFind(task->infoFiles);
   target->mode = mode;
   target->flags = flags;
 
@@ -55,6 +72,7 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
   if (!mnt) {
     // no mountpoint for this
     fsUnregisterNode(task, target);
+    fsIdRemove(task->infoFiles, target->id);
     free(target);
     free(safeFilename);
     return 0;
@@ -74,6 +92,7 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
     if (RET_IS_ERR(ret)) {
       // failed to open
       fsUnregisterNode(task, target);
+      fsIdRemove(task->infoFiles, target->id);
       free(target);
       free(safeFilename);
 
@@ -115,7 +134,7 @@ OpenFile *fsUserDuplicateNode(void *taskPtr, OpenFile *original) {
   TaskInfoFiles *files = task->infoFiles;
 
   OpenFile *target = fsUserDuplicateNodeUnsafe(original);
-  target->id = openId++;
+  target->id = fsIdFind(files);
 
   spinlockCntWriteAcquire(&files->WLOCK_FILES);
   LinkedListPushFrontUnsafe((void **)(&files->firstFile), target);
@@ -165,6 +184,8 @@ bool fsCloseGeneric(OpenFile *file, Task *task) {
 
   bool res = file->handlers->close ? file->handlers->close(file) : true;
   epollCloseNotify(file);
+  if (!(file->closeFlags & VFS_CLOSE_FLAG_RETAIN_ID))
+    fsIdRemove(task->infoFiles, file->id);
   free(file);
   return res;
 }

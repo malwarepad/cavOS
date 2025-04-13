@@ -66,9 +66,11 @@ struct rlimit {
 static size_t syscallGetrlimit(int resource, struct rlimit *rlim) {
   switch (resource) {
   case 7: // max open fds
-    rlim->rlim_cur = UINT64_MAX - 69;
-    rlim->rlim_max = UINT64_MAX - 69;
-    // todo: be realistic about this and have a bitmap or smth
+    spinlockCntReadAcquire(&currentTask->infoFiles->WLOCK_FILES);
+    rlim->rlim_cur = currentTask->infoFiles->rlimitFdsSoft;
+    rlim->rlim_max = currentTask->infoFiles->rlimitFdsHard;
+    spinlockCntReadRelease(&currentTask->infoFiles->WLOCK_FILES);
+    // todo: ENSURE hard limits are multiples of 8 (for later)
     return 0;
     break;
   default:

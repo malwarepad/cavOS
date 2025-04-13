@@ -54,6 +54,9 @@ void atomicWrite16(volatile uint16_t *target, uint16_t value);
 void atomicWrite32(volatile uint32_t *target, uint32_t value);
 void atomicWrite64(volatile uint64_t *target, uint64_t value);
 
+bool bitmapGenericGet(uint8_t *bitmap, size_t index);
+void bitmapGenericSet(uint8_t *bitmap, size_t index, bool set);
+
 int  rand(void);
 void srand(unsigned int seed);
 void hexDump(const char *desc, const void *addr, const int len, int perLine,

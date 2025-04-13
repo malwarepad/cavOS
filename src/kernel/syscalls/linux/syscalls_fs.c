@@ -210,8 +210,25 @@ static size_t syscallDup2(uint32_t oldFd, uint32_t newFd) {
   if (oldFd == newFd)
     return newFd;
 
-  if (fsUserGetNode(currentTask, newFd))
-    fsUserClose(currentTask, newFd);
+  // determine how we're going to do this
+  spinlockCntWriteAcquire(&currentTask->infoFiles->WLOCK_FILES);
+  OpenFile *browse = currentTask->infoFiles->firstFile;
+  while (browse) {
+    if (browse->id == newFd)
+      break;
+    browse = browse->next;
+  }
+  if (!browse) {
+    // we don't have anything to close, reserve the id
+    bitmapGenericSet(currentTask->infoFiles->fdBitmap, newFd, true);
+  } else {
+    // do NOT free the id on close in order to avoid race conditions
+    browse->closeFlags |= VFS_CLOSE_FLAG_RETAIN_ID;
+  }
+  spinlockCntWriteRelease(&currentTask->infoFiles->WLOCK_FILES);
+
+  if (browse)
+    assert(fsUserClose(currentTask, newFd) == 0);
 
   size_t new = syscallDup(oldFd);
   assert(!RET_IS_ERR(new));

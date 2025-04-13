@@ -318,6 +318,11 @@ void taskFilesCopy(Task *original, Task *target, bool respectCOE) {
   TaskInfoFiles *targetInfo = target->infoFiles;
   spinlockCntReadAcquire(&originalInfo->WLOCK_FILES);
   spinlockCntWriteAcquire(&targetInfo->WLOCK_FILES);
+  targetInfo->rlimitFdsHard = originalInfo->rlimitFdsHard;
+  targetInfo->rlimitFdsSoft = originalInfo->rlimitFdsSoft;
+  targetInfo->fdBitmap = malloc(targetInfo->rlimitFdsHard / 8);
+  memcpy(targetInfo->fdBitmap, originalInfo->fdBitmap,
+         targetInfo->rlimitFdsHard / 8);
   OpenFile *realFile = originalInfo->firstFile;
   while (realFile) {
     if (respectCOE && realFile->closeOnExec) {
@@ -523,6 +528,7 @@ void initiateTasks() {
   currentTask->kernel_task = true;
   currentTask->infoFs = taskInfoFsAllocate();
   currentTask->infoFiles = taskInfoFilesAllocate();
+  currentTask->infoFiles->fdBitmap[0] = (uint8_t)-1;
   currentTask->infoSignals = 0; // no, just no!
 
   void  *tssRsp = VirtualAllocate(USER_STACK_PAGES);
