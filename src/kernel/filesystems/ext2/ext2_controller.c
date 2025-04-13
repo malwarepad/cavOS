@@ -515,7 +515,10 @@ size_t ext2Write(OpenFile *fd, uint8_t *buff, size_t limit) {
   if (dir->ptr > dir->inode.size) {
     // update size
     dir->inode.size = dir->ptr;
-    dir->inode.num_sectors = DivRoundUp(dir->ptr, SECTOR_SIZE) * SECTOR_SIZE;
+    dir->inode.num_sectors =
+        (DivRoundUp(dir->inode.size, ext2->blockSize) * ext2->blockSize) /
+        SECTOR_SIZE;
+    // todo: use this field properly considering it has indirect blocks too
     ext2InodeModifyM(ext2, dir->inodeNum, &dir->inode);
   }
 

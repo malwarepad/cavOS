@@ -540,6 +540,8 @@ size_t unixSocketRecvmsg(OpenFile *fd, struct msghdr_linux *msg, int flags) {
     dbgSysStubf("todo optional addr");
     return ERR(ENOSYS);
   }
+  msg->msg_controllen = 0;
+  msg->msg_flags = 0;
   size_t cnt = 0;
   bool   noblock = flags & MSG_DONTWAIT;
   for (int i = 0; i < msg->msg_iovlen; i++) {
@@ -562,6 +564,8 @@ size_t unixSocketAcceptRecvmsg(OpenFile *fd, struct msghdr_linux *msg,
     dbgSysStubf("todo optional addr");
     return ERR(ENOSYS);
   }
+  msg->msg_controllen = 0;
+  msg->msg_flags = 0;
   size_t cnt = 0;
   bool   noblock = flags & MSG_DONTWAIT;
   for (int i = 0; i < msg->msg_iovlen; i++) {

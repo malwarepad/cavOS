@@ -94,11 +94,17 @@ uint32_t ext2TraversePath(Ext2 *ext2, char *path, size_t initInode, bool follow,
         free(inode);
         return false;
       }
+      bool notdir = !(inode->permission & S_IFDIR);
       free(inode);
 
       // return fail or last's success
       if (!curr || i == (len - 1))
         return curr;
+
+      if (notdir) {
+        // if by this point it's not a directory, we're screwed
+        return false;
+      }
 
       lastslash = i;
     }
