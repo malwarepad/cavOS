@@ -87,17 +87,21 @@ void ext2BlockAssign(Ext2 *ext2, Ext2Inode *ino, uint32_t inodeNum,
                      Ext2LookupControl *control, size_t curr, uint32_t val) {
   uint32_t group = INODE_TO_BLOCK_GROUP(ext2, inodeNum);
   spinlockCntWriteAcquire(&ext2->WLOCKS_BLOCK_BITMAP[group]);
-  // uint32_t itemsPerBlock = ext2->blockSize / sizeof(uint32_t);
-  // size_t   baseSingly = 12 + itemsPerBlock;
+  uint32_t itemsPerBlock = ext2->blockSize / sizeof(uint32_t);
+  size_t   baseSingly = 12 + itemsPerBlock;
   // size_t   baseDoubly = baseSingly + ext2->blockSize * itemsPerBlock;
   if (curr < 12) {
     ino->blocks[curr] = val;
     ext2InodeModifyM(ext2, inodeNum, ino);
     goto cleanup;
-  }
-  /*else if (curr < baseSingly) {
-    if (!ino->blocks[12])
-      return 0;
+  } else if (curr < baseSingly) {
+    if (!ino->blocks[12]) {
+      spinlockCntWriteRelease(&ext2->WLOCKS_BLOCK_BITMAP[group]);
+      uint32_t block = ext2BlockFind(ext2, group, 1); // race?
+      spinlockCntWriteAcquire(&ext2->WLOCKS_BLOCK_BITMAP[group]);
+      ino->blocks[12] = block;
+      ext2InodeModifyM(ext2, inodeNum, ino);
+    }
     size_t tmp1block = BLOCK_TO_LBA(ext2, 0, ino->blocks[12]);
     if (control->tmp1Block != tmp1block) {
       control->tmp1Block = tmp1block;
@@ -105,8 +109,11 @@ void ext2BlockAssign(Ext2 *ext2, Ext2Inode *ino, uint32_t inodeNum,
       getDiskBytes((void *)control->tmp1, tmp1block,
                    ext2->blockSize / SECTOR_SIZE);
     }
-    return control->tmp1[curr - 12];
-  } else if (curr < baseDoubly) {
+    control->tmp1[curr - 12] = val;
+    setDiskBytes((void *)control->tmp1, tmp1block,
+                 ext2->blockSize / SECTOR_SIZE);
+    goto cleanup;
+  } /*else if (curr < baseDoubly) {
     if (!ino->blocks[13])
       return 0;
     size_t tmp1block = BLOCK_TO_LBA(ext2, 0, ino->blocks[13]);
