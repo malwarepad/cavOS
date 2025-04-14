@@ -110,7 +110,11 @@ static size_t syscallIoctl(int fd, unsigned long request, void *arg) {
     return ERR(ENOTTY);
   }
 
-  return browse->handlers->ioctl(browse, request, arg);
+  spinlockAcquire(&browse->LOCK_OPERATIONS);
+  size_t ret = browse->handlers->ioctl(browse, request, arg);
+  spinlockRelease(&browse->LOCK_OPERATIONS);
+
+  return ret;
 }
 
 #define SYSCALL_PREAD64 17
@@ -135,6 +139,7 @@ static size_t syscallReadV(uint32_t fd, iovec *iov, uint32_t ioVcnt) {
     if (!curr->iov_len)
       continue;
 
+    // possible race condition here, lookup later (only for rare shared table)
     if (cnt > 0 && file->handlers->internalPoll) {
       // we already have some data (and are on something that can possibly
       // block, hence it has internalPoll defined), poll so that it doesn't
@@ -243,8 +248,10 @@ static size_t syscallFcntl(int fd, int cmd, uint64_t arg) {
   OpenFile *file = fsUserGetNode(currentTask, fd);
   if (!file)
     return ERR(EBADF);
+  spinlockAcquire(&file->LOCK_OPERATIONS);
   if (file->handlers->fcntl)
     file->handlers->fcntl(file, cmd, arg);
+  spinlockRelease(&file->LOCK_OPERATIONS);
   switch (cmd) {
   case F_GETFD:
     return file->closeOnExec;
@@ -261,9 +268,11 @@ static size_t syscallFcntl(int fd, int cmd, uint64_t arg) {
     return file->flags;
     break;
   case F_SETFL: {
+    spinlockAcquire(&file->LOCK_OPERATIONS);
     int validFlags = O_APPEND | FASYNC | O_DIRECT | O_NOATIME | O_NONBLOCK;
     file->flags &= ~validFlags;
     file->flags |= arg & validFlags;
+    spinlockRelease(&file->LOCK_OPERATIONS);
     return 0;
     break;
   }
@@ -336,7 +345,10 @@ static size_t syscallGetdents64(unsigned int fd, struct linux_dirent64 *dirp,
     return ERR(EBADF);
   if (!browse->handlers->getdents64)
     return ERR(ENOTDIR);
-  return browse->handlers->getdents64(browse, dirp, count);
+  spinlockAcquire(&browse->LOCK_OPERATIONS);
+  size_t ret = browse->handlers->getdents64(browse, dirp, count);
+  spinlockRelease(&browse->LOCK_OPERATIONS);
+  return ret;
 }
 
 #define FD_SETSIZE 1024

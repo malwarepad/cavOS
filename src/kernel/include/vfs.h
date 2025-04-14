@@ -169,6 +169,8 @@ struct MountPoint {
 struct OpenFile {
   OpenFile *next;
 
+  Spinlock LOCK_OPERATIONS;
+
   int id;
   int flags;
   int mode;
@@ -209,7 +211,6 @@ OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original);
 
 size_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit);
 size_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit);
-void   fsReadFullFile(OpenFile *file, uint8_t *out);
 size_t fsReadlink(void *task, char *path, char *buf, int size);
 size_t fsMkdir(void *task, char *path, uint32_t mode);
 size_t fsUnlink(void *task, char *path, bool directory);

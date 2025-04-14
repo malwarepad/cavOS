@@ -56,11 +56,21 @@ static uint64_t syscallMmap(size_t addr, size_t length, int prot, int flags,
 
     if (!file->handlers->mmap)
       return -1;
-    return file->handlers->mmap(addr, length, prot, flags, file, pgoffset);
+    spinlockAcquire(&file->LOCK_OPERATIONS);
+    size_t ret =
+        file->handlers->mmap(addr, length, prot, flags, file, pgoffset);
+    spinlockRelease(&file->LOCK_OPERATIONS);
+    return ret;
   }
 
   dbgSysStubf("dead end");
   return -1;
+}
+
+#define SYSCALL_MPROTECT 10
+static size_t syscallMprotect(uint64_t start, uint64_t len, uint64_t prot) {
+  // todo
+  return 0;
 }
 
 #define SYSCALL_MUNMAP 11
@@ -88,5 +98,6 @@ static uint64_t syscallBrk(uint64_t brk) {
 void syscallRegMem() {
   registerSyscall(SYSCALL_MMAP, syscallMmap);
   registerSyscall(SYSCALL_MUNMAP, syscallMunmap);
+  registerSyscall(SYSCALL_MPROTECT, syscallMprotect);
   registerSyscall(SYSCALL_BRK, syscallBrk);
 }

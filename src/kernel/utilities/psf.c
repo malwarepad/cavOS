@@ -40,7 +40,7 @@ bool psfLoadFromFile(char *path) {
   uint32_t filesize = fsGetFilesize(dir);
   uint8_t *out = (uint8_t *)malloc(filesize);
 
-  fsReadFullFile(dir, out);
+  fsRead(dir, out, filesize);
   fsKernelClose(dir);
 
   bool res = psfLoad(out);

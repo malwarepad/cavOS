@@ -8,6 +8,8 @@
 
 #include <lwip/sockets.h>
 
+// todo: locks (operation lock) and separation for lwip stuff
+
 // Lwip uses BSD-style sockaddr structs. We need to convert them appropriately!
 uint16_t sockaddrLinuxToLwip(void *dest_addr, uint32_t addrlen) {
   sockaddr_linux  *linuxHandle = (sockaddr_linux *)dest_addr;

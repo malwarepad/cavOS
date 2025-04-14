@@ -120,6 +120,9 @@ OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original) {
          (void *)((size_t)original + sizeof(original->next)),
          sizeof(OpenFile) - sizeof(orphan->next));
 
+  // no locks here as this isn't called from any contexts where we'd have to
+  // necessarily worry
+
   if (original->handlers->duplicate &&
       !original->handlers->duplicate(original, orphan)) {
     free(orphan);
@@ -180,6 +183,7 @@ size_t fsUserOpen(void *task, char *filename, int flags, int mode) {
 }
 
 bool fsCloseGeneric(OpenFile *file, Task *task) {
+  spinlockAcquire(&file->LOCK_OPERATIONS); // once and never again haha
   fsUnregisterNode(task, file);
 
   bool res = file->handlers->close ? file->handlers->close(file) : true;
@@ -207,49 +211,74 @@ size_t fsUserClose(void *task, int fd) {
 }
 
 size_t fsGetFilesize(OpenFile *file) {
-  return file->handlers->getFilesize(file);
+  spinlockAcquire(&file->LOCK_OPERATIONS);
+  size_t ret = file->handlers->getFilesize(file);
+  spinlockRelease(&file->LOCK_OPERATIONS);
+  return ret;
 }
 
 size_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit) {
+  size_t ret = -1;
+  spinlockAcquire(&file->LOCK_OPERATIONS);
   if (!file->handlers->read) {
-    if (file->handlers->recvfrom) // we got a socket!
-      return file->handlers->recvfrom(file, out, limit, 0, 0, 0);
-    return ERR(EBADF);
+    if (file->handlers->recvfrom) { // we got a socket!
+      ret = file->handlers->recvfrom(file, out, limit, 0, 0, 0);
+      goto cleanup;
+    }
+    ret = ERR(EBADF);
+    goto cleanup;
   }
-  return file->handlers->read(file, out, limit);
+  ret = file->handlers->read(file, out, limit);
+cleanup:
+  spinlockRelease(&file->LOCK_OPERATIONS);
+  return ret;
 }
 
 size_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit) {
-  if (!(file->flags & O_RDWR) && !(file->flags & O_WRONLY))
-    return ERR(EBADF);
-  if (!file->handlers->write) {
-    if (file->handlers->sendto) // we got a socket!
-      return file->handlers->sendto(file, in, limit, 0, 0, 0);
-    return ERR(EBADF);
+  size_t ret = -1;
+  spinlockAcquire(&file->LOCK_OPERATIONS);
+  if (!(file->flags & O_RDWR) && !(file->flags & O_WRONLY)) {
+    ret = ERR(EBADF);
+    goto cleanup;
   }
-  return file->handlers->write(file, in, limit);
-}
-
-void fsReadFullFile(OpenFile *file, uint8_t *out) {
-  fsRead(file, out, fsGetFilesize(file));
+  if (!file->handlers->write) {
+    if (file->handlers->sendto) { // we got a socket!
+      ret = file->handlers->sendto(file, in, limit, 0, 0, 0);
+      goto cleanup;
+    }
+    ret = ERR(EBADF);
+    goto cleanup;
+  }
+  ret = file->handlers->write(file, in, limit);
+cleanup:
+  spinlockRelease(&file->LOCK_OPERATIONS);
+  return ret;
 }
 
 size_t fsUserSeek(void *task, uint32_t fd, int offset, int whence) {
   OpenFile *file = fsUserGetNode(task, fd);
   if (!file) // todo "special"
     return -1;
+
+  spinlockAcquire(&file->LOCK_OPERATIONS);
   int target = offset;
   if (whence == SEEK_SET)
     target += 0;
   else if (whence == SEEK_CURR)
     target += file->pointer;
   else if (whence == SEEK_END)
-    target += fsGetFilesize(file);
+    target += file->handlers->getFilesize(file);
 
-  if (!file->handlers->seek)
-    return ERR(ESPIPE);
+  size_t ret = 0;
+  if (!file->handlers->seek) {
+    ret = ERR(ESPIPE);
+    goto cleanup;
+  }
 
-  return file->handlers->seek(file, target, offset, whence);
+  ret = file->handlers->seek(file, target, offset, whence);
+cleanup:
+  spinlockRelease(&file->LOCK_OPERATIONS);
+  return ret;
 }
 
 size_t fsReadlink(void *task, char *path, char *buf, int size) {

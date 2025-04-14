@@ -70,7 +70,7 @@ void weirdTests() {
     }
     uint32_t filesize = fsGetFilesize(dir);
     uint8_t *out = (uint8_t *)malloc(filesize);
-    fsReadFullFile(dir, out);
+    fsRead(dir, out, filesize);
     fsKernelClose(dir);
 
     // uint32_t filesize = sizeof(FAT32_Directory);

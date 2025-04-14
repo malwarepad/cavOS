@@ -84,7 +84,7 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
 #endif
   size_t   outSize = DivRoundUp(filesize, BLOCK_SIZE);
   uint8_t *out = (uint8_t *)VirtualAllocate(outSize);
-  fsReadFullFile(dir, out);
+  fsRead(dir, out, filesize);
   fsKernelClose(dir);
 
   // Cast ELF32 header
@@ -136,7 +136,7 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
       size_t   intContentsSize = DivRoundUp(size, BLOCK_SIZE);
       uint8_t *interpreterContents =
           (uint8_t *)VirtualAllocate(intContentsSize);
-      fsReadFullFile(interpreter, interpreterContents);
+      fsRead(interpreter, interpreterContents, size);
       fsKernelClose(interpreter);
 
       Elf64_Ehdr *interpreterEhdr = (Elf64_Ehdr *)(interpreterContents);

@@ -212,8 +212,9 @@ void launch_shell(int n) {
         printf("File cannot be found!\n");
         continue;
       }
-      char *out = (char *)malloc(fsGetFilesize(dir));
-      fsReadFullFile(dir, (uint8_t *)out);
+      size_t filesize = fsGetFilesize(dir);
+      char  *out = (char *)malloc(filesize);
+      fsRead(dir, (uint8_t *)out, filesize);
       fsKernelClose(dir);
       clearScreen();
 
@@ -248,7 +249,7 @@ void launch_shell(int n) {
       }
       uint32_t filesize = fsGetFilesize(dir);
       char    *out = (char *)malloc(filesize);
-      fsReadFullFile(dir, (uint8_t *)out);
+      fsRead(dir, (uint8_t *)out, filesize);
       fsKernelClose(dir);
       for (int i = 0; i < filesize; i++) {
         printf("%c", out[i]);
