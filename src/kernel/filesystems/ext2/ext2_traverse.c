@@ -72,14 +72,21 @@ uint32_t ext2TraversePath(Ext2 *ext2, char *path, size_t initInode, bool follow,
 
       Ext2Inode *inode = ext2InodeFetch(ext2, curr);
       if ((inode->permission & 0xF000) == EXT2_S_IFLNK && (!last || follow)) {
+        char *start = 0;
+        char *symlinkTarget = 0;
         if (inode->size > 60) {
-          debugf("[ext2::traverse::symlink] Todo! size{%d}\n", inode->size);
-          free(inode);
-          return 0;
+          assert(inode->size < ext2->blockSize);
+
+          start = (char *)calloc(ext2->blockSize + 1, 1);
+          symlinkTarget = (char *)calloc(len + inode->size + 2,
+                                         1); // extra just in case
+          getDiskBytes((uint8_t *)start,
+                       BLOCK_TO_LBA(ext2, 0, inode->blocks[0]),
+                       ext2->blockSize / SECTOR_SIZE);
+        } else {
+          start = (char *)inode->blocks;
+          symlinkTarget = (char *)calloc(len + 60 + 2, 1); // extra just in case
         }
-        char *start = (char *)inode->blocks;
-        char *symlinkTarget =
-            (char *)calloc(len + 60 + 2, 1); // extra just in case
         *symlinkResolve = symlinkTarget;
 
         if (start[0] != '/') {
@@ -91,6 +98,8 @@ uint32_t ext2TraversePath(Ext2 *ext2, char *path, size_t initInode, bool follow,
           symlinkTarget[0] = '!';
           memcpy(&symlinkTarget[1], start, inode->size);
         }
+        if (inode->size > 60)
+          free(start);
         free(inode);
         return false;
       }

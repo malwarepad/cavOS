@@ -663,19 +663,23 @@ size_t ext2Readlink(MountPoint *mnt, char *path, char *buf, int size,
     goto cleanup;
   }
 
+  char *start = (char *)inode->blocks;
   if (inode->size > 60) {
-    debugf("[ext2::symlink] Todo! size{%d}\n", inode->size);
-    ret = -1;
-    goto cleanup;
+    assert(inode->size < ext2->blockSize);
+    start = calloc(ext2->blockSize + 1, 1);
+    getDiskBytes((uint8_t *)start, BLOCK_TO_LBA(ext2, 0, inode->blocks[0]),
+                 ext2->blockSize / SECTOR_SIZE);
   }
 
-  char *start = (char *)inode->blocks;
-  int   toCopy = inode->size;
+  int toCopy = inode->size;
   if (toCopy > size)
     toCopy = size;
 
   memcpy(buf, start, toCopy);
   ret = toCopy;
+
+  if (inode->size > 60)
+    free(start);
 
 cleanup:
   free(inode);
