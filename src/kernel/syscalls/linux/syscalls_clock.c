@@ -71,9 +71,9 @@ static size_t syscallClockGettime(int which, timespec *spec) {
   case 6:               // CLOCK_MONOTONIC_COARSE
   case 4:               // CLOCK_MONOTONIC_RAW
   case CLOCK_REALTIME: {
-    spec->tv_sec = timerBootUnix + timerTicks / 1000;
-    size_t remainingInMs = timerTicks - (spec->tv_sec * 1000);
-    spec->tv_nsec = remainingInMs * 1000000;
+    size_t time = timerBootUnix * 1000 + timerTicks;
+    spec->tv_sec = time / 1000;
+    spec->tv_nsec = (time % 1000) * 1000000;
     // todo: accurancy
     return 0;
     break;
