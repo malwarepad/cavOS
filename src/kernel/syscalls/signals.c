@@ -131,7 +131,23 @@ void signalsUcontextToAsmPassed(const struct sigcontext *ucontext,
 bool signalsPendingQuick(void *taskPtr) {
   Task    *task = (Task *)taskPtr;
   sigset_t pendingList = atomicBitmapGet(&task->sigPendingList);
-  return pendingList & ~task->sigBlockList;
+  sigset_t unblockedList = pendingList & ~task->sigBlockList;
+  for (int i = 0; i < _NSIG; i++) {
+    // todo: do this EVERYWHERE (1<<i) won't work above 32
+    if (!bitmapGenericGet((uint8_t *)&unblockedList, i))
+      continue;
+    struct sigaction *action = &task->infoSignals->signals[i];
+    __sighandler_t    userHandler =
+        (__sighandler_t)atomicRead64((size_t *)(size_t)&action->sa_handler);
+    if (userHandler == SIG_IGN)
+      continue;
+    if (userHandler == SIG_DFL &&
+        signalInternalDecisions[i] == SIGNAL_INTERNAL_IGN)
+      continue;
+    // otherwise, we passed!
+    return true;
+  }
+  return false;
 }
 
 bool signalsRevivableState(int state) {

@@ -33,16 +33,6 @@ typedef enum TASK_STATE {
   TASK_STATE_DUMMY = 69,
 } TASK_STATE;
 
-#define NCCS 32
-typedef struct termios {
-  uint32_t c_iflag;    /* input mode flags */
-  uint32_t c_oflag;    /* output mode flags */
-  uint32_t c_cflag;    /* control mode flags */
-  uint32_t c_lflag;    /* local mode flags */
-  uint8_t  c_line;     /* line discipline */
-  uint8_t  c_cc[NCCS]; /* control characters */
-} termios;
-
 typedef struct KilledInfo {
   struct KilledInfo *next;
 

@@ -262,6 +262,7 @@ typedef struct rusage {
 #define TCSETS 0x5402
 #define TCSETSW 0x5403
 #define TCSETSF 0x5404
+#define TIOCSCTTY 0x540E
 
 // /usr/include/bits/termios-c_cc.h
 #define VINTR 0
@@ -1016,10 +1017,6 @@ struct fb_fix_screeninfo {
   __u16 reserved[2];         /* Reserved for future compatibility */
 };
 
-// assumed myself, pty
-#define TIOCSPTLCK 0x40045431
-#define TIOCGPTN 0xffffffff80045430
-
 #define POLLIN 0x0001
 #define POLLPRI 0x0002
 #define POLLOUT 0x0004
@@ -1481,5 +1478,21 @@ struct input_absinfo {
 
 // include/linux/linux-event-codes.h
 #include "linux_event_codes.h"
+
+// include/asm-generic/ioctls.h
+#define TIOCGPTN                                                               \
+  _IOR('T', 0x30, unsigned int)         /* Get Pty Number (of pty-mux device) */
+#define TIOCSPTLCK _IOW('T', 0x31, int) /* Lock/unlock Pty */
+
+// include/asm-generic/termbits.h
+#define NCCS 32
+typedef struct termios {
+  uint32_t c_iflag;    /* input mode flags */
+  uint32_t c_oflag;    /* output mode flags */
+  uint32_t c_cflag;    /* control mode flags */
+  uint32_t c_lflag;    /* local mode flags */
+  uint8_t  c_line;     /* line discipline */
+  uint8_t  c_cc[NCCS]; /* control characters */
+} termios;
 
 #endif

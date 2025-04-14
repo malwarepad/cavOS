@@ -16,6 +16,8 @@ void   strncpy(char *dest, const char *src, size_t n);
 char  *strdup(char *source);
 char  *strrchr(const char *str, int c);
 
+uint64_t numAtEnd(const char *str);
+
 int isdigit(char c);
 
 #endif

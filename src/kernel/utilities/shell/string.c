@@ -63,6 +63,26 @@ int atoi(const char *str) {
   return value;
 }
 
+uint64_t numAtEnd(const char *str) {
+  uint64_t    num = 0;
+  const char *p = str;
+
+  while (*p)
+    p++;
+
+  const char *end = p;
+  while (p > str && *(p - 1) >= '0' && *(p - 1) <= '9')
+    p--; // startat
+
+  if (p == end)
+    return 0; // no digits at end
+
+  while (p < end) // parse
+    num = num * 10 + (*p++ - '0');
+
+  return num;
+}
+
 bool check_string(char *str) { return (str[0] != 0x0); }
 
 bool strEql(char *ch1, char *ch2) {

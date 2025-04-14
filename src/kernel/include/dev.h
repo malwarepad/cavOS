@@ -39,4 +39,32 @@ DevInputEvent *devInputEventSetup(char *devname);
 void inputGenerateEvent(DevInputEvent *item, uint16_t type, uint16_t code,
                         int32_t value);
 
+// dev_pty.c
+#define PTY_MAX 1024
+#define PTY_BUFF_SIZE 4096
+
+typedef struct PtyPair {
+  struct PtyPair *next;
+
+  Spinlock LOCK_PTY;
+
+  int masterFds;
+  int slaveFds;
+
+  termios  term;
+  uint8_t *bufferMaster;
+  uint8_t *bufferSlave;
+
+  int ptrMaster;
+  int ptrSlave;
+
+  int  id;
+  bool locked; // by default unlocked (hence 0)
+} PtyPair;
+
+VfsHandlers handlePtmx;
+VfsHandlers handlePts;
+
+void initiatePtyInterface();
+
 #endif

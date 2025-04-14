@@ -31,27 +31,6 @@ void inputGenerateEvent(DevInputEvent *item, uint16_t type, uint16_t code,
          sizeof(struct input_event));
 }
 
-// quick utility used for getting X on /dev/input/eventX
-uint64_t numAtEnd(const char *str) {
-  uint64_t    num = 0;
-  const char *p = str;
-
-  while (*p)
-    p++;
-
-  const char *end = p;
-  while (p > str && *(p - 1) >= '0' && *(p - 1) <= '9')
-    p--; // startat
-
-  if (p == end)
-    return 0; // no digits at end
-
-  while (p < end) // parse
-    num = num * 10 + (*p++ - '0');
-
-  return num;
-}
-
 // /dev/input/eventX userspace stuff
 size_t devInputEventOpen(char *filename, int flags, int mode, OpenFile *fd,
                          char **symlinkResolve) {

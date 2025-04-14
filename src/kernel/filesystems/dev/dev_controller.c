@@ -39,6 +39,14 @@ void devSetup() {
   fakefsAddFile(&rootDev, rootDev.rootFile, "urandom", 0,
                 S_IFCHR | S_IRUSR | S_IWUSR, &handleRandom);
 
+  initiatePtyInterface();
+  fakefsAddFile(&rootDev, rootDev.rootFile, "ptmx", 0,
+                S_IFCHR | S_IRUSR | S_IWUSR, &handlePtmx);
+  FakefsFile *pts =
+      fakefsAddFile(&rootDev, rootDev.rootFile, "pts", 0,
+                    S_IFDIR | S_IRUSR | S_IWUSR, &fakefsRootHandlers);
+  fakefsAddFile(&rootDev, pts, "*", 0, S_IFCHR | S_IRUSR | S_IWUSR, &handlePts);
+
   inputFakedir =
       fakefsAddFile(&rootDev, rootDev.rootFile, "input", 0,
                     S_IFDIR | S_IRUSR | S_IWUSR, &fakefsRootHandlers);
