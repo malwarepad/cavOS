@@ -61,12 +61,11 @@ void _start(void) {
   initiateISR();
   initiatePaging();
 
-  initiateKb();
-
   debugf("\n====== REACHED SYSTEM ======\n");
   initiateApicTimer(); // mouse needs a timer
   firstMountPoint = 0;
   fsMount("/dev/", CONNECTOR_DEV, 0, 0); // mouse & kb need it
+  initiateKb();
   initiateMouse();
   // any filesystem operations depend on currentTask
   initiateTasks();

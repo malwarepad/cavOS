@@ -1,3 +1,4 @@
+#include "dev.h"
 #include "util.h"
 
 #ifndef KB_H
@@ -18,5 +19,7 @@ void     kbIrq();
 bool     kbTaskRead(uint32_t taskId, char *buff, uint32_t limit,
                     bool changeTaskState);
 bool     kbIsOccupied();
+
+DevInputEvent *kbEvent;
 
 #endif
