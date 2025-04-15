@@ -1,6 +1,7 @@
 # Set the initial path
 export PATH=/bin:/usr/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/sbin:/bin
 export LANG=C.UTF-8
+export LIBGL_ALWAYS_SOFTWARE=1
 export TERM=linux
 export SHELL=/bin/bash
 export HOME="/root"
