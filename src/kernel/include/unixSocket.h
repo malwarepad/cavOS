@@ -10,8 +10,7 @@ VfsHandlers unixSocketHandlers;
 VfsHandlers unixAcceptHandlers;
 
 #define AF_UNIX 1
-#define UNIX_SOCK_BUFF_DEFAULT 16384
-// 262144 could be used too
+#define UNIX_SOCK_BUFF_DEFAULT 262144
 
 #define CONN_DISCONNECTED ((void *)(size_t)(-1))
 
