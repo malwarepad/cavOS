@@ -34,9 +34,12 @@ StackStorePtrStyle stackStorePtrStyle(Task *target, int ptrc, char **ptrv) {
   uint32_t argSpace = 0;
   for (int i = 0; i < ptrc; i++)
     argSpace += strlength(ptrv[i]) + 1; // null terminator
-  uint8_t *argStart = (uint8_t *)target->heap_end;
-  taskAdjustHeap(target, target->heap_end + argSpace, &target->heap_start,
-                 &target->heap_end);
+
+  spinlockAcquire(&target->infoPd->LOCK_PD);
+  uint8_t *argStart = (uint8_t *)target->infoPd->heap_end;
+  taskAdjustHeap(target, target->infoPd->heap_end + argSpace,
+                 &target->infoPd->heap_start, &target->infoPd->heap_end);
+  spinlockRelease(&target->infoPd->LOCK_PD);
   size_t ellapsed = 0;
   for (int i = 0; i < ptrc; i++) {
     uint32_t len = strlength(ptrv[i]) + 1; // null terminator
@@ -64,9 +67,11 @@ void stackGenerateUser(Task *target, uint32_t argc, char **argv, uint32_t envc,
   a -= sizeof(b);                                                              \
   *((b *)(a)) = c
 
-  int *randomByteStart = (int *)target->heap_end;
-  taskAdjustHeap(target, target->heap_end + sizeof(int) * 4,
-                 &target->heap_start, &target->heap_end);
+  spinlockAcquire(&target->infoPd->LOCK_PD);
+  int *randomByteStart = (int *)target->infoPd->heap_end;
+  taskAdjustHeap(target, target->infoPd->heap_end + sizeof(int) * 4,
+                 &target->infoPd->heap_start, &target->infoPd->heap_end);
+  spinlockRelease(&target->infoPd->LOCK_PD);
   for (int i = 0; i < 4; i++) {
     int thing = 0;
     while (!thing)

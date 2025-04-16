@@ -340,16 +340,6 @@ void launch_shell(int n) {
       }
 
       free(filepath);
-    } else if (strEql(ch, "tasks")) {
-      printf("\n");
-      Task *browse = firstTask;
-      while (browse) {
-        printf("%ld: [%c] heap{0x%016lx-0x%016lX}\n", browse->id,
-               browse->kernel_task ? '-' : 'u', browse->heap_start,
-               browse->heap_end);
-
-        browse = browse->next;
-      }
     } else if (strEql(ch, "lspci")) {
       printf("\n");
       PCI *browse = firstPCI;

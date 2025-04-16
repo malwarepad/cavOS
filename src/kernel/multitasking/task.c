@@ -94,12 +94,6 @@ Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
   memset(syscalltssRsp, 0, syscalltssRspSize);
   target->whileSyscallRsp = (uint64_t)syscalltssRsp + syscalltssRspSize;
 
-  target->heap_start = USER_HEAP_START;
-  target->heap_end = USER_HEAP_START;
-
-  target->mmap_start = USER_MMAP_START;
-  target->mmap_end = USER_MMAP_START;
-
   target->infoFs = taskInfoFsAllocate();
   target->infoFiles = taskInfoFilesAllocate();
   target->infoSignals = taskInfoSignalAllocate();
@@ -389,11 +383,11 @@ Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
   target->fsbase = currentTask->fsbase;
   target->gsbase = currentTask->gsbase;
 
-  target->heap_start = currentTask->heap_start;
-  target->heap_end = currentTask->heap_end;
+  // target->heap_start = currentTask->heap_start;
+  // target->heap_end = currentTask->heap_end;
 
-  target->mmap_start = currentTask->mmap_start;
-  target->mmap_end = currentTask->mmap_end;
+  // target->mmap_start = currentTask->mmap_start;
+  // target->mmap_end = currentTask->mmap_end;
 
   target->term = currentTask->term;
 

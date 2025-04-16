@@ -243,8 +243,10 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
   VirtualFree(out, outSize);
 
   // Align it, just in case...
-  taskAdjustHeap(target, DivRoundUp(target->heap_end, 0x1000) * 0x1000,
-                 &target->heap_start, &target->heap_end);
+  spinlockAcquire(&target->infoPd->LOCK_PD);
+  taskAdjustHeap(target, DivRoundUp(target->infoPd->heap_end, 0x1000) * 0x1000,
+                 &target->infoPd->heap_start, &target->infoPd->heap_end);
+  spinlockRelease(&target->infoPd->LOCK_PD);
 
   // Just a sane default
   target->parent = currentTask;

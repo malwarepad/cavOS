@@ -746,8 +746,10 @@ size_t ext2Mmap(size_t addr, size_t length, int prot, int flags, OpenFile *fd,
 
   size_t virt = 0;
   if (!(flags & MAP_FIXED)) {
-    virt = currentTask->mmap_end;
-    currentTask->mmap_end += pages * PAGE_SIZE;
+    spinlockAcquire(&currentTask->infoPd->LOCK_PD);
+    virt = currentTask->infoPd->mmap_end;
+    currentTask->infoPd->mmap_end += pages * PAGE_SIZE;
+    spinlockRelease(&currentTask->infoPd->LOCK_PD);
   } else {
     virt = addr;
     if (virt > bootloader.hhdmOffset &&
@@ -758,6 +760,12 @@ size_t ext2Mmap(size_t addr, size_t length, int prot, int flags, OpenFile *fd,
       return ERR(EACCES);
     }
   }
+
+  spinlockAcquire(&currentTask->infoPd->LOCK_PD);
+  size_t end = virt + pages * PAGE_SIZE;
+  if (end > currentTask->infoPd->mmap_end)
+    currentTask->infoPd->mmap_end = end;
+  spinlockRelease(&currentTask->infoPd->LOCK_PD);
 
   // allocate physical space required
   size_t phys = PhysicalAllocate(pages);

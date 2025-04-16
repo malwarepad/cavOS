@@ -59,6 +59,12 @@ typedef struct TaskInfoPagedir {
   Spinlock LOCK_PD;
   int      utilizedBy;
 
+  uint64_t heap_start;
+  uint64_t heap_end;
+
+  uint64_t mmap_start;
+  uint64_t mmap_end;
+
   uint64_t *pagedir;
 } TaskInfoPagedir;
 
@@ -134,12 +140,6 @@ struct Task {
   // Useful to switch, for when TLS is available
   uint64_t fsbase;
   uint64_t gsbase;
-
-  uint64_t heap_start;
-  uint64_t heap_end;
-
-  uint64_t mmap_start;
-  uint64_t mmap_end;
 
   size_t sleepUntil;
 

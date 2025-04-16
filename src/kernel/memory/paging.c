@@ -210,7 +210,10 @@ void VirtualMapL(uint64_t *pagedir, uint64_t virt_addr, uint64_t phys_addr,
     // phys{%lx}\n",
     //        virt_addr, phys_addr);
   }
-  pt[pt_index] = (P_PHYS_ADDR(phys_addr)) | PF_PRESENT | flags; // | PF_RW
+  if (!phys_addr) // todo: proper unmapping
+    pt[pt_index] = 0;
+  else
+    pt[pt_index] = (P_PHYS_ADDR(phys_addr)) | PF_PRESENT | flags; // | PF_RW
 
   invalidate(virt_addr);
   spinlockCntWriteRelease(&WLOCK_PAGING);

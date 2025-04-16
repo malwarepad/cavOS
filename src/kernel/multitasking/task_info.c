@@ -57,6 +57,11 @@ TaskInfoPagedir *taskInfoPdAllocate(bool pagedir) {
   target->utilizedBy = 1;
   if (pagedir)
     target->pagedir = PageDirectoryAllocate();
+  target->heap_start = USER_HEAP_START;
+  target->heap_end = USER_HEAP_START;
+
+  target->mmap_start = USER_MMAP_START;
+  target->mmap_end = USER_MMAP_START;
   return target;
 }
 
@@ -65,6 +70,11 @@ TaskInfoPagedir *taskInfoPdClone(TaskInfoPagedir *old) {
 
   spinlockAcquire(&old->LOCK_PD);
   PageDirectoryUserDuplicate(old->pagedir, new->pagedir);
+  new->heap_start = old->heap_start;
+  new->heap_end = old->heap_end;
+
+  new->mmap_start = old->mmap_start;
+  new->mmap_end = old->mmap_end;
   spinlockRelease(&old->LOCK_PD);
 
   return new;
