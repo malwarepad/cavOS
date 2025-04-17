@@ -383,46 +383,35 @@ static size_t syscallLinkat(int oldfd, char *oldname, int newfd, char *newname,
   return ret;
 }
 
+typedef struct {
+  sigset_t *ss;
+  size_t    ss_len;
+} WeirdPselect6;
+
 #define SYSCALL_PSELECT6 270
 static size_t syscallPselect6(int nfds, fd_set *readfds, fd_set *writefds,
                               fd_set *exceptfds, struct timespec *timeout,
-                              void *smthsignalthing) {
-  if (timeout && !timeout->tv_nsec && !timeout->tv_sec)
-    return 0; // todo: proper polling on kernel stdio
+                              WeirdPselect6 *weirdPselect6) {
+  size_t    sigsetsize = weirdPselect6->ss_len;
+  sigset_t *sigmask = weirdPselect6->ss;
 
-  int amnt = 0;
-  int bits_per_long = sizeof(unsigned long) * 8;
-  if (readfds)
-    for (int fd = 0; fd < nfds; fd++) {
-      int index = fd / bits_per_long;
-      int bit = fd % bits_per_long;
-      if (readfds->fds_bits[index] & (1UL << bit)) {
-        // todo: uhm.. poll?
-        amnt++;
-      }
-    }
-  if (writefds)
-    for (int fd = 0; fd < nfds; fd++) {
-      int index = fd / bits_per_long;
-      int bit = fd % bits_per_long;
-      if (writefds->fds_bits[index] & (1UL << bit)) {
-        // todo: uhm.. poll?
-        amnt++;
-      }
-    }
-  if (exceptfds)
-    for (int fd = 0; fd < nfds; fd++) {
-      int index = fd / bits_per_long;
-      int bit = fd % bits_per_long;
-      if (exceptfds->fds_bits[index] & (1UL << bit)) {
-        // todo: uhm.. poll?
-        amnt++;
-      }
-    }
+  if (sigsetsize < sizeof(sigset_t)) {
+    dbgSysFailf("weird sigset size");
+    return ERR(EINVAL);
+  }
 
-  // todo: timelimit (for when I actually poll)
+  sigset_t origmask;
+  if (sigmask)
+    syscallRtSigprocmask(SIG_SETMASK, sigmask, &origmask, sigsetsize);
 
-  return amnt;
+  struct timeval timeoutConv = {.tv_sec = timeout->tv_sec,
+                                .tv_usec = DivRoundUp(timeout->tv_nsec, 1000)};
+  size_t         ret = select(nfds, (uint8_t *)readfds, (uint8_t *)writefds,
+                              (uint8_t *)exceptfds, &timeoutConv);
+
+  if (sigmask)
+    syscallRtSigprocmask(SIG_SETMASK, &origmask, 0, sigsetsize);
+  return ret;
 }
 
 #define SYSCALL_SELECT 23

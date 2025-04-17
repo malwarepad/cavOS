@@ -113,6 +113,20 @@ size_t statHandler(OpenFile *fd, stat *target) {
   return 0;
 }
 
+// if this doesn't give you enough cues as to why you NEED to avoid the kernel
+// shell at all costs then idk what does. the reason this exists btw is for
+// bash's readline to not freak out over pselect6()
+bool ioSwitch = false;
+int  internalPollHandler(OpenFile *fd, int events) {
+  int revents = 0;
+  if (events & EPOLLIN && ioSwitch)
+    revents |= EPOLLIN;
+  if (events & EPOLLOUT)
+    revents |= EPOLLOUT;
+  ioSwitch = !ioSwitch;
+  return revents;
+}
+
 VfsHandlers stdio = {.open = 0,
                      .close = 0,
                      .read = readHandler,
@@ -120,5 +134,6 @@ VfsHandlers stdio = {.open = 0,
                      .ioctl = ioctlHandler,
                      .mmap = mmapHandler,
                      .stat = statHandler,
+                     .internalPoll = internalPollHandler,
                      .duplicate = 0,
                      .getdents64 = 0};

@@ -118,4 +118,8 @@ bool   signalsRevivableState(int state);
 #define dbgSigStubf(...) ((void)0)
 #endif
 
+/* Cmon now it's really useful! */
+size_t syscallRtSigprocmask(int how, sigset_t *nset, sigset_t *oset,
+                            size_t sigsetsize);
+
 #endif

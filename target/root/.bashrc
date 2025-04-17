@@ -7,6 +7,11 @@
 # with code in /etc/profile.
 source /etc/profile
 
+# Only if nothing has already set it (like a terminal emulator)
+if [ -z "${TERM}" ] || [ "${TERM}" == "dumb" ]; then
+	export TERM=linux
+fi
+
 alias ls='ls --color=auto'
 alias grep='grep --color=auto'
 alias dir="dir --color=auto"

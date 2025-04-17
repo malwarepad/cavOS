@@ -202,8 +202,6 @@ size_t epollWait(OpenFile *epollFd, struct epoll_event *events, int maxevents,
   return ready;
 }
 
-size_t syscallRtSigprocmask(int how, sigset_t *nset, sigset_t *oset,
-                            size_t sigsetsize);
 size_t epollPwait(OpenFile *epollFd, struct epoll_event *events, int maxevents,
                   int timeout, sigset_t *sigmask, size_t sigsetsize) {
   if (sigsetsize < sizeof(sigset_t)) {
