@@ -105,8 +105,6 @@ size_t unixSocketAcceptSendto(OpenFile *fd, uint8_t *in, size_t limit,
   (void)len;
 
   UnixSocketPair *pair = fd->dir;
-  if (!pair->clientFds)
-    return 0; // SIGPIPE thing, check pipe.c
   if (limit > pair->clientBuffSize) {
     debugf("[socket] Warning! Truncating limit{%ld} to clientBuffSize{%ld}\n",
            limit, pair->clientBuffSize);
@@ -117,6 +115,7 @@ size_t unixSocketAcceptSendto(OpenFile *fd, uint8_t *in, size_t limit,
     spinlockAcquire(&pair->LOCK_PAIR);
     if (!pair->clientFds) {
       spinlockRelease(&pair->LOCK_PAIR);
+      atomicBitmapSet(&currentTask->sigPendingList, SIGPIPE);
       return ERR(EPIPE);
     } else if ((fd->flags & O_NONBLOCK || flags & MSG_DONTWAIT) &&
                (pair->clientBuffPos + limit) > pair->clientBuffSize) {
@@ -320,7 +319,8 @@ size_t unixSocketAccept(OpenFile *fd, sockaddr_linux *addr, uint32_t *len) {
   spinlockRelease(&pair->LOCK_PAIR);
 
   OpenFile *acceptFd = unixSocketAcceptCreate(pair);
-  memmove(&sock->backlog[1], sock->backlog,
+  sock->backlog[0] = 0; // just in case
+  memmove(sock->backlog, &sock->backlog[1],
           (sock->connMax - 1) * sizeof(UnixSocketPair *));
   sock->connCurr--;
   spinlockRelease(&sock->LOCK_SOCK);
@@ -488,8 +488,8 @@ size_t unixSocketSendto(OpenFile *fd, uint8_t *in, size_t limit, int flags,
 
   UnixSocket     *socket = fd->dir;
   UnixSocketPair *pair = socket->pair;
-  if (!pair || !pair->serverFds)
-    return ERR(ENOTCONN); // todo: SIGPIPE/EPIPE
+  if (!pair)
+    return ERR(ENOTCONN);
   if (limit > pair->serverBuffSize) {
     debugf("[socket] Warning! Truncating limit{%ld} to serverBuffSize{%ld}\n",
            limit, pair->serverBuffSize);
@@ -500,6 +500,7 @@ size_t unixSocketSendto(OpenFile *fd, uint8_t *in, size_t limit, int flags,
     spinlockAcquire(&pair->LOCK_PAIR);
     if (!pair->serverFds) {
       spinlockRelease(&pair->LOCK_PAIR);
+      atomicBitmapSet(&currentTask->sigPendingList, SIGPIPE);
       return ERR(EPIPE);
     } else if ((fd->flags & O_NONBLOCK || flags & MSG_DONTWAIT) &&
                (pair->serverBuffPos + limit) > pair->serverBuffSize) {
@@ -547,6 +548,11 @@ size_t unixSocketRecvmsg(OpenFile *fd, struct msghdr_linux *msg, int flags) {
   for (int i = 0; i < msg->msg_iovlen; i++) {
     struct iovec *curr =
         (struct iovec *)((size_t)msg->msg_iov + i * sizeof(struct iovec));
+    if (cnt > 0 && fd->handlers->internalPoll) {
+      // check syscalls_fs.c for why this is necessary
+      if (!(fd->handlers->internalPoll(fd, EPOLLIN) & EPOLLIN))
+        return cnt;
+    }
     size_t singleCnt = unixSocketRecvfrom(fd, curr->iov_base, curr->iov_len,
                                           noblock ? MSG_DONTWAIT : 0, 0, 0);
     if (RET_IS_ERR(singleCnt))
@@ -571,6 +577,11 @@ size_t unixSocketAcceptRecvmsg(OpenFile *fd, struct msghdr_linux *msg,
   for (int i = 0; i < msg->msg_iovlen; i++) {
     struct iovec *curr =
         (struct iovec *)((size_t)msg->msg_iov + i * sizeof(struct iovec));
+    if (cnt > 0 && fd->handlers->internalPoll) {
+      // check syscalls_fs.c for why this is necessary
+      if (!(fd->handlers->internalPoll(fd, EPOLLIN) & EPOLLIN))
+        return cnt;
+    }
     size_t singleCnt = unixSocketAcceptRecvfrom(
         fd, curr->iov_base, curr->iov_len, noblock ? MSG_DONTWAIT : 0, 0, 0);
     if (RET_IS_ERR(singleCnt))

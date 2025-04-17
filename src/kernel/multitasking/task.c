@@ -231,11 +231,14 @@ void taskFreeChildren(Task *task) {
     Task *next = child->next;
     // todo: reparent to init!
     if (child->parent == task && child->state != TASK_STATE_DEAD) {
-      if (!child->parent)
-        child->parent = firstTask;
-      else
-        child->parent = child->parent->parent;
-    } // ykyk
+      // if (!child->parent)
+      // child->parent = firstTask;
+      // else
+      //   child->parent = child->parent->parent;
+
+      // reparent to dummy (it doesn't care one bit, it'd be a bad parent)
+      child->parent = dummyTask;
+    }
     child = next;
   }
 }

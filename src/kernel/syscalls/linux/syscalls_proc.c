@@ -57,6 +57,12 @@ static size_t syscallClone(uint64_t flags, uint64_t newsp, int *parent_tid,
     return ERR(ENOSYS);
   }
 
+  if (flags & CLONE_VFORK) {
+    // those are assumed! a lot of software forgets CLONE_FILES..
+    flags |= CLONE_VM;
+    flags |= CLONE_FILES;
+  }
+
   Task *newTask =
       taskFork(currentTask->syscallRegs,
                newsp ? newsp : currentTask->syscallRsp, flags, false);
@@ -252,6 +258,8 @@ static size_t syscallExecve(char *filename, char **argv, char **envp) {
   taskFilesCopy(currentTask, ret, true);
 
   taskCreateFinish(ret);
+  if (currentTask->parent->state == TASK_STATE_WAITING_VFORK)
+    currentTask->parent->state = TASK_STATE_READY;
 
   currentTask->noInformParent = true;
   taskKill(currentTask->id, 0);

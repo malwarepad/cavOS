@@ -263,6 +263,8 @@ typedef struct rusage {
 #define TCSETSW 0x5403
 #define TCSETSF 0x5404
 #define TIOCSCTTY 0x540E
+#define TIOCGWINSZ 0x5413
+#define TIOCSWINSZ 0x5414
 
 // /usr/include/bits/termios-c_cc.h
 #define VINTR 0

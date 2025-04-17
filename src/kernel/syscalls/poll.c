@@ -273,6 +273,7 @@ uint32_t pollToEpollComp(uint32_t poll_events) {
 size_t poll(struct pollfd *fds, int nfds, int timeout) {
   if (nfds < 0)
     return ERR(EINVAL);
+  dbgSysExtraf("0: fd{%d} events{%d}", fds[0].fd, fds[0].events);
   int    ret = 0;
   bool   sigexit = false;
   size_t target = timerTicks + timeout;
