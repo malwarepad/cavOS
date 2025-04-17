@@ -95,6 +95,8 @@ static size_t syscallRtSigreturn() {
 
 #define SYSCALL_KILL 62
 static size_t syscallKill(int pid, int sig) {
+  if (sig == 0x15) // todo: bash job control stuff
+    return 0;
   if (sig < 1 || sig > _NSIG)
     return ERR(EINVAL);
 

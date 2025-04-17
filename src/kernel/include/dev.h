@@ -52,6 +52,7 @@ typedef struct PtyPair {
   int slaveFds;
 
   termios  term;
+  winsize  win;
   uint8_t *bufferMaster;
   uint8_t *bufferSlave;
 
@@ -66,5 +67,7 @@ VfsHandlers handlePtmx;
 VfsHandlers handlePts;
 
 void initiatePtyInterface();
+
+size_t ptsWriteInner(PtyPair *pair, uint8_t *in, size_t limit);
 
 #endif
