@@ -510,7 +510,7 @@ void taskSpinlockExit(Task *task, Spinlock *lock) {
 
 void kernelDummyEntry() {
   while (true)
-    dummyTask->state = TASK_STATE_DUMMY;
+    asm volatile("pause");
 }
 
 void initiateTasks() {
