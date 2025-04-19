@@ -371,6 +371,10 @@ size_t select(int nfds, uint8_t *read, uint8_t *write, uint8_t *except,
       comp, compIndex,
       timeout ? (timeout->tv_sec * 1000 + DivRoundUp(timeout->tv_usec, 1000))
               : -1);
+  if (RET_IS_ERR(res)) {
+    free(comp);
+    return res;
+  }
 
   size_t verify = 0;
   for (size_t i = 0; i < compIndex; i++) {
@@ -389,7 +393,9 @@ size_t select(int nfds, uint8_t *read, uint8_t *write, uint8_t *except,
     }
   }
 
-  assert(verify == res);
+  // nope, we need to report individual events!
+  // assert(verify == res);
+  assert(verify >= res);
   free(comp);
   return verify;
 }
