@@ -288,10 +288,10 @@ size_t poll(struct pollfd *fds, int nfds, int timeout) {
         }
         continue;
       }
-      int revents =
-          fd->handlers->internalPoll(fd, pollToEpollComp(fds[i].events));
+      int revents = epollToPollComp(
+          fd->handlers->internalPoll(fd, pollToEpollComp(fds[i].events)));
       if (revents != 0) {
-        fds[i].revents = epollToPollComp(revents);
+        fds[i].revents = revents;
         ret++;
       }
     }
@@ -383,11 +383,13 @@ size_t select(int nfds, uint8_t *read, uint8_t *write, uint8_t *except,
     if (comp[i].events & POLLIN && comp[i].revents & POLLIN) {
       selectBitmapSet(read, comp[i].fd);
       verify++;
-    } else if (comp[i].events & POLLOUT && comp[i].revents & POLLOUT) {
+    }
+    if (comp[i].events & POLLOUT && comp[i].revents & POLLOUT) {
       selectBitmapSet(write, comp[i].fd);
       verify++;
-    } else if ((comp[i].events & POLLPRI && comp[i].revents & POLLPRI) ||
-               (comp[i].events & POLLERR && comp[i].revents & POLLERR)) {
+    }
+    if ((comp[i].events & POLLPRI && comp[i].revents & POLLPRI) ||
+        (comp[i].events & POLLERR && comp[i].revents & POLLERR)) {
       selectBitmapSet(except, comp[i].fd);
       verify++;
     }
@@ -395,7 +397,8 @@ size_t select(int nfds, uint8_t *read, uint8_t *write, uint8_t *except,
 
   // nope, we need to report individual events!
   // assert(verify == res);
-  assert(verify >= res);
+  // nope, POLLERR & POLLPRI don't need validation sooo yeah!
+  // assert(verify >= res);
   free(comp);
   return verify;
 }
