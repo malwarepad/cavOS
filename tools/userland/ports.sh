@@ -49,14 +49,14 @@ if ! cat "target/etc/apk/world" 2>/dev/null | grep -i "alpine-base"; then
 	# get into it
 	source "${SCRIPTPATH}/../shared/chroot.sh"
 	chroot_establish "$USR_PATHNAME/../"
-	sudo chroot "target/" /bin/bash -c "apk update"
+	sudo chroot "target/" /bin/bash --login -c "apk update"
 	chroot_drop "$USR_PATHNAME/../"
 fi
 
 # Basic software
 source "${SCRIPTPATH}/../shared/chroot.sh"
 chroot_establish "$USR_PATHNAME/../"
-sudo chroot "target/" /bin/bash -c "apk add coreutils tzdata procps vim findutils diffutils patch grep sed gawk gzip xz make file tar nasm python3 gcc musl-dev pciutils fastfetch figlet xorg-server xinit xf86-input-evdev xf86-video-fbdev twm xsetroot xeyes nedit xclock mesa-gl mesa-utils mesa-vulkan-swrast mesa-dri-gallium st"
+sudo chroot "target/" /bin/bash --login -c "apk add coreutils tzdata procps vim findutils diffutils patch grep sed gawk gzip xz make file tar nasm python3 gcc musl-dev pciutils fastfetch figlet xorg-server xinit xf86-input-evdev xf86-video-fbdev twm xsetroot xeyes nedit xclock mesa-gl mesa-utils mesa-vulkan-swrast mesa-dri-gallium st"
 chroot_drop "$USR_PATHNAME/../"
 
 # Empty for the time being
