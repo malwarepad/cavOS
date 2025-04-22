@@ -77,7 +77,7 @@ clean:
 #	rm -f $(TARGET_IMG) $(TARGET_VMWARE) $(TARGET_ISO)
 
 qemu:
-	qemu-system-x86_64 -d guest_errors -serial stdio -drive file=$(TARGET_IMG),format=raw,id=disk,if=none -device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 -m 1g -netdev user,id=mynet0 -net nic,model=rtl8139,netdev=mynet0
+	qemu-system-x86_64 -d guest_errors -serial stdio -drive file=$(TARGET_IMG),format=raw,id=disk,if=none -device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 -m 4g -netdev user,id=mynet0 -net nic,model=rtl8139,netdev=mynet0
 
 qemu_dbg:
 	qemu-system-x86_64 -d guest_errors -no-shutdown -no-reboot -serial stdio -drive file=$(TARGET_IMG),format=raw,id=disk,if=none -device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 -m 8g -netdev user,id=mynet0,hostfwd=udp::5555-:69,hostfwd=tcp::5555-:69 -net nic,model=rtl8139,netdev=mynet0 -object filter-dump,id=id,netdev=mynet0,file=../../netdmp.pcapng -s -smp 4
