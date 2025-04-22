@@ -48,6 +48,9 @@ size_t      fakefsReadlink(MountPoint *mnt, char *path, char *buf, int size,
                            char **symlinkResolve);
 size_t      fakefsSimpleRead(OpenFile *fd, uint8_t *out, size_t limit);
 
+size_t fakefsGetDents64(OpenFile *fd, struct linux_dirent64 *start,
+                        unsigned int hardlimit);
+
 VfsHandlers fakefsNoHandlers;
 VfsHandlers fakefsHandlers;
 VfsHandlers fakefsRootHandlers;

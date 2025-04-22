@@ -1,5 +1,6 @@
 #include <bootloader.h>
 #include <caching.h>
+#include <dents.h>
 #include <malloc.h>
 #include <proc.h>
 #include <string.h>
@@ -105,10 +106,53 @@ void procSetup() {
                 S_IFREG | S_IRUSR | S_IRGRP | S_IROTH, &handleUptime);
   FakefsFile *id =
       fakefsAddFile(&rootProc, rootProc.rootFile, "*", 0,
-                    S_IFREG | S_IRUSR | S_IRGRP | S_IROTH, &fakefsNoHandlers);
+                    S_IFDIR | S_IRUSR | S_IRGRP | S_IROTH, &fakefsNoHandlers);
   fakefsAddFile(&rootProc, id, "*", 0, S_IFREG | S_IRUSR | S_IRGRP | S_IROTH,
                 &handleProcEach);
 }
+
+size_t procGetdents64(OpenFile *fd, struct linux_dirent64 *start,
+                      unsigned int hardlimit) {
+  // todo: fakefs' getdents64() uses ->tmp1 instead of ->pointer
+  size_t read = fakefsGetDents64(fd, start, hardlimit);
+  if (read)
+    return read;
+
+  size_t initPtr = fd->pointer;
+
+  struct linux_dirent64 *dirp = (struct linux_dirent64 *)start;
+  size_t                 allocatedlimit = 0;
+
+  spinlockCntReadAcquire(&TASK_LL_MODIFY);
+  char  filename[32] = {0};
+  Task *browse = firstTask;
+  while (browse) {
+    // id == tgid so we don't have duplicates. todo thread killing elsewhere
+    if (browse->id == browse->tgid && browse->state != TASK_STATE_DEAD &&
+        browse->tgid > initPtr) {
+      size_t out = snprintf(filename, 32, "%d", browse->tgid);
+      assert(out > 0 && out <= 32); // bounds
+      DENTS_RES res = dentsAdd(start, &dirp, &allocatedlimit, hardlimit,
+                               filename, out, 999 + browse->tgid, 0);
+      // todo: type ^^^
+
+      if (res == DENTS_NO_SPACE) {
+        allocatedlimit = ERR(EINVAL);
+        goto cleanup;
+      } else if (res == DENTS_RETURN)
+        goto cleanup;
+
+      fd->pointer = browse->tgid;
+    }
+    browse = browse->next;
+  }
+
+cleanup:
+  spinlockCntReadRelease(&TASK_LL_MODIFY);
+  return allocatedlimit;
+}
+
+VfsHandlers procRootHandlers = {.getdents64 = procGetdents64};
 
 bool procMount(MountPoint *mount) {
   // install handlers
@@ -125,6 +169,7 @@ bool procMount(MountPoint *mount) {
     fakefsSetupRoot(&rootProc.rootFile);
     procSetup();
   }
+  rootProc.rootFile->handlers = &procRootHandlers;
 
   return true;
 }

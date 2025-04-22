@@ -213,7 +213,9 @@ size_t fakefsGetDents64(OpenFile *fd, struct linux_dirent64 *start,
 
   while (fd->tmp1 != (size_t)(-1)) {
     FakefsFile *current = (FakefsFile *)fd->tmp1;
-    DENTS_RES   res =
+    if (current->filename[0] == '*')
+      goto traverse;
+    DENTS_RES res =
         dentsAdd(start, &dirp, &allocatedlimit, hardlimit, current->filename,
                  current->filenameLength, current->inode, 0); // todo: type
 
@@ -223,6 +225,7 @@ size_t fakefsGetDents64(OpenFile *fd, struct linux_dirent64 *start,
     } else if (res == DENTS_RETURN)
       goto cleanup;
 
+  traverse:
     fd->tmp1 = (size_t)current->next;
     if (!fd->tmp1)
       fd->tmp1 = (size_t)(-1);
