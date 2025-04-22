@@ -52,5 +52,5 @@ size_t fat32StatFd(OpenFile *fd, struct stat *target) {
                              .index = dir->index};
   memcpy(&res.dirEntry, &dir->dirEnt, sizeof(FAT32DirectoryEntry));
   fat32StatInternal(&res, target);
-  return true;
+  return 0;
 }

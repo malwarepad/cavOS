@@ -1,5 +1,6 @@
 #include <bitmap.h>
 #include <bootloader.h>
+#include <fb.h>
 #include <limine.h>
 #include <malloc.h>
 #include <paging.h>
@@ -204,7 +205,11 @@ void VirtualMapL(uint64_t *pagedir, uint64_t virt_addr, uint64_t phys_addr,
   }
   size_t *pt = (size_t *)(PTE_GET_ADDR(pd[pd_index]) + HHDMoffset);
 
-  if (pt[pt_index] & PF_PRESENT) {
+  if (pt[pt_index] & PF_PRESENT &&
+      !(PTE_GET_ADDR(pt[pt_index]) >= VirtualToPhysical((size_t)framebuffer) &&
+        PTE_GET_ADDR(pt[pt_index]) <
+            VirtualToPhysical((size_t)framebuffer) +
+                (framebufferWidth * framebufferHeight * 4))) {
     PhysicalFree(PTE_GET_ADDR(pt[pt_index]), 1);
     // debugf("[paging] Overwrite (without unmapping) WARN! virt{%lx}
     // phys{%lx}\n",
@@ -228,7 +233,9 @@ size_t VirtualToPhysicalL(uint64_t *pagedir, size_t virt_addr) {
   if (!pagedir)
     return 0;
 
-  if (virt_addr >= HHDMoffset && virt_addr <= (HHDMoffset + bootloader.mmTotal))
+  // do note that we are on hhdm revision 0!
+  if (virt_addr >= HHDMoffset &&
+      virt_addr <= (HHDMoffset + MAX(bootloader.mmTotal, UINT32_MAX)))
     return virt_addr - HHDMoffset;
 
   size_t virt_addr_init = virt_addr;
