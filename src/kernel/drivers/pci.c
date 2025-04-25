@@ -4,6 +4,7 @@
 #include <nic_controller.h>
 #include <pci.h>
 #include <system.h>
+#include <vmware_svga2.h>
 
 // PCI driver
 // Copyright (C) 2024 Panagiotis
@@ -210,6 +211,9 @@ void initiatePCI() {
         case PCI_CLASS_CODE_MASS_STORAGE_CONTROLLER:
           if (device->subclass_id == 0x6)
             initiateAHCI(device);
+          break;
+        case PCI_CLASS_CODE_DISPLAY_CONTROLLER:
+          initiateVMWareSvga2(device);
           break;
         default:
           break;
