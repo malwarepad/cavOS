@@ -130,6 +130,20 @@ size_t socketGetsockname(OpenFile *fd, sockaddr_linux *addr, socklen_t *len) {
   return lwipOut;
 }
 
+// todo: start the accept() stuff
+size_t socketListen(OpenFile *fd, int backlog) {
+  if (backlog == 0) // newer kernel behavior
+    backlog = 1;
+  if (backlog < 0)
+    backlog = 128;
+
+  UserSocket *userSocket = (UserSocket *)fd->dir;
+  int         lwipOut = lwip_listen(userSocket->lwipFd, backlog);
+  if (lwipOut < 0)
+    return -errno;
+  return lwipOut;
+}
+
 // todo: do hacks like these globally on lwip wrappers, moving blocking
 // operations to a struct field (keeping lwip on nonblock mode no matter what)!
 size_t socketRecvfrom(OpenFile *fd, uint8_t *out, size_t limit, int flags,
@@ -216,6 +230,7 @@ VfsHandlers socketHandlers = {.read = socketRead,
                               .internalPoll = socketInternalPoll,
                               .getsockname = socketGetsockname,
                               .getsockopts = socketGetsockopt,
+                              .listen = socketListen,
                               .bind = socketBind,
                               .connect = socketConnect,
                               .sendto = socketSendto,
