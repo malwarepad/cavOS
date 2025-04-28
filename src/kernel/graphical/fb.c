@@ -74,6 +74,9 @@ size_t fbUserIoctl(OpenFile *fd, uint64_t request, void *arg) {
     return 0;
     break;
   }
+  case 0x4605: // FBIOPUTCMAP, ignore so no xorg.log spam
+    return 0;
+    break;
   case FBIOGET_VSCREENINFO: {
     struct fb_var_screeninfo *fb = arg;
     fb->xres = framebufferWidth;
