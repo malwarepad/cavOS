@@ -61,6 +61,8 @@ static size_t syscallSocket(int family, int type, int protocol) {
 
     if (cloexec)
       socketNode->closeOnExec = true;
+    if (nonblock)
+      socketNode->flags |= O_NONBLOCK;
 
     socketNode->handlers = &socketHandlers;
 

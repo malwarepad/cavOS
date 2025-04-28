@@ -8,7 +8,7 @@
 
 #include <lwip/sockets.h>
 
-// todo! fix errnos!
+// todo! fix errnos! (per Task and macro!)
 
 size_t socketRead(OpenFile *fd, uint8_t *out, size_t limit) {
   UserSocket *userSocket = (UserSocket *)fd->dir;
@@ -101,6 +101,13 @@ size_t socketSendto(OpenFile *fd, uint8_t *buff, size_t len, int flags,
                     sockaddr_linux *dest_addr, socklen_t addrlen) {
   UserSocket *userSocket = (UserSocket *)fd->dir;
 
+  if (!addrlen || !dest_addr) {
+    int lwipOut = lwip_send(userSocket->lwipFd, buff, len, flags);
+    if (lwipOut < 0)
+      return -errno;
+    return lwipOut;
+  }
+
   struct sockaddr *aligned = malloc(addrlen);
   memcpy(aligned, dest_addr, addrlen);
   uint16_t initialFamily = sockaddrLinuxToLwip(aligned, addrlen);
@@ -129,26 +136,28 @@ size_t socketRecvfrom(OpenFile *fd, uint8_t *out, size_t limit, int flags,
                       sockaddr_linux *addr, uint32_t *len) {
   UserSocket *userSocket = (UserSocket *)fd->dir;
 
-  if (fd->flags & O_NONBLOCK) {
-    // do a workaround cause lwip's recvfrom() doesn't respect non-blocking fds
-    int events = fd->handlers->internalPoll(fd, POLLIN);
-    if (!(events & POLLIN))
-      return ERR(EAGAIN);
-  }
-
   int oldfl = lwip_fcntl(userSocket->lwipFd, F_GETFL, 0);
   lwip_fcntl(userSocket->lwipFd, F_SETFL, oldfl | O_NONBLOCK);
   int lwipOut = -1;
   while (true) {
+    if (!(fd->handlers->internalPoll(fd, POLLIN) & POLLIN)) {
+      // do a workaround cause lwip's recvfrom() is really weird sometimes
+      if (fd->flags & O_NONBLOCK) {
+        lwipOut = -1;
+        errno = EAGAIN;
+        break;
+      }
+      if (signalsPendingQuick(currentTask)) {
+        lwipOut = -1;
+        errno = EINTR;
+        break;
+      }
+      continue;
+    }
     lwipOut =
         lwip_recvfrom(userSocket->lwipFd, out, limit, flags, (void *)addr, len);
-    if (lwipOut >= 0 ||
-        (!(fd->flags & O_NONBLOCK) && lwipOut == -1 && errno != EAGAIN))
+    if (lwipOut >= 0)
       break;
-    if (signalsPendingQuick(currentTask)) {
-      lwip_fcntl(userSocket->lwipFd, F_SETFL, oldfl);
-      return ERR(EINTR);
-    }
   }
   lwip_fcntl(userSocket->lwipFd, F_SETFL, oldfl);
 
