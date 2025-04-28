@@ -44,7 +44,7 @@ all: $(C_OBJS) $(ASM_OBJS) $(C_EXTRA_OBJS)
 	$(LINKER) $(LDFLAGS) -o $(OUTPUT) $(C_OBJS) $(C_EXTRA_OBJS) $(ASM_OBJS)
 	
 memory/malloc.o:memory/malloc.c
-	$(COMPILER) $(CFLAGS) memory/malloc.c -o memory/malloc.o -DHAVE_MMAP=0 -DLACKS_TIME_H=1 -DLACKS_SYS_PARAM_H=1 -LACKS_STRING_H=0 -Dmalloc_getpagesize=4096 -DNO_MALLOC_STATS=1 -DMORECORE_CONTIGUOUS=0 -DUSE_LOCKS=2
+	$(COMPILER) $(CFLAGS) memory/malloc.c -o memory/malloc.o -DHAVE_MMAP=0 -DLACKS_TIME_H=1 -DLACKS_SYS_PARAM_H=1 -LACKS_STRING_H=0 -Dmalloc_getpagesize=4096 -DNO_MALLOC_STATS=1 -DMORECORE_CONTIGUOUS=0 -DUSE_LOCKS=2 "-DMALLOC_FAILURE_ACTION=abort()"
 
 drivers/printf.o:drivers/printf.c
 	$(COMPILER) $(CFLAGS) drivers/printf.c -o drivers/printf.o -DPRINTF_INCLUDE_CONFIG_H=1
