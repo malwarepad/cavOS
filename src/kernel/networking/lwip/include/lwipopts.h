@@ -15,6 +15,7 @@
 
 #define TCPIP_MBOX_SIZE 32
 
+#define LWIP_RAW 1
 #define LWIP_DHCP 1
 #define LWIP_DNS 1
 #define LWIP_DEBUG 1

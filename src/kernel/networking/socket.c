@@ -101,10 +101,12 @@ size_t socketSendto(OpenFile *fd, uint8_t *buff, size_t len, int flags,
                     sockaddr_linux *dest_addr, socklen_t addrlen) {
   UserSocket *userSocket = (UserSocket *)fd->dir;
 
-  uint16_t initialFamily = sockaddrLinuxToLwip(dest_addr, addrlen);
+  struct sockaddr *aligned = malloc(addrlen);
+  memcpy(aligned, dest_addr, addrlen);
+  uint16_t initialFamily = sockaddrLinuxToLwip(aligned, addrlen);
   int      lwipOut = lwip_sendto(userSocket->lwipFd, buff, len, flags,
-                                 (void *)dest_addr, addrlen);
-  sockaddrLwipToLinux(dest_addr, initialFamily);
+                                 (void *)aligned, MIN(16, addrlen));
+  sockaddrLwipToLinux(aligned, initialFamily);
 
   if (lwipOut < 0)
     return -errno;
@@ -121,6 +123,8 @@ size_t socketGetsockname(OpenFile *fd, sockaddr_linux *addr, socklen_t *len) {
   return lwipOut;
 }
 
+// todo: do hacks like these globally on lwip wrappers, moving blocking
+// operations to a struct field (keeping lwip on nonblock mode no matter what)!
 size_t socketRecvfrom(OpenFile *fd, uint8_t *out, size_t limit, int flags,
                       sockaddr_linux *addr, uint32_t *len) {
   UserSocket *userSocket = (UserSocket *)fd->dir;
@@ -132,8 +136,22 @@ size_t socketRecvfrom(OpenFile *fd, uint8_t *out, size_t limit, int flags,
       return ERR(EAGAIN);
   }
 
-  int lwipOut =
-      lwip_recvfrom(userSocket->lwipFd, out, limit, flags, (void *)addr, len);
+  int oldfl = lwip_fcntl(userSocket->lwipFd, F_GETFL, 0);
+  lwip_fcntl(userSocket->lwipFd, F_SETFL, oldfl | O_NONBLOCK);
+  int lwipOut = -1;
+  while (true) {
+    lwipOut =
+        lwip_recvfrom(userSocket->lwipFd, out, limit, flags, (void *)addr, len);
+    if (lwipOut >= 0 ||
+        (!(fd->flags & O_NONBLOCK) && lwipOut == -1 && errno != EAGAIN))
+      break;
+    if (signalsPendingQuick(currentTask)) {
+      lwip_fcntl(userSocket->lwipFd, F_SETFL, oldfl);
+      return ERR(EINTR);
+    }
+  }
+  lwip_fcntl(userSocket->lwipFd, F_SETFL, oldfl);
+
   sockaddrLwipToLinux(addr, AF_INET);
   if (lwipOut < 0)
     return -errno;
