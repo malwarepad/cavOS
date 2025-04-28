@@ -145,6 +145,7 @@ struct Task {
 
   termios  term;
   uint32_t tmpRecV;
+  int      kernelErrno;
   void    *spinlockQueueEntry; // check on kill!
 
   char  *cmdline;
@@ -193,6 +194,10 @@ typedef struct Blocking {
   Spinlock     LOCK_LL_BLOCKED;
   BlockedTask *firstBlockedTask;
 } Blocking;
+
+// needed for libraries that still depend on some sort of errno
+// should be safe as it's per-thread
+#define errno (currentTask->kernelErrno)
 
 void taskBlock(Blocking *blocking, Task *task, Spinlock *releaseAfter,
                bool apply);

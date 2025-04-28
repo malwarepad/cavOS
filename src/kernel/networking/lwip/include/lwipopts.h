@@ -45,8 +45,6 @@ typedef Spinlock  sys_mutex_t;
 // #define SYS_LIGHTWEIGHT_PROT 1
 typedef uint8_t sys_prot_t;
 
-int errno;
-
 #define LWIP_PLATFORM_ASSERT(x)                                                \
   do {                                                                         \
     debugf("Assertion \"%s\" failed at line %d in %s\n", x, __LINE__,          \

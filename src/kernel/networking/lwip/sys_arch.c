@@ -64,17 +64,11 @@ int sys_sem_valid(sys_sem_t *sem) { return !sem->invalid; }
 
 uint32_t sys_now(void) { return timerBootUnix * 1000 + timerTicks; }
 
-// i don't want to include task.h here
-typedef struct {
-  uint64_t id;
-} TaskShort;
-TaskShort *taskCreateKernel(uint64_t rip, uint64_t rdi);
-
 sys_thread_t sys_thread_new(const char *pcName,
                             void (*pxThread)(void *pvParameters), void *pvArg,
                             int iStackSize, int iPriority) {
   // debugf("[lwip::glue::thread] stack{%d} name{%s}\n", iStackSize, pcName);
-  TaskShort *task = taskCreateKernel((uint64_t)pxThread, (uint64_t)pvArg);
+  Task *task = taskCreateKernel((uint64_t)pxThread, (uint64_t)pvArg);
   return task->id;
 }
 
