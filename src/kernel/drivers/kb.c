@@ -113,18 +113,18 @@ const uint8_t evdevTable[89] = {
     KEY_NUMLOCK,
     KEY_SCROLLLOCK,
     KEY_KP7,
-    KEY_KP8,
+    KEY_UP, // KEY_KP8
     KEY_KP9,
     KEY_KPMINUS,
-    KEY_KP4,
+    KEY_LEFT, // KEY_KP4
     KEY_KP5,
-    KEY_KP6,
+    KEY_RIGHT, // KEY_KP6
     KEY_KPPLUS,
     KEY_KP1,
-    KEY_KP2,
+    KEY_DOWN, // KEY_KP2
     KEY_KP3,
     KEY_KP0,
-    KEY_KPDOT,
+    KEY_DELETE, // KEY_KPDOT
     0,
     0,
     0,

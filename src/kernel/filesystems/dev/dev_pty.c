@@ -42,6 +42,17 @@ void ptyBitmapRemove(int index) {
   spinlockRelease(&LOCK_PTY_GLOBAL);
 }
 
+void ptyPairCleanup(PtyPair *pair) {
+  assert(pair->masterFds == 0 && pair->slaveFds == 0);
+  free(pair->bufferMaster);
+  free(pair->bufferSlave);
+  ptyBitmapRemove(pair->id);
+
+  spinlockAcquire(&LOCK_PTY_GLOBAL);
+  assert(LinkedListRemove((void **)&firstPtyPair, pair));
+  spinlockRelease(&LOCK_PTY_GLOBAL);
+}
+
 void ptyTermiosDefaults(struct termios *term) {
   term->c_iflag = ICRNL | IXON | BRKINT | ISTRIP | INPCK;
   term->c_oflag = OPOST | ONLCR;
@@ -80,6 +91,26 @@ size_t ptmxOpen(char *filename, int flags, int mode, OpenFile *fd,
   fd->dir = pair;
   spinlockRelease(&LOCK_PTY_GLOBAL);
   return 0;
+}
+
+bool ptmxDuplicate(OpenFile *original, OpenFile *orphan) {
+  orphan->dir = original->dir;
+  PtyPair *pair = original->dir;
+  spinlockAcquire(&pair->LOCK_PTY);
+  pair->masterFds++;
+  spinlockRelease(&pair->LOCK_PTY);
+  return true;
+}
+
+bool ptmxClose(OpenFile *fd) {
+  PtyPair *pair = fd->dir;
+  spinlockAcquire(&pair->LOCK_PTY);
+  pair->masterFds--;
+  if (!pair->masterFds && !pair->slaveFds)
+    ptyPairCleanup(pair);
+  else
+    spinlockRelease(&pair->LOCK_PTY);
+  return true;
 }
 
 // todo: control + d stuff
@@ -206,6 +237,8 @@ int ptmxInternalPoll(OpenFile *fd, int events) {
 }
 
 VfsHandlers handlePtmx = {.open = ptmxOpen,
+                          .duplicate = ptmxDuplicate,
+                          .close = ptmxClose,
                           .read = ptmxRead,
                           .write = ptmxWrite,
                           .internalPoll = ptmxInternalPoll,
@@ -246,6 +279,26 @@ size_t ptsOpen(char *filename, int flags, int mode, OpenFile *fd,
   browse->slaveFds++;
   spinlockRelease(&browse->LOCK_PTY);
   return 0;
+}
+
+bool ptsDuplicate(OpenFile *original, OpenFile *orphan) {
+  orphan->dir = original->dir;
+  PtyPair *pair = original->dir;
+  spinlockAcquire(&pair->LOCK_PTY);
+  pair->slaveFds++;
+  spinlockRelease(&pair->LOCK_PTY);
+  return true;
+}
+
+bool ptsClose(OpenFile *fd) {
+  PtyPair *pair = fd->dir;
+  spinlockAcquire(&pair->LOCK_PTY);
+  pair->slaveFds--;
+  if (!pair->masterFds && !pair->slaveFds)
+    ptyPairCleanup(pair);
+  else
+    spinlockRelease(&pair->LOCK_PTY);
+  return true;
 }
 
 size_t ptsDataAvail(PtyPair *pair) {
@@ -388,7 +441,7 @@ int ptsInternalPoll(OpenFile *fd, int events) {
   int      revents = 0;
 
   spinlockAcquire(&pair->LOCK_PTY);
-  if (ptsDataAvail(pair) > 0 && events & EPOLLIN)
+  if ((!pair->masterFds || ptsDataAvail(pair) > 0) && events & EPOLLIN)
     revents |= EPOLLIN;
   if (pair->ptrMaster < PTY_BUFF_SIZE && events & EPOLLOUT)
     revents |= EPOLLOUT;
@@ -398,6 +451,8 @@ int ptsInternalPoll(OpenFile *fd, int events) {
 }
 
 VfsHandlers handlePts = {.open = ptsOpen,
+                         .duplicate = ptsDuplicate,
+                         .close = ptsClose,
                          .read = ptsRead,
                          .write = ptsWrite,
                          .internalPoll = ptsInternalPoll,
