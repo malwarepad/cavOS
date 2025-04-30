@@ -56,6 +56,9 @@ void helperReaper() {
       intrBrowse = next;
     }
 
+    // free the task now that it's safe
+    taskListDestroy(reaperTask);
+
     // todo: free() the task in a safe manner. also implement some system for
     // editing the global LL without race conditions
     // (*) depends: task blocking, watchlists, task adding, forking, etc.

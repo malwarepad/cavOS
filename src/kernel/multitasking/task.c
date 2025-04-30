@@ -45,23 +45,48 @@ void taskAttachDefTermios(Task *task) {
   }
 }
 
-Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
-                 uint32_t argc, char **argv) {
+// although there are locks on these two functions, they are EXTREMELY unsafe!
+Task *taskListAllocate() {
   spinlockCntWriteAcquire(&TASK_LL_MODIFY);
+  asm volatile("cli");
   Task *browse = firstTask;
   while (browse) {
     if (!browse->next)
       break; // found final
     browse = browse->next;
   }
-  if (!browse) {
-    debugf("[scheduler] Something went wrong with init!\n");
-    panic();
-  }
+  assert(browse);
+
   Task *target = (Task *)malloc(sizeof(Task));
-  memset(target, 0, sizeof(Task));
+  memset(target, 0, sizeof(Task)); // TASK_STATE_DEAD is 0 too
   browse->next = target;
+
+  asm volatile("sti");
   spinlockCntWriteRelease(&TASK_LL_MODIFY);
+  return target;
+}
+
+// will NEVER be the first one
+void taskListDestroy(Task *target) {
+  spinlockCntWriteAcquire(&TASK_LL_MODIFY);
+  asm volatile("cli");
+  Task *prev = firstTask;
+  while (prev) {
+    if (prev->next == target)
+      break;
+    prev = prev->next;
+  }
+  assert(prev);
+
+  prev->next = target->next;
+  asm volatile("sti");
+  spinlockCntWriteRelease(&TASK_LL_MODIFY);
+  free(target); // finally, destroy it
+}
+
+Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
+                 uint32_t argc, char **argv) {
+  Task *target = taskListAllocate();
 
   uint64_t code_selector =
       kernel_task ? GDT_KERNEL_CODE : (GDT_USER_CODE | DPL_USER);
@@ -173,9 +198,6 @@ void taskKill(uint32_t id, uint16_t ret) {
   if (!task)
     return;
 
-  // We'll need this later
-  // bool parentVfork = task->parent->state == TASK_STATE_WAITING_VFORK;
-
   // Notify that poor parent... they must've been searching all over the
   // place!
   if (task->parent && !task->noInformParent) {
@@ -226,6 +248,7 @@ void taskKill(uint32_t id, uint16_t ret) {
 void taskFreeChildren(Task *task) {
   if (task->noInformParent)
     return; // it's execve() trash most likely
+  spinlockCntReadAcquire(&TASK_LL_MODIFY);
   Task *child = firstTask;
   while (child) {
     Task *next = child->next;
@@ -241,19 +264,7 @@ void taskFreeChildren(Task *task) {
     }
     child = next;
   }
-}
-
-void taskKillChildren(Task *task) {
-  Task *child = firstTask;
-  while (child) {
-    Task *next = child->next;
-    if (child->parent == task && child->state != TASK_STATE_DEAD) {
-      taskKill(child->id, 0);
-      // taskKillCleanup(child); // done automatically
-      taskKillChildren(task); // use recursion
-    }
-    child = next;
-  }
+  spinlockCntReadRelease(&TASK_LL_MODIFY);
 }
 
 Task *taskGet(uint32_t id) {
@@ -268,22 +279,8 @@ Task *taskGet(uint32_t id) {
   return browse;
 }
 
-int taskIdCurr = 1;
-
-int16_t taskGenerateId() {
-  return taskIdCurr++;
-  // spinlockCntReadAcquire(&TASK_LL_MODIFY);
-  // Task    *browse = firstTask;
-  // uint16_t max = 0;
-  // while (browse) {
-  //   if (browse->id > max)
-  //     max = browse->id;
-  //   browse = browse->next;
-  // }
-
-  // spinlockCntReadRelease(&TASK_LL_MODIFY);
-  // return max + 1;
-}
+uint64_t taskIdCurr = 1;
+uint64_t taskGenerateId() { return taskIdCurr++; }
 
 size_t taskChangeCwd(char *newdir) {
   stat stat = {0};
@@ -336,21 +333,7 @@ void taskFilesCopy(Task *original, Task *target, bool respectCOE) {
 
 Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
                bool spinup) {
-  spinlockCntWriteAcquire(&TASK_LL_MODIFY);
-  Task *browse = firstTask;
-  while (browse) {
-    if (!browse->next)
-      break; // found final
-    browse = browse->next;
-  }
-  if (!browse) {
-    debugf("[scheduler] Something went wrong with init!\n");
-    panic();
-  }
-  Task *target = (Task *)malloc(sizeof(Task));
-  memset(target, 0, sizeof(Task));
-  browse->next = target;
-  spinlockCntWriteRelease(&TASK_LL_MODIFY);
+  Task *target = taskListAllocate();
 
   if (!(cloneFlags & CLONE_VM)) {
     target->infoPd = taskInfoPdClone(currentTask->infoPd);
@@ -461,6 +444,7 @@ Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
 
 void taskBlock(Blocking *blocking, Task *task, Spinlock *releaseAfter,
                bool apply) {
+  assert(task == currentTask); // otherwise, it exits with ptr dangling
   if (!apply)
     assert(!releaseAfter);
   spinlockAcquire(&blocking->LOCK_LL_BLOCKED);
