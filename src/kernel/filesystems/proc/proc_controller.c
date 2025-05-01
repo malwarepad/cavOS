@@ -90,9 +90,9 @@ size_t sRead(OpenFile *fd, uint8_t *out, size_t limit) {
     break;
   }
   case PROC_INTERNAL_STAT: {
-    int32_t     pid = target->id;
-    const char *comm = "todo";
-    char        state = procDetermineState(target);
+    int32_t pid = target->id;
+    char    comm[12] = {0};
+    char    state = procDetermineState(target);
 
     int32_t  ppid = target->parent ? target->parent->id : 0;
     int32_t  pgrp = target->pgid;
@@ -148,6 +148,14 @@ size_t sRead(OpenFile *fd, uint8_t *out, size_t limit) {
     uint64_t env_end = 0x7fffffff3000;
 
     int32_t exit_code = 0;
+
+    int commStart = 0;
+    int cmdline0len = strlength(target->cmdline);
+    for (int i = 0; i < cmdline0len; i++) {
+      if (target->cmdline[i] == '/')
+        commStart = i + 1;
+    }
+    memcpy(comm, &target->cmdline[commStart], MIN(cmdline0len - commStart, 11));
 
     char statOutput[4096] = {0};
     int  len = snprintf(
