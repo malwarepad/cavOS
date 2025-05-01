@@ -390,20 +390,45 @@ size_t signalsSigreturnSyscall(void *taskPtr) {
 
     int number = sysIntr->number;
     LinkedListRemove((void **)&task->firstSysIntr, sysIntr);
-    dbgSigHitf("%ld [signals] Re-running handler{%ld} after EINTR!\n", task->id,
-               number);
 
-    // actually repeat the syscall. no need to check anything, since they've
-    // already been verified once! here we're overriding our stack to fake
-    // another syscall entry (to satisfy sysret)
-    regs.rax = number;
-    regs.r11 = regs.rflags;
-    regs.rcx = regs.rip;
-    regs.rflags &= ~(rdmsr(0xC0000084)); // IA32_FMASK
-    regs.cs = GDT_KERNEL_CODE;
-    regs.ds = GDT_KERNEL_DATA;
-    regs.usermode_ss = GDT_KERNEL_DATA;
-    regs.rip = (size_t)syscall_entry;
+    if (number != 0 &&   // SYS_read
+        number != 1 &&   // SYS_write
+        number != 2 &&   // SYS_open
+        number != 3 &&   // SYS_close
+        number != 16 &&  // SYS_ioctl
+        number != 23 &&  // SYS_select
+        number != 270 && // SYS_pselect6
+        number != 7 &&   // SYS_poll
+        number != 271 && // SYS_ppoll
+        number != 61 &&  // SYS_wait4
+        number != 247 && // SYS_waitid
+        number != 35 &&  // SYS_nanosleep
+        number != 230 && // SYS_clock_nanosleep
+        number != 202 && // SYS_futex
+        number != 232 && // SYS_epoll_wait
+        number != 45 &&  // SYS_recvfrom
+        number != 44 &&  // SYS_sendto
+        number != 47 &&  // SYS_recvmsg
+        number != 46 &&  // SYS_sendmsg
+        number != 42 &&  // SYS_connect
+        number != 43 &&  // SYS_accept
+        number != 34)    // SYS_pause
+    {
+      dbgSigHitf("%ld [signals] Re-running handler{%ld} after EINTR!\n",
+                 task->id, number);
+
+      // actually repeat the syscall. no need to check anything, since they've
+      // already been verified once! here we're overriding our stack to fake
+      // another syscall entry (to satisfy sysret)
+      regs.rax = number;
+      regs.r11 = regs.rflags;
+      regs.rcx = regs.rip;
+      regs.rflags &= ~(rdmsr(0xC0000084)); // IA32_FMASK
+      regs.cs = GDT_KERNEL_CODE;
+      regs.ds = GDT_KERNEL_DATA;
+      regs.usermode_ss = GDT_KERNEL_DATA;
+      regs.rip = (size_t)syscall_entry;
+    }
   }
 
   asm volatile("cli"); // we're using whileTssRsp which is strictly for sched
