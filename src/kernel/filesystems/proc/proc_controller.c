@@ -94,7 +94,7 @@ size_t sRead(OpenFile *fd, uint8_t *out, size_t limit) {
     const char *comm = "todo";
     char        state = procDetermineState(target);
 
-    int32_t  ppid = target->parent->id;
+    int32_t  ppid = target->parent ? target->parent->id : 0;
     int32_t  pgrp = target->pgid;
     int32_t  session = 1234;
     int32_t  tty_nr = 0;
