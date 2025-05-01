@@ -7,7 +7,7 @@ SCRIPT=$(realpath "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 cd "${SCRIPTPATH}"
 
-TARGET_VERSION="9.2.2"
+TARGET_VERSION="9.2.3"
 
 fetchLimine() {
 	rm -rf limine/
