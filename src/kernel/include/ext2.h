@@ -192,6 +192,9 @@ typedef struct Ext2 {
   Spinlock         LOCK_OBJECT;
   Ext2FoundObject *firstObject;
 
+  // global lock for when a file descriptor isn't present, limiting reach
+  SpinlockCnt WLOCK_GLOBAL_NOFD;
+
   // special locks for ext2Dir(De)Allocate
   // uint32_t dirOperations[EXT2_MAX_CONSEC_DIRALLOC];
   // Spinlock LOCK_DIRALLOC_GLOBAL;
