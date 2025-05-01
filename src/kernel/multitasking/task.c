@@ -48,6 +48,8 @@ void taskAttachDefTermios(Task *task) {
 // although there are locks on these two functions, they are EXTREMELY unsafe!
 Task *taskListAllocate() {
   spinlockCntWriteAcquire(&TASK_LL_MODIFY);
+  Task *target = (Task *)malloc(sizeof(Task));
+  memset(target, 0, sizeof(Task)); // TASK_STATE_DEAD is 0 too
   asm volatile("cli");
   Task *browse = firstTask;
   while (browse) {
@@ -55,12 +57,9 @@ Task *taskListAllocate() {
       break; // found final
     browse = browse->next;
   }
+
   assert(browse);
-
-  Task *target = (Task *)malloc(sizeof(Task));
-  memset(target, 0, sizeof(Task)); // TASK_STATE_DEAD is 0 too
   browse->next = target;
-
   asm volatile("sti");
   spinlockCntWriteRelease(&TASK_LL_MODIFY);
   return target;
