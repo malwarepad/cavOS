@@ -29,12 +29,19 @@ void schedule(uint64_t rsp) {
     next = firstTask;
 
   int fullRun = 0;
-  while (next->state != TASK_STATE_READY ||
-         (next->sleepUntil && next->sleepUntil > timerTicks)) {
+  while (next->state != TASK_STATE_READY) {
     if (signalsRevivableState(next->state) && signalsPendingQuick(next)) {
       // back to the syscall handler which returns -EINTR (& handles the signal)
       assert(next->registers.cs & GDT_KERNEL_CODE);
       next->state = TASK_STATE_READY;
+      break;
+    }
+    if (next->forcefulWakeupTimeUnsafe &&
+        next->forcefulWakeupTimeUnsafe <= timerTicks) {
+      // no race! the task has to already have been suspended to end up here
+      next->state = TASK_STATE_READY;
+      next->forcefulWakeupTimeUnsafe = 0;
+      // ^ is here to avoid interference with future statuses
       break;
     }
     next = next->next;

@@ -141,7 +141,10 @@ struct Task {
   uint64_t fsbase;
   uint64_t gsbase;
 
-  size_t sleepUntil;
+  // PLEASE assert() it is zero after use and zero it manually if state changes
+  // are involved. It WILL NOT care at which point a wakeup happens and how
+  // disruptive the context can be!
+  size_t forcefulWakeupTimeUnsafe;
 
   termios  term;
   uint32_t tmpRecV;

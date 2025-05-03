@@ -12,13 +12,12 @@ static int syscallNanosleep(struct timespec *duration, struct timespec *rem) {
     return -EINVAL;
 
   size_t ms = duration->tv_sec * 1000 + duration->tv_nsec / 1000000;
-  currentTask->sleepUntil = timerTicks + ms;
-  while (currentTask->sleepUntil > timerTicks) {
-    // optimized on the scheduler but yk
+  currentTask->forcefulWakeupTimeUnsafe = timerTicks + ms;
+  currentTask->state = TASK_STATE_BLOCKED;
+  do
     handControl();
-  }
-
-  currentTask->sleepUntil = 0; // reset to not strain the scheduler
+  while (currentTask->forcefulWakeupTimeUnsafe > timerTicks);
+  assert(!currentTask->forcefulWakeupTimeUnsafe);
   return 0;
 }
 

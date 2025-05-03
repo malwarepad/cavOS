@@ -27,8 +27,17 @@
 #define SYS_LIGHTWEIGHT_PROT 0
 #define LWIP_COMPAT_SOCKETS 0
 
+typedef struct mboxBlock {
+  struct mboxBlock *next;
+
+  Task *task;
+  bool  write;
+} mboxBlock;
+
 typedef struct {
   Spinlock LOCK;
+
+  mboxBlock *firstBlock;
 
   bool   invalid;
   int    ptrRead;

@@ -11,6 +11,8 @@
 #include <lwip/sys.h>
 #include <timer.h>
 
+#include <linked_list.h>
+
 // lwip glue code for cavOS
 // Copyright (C) 2024 Panagiotis
 
@@ -105,19 +107,37 @@ int sys_mbox_valid(sys_mbox_t *mbox) {
   return ret;
 }
 
+void sys_mbox_post_unsafe(sys_mbox_t *q, void *msg) {
+  // spinlockAcquire(&q->LOCK);
+  q->msges[q->ptrWrite] = msg;
+  q->ptrWrite = (q->ptrWrite + 1) % q->size;
+
+  mboxBlock *browse = q->firstBlock;
+  while (browse) {
+    mboxBlock *next = browse->next;
+    if (browse->write == false) {
+      browse->task->forcefulWakeupTimeUnsafe = 0;
+      browse->task->state = TASK_STATE_READY;
+      LinkedListRemove((void **)&q->firstBlock, browse);
+    }
+    browse = next;
+  }
+
+  spinlockRelease(&q->LOCK);
+}
+
 void sys_mbox_post(sys_mbox_t *q, void *msg) {
   while (true) {
     spinlockAcquire(&q->LOCK);
     if ((q->ptrWrite + 1) % q->size != q->ptrRead)
       break;
     spinlockRelease(&q->LOCK);
+    // would optimize blocking here too (with the write field) but it happens so
+    // rarely it's not worth it
     handControl();
   }
 
-  // spinlockAcquire(&q->LOCK);
-  q->msges[q->ptrWrite] = msg;
-  q->ptrWrite = (q->ptrWrite + 1) % q->size;
-  spinlockRelease(&q->LOCK);
+  sys_mbox_post_unsafe(q, msg);
 }
 
 err_t sys_mbox_trypost(sys_mbox_t *q, void *msg) {
@@ -127,15 +147,12 @@ err_t sys_mbox_trypost(sys_mbox_t *q, void *msg) {
     return ERR_MEM;
   }
 
-  // spinlockAcquire(&q->LOCK);
-  q->msges[q->ptrWrite] = msg;
-  q->ptrWrite = (q->ptrWrite + 1) % q->size;
-  spinlockRelease(&q->LOCK);
-
+  sys_mbox_post_unsafe(q, msg);
   return ERR_OK;
 }
 
 err_t sys_mbox_trypost_fromisr(sys_mbox_t *q, void *msg) {
+  assert(false);
   return sys_mbox_trypost(q, msg); // xd
 }
 
@@ -145,10 +162,21 @@ u32_t sys_arch_mbox_fetch(sys_mbox_t *q, void **msg, u32_t timeout) {
     spinlockAcquire(&q->LOCK);
     if (q->ptrRead != q->ptrWrite)
       break;
-    spinlockRelease(&q->LOCK);
-    if (timeout && timerTicks >= (timeStart + timeout))
+    // spinlockRelease(&q->LOCK);
+    if (timeout && timerTicks >= (timeStart + timeout)) {
+      spinlockRelease(&q->LOCK);
       return SYS_ARCH_TIMEOUT;
+    }
+    if (timeout)
+      currentTask->forcefulWakeupTimeUnsafe = timeStart + timeout;
+    mboxBlock *block =
+        LinkedListAllocate((void **)&q->firstBlock, sizeof(mboxBlock));
+    block->task = currentTask;
+    block->write = false;
+    taskSpinlockExit(currentTask, &q->LOCK);
+    currentTask->state = TASK_STATE_BLOCKED;
     handControl();
+    assert(!currentTask->forcefulWakeupTimeUnsafe);
   }
 
   // spinlockAcquire(&q->LOCK);
