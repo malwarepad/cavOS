@@ -195,13 +195,18 @@ size_t procEachOpen(char *filename, int flags, int mode, OpenFile *fd,
   }
   char *decisionStr = &badFn[lastPos + 1];
   char *pidStr = &badFn[1];
-  for (int i = 0; i < (lastPos - 1); i++) { // -1 for the start /
-    if (!isdigit(pidStr[i])) {
-      free(badFn);
-      return ERR(ENOENT);
+  bool  self = strEql(pidStr, "self");
+  int   pid = 0;
+  if (!self) {
+    for (int i = 0; i < (lastPos - 1); i++) { // -1 for the start /
+      if (!isdigit(pidStr[i])) {
+        free(badFn);
+        return ERR(ENOENT);
+      }
     }
-  }
-  int pid = atoi(pidStr);
+    pid = atoi(pidStr);
+  } else
+    pid = currentTask->id;
   int opcode = 0;
   if (strEql(decisionStr, "cmdline")) {
     opcode = PROC_INTERNAL_CMDLINE;
@@ -255,6 +260,10 @@ void procSetup() {
   FakefsFile *id =
       fakefsAddFile(&rootProc, rootProc.rootFile, "*", 0,
                     S_IFDIR | S_IRUSR | S_IRGRP | S_IROTH, &fakefsNoHandlers);
+  // after the catch-all to avoid addding the below handlers!
+  fakefsAddFile(&rootProc, rootProc.rootFile, "self", 0,
+                S_IFDIR | S_IRUSR | S_IRGRP | S_IROTH, &fakefsNoHandlers);
+
   fakefsAddFile(&rootProc, id, "*", 0, S_IFREG | S_IRUSR | S_IRGRP | S_IROTH,
                 &handleProcEach);
 }
