@@ -386,6 +386,7 @@ static size_t syscallWait4(int pid, int *wstatus, int options,
 
 #define SYSCALL_EXIT_GROUP 231
 static void syscallExitGroup(int return_code) { syscallExitTask(return_code); }
+// todo ^ with CLONE_THREAD!
 
 void syscallsRegProc() {
   registerSyscall(SYSCALL_PIPE, syscallPipe);

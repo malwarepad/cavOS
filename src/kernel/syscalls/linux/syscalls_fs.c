@@ -200,7 +200,7 @@ static size_t syscallDup(uint32_t fd) {
   if (!file)
     return ERR(EBADF);
 
-  OpenFile *new = fsUserDuplicateNode(currentTask, file);
+  OpenFile *new = fsUserDuplicateNode(currentTask, file, -1);
   new->closeOnExec = 0; // does not persist
 
   return new ? new->id : -1;
@@ -217,12 +217,8 @@ static size_t syscallDup2(uint32_t oldFd, uint32_t newFd) {
 
   // determine how we're going to do this
   spinlockCntWriteAcquire(&currentTask->infoFiles->WLOCK_FILES);
-  OpenFile *browse = currentTask->infoFiles->firstFile;
-  while (browse) {
-    if (browse->id == newFd)
-      break;
-    browse = browse->next;
-  }
+  OpenFile *browse =
+      (OpenFile *)AVLLookup(currentTask->infoFiles->firstFile, newFd);
   if (!browse) {
     // we don't have anything to close, reserve the id
     bitmapGenericSet(currentTask->infoFiles->fdBitmap, newFd, true);
@@ -235,10 +231,9 @@ static size_t syscallDup2(uint32_t oldFd, uint32_t newFd) {
   if (browse)
     assert(fsUserClose(currentTask, newFd) == 0);
 
-  size_t new = syscallDup(oldFd);
-  assert(!RET_IS_ERR(new));
-  OpenFile *targetFile = fsUserGetNode(currentTask, new);
-  targetFile->id = newFd;
+  OpenFile *new = fsUserDuplicateNode(currentTask, realFile, newFd);
+  assert(new);
+  new->closeOnExec = 0; // does not persist
 
   return newFd;
 }

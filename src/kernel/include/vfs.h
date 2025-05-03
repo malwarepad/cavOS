@@ -1,3 +1,4 @@
+#include "avl_tree.h"
 #include "disk.h"
 #include "linux.h"
 #include "types.h"
@@ -167,11 +168,11 @@ struct MountPoint {
 
 #define VFS_CLOSE_FLAG_RETAIN_ID (1 << 0)
 struct OpenFile {
-  OpenFile *next;
+  // OpenFile *next;
+  int id;
 
   Spinlock LOCK_OPERATIONS;
 
-  int id;
   int flags;
   int mode;
 
@@ -206,8 +207,8 @@ size_t fsUserSeek(void *task, uint32_t fd, int offset, int whence);
 
 OpenFile *fsUserGetNode(void *task, int fd);
 
-OpenFile *fsUserDuplicateNode(void *taskPtr, OpenFile *original);
-OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original);
+OpenFile *fsUserDuplicateNode(void *taskPtr, OpenFile *original, size_t suggid);
+bool      fsUserDuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan);
 
 size_t fsRead(OpenFile *file, uint8_t *out, uint32_t limit);
 size_t fsWrite(OpenFile *file, uint8_t *in, uint32_t limit);

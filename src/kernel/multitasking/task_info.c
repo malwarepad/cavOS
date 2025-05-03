@@ -113,12 +113,8 @@ void taskInfoFilesDiscard(TaskInfoFiles *target, void *task) {
   if (!target->utilizedBy) {
     // we don't care about locks anymore (we are alone in the darkness)
     spinlockCntWriteRelease(&target->WLOCK_FILES);
-    OpenFile *file = target->firstFile;
-    while (file) {
-      int id = file->id;
-      file = file->next;
-      fsUserClose(task, id);
-    }
+    while (target->firstFile)
+      fsUserClose(task, target->firstFile->key);
     free(target->fdBitmap);
     free(target);
   } else

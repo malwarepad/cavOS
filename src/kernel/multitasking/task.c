@@ -306,6 +306,21 @@ size_t taskChangeCwd(char *newdir) {
   return 0;
 }
 
+typedef struct {
+  bool  respectCOE;
+  Task *target;
+} taskFilesInorderArgs;
+void taskFilesCopyInorder(AVLheader *root, taskFilesInorderArgs *args) {
+  if (!root)
+    return;
+  taskFilesCopyInorder(root->left, args);
+  // process this
+  OpenFile *curr = (OpenFile *)root->value;
+  if (!args->respectCOE || !curr->closeOnExec)
+    assert(fsUserDuplicateNode(args->target, curr, curr->id));
+  taskFilesCopyInorder(root->right, args);
+}
+
 void taskFilesCopy(Task *original, Task *target, bool respectCOE) {
   TaskInfoFiles *originalInfo = original->infoFiles;
   TaskInfoFiles *targetInfo = target->infoFiles;
@@ -316,17 +331,9 @@ void taskFilesCopy(Task *original, Task *target, bool respectCOE) {
   targetInfo->fdBitmap = malloc(targetInfo->rlimitFdsHard / 8);
   memcpy(targetInfo->fdBitmap, originalInfo->fdBitmap,
          targetInfo->rlimitFdsHard / 8);
-  OpenFile *realFile = originalInfo->firstFile;
-  while (realFile) {
-    if (respectCOE && realFile->closeOnExec) {
-      realFile = realFile->next;
-      continue;
-    }
-    OpenFile *targetFile = fsUserDuplicateNodeUnsafe(realFile);
-    LinkedListPushFrontUnsafe((void **)(&targetInfo->firstFile), targetFile);
-    realFile = realFile->next;
-  }
-  spinlockCntWriteRelease(&targetInfo->WLOCK_FILES);
+  spinlockCntWriteRelease(&targetInfo->WLOCK_FILES); // inorder will manage this
+  taskFilesInorderArgs args = {.respectCOE = respectCOE, .target = target};
+  taskFilesCopyInorder((void *)originalInfo->firstFile, &args);
   spinlockCntReadRelease(&originalInfo->WLOCK_FILES);
 }
 

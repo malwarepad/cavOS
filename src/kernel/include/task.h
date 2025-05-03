@@ -98,7 +98,7 @@ typedef struct TaskInfoFiles {
 
   uint8_t *fdBitmap;
 
-  OpenFile *firstFile;
+  AVLheader *firstFile; // value of OpenFile*
 } TaskInfoFiles;
 
 TaskInfoFiles *taskInfoFilesAllocate();

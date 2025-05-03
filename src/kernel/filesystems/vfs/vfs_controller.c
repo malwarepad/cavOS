@@ -1,7 +1,6 @@
 #include <disk.h>
 #include <ext2.h>
 #include <fat32.h>
-#include <linked_list.h>
 #include <malloc.h>
 #include <poll.h>
 #include <string.h>
@@ -15,19 +14,22 @@
 // Simple VFS abstraction to manage filesystems
 // Copyright (C) 2024 Panagiotis
 
-OpenFile *fsRegisterNode(Task *task) {
+OpenFile *fsRegisterNode(Task *task, size_t id) {
   TaskInfoFiles *files = task->infoFiles;
   spinlockCntWriteAcquire(&files->WLOCK_FILES);
-  OpenFile *ret =
-      LinkedListAllocate((void **)&files->firstFile, sizeof(OpenFile));
+  // debugf("reg %d\n", id);
+  OpenFile *file = calloc(sizeof(OpenFile), 1);
+  file->id = id;
+  assert(AVLAllocate((void **)&files->firstFile, id, (avlval)file));
   spinlockCntWriteRelease(&files->WLOCK_FILES);
-  return ret;
+  return file;
 }
 
 bool fsUnregisterNode(Task *task, OpenFile *file) {
   TaskInfoFiles *files = task->infoFiles;
   spinlockCntWriteAcquire(&files->WLOCK_FILES);
-  bool ret = LinkedListUnregister((void **)&files->firstFile, file);
+  // debugf("unreg %d\n", file->id);
+  bool ret = AVLUnregister((void **)&files->firstFile, file->id);
   spinlockCntWriteRelease(&files->WLOCK_FILES);
   return ret;
 }
@@ -60,8 +62,9 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
   char *safeFilename = fsSanitize(task ? task->infoFs->cwd : prefix, filename);
   spinlockRelease(&task->infoFs->LOCK_FS);
 
-  OpenFile *target = fsRegisterNode(task);
-  target->id = fsIdFind(task->infoFiles);
+  size_t    id = fsIdFind(task->infoFiles);
+  OpenFile *target = fsRegisterNode(task, id);
+  // target->id = fsIdFind(task->infoFiles);
   target->mode = mode;
   target->flags = flags;
 
@@ -111,52 +114,38 @@ OpenFile *fsOpenGeneric(char *filename, Task *task, int flags, int mode) {
   return target;
 }
 
-// returns an ORPHAN!
-OpenFile *fsUserDuplicateNodeUnsafe(OpenFile *original) {
-  OpenFile *orphan = (OpenFile *)malloc(sizeof(OpenFile));
-  orphan->next = 0; // duh
+bool fsUserDuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan) {
+  memcpy((void *)((size_t)orphan + sizeof(original->id)),
+         (void *)((size_t)original + sizeof(original->id)),
+         sizeof(OpenFile) - sizeof(original->id));
 
-  memcpy((void *)((size_t)orphan + sizeof(orphan->next)),
-         (void *)((size_t)original + sizeof(original->next)),
-         sizeof(OpenFile) - sizeof(orphan->next));
-
-  // no locks here as this isn't called from any contexts where we'd have to
-  // necessarily worry
-
-  if (original->handlers->duplicate &&
-      !original->handlers->duplicate(original, orphan)) {
-    free(orphan);
-    return 0;
-  }
-
-  return orphan;
+  return !original->handlers->duplicate ||
+         original->handlers->duplicate(original, orphan);
 }
 
-OpenFile *fsUserDuplicateNode(void *taskPtr, OpenFile *original) {
+// keep in mind that the taskPtr is of the target. original can be anywhere
+OpenFile *fsUserDuplicateNode(void *taskPtr, OpenFile *original,
+                              size_t suggid) {
   Task          *task = (Task *)taskPtr;
   TaskInfoFiles *files = task->infoFiles;
 
-  OpenFile *target = fsUserDuplicateNodeUnsafe(original);
-  target->id = fsIdFind(files);
+  size_t    id = suggid == (size_t)(-1) ? fsIdFind(files) : suggid;
+  OpenFile *orphan = fsRegisterNode(task, id);
+  // OpenFile *target = fsUserDuplicateNodeUnsafe(original);
+  // target->id = fsIdFind(files);
 
-  spinlockCntWriteAcquire(&files->WLOCK_FILES);
-  LinkedListPushFrontUnsafe((void **)(&files->firstFile), target);
-  spinlockCntWriteRelease(&files->WLOCK_FILES);
-
-  return target;
+  if (!fsUserDuplicateNodeUnsafe(original, orphan)) {
+    free(orphan);
+    return 0;
+  }
+  return orphan;
 }
 
 OpenFile *fsUserGetNode(void *task, int fd) {
   Task          *target = (Task *)task;
   TaskInfoFiles *files = target->infoFiles;
   spinlockCntReadAcquire(&files->WLOCK_FILES);
-  OpenFile *browse = files->firstFile;
-  while (browse) {
-    if (browse->id == fd)
-      break;
-
-    browse = browse->next;
-  }
+  OpenFile *browse = (OpenFile *)AVLLookup(files->firstFile, fd);
   spinlockCntReadRelease(&files->WLOCK_FILES);
 
   return browse;
