@@ -85,4 +85,5 @@ void kernelHelpEntry() {
 
 void initiateKernelThreads() {
   netHelperTask = taskCreateKernel((size_t)kernelHelpEntry, 0);
+  taskNameKernel(netHelperTask, helperCmdline, sizeof(helperCmdline));
 }

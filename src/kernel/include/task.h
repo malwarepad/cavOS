@@ -11,6 +11,11 @@
 
 #define KERNEL_TASK_ID 0
 
+#define entryCmdline ("kernel")
+#define helperCmdline ("kernel")
+#define dummyCmdline ("dummy")
+#define lwipCmdline ("lwip")
+
 typedef struct {
   uint64_t edi;
   uint64_t esi;
@@ -212,6 +217,7 @@ void initiateTasks();
 Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
                  uint32_t argc, char **argv);
 Task *taskCreateKernel(uint64_t rip, uint64_t rdi);
+void  taskNameKernel(Task *target, const char *str, int len);
 void  taskCreateFinish(Task *task);
 
 void taskAdjustHeap(Task *task, size_t new_heap_end, size_t *start,

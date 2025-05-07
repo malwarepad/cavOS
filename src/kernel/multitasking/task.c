@@ -142,6 +142,12 @@ Task *taskCreateKernel(uint64_t rip, uint64_t rdi) {
   return target;
 }
 
+void taskNameKernel(Task *target, const char *str, int len) {
+  target->cmdline = malloc(len);
+  memcpy(target->cmdline, str, len);
+  target->cmdlineLen = len;
+}
+
 void taskCreateFinish(Task *task) { task->state = TASK_STATE_READY; }
 
 void taskAdjustHeap(Task *task, size_t new_heap_end, size_t *start,
@@ -517,6 +523,7 @@ void initiateTasks() {
   currentTask->infoFiles = taskInfoFilesAllocate();
   currentTask->infoFiles->fdBitmap[0] = (uint8_t)-1;
   currentTask->infoSignals = 0; // no, just no!
+  taskNameKernel(currentTask, entryCmdline, sizeof(entryCmdline));
 
   void  *tssRsp = VirtualAllocate(USER_STACK_PAGES);
   size_t tssRspSize = USER_STACK_PAGES * BLOCK_SIZE;
@@ -532,4 +539,5 @@ void initiateTasks() {
   // create a dummy task in case the scheduler has nothing to do
   dummyTask = taskCreateKernel((uint64_t)kernelDummyEntry, 0);
   dummyTask->state = TASK_STATE_DUMMY;
+  taskNameKernel(dummyTask, dummyCmdline, sizeof(dummyCmdline));
 }

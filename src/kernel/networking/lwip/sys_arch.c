@@ -71,6 +71,7 @@ sys_thread_t sys_thread_new(const char *pcName,
                             int iStackSize, int iPriority) {
   // debugf("[lwip::glue::thread] stack{%d} name{%s}\n", iStackSize, pcName);
   Task *task = taskCreateKernel((uint64_t)pxThread, (uint64_t)pvArg);
+  taskNameKernel(task, lwipCmdline, sizeof(lwipCmdline));
   return task->id;
 }
 
