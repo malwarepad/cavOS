@@ -1,6 +1,9 @@
 #include <acpi.h>
+#include <linux.h>
 #include <system.h>
 #include <uacpi/uacpi.h>
+
+#include <uacpi/sleep.h>
 
 // uACPI entry point & utilities
 // Copyright (C) 2024 Panagiotis
@@ -34,4 +37,41 @@ void initiateACPI() {
     debugf("uacpi_namespace_initialize error: %s", uacpi_status_to_string(ret));
     panic();
   }
+}
+
+size_t acpiPoweroff() {
+  uacpi_status ret = uacpi_prepare_for_sleep_state(UACPI_SLEEP_STATE_S5);
+  if (uacpi_unlikely_error(ret)) {
+    debugf("[acpi] Couldn't prepare for poweroff: %s\n",
+           uacpi_status_to_string(ret));
+    return ERR(EIO);
+  }
+
+  asm volatile("cli");
+  uacpi_status retPoweroff = uacpi_enter_sleep_state(UACPI_SLEEP_STATE_S5);
+  if (uacpi_unlikely_error(retPoweroff)) {
+    asm volatile("sti");
+    debugf("[acpi] Couldn't power off the system: %s\n",
+           uacpi_status_to_string(retPoweroff));
+    return ERR(EIO);
+  }
+
+  debugf("[acpi] Shouldn't be reached after power off!\n");
+  panic();
+  return 0;
+}
+
+size_t acpiReboot() {
+  uacpi_prepare_for_sleep_state(UACPI_SLEEP_STATE_S5);
+
+  uacpi_status ret = uacpi_reboot();
+  if (uacpi_unlikely_error(ret)) {
+    debugf("[acpi] Couldn't restart the system: %s\n",
+           uacpi_status_to_string(ret));
+    return ERR(EIO);
+  }
+
+  debugf("[acpi] Shouldn't be reached after reboot!\n");
+  panic();
+  return 0;
 }

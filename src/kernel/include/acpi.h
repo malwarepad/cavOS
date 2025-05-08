@@ -13,4 +13,7 @@ struct acpi_madt *madt;
 
 void initiateACPI();
 
+size_t acpiPoweroff();
+size_t acpiReboot();
+
 #endif

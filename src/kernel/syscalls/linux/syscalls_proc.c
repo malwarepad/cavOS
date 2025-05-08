@@ -1,3 +1,4 @@
+#include <acpi.h>
 #include <bootloader.h>
 #include <elf.h>
 #include <linked_list.h>
@@ -384,6 +385,23 @@ static size_t syscallWait4(int pid, int *wstatus, int options,
   return output;
 }
 
+#define SYSCALL_REBOOT 169
+static size_t syscallReboot(int magic1, int magic2, uint32_t cmd, void *arg) {
+  if (magic1 != LINUX_REBOOT_MAGIC1 || magic2 != LINUX_REBOOT_MAGIC2)
+    return ERR(EINVAL);
+  switch (cmd) {
+  case LINUX_REBOOT_CMD_POWER_OFF:
+    return acpiPoweroff();
+    break;
+  case LINUX_REBOOT_CMD_RESTART:
+    return acpiReboot();
+    break;
+  default:
+    return ERR(EINVAL);
+    break;
+  }
+}
+
 #define SYSCALL_EXIT_GROUP 231
 static void syscallExitGroup(int return_code) { syscallExitTask(return_code); }
 // todo ^ with CLONE_THREAD!
@@ -398,4 +416,5 @@ void syscallsRegProc() {
   registerSyscall(SYSCALL_WAIT4, syscallWait4);
   registerSyscall(SYSCALL_EXECVE, syscallExecve);
   registerSyscall(SYSCALL_EXIT_GROUP, syscallExitGroup);
+  registerSyscall(SYSCALL_REBOOT, syscallReboot);
 }
