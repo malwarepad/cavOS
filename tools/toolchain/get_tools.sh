@@ -15,11 +15,12 @@ export PATH="$PREFIX/bin:$PATH"
 mkdir -p "$PREFIX"
 
 # Ensure autotools
-if ! test -f "$HOME/opt/autotools_gcc/bin/automake"; then
+if ! test -f "$HOME/opt/autotools_gcc/bin/automake" || ! test -f "$HOME/opt/autotools_gcc/bin/autoconf"; then
 	chmod +x get_autotools.sh
 	./get_autotools.sh "1.15.1" "2.69" "$HOME/opt/autotools_gcc"
-	export PATH=$HOME/opt/autotools_gcc/bin:$PATH
 fi
+
+export PATH=$HOME/opt/autotools_gcc/bin:$PATH
 
 mkdir -p temporarydir
 cd temporarydir

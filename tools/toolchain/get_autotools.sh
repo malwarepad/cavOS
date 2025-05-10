@@ -11,13 +11,9 @@ automake_version=$1
 autoconf_version=$2
 install_prefix=$3
 
-if [ -e "$install_prefix" ]; then
-	exit 0
-fi
-
 mkdir -p "$install_prefix"
 
-mkdir tmp_get_autotools
+mkdir -p tmp_get_autotools
 cd tmp_get_autotools
 
 build_package() {
@@ -25,7 +21,7 @@ build_package() {
 	version=$2
 	install_dir=$3
 
-	wget "https://ftp.gnu.org/gnu/$package_name/$package_name-$version.tar.gz"
+	wget -nc "https://ftp.gnu.org/gnu/$package_name/$package_name-$version.tar.gz"
 	tar -xf "$package_name-$version.tar.gz"
 	cd "$package_name-$version"
 	./configure --prefix="$install_dir"

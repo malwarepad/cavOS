@@ -16,9 +16,9 @@ Most required packages for compiling on specific distros (listed [below](#depend
 ## Dependencies: GNU/Linux
 Compiling cavOS will work on all Linux distributions, but I've only **done testing** with the options that are **bold**, so pick wisely...
 
-- **Ubuntu:** `sudo apt install -y nasm dosfstools parted bison flex libgmp3-dev libmpc-dev libmpfr-dev texinfo libisl-dev parted dosfstools build-essential autoconf automake`
-- **Fedora:** `sudo dnf install -y nasm gcc xorriso parted dosfstools make bison flex gmp-devel libmpc-devel mpfr-devel texinfo autoconf automake patch gcc-c++ isl-devel`
-- **Arch:** `sudo pacman -S --noconfirm nasm xorriso gcc parted dosfstools base-devel gmp libmpc mpfr autoconf automake`
+- **Ubuntu:** `sudo apt install -y nasm dosfstools parted bison flex libgmp3-dev libmpc-dev libmpfr-dev texinfo libisl-dev parted dosfstools build-essential autoconf automake wget`
+- **Fedora:** `sudo dnf install -y nasm gcc xorriso parted dosfstools make bison flex gmp-devel libmpc-devel mpfr-devel texinfo autoconf automake patch gcc-c++ isl-devel wget`
+- **Arch:** `sudo pacman -S --noconfirm nasm xorriso gcc parted dosfstools base-devel gmp libmpc mpfr autoconf automake wget`
 
 If everything else fails, you got [distrobox](https://github.com/89luca89/distrobox).
 
