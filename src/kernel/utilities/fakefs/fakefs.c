@@ -273,7 +273,7 @@ VfsHandlers fakefsRootHandlers = {.open = 0,
                                   .ioctl = 0,
                                   .mmap = 0,
                                   .read = 0,
-                                  .stat = 0,
+                                  .stat = fakefsFstat,
                                   .write = 0,
                                   .getdents64 = fakefsGetDents64};
 
