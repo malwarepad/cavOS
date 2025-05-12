@@ -34,9 +34,6 @@ void VMWareSvga2Write(uint32_t index, uint32_t value) {
 void VMwareSvga2SetMode(uint32_t width, uint32_t height, uint32_t bpp) {
   assert(width <= VMWareSvga2Read(SVGA_REG_MAX_WIDTH) &&
          height <= VMWareSvga2Read(SVGA_REG_MAX_HEIGHT));
-  framebufferHeight = height;
-  framebufferWidth = width;
-  framebufferPitch = framebufferWidth * 4;
   VMWareSvga2Write(SVGA_REG_WIDTH, width);
   VMWareSvga2Write(SVGA_REG_HEIGHT, height);
   VMWareSvga2Write(SVGA_REG_BPP, bpp);
@@ -62,16 +59,17 @@ void VMwareSvga2Sync() {
   for (int i = 0; i < pages; i++) {
     VirtualMap(addr + i * PAGE_SIZE, phys + i * PAGE_SIZE, PF_RW | PF_CACHE_WC);
   }
-  framebuffer = (uint8_t *)addr;
+  fb.virt = (uint8_t *)addr;
+  fb.phys = phys;
 
   uint32_t bpp = VMWareSvga2Read(SVGA_REG_BPP);
   assert(bpp == 32);
-  framebufferHeight = VMWareSvga2Read(SVGA_REG_HEIGHT);
-  framebufferWidth = VMWareSvga2Read(SVGA_REG_WIDTH);
-  framebufferPitch = framebufferWidth * 4;
+  fb.height = VMWareSvga2Read(SVGA_REG_HEIGHT);
+  fb.width = VMWareSvga2Read(SVGA_REG_WIDTH);
+  fb.pitch = fb.width * 4;
 
   debugf("[pci::svga-II] Syncing: fb{%lx:%lx} dim(xy){%dx%d} bpp{%d}\n", phys,
-         framebuffer, framebufferWidth, framebufferHeight, bpp);
+         fb.virt, fb.width, fb.height, bpp);
 }
 
 void VMwareSvga2FifoWrite(uint32_t value) {
@@ -152,7 +150,7 @@ void initiateVMWareSvga2(PCIdevice *device) {
 
   VMwareSvga2Sync();
 
-  drawRect(0, 0, framebufferWidth, framebufferHeight, 255, 255, 0);
-  VMwareSvga2Update(0, 0, framebufferWidth, framebufferHeight);
+  drawRect(0, 0, fb.width, fb.height, 255, 255, 0);
+  VMwareSvga2Update(0, 0, fb.width, fb.height);
   VMWareSvga2.exists = true;
 }
