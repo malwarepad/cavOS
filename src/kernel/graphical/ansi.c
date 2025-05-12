@@ -119,21 +119,21 @@ bool asciiProcess(int charnum) {
     if (!asciiChar1)
       asciiChar1 = 1;
     height -= (asciiChar1 - 2) * TTY_CHARACTER_HEIGHT;
-    if (height > framebufferHeight)
+    if (height > fb.height)
       height = 0;
     break;
 
   case 'J':
     switch (asciiChar1) {
     case 0: { // no
-      int restWidth = framebufferWidth - (width + TTY_CHARACTER_WIDTH);
+      int restWidth = fb.width - (width + TTY_CHARACTER_WIDTH);
       if (restWidth > 0)
         drawRect(width, height, restWidth, TTY_CHARACTER_HEIGHT, bg_color[0],
                  bg_color[1], bg_color[2]);
-      int restHeight = framebufferHeight - (height + TTY_CHARACTER_HEIGHT);
+      int restHeight = fb.height - (height + TTY_CHARACTER_HEIGHT);
       if (restHeight > 0)
-        drawRect(0, height + TTY_CHARACTER_HEIGHT, framebufferWidth,
-                 framebufferHeight, bg_color[0], bg_color[1], bg_color[2]);
+        drawRect(0, height + TTY_CHARACTER_HEIGHT, fb.width, fb.height,
+                 bg_color[0], bg_color[1], bg_color[2]);
       updateBull();
       break;
     }

@@ -52,11 +52,11 @@ size_t ioctlHandler(OpenFile *fd, uint64_t request, void *arg) {
   switch (request) {
   case 0x5413: {
     winsize *win = (winsize *)arg;
-    win->ws_row = framebufferHeight / TTY_CHARACTER_HEIGHT;
-    win->ws_col = framebufferWidth / TTY_CHARACTER_WIDTH;
+    win->ws_row = fb.height / TTY_CHARACTER_HEIGHT;
+    win->ws_col = fb.width / TTY_CHARACTER_WIDTH;
 
-    win->ws_xpixel = framebufferWidth;
-    win->ws_ypixel = framebufferHeight;
+    win->ws_xpixel = fb.width;
+    win->ws_ypixel = fb.height;
     return 0;
     break;
   }

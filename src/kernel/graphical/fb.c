@@ -8,27 +8,21 @@
 // System framebuffer manager
 // Copyright (C) 2024 Panagiotis
 
-uint8_t *framebuffer = 0;
-
-uint16_t framebufferWidth;
-uint16_t framebufferHeight;
-uint32_t framebufferPitch;
-
-struct limine_framebuffer framebufferLimine = {0};
+Framebuffer fb = {0};
 
 void drawRect(int x, int y, int w, int h, int r, int g,
               int b) { // Draw a filled rectangle
   unsigned int offset =
-      (x + y * framebufferWidth) *
+      (x + y * fb.width) *
       4; // Finding the location of the pixel in the video array
   for (int i = 0; i < h; i++) {
     for (int j = 0; j < w; j++) { // color each line
-      framebuffer[offset + j * 4] = b;
-      framebuffer[offset + j * 4 + 1] = g;
-      framebuffer[offset + j * 4 + 2] = r;
-      framebuffer[offset + j * 4 + 3] = 0;
+      fb.virt[offset + j * 4] = b;
+      fb.virt[offset + j * 4 + 1] = g;
+      fb.virt[offset + j * 4 + 2] = r;
+      fb.virt[offset + j * 4 + 3] = 0;
     }
-    offset += framebufferPitch; // switch to the beginnering of next line
+    offset += fb.pitch; // switch to the beginnering of next line
   }
 }
 
@@ -50,20 +44,20 @@ size_t fbUserIoctl(OpenFile *fd, uint64_t request, void *arg) {
   //   return 0;
   // }
   case FBIOGET_FSCREENINFO: {
-    struct fb_fix_screeninfo *fb = arg;
-    memcpy(fb->id, "BIOS", 5);
-    fb->smem_start = VirtualToPhysical((size_t)framebuffer);
-    fb->smem_len = framebufferWidth * framebufferHeight * 4;
-    fb->type = FB_TYPE_PACKED_PIXELS;
-    fb->type_aux = 0;
-    fb->visual = FB_VISUAL_TRUECOLOR;
-    fb->xpanstep = 0;
-    fb->ypanstep = 0;
-    fb->ywrapstep = 0;
-    fb->line_length = framebufferWidth * 4;
-    fb->mmio_start = VirtualToPhysical((size_t)framebuffer);
-    fb->mmio_len = framebufferWidth * framebufferHeight * 4;
-    fb->capabilities = 0;
+    struct fb_fix_screeninfo *fbtarg = arg;
+    memcpy(fbtarg->id, "BIOS", 5);
+    fbtarg->smem_start = fb.phys;
+    fbtarg->smem_len = fb.width * fb.height * 4;
+    fbtarg->type = FB_TYPE_PACKED_PIXELS;
+    fbtarg->type_aux = 0;
+    fbtarg->visual = FB_VISUAL_TRUECOLOR;
+    fbtarg->xpanstep = 0;
+    fbtarg->ypanstep = 0;
+    fbtarg->ywrapstep = 0;
+    fbtarg->line_length = fb.width * 4;
+    fbtarg->mmio_start = fb.phys;
+    fbtarg->mmio_len = fb.width * fb.height * 4;
+    fbtarg->capabilities = 0;
     return 0;
     break;
   }
@@ -78,35 +72,31 @@ size_t fbUserIoctl(OpenFile *fd, uint64_t request, void *arg) {
     return 0;
     break;
   case FBIOGET_VSCREENINFO: {
-    struct fb_var_screeninfo *fb = arg;
-    fb->xres = framebufferWidth;
-    fb->yres = framebufferHeight;
+    struct fb_var_screeninfo *fbtarg = arg;
+    fbtarg->xres = fb.width;
+    fbtarg->yres = fb.height;
 
-    fb->xres_virtual = framebufferWidth;
-    fb->yres_virtual = framebufferHeight;
+    fbtarg->xres_virtual = fb.width;
+    fbtarg->yres_virtual = fb.height;
 
-    fb->red = (struct fb_bitfield){.offset = framebufferLimine.red_mask_shift,
-                                   .length = framebufferLimine.red_mask_size,
-                                   .msb_right = 1};
-    fb->green =
-        (struct fb_bitfield){.offset = framebufferLimine.green_mask_shift,
-                             .length = framebufferLimine.green_mask_size,
-                             .msb_right = 1};
-    fb->blue = (struct fb_bitfield){.offset = framebufferLimine.blue_mask_shift,
-                                    .length = framebufferLimine.blue_mask_size,
-                                    .msb_right = 1};
-    fb->transp =
+    fbtarg->red = (struct fb_bitfield){
+        .offset = fb.red_shift, .length = fb.red_size, .msb_right = 1};
+    fbtarg->green = (struct fb_bitfield){
+        .offset = fb.green_shift, .length = fb.green_size, .msb_right = 1};
+    fbtarg->blue = (struct fb_bitfield){
+        .offset = fb.blue_shift, .length = fb.blue_size, .msb_right = 1};
+    fbtarg->transp =
         (struct fb_bitfield){.offset = 24, .length = 8, .msb_right = 1};
 
-    fb->bits_per_pixel = framebufferLimine.bpp;
-    fb->grayscale = 0;
-    // fb->red = 0;
-    // fb->green = 0;
-    // fb->blue = 0;
-    fb->nonstd = 0;
-    fb->activate = 0;                   // idek
-    fb->height = framebufferHeight / 4; // VERY approximate
-    fb->width = framebufferWidth / 4;   // VERY approximate
+    fbtarg->bits_per_pixel = fb.bpp;
+    fbtarg->grayscale = 0;
+    // fbtarg->red = 0;
+    // fbtarg->green = 0;
+    // fbtarg->blue = 0;
+    fbtarg->nonstd = 0;
+    fbtarg->activate = 0;           // idek
+    fbtarg->height = fb.height / 4; // VERY approximate
+    fbtarg->width = fb.width / 4;   // VERY approximate
     return 0;
     break;
   }
@@ -119,9 +109,9 @@ size_t fbUserIoctl(OpenFile *fd, uint64_t request, void *arg) {
 size_t fbUserMmap(size_t addr, size_t length, int prot, int flags, OpenFile *fd,
                   size_t pgoffset) {
   if (!length)
-    length = framebufferWidth * framebufferHeight * 4;
+    length = fb.width * fb.height * 4;
   size_t targPages = DivRoundUp(length, PAGE_SIZE);
-  size_t physStart = VirtualToPhysical((size_t)framebuffer);
+  size_t physStart = fb.phys;
   for (int i = 0; i < targPages; i++) {
     VirtualMap(0x150000000000 + i * PAGE_SIZE, physStart + i * PAGE_SIZE,
                PF_RW | PF_USER | PF_CACHE_WC);

@@ -4,20 +4,24 @@
 #include "types.h"
 #include "vfs.h"
 
-extern uint8_t *framebuffer;
+typedef struct Framebuffer {
+  uint8_t *virt;
+  size_t   phys;
 
-extern uint16_t framebufferWidth;
-extern uint16_t framebufferHeight;
-extern uint32_t framebufferPitch;
+  size_t width, height, bpp, pitch;
+  size_t red_shift, red_size;
+  size_t green_shift, green_size;
+  size_t blue_shift, blue_size;
+} Framebuffer;
 
-struct limine_framebuffer framebufferLimine;
+Framebuffer fb;
 
 #define drawPixel(x, y, r, g, b)                                               \
   do {                                                                         \
-    framebuffer[((x) + (y) * framebufferWidth) * 4] = (b);                     \
-    framebuffer[((x) + (y) * framebufferWidth) * 4 + 1] = (g);                 \
-    framebuffer[((x) + (y) * framebufferWidth) * 4 + 2] = (r);                 \
-    framebuffer[((x) + (y) * framebufferWidth) * 4 + 3] = 0;                   \
+    fb.virt[((x) + (y) * fb.width) * 4] = (b);                                 \
+    fb.virt[((x) + (y) * fb.width) * 4 + 1] = (g);                             \
+    fb.virt[((x) + (y) * fb.width) * 4 + 2] = (r);                             \
+    fb.virt[((x) + (y) * fb.width) * 4 + 3] = 0;                               \
   } while (0)
 
 void drawRect(int x, int y, int w, int h, int r, int g, int b);

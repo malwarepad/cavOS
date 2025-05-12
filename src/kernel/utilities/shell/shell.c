@@ -198,8 +198,8 @@ void launch_shell(int n) {
       readStr(heightStr);
       int height = atoi(heightStr);
 
-      drawRect((framebufferWidth / 2) - (width / 2), getConsoleY() + 16, width,
-               height, 255, 255, 255);
+      drawRect((fb.width / 2) - (width / 2), getConsoleY() + 16, width, height,
+               255, 255, 255);
       setConsoleY(getConsoleY() + height + 16);
       printf("\n");
     } else if (strEql(ch, "drawimg")) {

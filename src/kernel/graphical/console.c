@@ -40,19 +40,18 @@ void initiateConsole() {
 }
 
 bool scrollConsole(bool check) {
-  if (check && !(height >= (framebufferHeight - CHAR_HEIGHT)))
+  if (check && !(height >= (fb.height - CHAR_HEIGHT)))
     return false;
 
-  for (int y = CHAR_HEIGHT; y < framebufferHeight; y++) {
+  for (int y = CHAR_HEIGHT; y < fb.height; y++) {
     {
-      void       *dest = (void *)(((size_t)framebuffer) +
-                            (y - CHAR_HEIGHT) * framebufferPitch);
-      const void *src = (void *)(((size_t)framebuffer) + y * framebufferPitch);
-      memcpy(dest, src, framebufferWidth * 4);
+      void *dest = (void *)(((size_t)fb.virt) + (y - CHAR_HEIGHT) * fb.pitch);
+      const void *src = (void *)(((size_t)fb.virt) + y * fb.pitch);
+      memcpy(dest, src, fb.width * 4);
     }
   }
-  drawRect(0, framebufferHeight - CHAR_HEIGHT, framebufferWidth, CHAR_HEIGHT,
-           bg_color[0], bg_color[1], bg_color[2]);
+  drawRect(0, fb.height - CHAR_HEIGHT, fb.width, CHAR_HEIGHT, bg_color[0],
+           bg_color[1], bg_color[2]);
   height -= CHAR_HEIGHT;
 
   return true;
@@ -70,7 +69,7 @@ void eraseBull() {
 void updateBull() {
   if (cursorHidden)
     return;
-  if (width >= framebufferWidth) {
+  if (width >= fb.width) {
     bool neededScrolling = scrollConsole(true);
     if (!neededScrolling)
       height += CHAR_HEIGHT;
@@ -83,8 +82,7 @@ void updateBull() {
 void clearScreen() {
   width = 0;
   height = 0;
-  drawRect(0, 0, framebufferWidth, framebufferHeight, bg_color[0], bg_color[1],
-           bg_color[2]);
+  drawRect(0, 0, fb.width, fb.height, bg_color[0], bg_color[1], bg_color[2]);
   updateBull();
 }
 
@@ -127,7 +125,7 @@ void drawCharacter(int charnum) {
   if (ansiHandle(charnum))
     return;
 
-  if (width > (framebufferWidth - CHAR_WIDTH)) {
+  if (width > (fb.width - CHAR_WIDTH)) {
     width = 0;
     height += CHAR_HEIGHT;
   }

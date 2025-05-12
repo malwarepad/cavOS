@@ -82,10 +82,10 @@ void mouseIrq() {
         gx = 0;
       if (gy < 0)
         gy = 0;
-      if (gx > framebufferWidth)
-        gx = framebufferWidth;
-      if (gy > framebufferHeight)
-        gy = framebufferHeight;
+      if (gx > fb.width)
+        gx = fb.width;
+      if (gy > fb.height)
+        gy = fb.height;
 
       bool click = mouse1 & (1 << 0);
       bool rclick = mouse1 & (1 << 1);
@@ -173,7 +173,7 @@ size_t mouseEventBit(OpenFile *fd, uint64_t request, void *arg) {
     memset(target, 0, sizeof(struct input_absinfo));
     target->value = 0; // todo
     target->minimum = 0;
-    target->maximum = framebufferWidth;
+    target->maximum = fb.width;
     ret = 0;
     break;
   }
@@ -183,7 +183,7 @@ size_t mouseEventBit(OpenFile *fd, uint64_t request, void *arg) {
     memset(target, 0, sizeof(struct input_absinfo));
     target->value = 0; // todo
     target->minimum = 0;
-    target->maximum = framebufferHeight;
+    target->maximum = fb.height;
     ret = 0;
     break;
   }
