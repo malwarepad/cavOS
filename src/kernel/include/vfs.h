@@ -166,6 +166,13 @@ struct MountPoint {
   void         *fsInfo;
 };
 
+typedef struct PollItem {
+  struct PollItem *next;
+
+  int   epollEvents;
+  void *task; // Task*
+} PollItem;
+
 #define VFS_CLOSE_FLAG_RETAIN_ID (1 << 0)
 struct OpenFile {
   // OpenFile *next;
@@ -186,6 +193,9 @@ struct OpenFile {
   size_t closeFlags;
 
   VfsHandlers *handlers;
+
+  // PollItem *firstPoll;
+  // Spinlock  LOCK_POLL; // LOCK_OP is first
 
   MountPoint *mountPoint;
   void       *dir;
@@ -228,6 +238,9 @@ char *fsSanitize(char *prefix, char *filename);
 bool fsStat(OpenFile *fd, stat *target);
 bool fsStatByFilename(void *task, char *filename, stat *target);
 bool fsLstatByFilename(void *task, char *filename, stat *target);
+
+// vfs_poll.c
+void fsInformReady(OpenFile *fd, int epollEvents);
 
 // vfs_mount.c
 MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
