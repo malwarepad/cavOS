@@ -33,6 +33,7 @@ bool isRTL8139(PCIdevice *device) {
 }
 
 #define RTL8139_DEBUG 0
+Spinlock LOCK_RTL8139 = {0};
 
 void interruptHandler(AsmPassedInterrupt *regs) {
   rtl8139_interface *info = (rtl8139_interface *)selectedNIC->infoLocation;
@@ -179,6 +180,7 @@ bool initiateRTL8139(PCIdevice *device) {
 }
 
 void sendRTL8139(NIC *nic, void *packet, uint32_t packetSize) {
+  spinlockAcquire(&LOCK_RTL8139);
   rtl8139_interface *info = (rtl8139_interface *)nic->infoLocation;
   uint16_t           iobase = info->iobase;
 
@@ -210,6 +212,7 @@ void sendRTL8139(NIC *nic, void *packet, uint32_t packetSize) {
   info->tok &= ~(1 << tx_active);
 
   VirtualFree(contiguousContainer, DivRoundUp(packetSize, BLOCK_SIZE));
+  spinlockRelease(&LOCK_RTL8139);
 }
 
 void receiveRTL8139(NIC *nic) {
