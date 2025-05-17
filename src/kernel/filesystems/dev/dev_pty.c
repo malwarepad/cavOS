@@ -375,7 +375,8 @@ size_t ptsWrite(OpenFile *fd, uint8_t *in, size_t limit) {
     spinlockAcquire(&pair->LOCK_PTY);
     if (!pair->masterFds) {
       spinlockRelease(&pair->LOCK_PTY);
-      return 0;
+      // todo: send SIGHUP when master is closed, check controlling term/group
+      return ERR(EIO);
     }
     if ((pair->ptrMaster + limit) < PTY_BUFF_SIZE)
       break;
