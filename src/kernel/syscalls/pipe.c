@@ -135,8 +135,9 @@ size_t pipeWriteInner(OpenFile *fd, uint8_t *in, size_t limit) {
     if ((pipe->assigned + limit) <= PIPE_BUFF)
       break;
     if (!pipe->readFds) { // we are notified, no worries
-      debugf("[pipe] Should send SIGPIPE leading to termination! todo!\n");
-      panic();
+      spinlockRelease(&pipe->LOCK);
+      atomicBitmapSet(&currentTask->sigPendingList, SIGPIPE);
+      return ERR(EPIPE);
     }
     if (fd->flags & O_NONBLOCK) {
       spinlockRelease(&pipe->LOCK);
@@ -162,17 +163,25 @@ size_t pipeWrite(OpenFile *fd, uint8_t *in, size_t limit) {
   if (chunks)
     for (size_t i = 0; i < chunks; i++) {
       int cycle = 0;
-      while (cycle != PIPE_BUFF)
-        cycle +=
+      while (cycle != PIPE_BUFF) {
+        size_t innerRet =
             pipeWriteInner(fd, in + i * PIPE_BUFF + cycle, PIPE_BUFF - cycle);
+        if (RET_IS_ERR(innerRet))
+          return innerRet; // cycle || ret ignored since only EPIPE & EAGAIN
+        cycle += innerRet;
+      }
       ret += cycle;
     }
 
   if (remainder) {
     int cycle = 0;
-    while (cycle != remainder)
-      cycle += pipeWriteInner(fd, in + chunks * PIPE_BUFF + cycle,
-                              remainder - cycle);
+    while (cycle != remainder) {
+      size_t innerRet = pipeWriteInner(fd, in + chunks * PIPE_BUFF + cycle,
+                                       remainder - cycle);
+      if (RET_IS_ERR(innerRet))
+        return innerRet; // cycle || ret ignored since only EPIPE & EAGAIN
+      cycle += innerRet;
+    }
     ret += cycle;
   }
 
