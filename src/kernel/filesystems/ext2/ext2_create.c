@@ -64,7 +64,7 @@ size_t ext2Mkdir(MountPoint *mnt, char *dirname, uint32_t mode,
   newInode.mtime = time;
   newInode.dtime = 0; // not yet :p
   newInode.gid = 0;
-  newInode.hard_links = 1;
+  newInode.hard_links = 1 + 1; // +1 for the . pointing to itself
   // newInode.blocks = ; // should be zero'd
   newInode.num_sectors = newInode.size / SECTOR_SIZE;
   newInode.generation = 0;
@@ -86,6 +86,8 @@ size_t ext2Mkdir(MountPoint *mnt, char *dirname, uint32_t mode,
 
   // finally, assign it to the parent
   ext2DirAllocate(ext2, inode, inodeContents, name, nameLen, 2, newInodeNum);
+  inodeContents->hard_links++;
+  ext2InodeModifyM(ext2, inode, inodeContents);
 
 cleanup:
   free(inodeContents);

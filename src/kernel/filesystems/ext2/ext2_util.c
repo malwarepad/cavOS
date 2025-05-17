@@ -17,6 +17,41 @@ void ext2BlockFetchCleanup(Ext2LookupControl *control) {
   control->tmp2Block = 0;
 }
 
+// this weird-looking function adds whatever overhead is expected for that raw
+// size and returns the full thing
+size_t ext2BlockSizeCalculate(Ext2 *ext2, size_t raw) {
+  uint32_t blocks = DivRoundUp(raw, ext2->blockSize);
+  size_t   retblocks = blocks;
+
+  size_t perSpecial = ext2->blockSize / 4;
+
+  size_t base = 12;
+  size_t singlyBase = base + perSpecial;
+  size_t doublyBase = singlyBase + perSpecial * perSpecial;
+
+  if (blocks < base) {
+    // no-op. doesn't need any extra space
+  } else if (blocks < singlyBase) {
+    retblocks += 1; // singly indirect needs 1 block
+  } else if (blocks < doublyBase) {
+    // singly + doubly + some singly blocks it points to
+    size_t remaining = blocks - singlyBase;
+
+    // one for the (old) singly indirect pointer
+    retblocks += 1;
+
+    // one for the doubly indirect pointer
+    retblocks += 1;
+
+    // singly indirect blocks needed under the doubly indirect block
+    size_t singly_needed = DivRoundUp(remaining, perSpecial);
+    retblocks += singly_needed;
+  } else
+    assert(false);
+
+  return retblocks * ext2->blockSize;
+}
+
 uint32_t ext2BlockFetch(Ext2 *ext2, Ext2Inode *ino, uint32_t inodeNum,
                         Ext2LookupControl *control, size_t curr) {
   int result = 0;

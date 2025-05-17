@@ -542,8 +542,7 @@ size_t ext2Write(OpenFile *fd, uint8_t *buff, size_t limit) {
     // update size
     dir->inode.size = dir->ptr;
     dir->inode.num_sectors =
-        (DivRoundUp(dir->inode.size, ext2->blockSize) * ext2->blockSize) /
-        SECTOR_SIZE;
+        ext2BlockSizeCalculate(ext2, dir->inode.size) / SECTOR_SIZE;
     // todo: use this field properly considering it has indirect blocks too
     ext2InodeModifyM(ext2, dir->inodeNum, &dir->inode);
   }
@@ -935,6 +934,11 @@ size_t ext2Delete(MountPoint *mnt, char *filename, bool directory,
   assert(parentInode && parentInode->permission & S_IFDIR);
 
   inode->hard_links--;
+  if (inode->permission & S_IFDIR &&
+      inode->hard_links == 1) { // only the "." thing
+    // if we reached this point of the code, it shall be empty
+    inode->hard_links = 0;
+  }
   if (!inode->hard_links) {
     if (inode->permission & S_IFREG || inode->permission & S_IFDIR) {
       // regular file, delete the contents (really just mark them as free)
@@ -965,6 +969,12 @@ size_t ext2Delete(MountPoint *mnt, char *filename, bool directory,
 
     // get rid of this inode
     ext2InodeDelete(ext2, inodeNum);
+
+    // if it's a directory inform the parent
+    if (inode->permission & S_IFDIR) {
+      parentInode->hard_links--;
+      ext2InodeModifyM(ext2, parentInodeNum, parentInode);
+    }
   } else {
     ext2InodeModifyM(ext2, inodeNum, inode);
   }

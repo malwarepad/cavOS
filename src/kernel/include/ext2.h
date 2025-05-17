@@ -301,6 +301,7 @@ void     ext2BlockAssign(Ext2 *ext2, Ext2Inode *ino, uint32_t inodeNum,
                          Ext2LookupControl *control, size_t curr, uint32_t val);
 uint32_t ext2BlockFind(Ext2 *ext2, int groupSuggestion, uint32_t amnt);
 uint32_t ext2BlockFindL(Ext2 *ext2, int group, uint32_t amnt);
+size_t   ext2BlockSizeCalculate(Ext2 *ext2, size_t raw);
 void     ext2BlockDelete(Ext2 *ext2, uint32_t group, uint32_t index);
 
 // ext2_traverse.c
