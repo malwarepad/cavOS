@@ -11,19 +11,57 @@
 // Lwip wrapper for userland sockets
 // Copyright (C) 2025 Panagiotis
 
-size_t socketRead(OpenFile *fd, uint8_t *out, size_t limit) {
+size_t socketSend(OpenFile *fd, uint8_t *out, size_t limit, int flags) {
   UserSocket *userSocket = (UserSocket *)fd->dir;
 
-  int lwipOut = lwip_read(userSocket->lwipFd, out, limit);
+  int lwipOut = -1;
+  while (true) {
+    if (!(fd->handlers->internalPoll(fd, EPOLLOUT) & EPOLLOUT)) {
+      if (fd->flags & O_NONBLOCK || flags & MSG_DONTWAIT) {
+        lwipOut = -1;
+        errno = EAGAIN;
+        break;
+      }
+      if (signalsPendingQuick(currentTask)) {
+        lwipOut = -1;
+        errno = EINTR;
+        break;
+      }
+      continue;
+    }
+    lwipOut = lwip_send(userSocket->lwipFd, out, limit, flags);
+    if (lwipOut >= 0 || errno != EAGAIN)
+      break;
+  }
+
   if (lwipOut < 0)
     return -errno;
   return lwipOut;
 }
 
-size_t socketWrite(OpenFile *fd, uint8_t *in, size_t limit) {
+size_t socketRecv(OpenFile *fd, uint8_t *in, size_t limit, int flags) {
   UserSocket *userSocket = (UserSocket *)fd->dir;
 
-  int lwipOut = lwip_write(userSocket->lwipFd, in, limit);
+  int lwipOut = -1;
+  while (true) {
+    if (!(fd->handlers->internalPoll(fd, EPOLLIN) & EPOLLIN)) {
+      if (fd->flags & O_NONBLOCK || flags & MSG_DONTWAIT) {
+        lwipOut = -1;
+        errno = EAGAIN;
+        break;
+      }
+      if (signalsPendingQuick(currentTask)) {
+        lwipOut = -1;
+        errno = EINTR;
+        break;
+      }
+      continue;
+    }
+    lwipOut = lwip_recv(userSocket->lwipFd, in, limit, flags);
+    if (lwipOut >= 0 || errno != EAGAIN)
+      break;
+  }
+
   if (lwipOut < 0)
     return -errno;
   return lwipOut;
@@ -38,10 +76,11 @@ bool socketDuplicate(OpenFile *original, OpenFile *orphan) {
   return true;
 }
 
+// don't sync fcntl() operations and keep it unblocked
 void socketFcntl(OpenFile *fd, int cmd, uint64_t arg) {
-  UserSocket *userSocket = (UserSocket *)fd->dir;
-  if (cmd == F_GETFL || cmd == F_SETFL)
-    lwip_fcntl(userSocket->lwipFd, cmd, arg);
+  // UserSocket *userSocket = (UserSocket *)fd->dir;
+  // if (cmd == F_GETFL || cmd == F_SETFL)
+  //   lwip_fcntl(userSocket->lwipFd, cmd, arg);
 }
 
 bool socketClose(OpenFile *fd) {
@@ -102,18 +141,34 @@ size_t socketSendto(OpenFile *fd, uint8_t *buff, size_t len, int flags,
                     sockaddr_linux *dest_addr, socklen_t addrlen) {
   UserSocket *userSocket = (UserSocket *)fd->dir;
 
-  if (!addrlen || !dest_addr) {
-    int lwipOut = lwip_send(userSocket->lwipFd, buff, len, flags);
-    if (lwipOut < 0)
-      return -errno;
-    return lwipOut;
-  }
+  if (!addrlen || !dest_addr)
+    return socketSend(fd, buff, len, flags);
 
   struct sockaddr *aligned = malloc(addrlen);
   memcpy(aligned, dest_addr, addrlen);
   uint16_t initialFamily = sockaddrLinuxToLwip(aligned, addrlen);
-  int      lwipOut = lwip_sendto(userSocket->lwipFd, buff, len, flags,
-                                 (void *)aligned, MIN(16, addrlen));
+
+  int lwipOut = -1;
+  while (true) {
+    if (!(fd->handlers->internalPoll(fd, EPOLLOUT) & EPOLLOUT)) {
+      if (fd->flags & O_NONBLOCK) {
+        lwipOut = -1;
+        errno = EAGAIN;
+        break;
+      }
+      if (signalsPendingQuick(currentTask)) {
+        lwipOut = -1;
+        errno = EINTR;
+        break;
+      }
+      continue;
+    }
+    lwipOut = lwip_sendto(userSocket->lwipFd, buff, len, flags, (void *)aligned,
+                          MIN(16, addrlen));
+    if (lwipOut >= 0 || errno != EAGAIN)
+      break;
+  }
+
   sockaddrLwipToLinux(aligned, initialFamily);
 
   if (lwipOut < 0)
@@ -145,17 +200,16 @@ size_t socketListen(OpenFile *fd, int backlog) {
   return lwipOut;
 }
 
-// todo: do hacks like these globally on lwip wrappers, moving blocking
-// operations to a struct field (keeping lwip on nonblock mode no matter what)!
 size_t socketRecvfrom(OpenFile *fd, uint8_t *out, size_t limit, int flags,
                       sockaddr_linux *addr, uint32_t *len) {
   UserSocket *userSocket = (UserSocket *)fd->dir;
 
-  int oldfl = lwip_fcntl(userSocket->lwipFd, F_GETFL, 0);
-  lwip_fcntl(userSocket->lwipFd, F_SETFL, oldfl | O_NONBLOCK);
+  if (!addr || !len)
+    return socketRecv(fd, out, limit, flags);
+
   int lwipOut = -1;
   while (true) {
-    if (!(fd->handlers->internalPoll(fd, POLLIN) & POLLIN)) {
+    if (!(fd->handlers->internalPoll(fd, EPOLLIN) & EPOLLIN)) {
       // do a workaround cause lwip's recvfrom() is really weird sometimes
       if (fd->flags & O_NONBLOCK) {
         lwipOut = -1;
@@ -171,10 +225,9 @@ size_t socketRecvfrom(OpenFile *fd, uint8_t *out, size_t limit, int flags,
     }
     lwipOut =
         lwip_recvfrom(userSocket->lwipFd, out, limit, flags, (void *)addr, len);
-    if (lwipOut >= 0)
+    if (lwipOut >= 0 || errno != EAGAIN)
       break;
   }
-  lwip_fcntl(userSocket->lwipFd, F_SETFL, oldfl);
 
   sockaddrLwipToLinux(addr, AF_INET);
   if (lwipOut < 0)
@@ -224,10 +277,40 @@ size_t socketGetsockopt(OpenFile *fd, int levelLinux, int optnameLinux,
   return lwipOut;
 }
 
-VfsHandlers socketHandlers = {.read = socketRead,
-                              .write = socketWrite,
-                              .fcntl = socketFcntl,
+size_t socketRecvmsg(OpenFile *fd, struct msghdr_linux *msg, int flags) {
+  UserSocket *userSocket = (UserSocket *)fd->dir;
+
+  int lwipOut = -1;
+  while (true) {
+    if (!(fd->handlers->internalPoll(fd, EPOLLIN) & EPOLLIN)) {
+      if (fd->flags & O_NONBLOCK) {
+        lwipOut = -1;
+        errno = EAGAIN;
+        break;
+      }
+      if (signalsPendingQuick(currentTask)) {
+        lwipOut = -1;
+        errno = EINTR;
+        break;
+      }
+      continue;
+    }
+    lwipOut = lwip_recvmsg(userSocket->lwipFd, (void *)msg, flags);
+    if (lwipOut >= 0 || errno != EAGAIN)
+      break;
+  }
+
+  if (lwipOut >= 0 && msg->msg_name)
+    sockaddrLwipToLinux(msg->msg_name, AF_INET);
+
+  if (lwipOut < 0)
+    return -errno;
+  return lwipOut;
+}
+
+VfsHandlers socketHandlers = {.fcntl = socketFcntl,
                               .recvfrom = socketRecvfrom,
+                              .recvmsg = socketRecvmsg,
                               .internalPoll = socketInternalPoll,
                               .getsockname = socketGetsockname,
                               .getsockopts = socketGetsockopt,

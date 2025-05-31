@@ -40,10 +40,12 @@ static size_t syscallSocket(int family, int type, int protocol) {
     if (lwipFd < 0)
       return -errno; // yes
 
-    if (nonblock) {
+    assert(lwip_fcntl(lwipFd, F_SETFL, O_NONBLOCK) == 0);
+
+    /*if (nonblock) {
       int fdflags = lwip_fcntl(lwipFd, F_GETFL, 0);
       lwip_fcntl(lwipFd, F_SETFL, fdflags | O_NONBLOCK);
-    }
+    }*/
 
     int socketFd = fsUserOpen(currentTask, "/dev/stdout", O_RDWR, 0);
     if (socketFd < 0) {
@@ -208,16 +210,9 @@ static size_t syscallRecvmsg(int fd, struct msghdr_linux *msg, int flags) {
   if (!fileNode)
     return ERR(EBADF);
 
-  if (fileNode->handlers->recvmsg)
-    return fileNode->handlers->recvmsg(fileNode, msg, flags);
-
-  UserSocket *userSocket = (UserSocket *)fileNode->dir;
-
-  int lwipOut = lwip_recvmsg(userSocket->lwipFd, (void *)msg, flags);
-  sockaddrLwipToLinux(msg->msg_name, AF_INET);
-  if (lwipOut < 0)
-    return -errno;
-  return lwipOut;
+  if (!fileNode->handlers->recvmsg)
+    return ERR(ENOTSOCK);
+  return fileNode->handlers->recvmsg(fileNode, msg, flags);
 }
 
 void syscallsRegNet() {
