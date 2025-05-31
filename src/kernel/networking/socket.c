@@ -130,7 +130,11 @@ size_t socketConnect(OpenFile *fd, sockaddr_linux *addr, uint32_t len) {
   UserSocket *userSocket = (UserSocket *)fd->dir;
 
   uint16_t initialFamily = sockaddrLinuxToLwip((void *)addr, len);
-  int      lwipOut = lwip_connect(userSocket->lwipFd, (void *)addr, len);
+  if (!(fd->flags & O_NONBLOCK))
+    assert(lwip_fcntl(userSocket->lwipFd, F_SETFL, 0) == 0);
+  int lwipOut = lwip_connect(userSocket->lwipFd, (void *)addr, len);
+  if (!(fd->flags & O_NONBLOCK))
+    assert(lwip_fcntl(userSocket->lwipFd, F_SETFL, O_NONBLOCK) == 0);
   sockaddrLwipToLinux(addr, initialFamily);
   if (lwipOut < 0)
     return -errno;
