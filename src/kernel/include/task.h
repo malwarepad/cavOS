@@ -120,6 +120,7 @@ struct Task {
   uint64_t id;
   int      pgid;
   int      tgid;
+  int      sid;
   bool     kernel_task;
   uint8_t  state;
 
@@ -154,6 +155,7 @@ struct Task {
   termios  term;
   uint32_t tmpRecV;
   int      kernelErrno;
+  int      ctrlPty;
   void    *spinlockQueueEntry; // check on kill!
 
   char  *cmdline;

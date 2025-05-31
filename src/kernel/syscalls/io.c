@@ -60,6 +60,10 @@ size_t ioctlHandler(OpenFile *fd, uint64_t request, void *arg) {
     return 0;
     break;
   }
+  case 0x540a: {
+    return 0;
+    break;
+  }
   case TCGETS: {
     memcpy(arg, &currentTask->term, sizeof(termios));
     // debugf("got %d %d\n", currentTask->term.c_lflag & ICANON,

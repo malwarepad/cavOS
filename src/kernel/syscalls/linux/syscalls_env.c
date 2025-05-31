@@ -136,6 +136,17 @@ static size_t syscallGetppid() {
     return KERNEL_TASK_ID;
 }
 
+#define SYSCALL_SETSID 112
+static size_t syscallSetsid() {
+  if (currentTask->tgid == currentTask->pgid)
+    return ERR(EPERM);
+
+  currentTask->sid = currentTask->tgid;
+  currentTask->pgid = currentTask->tgid;
+  currentTask->ctrlPty = -1;
+  return 0;
+}
+
 #define SYSCALL_GETGROUPS 115
 static size_t syscallGetgroups(int gidsetsize, uint32_t *gids) {
   if (!gidsetsize)
@@ -196,6 +207,7 @@ void syscallsRegEnv() {
   registerSyscall(SYSCALL_SETPGID, syscallSetpgid);
   registerSyscall(SYSCALL_SETUID, syscallSetuid);
   registerSyscall(SYSCALL_SETGID, syscallSetgid);
+  registerSyscall(SYSCALL_SETSID, syscallSetsid);
   registerSyscall(SYSCALL_PRCTL, syscallPrctl);
   registerSyscall(SYSCALL_SET_TID_ADDR, syscallSetTidAddr);
   registerSyscall(SYSCALL_GET_TID, syscallGetTid);

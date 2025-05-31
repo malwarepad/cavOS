@@ -102,6 +102,8 @@ Task *taskCreate(uint32_t id, uint64_t rip, bool kernel_task, uint64_t *pagedir,
 
   target->id = id;
   target->tgid = id;
+  target->sid = 1; // to dummy
+  target->ctrlPty = -1;
   target->kernel_task = kernel_task;
   target->state = TASK_STATE_CREATED; // TASK_STATE_READY
   // target->pagedir = pagedir;
@@ -360,6 +362,8 @@ Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
   target->id = taskGenerateId();
   target->tgid = target->id;
   target->pgid = currentTask->pgid;
+  target->sid = currentTask->sid;
+  target->ctrlPty = currentTask->ctrlPty;
   target->kernel_task = currentTask->kernel_task;
   target->state = TASK_STATE_CREATED;
 

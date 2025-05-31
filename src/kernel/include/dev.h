@@ -59,6 +59,11 @@ typedef struct PtyPair {
   int ptrMaster;
   int ptrSlave;
 
+  // controlling stuff
+  int ctrlSession;
+  int ctrlPgid;
+  // above not used by ptyIsAssigned() since they aren't cleared
+
   int  id;
   bool locked; // by default unlocked (hence 0)
 } PtyPair;
@@ -68,6 +73,8 @@ VfsHandlers handlePts;
 
 void initiatePtyInterface();
 
+size_t ptsOpen(char *filename, int flags, int mode, OpenFile *fd,
+               char **symlinkResolve);
 size_t ptsWriteInner(PtyPair *pair, uint8_t *in, size_t limit);
 
 #endif

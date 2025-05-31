@@ -76,6 +76,22 @@ void initiatePtyInterface() {
   // a
 }
 
+// target MUST be locked beforehand!
+bool ptyIsAssigned(int id) {
+  bool ret = false;
+  spinlockCntReadAcquire(&TASK_LL_MODIFY);
+  Task *browse = firstTask;
+  while (browse) {
+    if (browse->state != TASK_STATE_DEAD && browse->ctrlPty == id) {
+      ret = true;
+      break;
+    }
+    browse = browse->next;
+  }
+  spinlockCntReadRelease(&TASK_LL_MODIFY);
+  return ret;
+}
+
 size_t ptmxOpen(char *filename, int flags, int mode, OpenFile *fd,
                 char **symlinkResolve) {
   int id = ptyBitmapDecide(); // here to avoid double locks
@@ -149,6 +165,11 @@ size_t ptmxRead(OpenFile *fd, uint8_t *out, size_t limit) {
 size_t ptmxWrite(OpenFile *fd, uint8_t *in, size_t limit) {
   assert(limit <= PTY_BUFF_SIZE); // todo
   PtyPair *pair = fd->dir;
+  // if (in[0] == 3) { // also has to be dynamic from termios
+  //   syscallKill(-pair->ctrlPgid, SIGINT);
+  //   debugf("doned!\n");
+  //   return limit;
+  // }
   while (true) {
     spinlockAcquire(&pair->LOCK_PTY);
     if (!pair->slaveFds) {
@@ -244,6 +265,13 @@ VfsHandlers handlePtmx = {.open = ptmxOpen,
                           .internalPoll = ptmxInternalPoll,
                           .ioctl = ptmxIoctl};
 
+void ptsCtrlAssign(PtyPair *pair) {
+  currentTask->ctrlPty = pair->id;
+  pair->ctrlSession = currentTask->sid;
+  pair->ctrlPgid = currentTask->pgid;
+  // debugf("heck yeah! %d %d\n", currentTask->id, pair->id);
+}
+
 size_t ptsOpen(char *filename, int flags, int mode, OpenFile *fd,
                char **symlinkResolve) {
   int length = strlength(filename);
@@ -277,6 +305,13 @@ size_t ptsOpen(char *filename, int flags, int mode, OpenFile *fd,
 
   fd->dir = browse;
   browse->slaveFds++;
+
+  if (currentTask->ctrlPty < 0 && currentTask->tgid == currentTask->sid &&
+      !ptyIsAssigned(id)) {
+    debugf("[pty] WARNING! We are a session leader, it's our first time and "
+           "*nobody has this pty*!\n");
+    ptsCtrlAssign(browse);
+  }
   spinlockRelease(&browse->LOCK_PTY);
   return 0;
 }
@@ -411,7 +446,15 @@ size_t ptsIoctl(OpenFile *fd, uint64_t request, void *arg) {
     ret = 0;
     break;
   }
-  case TIOCSCTTY: { // todo
+  case TIOCSCTTY: {
+    assert(arg == 0); // if 1, term is stolen and everyone loses it
+    if (currentTask->sid != currentTask->tgid || currentTask->ctrlPty != -1) {
+      ret = ERR(EPERM); // not the session leader!
+      break;
+    }
+
+    // since by now we are leaders, sid = pgid = tgid (userspace pid)
+    ptsCtrlAssign(pair);
     ret = 0;
     break;
   }
@@ -428,7 +471,11 @@ size_t ptsIoctl(OpenFile *fd, uint64_t request, void *arg) {
     break;
   }
   case 0x540f: // TIOCGPGRP
-    // todo: controlling stuff. also verify understanding on io.c
+    if (currentTask->ctrlPty != pair->id) {
+      ret = ERR(EPERM);
+      break;
+    }
+    *((int *)arg) = pair->ctrlPgid;
     ret = 0;
     break;
   }

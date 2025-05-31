@@ -1,5 +1,6 @@
 #include <dev.h>
 #include <malloc.h>
+#include <task.h>
 #include <util.h>
 
 #include <fb.h>
@@ -19,6 +20,18 @@ size_t randomRead(OpenFile *fd, uint8_t *out, size_t limit) {
 }
 VfsHandlers handleRandom = {.read = randomRead, .stat = fakefsFstat};
 
+size_t devTtyOpen(char *filename, int flags, int mode, OpenFile *fd,
+                  char **symlinkResolve) {
+  if (currentTask->ctrlPty == -1)
+    return ERR(ENXIO);
+  char buff[128] = {0};
+  snprintf(buff, 128, "/pts/%d", currentTask->ctrlPty);
+  fd->handlers = &handlePts;
+  size_t ret = ptsOpen(buff, flags, mode, fd, symlinkResolve);
+  return ret;
+}
+VfsHandlers handleTty = {.open = devTtyOpen};
+
 Fakefs rootDev = {0};
 
 void devSetup() {
@@ -29,7 +42,7 @@ void devSetup() {
   fakefsAddFile(&rootDev, rootDev.rootFile, "stderr", 0,
                 S_IFCHR | S_IRUSR | S_IWUSR, &stdio);
   fakefsAddFile(&rootDev, rootDev.rootFile, "tty", 0,
-                S_IFCHR | S_IRUSR | S_IWUSR, &stdio);
+                S_IFCHR | S_IRUSR | S_IWUSR, &handleTty);
   fakefsAddFile(&rootDev, rootDev.rootFile, "fb0", 0,
                 S_IFCHR | S_IRUSR | S_IWUSR, &fb0);
   fakefsAddFile(&rootDev, rootDev.rootFile, "null", 0,
