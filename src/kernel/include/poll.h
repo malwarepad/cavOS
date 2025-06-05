@@ -41,6 +41,8 @@ uint32_t epollToPollComp(uint32_t epoll_events);
 uint32_t pollToEpollComp(uint32_t poll_events);
 
 size_t poll(struct pollfd *fds, int nfds, int timeout);
+size_t ppoll(struct pollfd *fds, int nfds, struct timespec *timeout,
+             sigset_t *sigmask, size_t sigsetsize);
 
 size_t select(int nfds, uint8_t *read, uint8_t *write, uint8_t *except,
               struct timeval *timeout);

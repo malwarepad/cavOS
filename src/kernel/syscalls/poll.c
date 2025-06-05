@@ -308,6 +308,25 @@ size_t poll(struct pollfd *fds, int nfds, int timeout) {
   return ret;
 }
 
+size_t ppoll(struct pollfd *fds, int nfds, struct timespec *timeout,
+             sigset_t *sigmask, size_t sigsetsize) {
+  if (sigsetsize < sizeof(sigset_t)) {
+    dbgSysFailf("weird sigset size");
+    return ERR(EINVAL);
+  }
+
+  sigset_t origmask;
+  if (sigmask)
+    syscallRtSigprocmask(SIG_SETMASK, sigmask, &origmask, sigsetsize);
+  size_t epollRet =
+      poll(fds, nfds,
+           DivRoundUp(timeout->tv_nsec, 1000000) + timeout->tv_sec * 1000);
+  if (sigmask)
+    syscallRtSigprocmask(SIG_SETMASK, &origmask, 0, sigsetsize);
+
+  return epollRet;
+}
+
 // i hate this obsolete system call and do not plan on making it efficient
 force_inline bool selectBitmap(uint8_t *map, int index) {
   int div = index / 8;

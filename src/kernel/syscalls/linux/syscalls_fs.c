@@ -533,6 +533,13 @@ static size_t syscallFaccessat(int dirfd, char *pathname, int mode) {
   return ret;
 }
 
+#define SYSCALL_PPOLL 271
+static size_t syscallPpoll(struct pollfd *fds, int nfds,
+                           struct timespec *timeout, sigset_t *sigmask,
+                           size_t sigsetsize) {
+  return ppoll(fds, nfds, timeout, sigmask, sigsetsize);
+}
+
 #define SYSCALL_STATX 332
 static size_t syscallStatx(int dirfd, char *pathname, int flags, uint32_t mask,
                            struct statx *buff) {

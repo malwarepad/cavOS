@@ -20,6 +20,14 @@
 #define LWIP_DNS 1
 #define LWIP_DEBUG 1
 
+// raise connection limits
+#define MEMP_NUM_NETCONN 100
+#define MEMP_NUM_TCP_PCB 100
+
+// raise the server buffer (forced to do second)
+#define TCP_SND_BUF 8192
+#define MEMP_NUM_TCP_SEG (2 * TCP_SND_QUEUELEN)
+
 // optimizations
 #define TCP_WND (16 * TCP_MSS)
 #define LWIP_CHKSUM_ALGORITHM 3
