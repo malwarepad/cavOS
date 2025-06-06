@@ -593,6 +593,7 @@ void syscallRegFs() {
   registerSyscall(SYSCALL_OPEN, syscallOpen);
   registerSyscall(SYSCALL_OPENAT, syscallOpenat);
   registerSyscall(SYSCALL_POLL, syscallPoll);
+  registerSyscall(SYSCALL_PPOLL, syscallPpoll);
   registerSyscall(SYSCALL_MKDIRAT, syscallMkdirAt);
   registerSyscall(SYSCALL_CLOSE, syscallClose);
   registerSyscall(SYSCALL_LSEEK, syscallLseek);

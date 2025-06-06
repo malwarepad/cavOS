@@ -32,7 +32,16 @@ static size_t syscallSocket(int family, int type, int protocol) {
     return unixSocketOpen(currentTask, type, protocol);
     break;
   }
-  case 2: {
+  case 10: { // AF_INET6
+    int socketFd = fsUserOpen(currentTask, "/dev/null", O_RDWR, 0);
+    assert(socketFd >= 0);
+    OpenFile *fd = fsUserGetNode(currentTask, socketFd);
+    assert(fd);
+    fd->handlers = &socketv6Handlers;
+    return socketFd;
+    break;
+  }
+  case 2: { // AF_INET
     bool cloexec = type & SOCK_CLOEXEC;
     bool nonblock = type & SOCK_NONBLOCK;
     type &= ~(SOCK_CLOEXEC | SOCK_NONBLOCK);
