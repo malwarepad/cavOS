@@ -93,7 +93,7 @@ void _start(void) {
 
   printf("=========================================\n");
   printf("==     Cave-Like Operating System      ==\n");
-  printf("==      Copyright MalwarePad 2024      ==\n");
+  printf("==      Copyright MalwarePad 2025      ==\n");
   printf("=========================================\n\n");
 
   run("/bin/bash", true, 0, 0);

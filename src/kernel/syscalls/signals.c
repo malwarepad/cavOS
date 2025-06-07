@@ -447,7 +447,7 @@ size_t signalsSigreturnSyscall(void *taskPtr) {
   task->syscallRegs = 0;
   task->syscallRsp = 0;
 
-  task->sigBlockList = ucontext->oldmask & ~(SIGKILL | SIGSTOP);
+  task->sigBlockList = ucontext->oldmask & ~((1 << SIGKILL) | (1 << SIGSTOP));
   asm_finalize((size_t)iretqRsp,
                VirtualToPhysical((size_t)task->infoPd->pagedir));
 

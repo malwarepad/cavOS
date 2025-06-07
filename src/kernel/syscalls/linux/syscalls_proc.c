@@ -405,7 +405,19 @@ static size_t syscallReboot(int magic1, int magic2, uint32_t cmd, void *arg) {
 }
 
 #define SYSCALL_EXIT_GROUP 231
-static void syscallExitGroup(int return_code) { syscallExitTask(return_code); }
+static void syscallExitGroup(int return_code) {
+  spinlockCntReadAcquire(&TASK_LL_MODIFY);
+  Task *browse = firstTask;
+  while (browse) {
+    if (browse->tgid == currentTask->tgid && browse->id != currentTask->id) {
+      // found one of ours!
+      atomicBitmapSet(&browse->sigPendingList, SIGKILL);
+    }
+    browse = browse->next;
+  }
+  spinlockCntReadRelease(&TASK_LL_MODIFY);
+  syscallExitTask(return_code);
+}
 // todo ^ with CLONE_THREAD!
 
 void syscallsRegProc() {

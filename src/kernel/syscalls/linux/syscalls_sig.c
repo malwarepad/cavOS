@@ -51,7 +51,7 @@ static size_t syscallRtSigaction(int sig, const struct sigaction *act,
     target->sa_handler = act->sa_handler;
     target->sa_flags = act->sa_flags;
     target->sa_restorer = act->sa_restorer;
-    target->sa_mask = act->sa_mask & ~(SIGKILL | SIGSTOP);
+    target->sa_mask = act->sa_mask & ~((1 << SIGKILL) | (1 << SIGSTOP));
     spinlockRelease(&info->LOCK_SIGNAL);
   }
 
@@ -68,7 +68,7 @@ size_t syscallRtSigprocmask(int how, sigset_t *nset, sigset_t *oset,
     *oset = currentTask->sigBlockList;
   if (nset) {
     uint64_t safe = *nset;
-    safe &= ~(SIGKILL | SIGSTOP); // nuh uh!
+    safe &= ~((1 << SIGKILL) | (1 << SIGSTOP)); // nuh uh!
     switch (how) {
     case SIG_BLOCK:
       currentTask->sigBlockList |= safe;
