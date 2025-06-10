@@ -100,6 +100,28 @@ void        initiateSSE() {
                :
                :
                : "rax");
+
+  // Do AVX stuff under certain conditions (qemu and prolly other stuff fake
+  // not having support but all AVX instructions succeed)
+  uint32_t eax = 1, ebx = 0, ecx = 0, edx = 0;
+  cpuid(&eax, &ebx, &ecx, &edx);
+
+  if (ecx & (1 << 26)) {
+    debugf("[cpu] The xsave instruction is available. Enabling..\n");
+    uint64_t cr4;
+    asm volatile("mov %%cr4, %0" : "=r"(cr4));
+    cr4 |= (uint32_t)1 << 18;
+    asm volatile("mov %0, %%cr4" : : "r"(cr4));
+
+    if (ecx & (1 << 28)) {
+      debugf("[cpu] The AVX extensions are available. Enabling..\n");
+      uint32_t xcr0_lo = 0x7; // x87 (bit 0), SSE (bit 1), AVX (bit 2)
+      uint32_t xcr0_hi = 0;
+      asm volatile("xsetbv" ::"c"(0), "a"(xcr0_lo), "d"(xcr0_hi));
+    }
+  }
+
+  debugf("[cpu] Extra CPU features have all been enabled without issue\n");
 }
 
 void panic() {
