@@ -80,6 +80,13 @@ static size_t syscallClockGettime(int which, timespec *spec) {
     return 0;
     break;
   }
+  case CLOCK_BOOTTIME: {
+    size_t time = timerBootUnix * 1000;
+    spec->tv_sec = time / 1000;
+    spec->tv_nsec = (time % 1000) * 1000000;
+    return 0;
+    break;
+  }
   default:
     dbgSysStubf("clock not supported\n");
     return ERR(EINVAL);
