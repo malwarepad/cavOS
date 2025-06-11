@@ -1,3 +1,4 @@
+#include <e1000.h>
 #include <kernel_helper.h>
 #include <linked_list.h>
 #include <malloc.h>
@@ -106,7 +107,7 @@ void lwipInitInThread(void *nicPre) {
 
 void initiateNIC(PCIdevice *device) {
   if (initiateNe2000(device) || initiateRTL8139(device) ||
-      initiateRTL8169(device)) {
+      initiateRTL8169(device) || initiateE1000(device)) {
     // selectedNIC = newly created NIC structure
     tcpip_init(lwipInitInThread, selectedNIC);
   }
@@ -151,6 +152,9 @@ void sendPacket(NIC *nic, uint8_t *destination_mac, void *data, uint32_t size,
   case RTL8169:
     sendRTL8169(nic, packet, sizeof(netPacketHeader) + size);
     break;
+  case E1000:
+    sendE1000(nic, packet, sizeof(netPacketHeader) + size);
+    break;
   }
 
   free(packet);
@@ -172,6 +176,9 @@ void sendPacketRaw(NIC *nic, void *data, uint32_t size) {
     break;
   case RTL8169:
     sendRTL8169(nic, data, size);
+    break;
+  case E1000:
+    sendE1000(nic, data, size);
     break;
   }
 }

@@ -9,7 +9,7 @@
 
 /* NICs */
 
-typedef enum NIC_TYPE { NE2000, RTL8139, RTL8169 } NIC_TYPE;
+typedef enum NIC_TYPE { NE2000, RTL8139, RTL8169, E1000 } NIC_TYPE;
 
 typedef struct NIC NIC;
 
