@@ -19,7 +19,7 @@ size_t ext2Mkdir(MountPoint *mnt, char *dirname, uint32_t mode,
 
   uint32_t inode = 0;
   if (lastSlash > 0) {
-    char *parent = malloc(lastSlash);
+    char *parent = malloc(lastSlash + 1);
     memcpy(parent, dirname, lastSlash);
     parent[lastSlash] = '\0';
     inode =
