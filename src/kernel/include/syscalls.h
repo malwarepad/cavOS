@@ -88,6 +88,11 @@ VfsHandlers pipeWriteEnd;
 bool   pipeCloseEnd(OpenFile *readFd);
 size_t pipeOpen(int *fds);
 
+/* Event FDs (defined in eventfd.c) */
+VfsHandlers eventFdHandlers;
+
+size_t eventFdOpen(uint64_t initValue, int flags);
+
 #define RET_IS_ERR(syscall_return) ((syscall_return) > -4096UL)
 
 /* Signal stuff */

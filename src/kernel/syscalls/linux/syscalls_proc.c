@@ -424,7 +424,11 @@ static void syscallExitGroup(int return_code) {
   spinlockCntReadRelease(&TASK_LL_MODIFY);
   syscallExitTask(return_code);
 }
-// todo ^ with CLONE_THREAD!
+
+#define SYSCALL_EVENTFD2 290
+static size_t syscallEventfd2(uint64_t initValue, int flags) {
+  return eventFdOpen(initValue, flags);
+}
 
 void syscallsRegProc() {
   registerSyscall(SYSCALL_PIPE, syscallPipe);
@@ -437,4 +441,5 @@ void syscallsRegProc() {
   registerSyscall(SYSCALL_EXECVE, syscallExecve);
   registerSyscall(SYSCALL_EXIT_GROUP, syscallExitGroup);
   registerSyscall(SYSCALL_REBOOT, syscallReboot);
+  registerSyscall(SYSCALL_EVENTFD2, syscallEventfd2);
 }

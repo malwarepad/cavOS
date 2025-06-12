@@ -1513,4 +1513,9 @@ typedef struct termios {
 #define LINUX_REBOOT_CMD_SW_SUSPEND 0xD000FCE2
 #define LINUX_REBOOT_CMD_KEXEC 0x45584543
 
+// include/linux/eventfd.h
+#define EFD_SEMAPHORE (1 << 0)
+#define EFD_CLOEXEC O_CLOEXEC
+#define EFD_NONBLOCK O_NONBLOCK
+
 #endif
