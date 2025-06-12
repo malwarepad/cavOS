@@ -17,7 +17,7 @@ static size_t syscallPipe(int *fds) { return pipeOpen(fds); }
 
 #define SYSCALL_PIPE2 293
 static size_t syscallPipe2(int *fds, int flags) {
-  if (flags && flags != O_CLOEXEC) {
+  if (flags && (flags & ~(O_CLOEXEC | O_NONBLOCK)) != 0) {
     dbgSysStubf("todo flags");
     return ERR(ENOSYS);
   }
@@ -36,8 +36,14 @@ static size_t syscallPipe2(int *fds, int flags) {
       panic();
     }
 
-    fd0->closeOnExec = true;
-    fd1->closeOnExec = true;
+    if (flags & O_CLOEXEC) {
+      fd0->closeOnExec = true;
+      fd1->closeOnExec = true;
+    }
+    if (flags & O_NONBLOCK) {
+      fd0->flags |= O_NONBLOCK;
+      fd1->flags |= O_NONBLOCK;
+    }
   }
 
 cleanup:
