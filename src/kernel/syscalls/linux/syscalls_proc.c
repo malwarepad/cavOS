@@ -410,6 +410,13 @@ static size_t syscallReboot(int magic1, int magic2, uint32_t cmd, void *arg) {
   }
 }
 
+#define SYSCALL_FUTEX 202
+static size_t syscallFutex(uint32_t *addr, int op, uint32_t value,
+                           struct timespec *utime, uint32_t uaddr2,
+                           uint32_t value3) {
+  return futexSyscall(addr, op, value, utime, uaddr2, value3);
+}
+
 #define SYSCALL_EXIT_GROUP 231
 static void syscallExitGroup(int return_code) {
   spinlockCntReadAcquire(&TASK_LL_MODIFY);
@@ -442,4 +449,5 @@ void syscallsRegProc() {
   registerSyscall(SYSCALL_EXIT_GROUP, syscallExitGroup);
   registerSyscall(SYSCALL_REBOOT, syscallReboot);
   registerSyscall(SYSCALL_EVENTFD2, syscallEventfd2);
+  registerSyscall(SYSCALL_FUTEX, syscallFutex);
 }

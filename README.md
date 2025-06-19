@@ -24,7 +24,7 @@ The cavOS kernel is a monolithic x86_64 one written in relatively simple C with 
 - ACPI mode, using I/O APIC redirects for interrupts
 - PCI scanning and various PCI device drivers
 - Full network stack (including TCP and DHCP) with network interface support (Intel E1000, Realtek RTL8139/RTL8169)
-- Two-way pipes, Unix domain sockets (AF_UNIX) and signal support (with some BSD extensions)
+- Two-way pipes, Unix domain sockets (AF_UNIX), eventfds, futexes, and signal support (with some BSD extensions)
 - FAT32, Ext2 and virtual file systems (/proc, /sys, /dev, etc)
 - PS/2 Keyboard/Mouse drivers along with serial port (COM1, COM2, etc) output
 - ELF64 binary loading, dynamic linking and shared libraries
