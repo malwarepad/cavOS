@@ -33,6 +33,7 @@ void schedule(uint64_t rsp) {
     if (signalsRevivableState(next->state) && signalsPendingQuick(next)) {
       // back to the syscall handler which returns -EINTR (& handles the signal)
       assert(next->registers.cs & GDT_KERNEL_CODE);
+      next->forcefulWakeupTimeUnsafe = 0; // needed
       next->state = TASK_STATE_READY;
       break;
     }

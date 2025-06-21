@@ -15,6 +15,12 @@
 #define SYSCALL_PIPE 22
 static size_t syscallPipe(int *fds) { return pipeOpen(fds); }
 
+#define SYSCALL_SCHED_YIELD 24
+static size_t syscallSchedYield() {
+  handControl();
+  return 0;
+}
+
 #define SYSCALL_PIPE2 293
 static size_t syscallPipe2(int *fds, int flags) {
   if (flags && (flags & ~(O_CLOEXEC | O_NONBLOCK)) != 0) {
@@ -412,9 +418,9 @@ static size_t syscallReboot(int magic1, int magic2, uint32_t cmd, void *arg) {
 
 #define SYSCALL_FUTEX 202
 static size_t syscallFutex(uint32_t *addr, int op, uint32_t value,
-                           struct timespec *utime, uint32_t uaddr2,
+                           struct timespec *utime, uint32_t *addr2,
                            uint32_t value3) {
-  return futexSyscall(addr, op, value, utime, uaddr2, value3);
+  return futexSyscall(addr, op, value, utime, addr2, value3);
 }
 
 #define SYSCALL_EXIT_GROUP 231
@@ -438,6 +444,7 @@ static size_t syscallEventfd2(uint64_t initValue, int flags) {
 }
 
 void syscallsRegProc() {
+  registerSyscall(SYSCALL_SCHED_YIELD, syscallSchedYield);
   registerSyscall(SYSCALL_PIPE, syscallPipe);
   registerSyscall(SYSCALL_PIPE2, syscallPipe2);
   registerSyscall(SYSCALL_EXIT_TASK, syscallExitTask);

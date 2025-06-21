@@ -95,7 +95,7 @@ size_t eventFdOpen(uint64_t initValue, int flags);
 
 /* Fast userspace locks (defined in futex.c) */
 size_t futexSyscall(uint32_t *addr, int op, uint32_t value,
-                    struct timespec *utime, uint32_t uaddr2, uint32_t value3);
+                    struct timespec *utime, uint32_t *addr2, uint32_t value3);
 
 #define RET_IS_ERR(syscall_return) ((syscall_return) > -4096UL)
 
