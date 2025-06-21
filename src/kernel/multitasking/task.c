@@ -226,8 +226,11 @@ void taskKill(uint32_t id, uint16_t ret) {
   if (task->parent->state == TASK_STATE_WAITING_VFORK)
     task->parent->state = TASK_STATE_READY;
 
-  if (task->tidptr)
-    *task->tidptr = 0; // todo: futex wakeup
+  if (task->tidptr) {
+    // *task->tidptr = 0;
+    atomicWrite32((uint32_t *)task->tidptr, 0);
+    futexSyscall((uint32_t *)task->tidptr, FUTEX_WAKE, 1, 0, 0, 0);
+  }
 
   // close any left open files
   taskInfoFilesDiscard(task->infoFiles, task);

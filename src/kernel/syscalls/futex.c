@@ -51,6 +51,8 @@ cleanup:
 
 size_t futexSyscall(uint32_t *addr, int op, uint32_t value,
                     struct timespec *utime, uint32_t *addr2, uint32_t value3) {
+  /* Don't use currentTask here as FUTEX_WAKE is used by task exit */
+
   /*debugf("FUTEX! HIDE THE KIDS!! addr{%lx} op{%x} value{%d} utime{%lx} "
          "uaddr2{%lx} value3{%d}\n",
          addr, op, value, utime, addr2, value3);*/
@@ -127,6 +129,10 @@ size_t futexSyscall(uint32_t *addr, int op, uint32_t value,
     break;
   }
   case FUTEX_WAKE: {
+    /* Don't use currentTask here as FUTEX_WAKE is used by task exit */
+    uint8_t currentTask = 0;
+    (void)currentTask;
+
     Futex       *futex = futexFind(phys);
     FutexAsleep *browse = futex->firstAsleep;
     int          awokenCnt = 0;
