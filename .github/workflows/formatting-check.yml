@@ -15,8 +15,5 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build tools
-        run: make tools
-
       - name: Check formatting
         run: make format_check
