@@ -100,10 +100,11 @@ void VirtualMapRegionByLength(uint64_t virt_addr, uint64_t phys_addr,
   debugf("[paging::map::region] virt{%lx} phys{%lx} len{%lx}\n", virt_addr,
          phys_addr, length);
 #endif
+  if (length == 0) return;
   uint32_t pagesAmnt = DivRoundUp(length, PAGE_SIZE);
-  for (int i = 0; i < pagesAmnt; i++) {
-    uint64_t xvirt = virt_addr + i * PAGE_SIZE;
-    uint64_t xphys = phys_addr + i * PAGE_SIZE;
+  uint64_t xvirt = virt_addr;
+  uint64_t xphys = phys_addr;
+  for (uint32_t i = 0; i < pagesAmnt; i++, xvirt += PAGE_SIZE, xphys += PAGE_SIZE) {
     VirtualMap(xvirt, xphys, flags);
   }
 }
@@ -116,7 +117,6 @@ void ChangePageDirectoryUnsafe(uint64_t *pd) {
     panic();
   }
   asm volatile("movq %0, %%cr3" ::"r"(targ));
-
   globalPagedir = pd;
 }
 
@@ -126,7 +126,6 @@ void ChangePageDirectoryFake(uint64_t *pd) {
     debugf("[paging] Could not (fake) change to pd{%lx}!\n", pd);
     panic();
   }
-
   globalPagedir = pd;
 }
 
@@ -142,27 +141,23 @@ void ChangePageDirectory(uint64_t *pd) {
   ChangePageDirectoryUnsafe(pd);
 }
 
-uint64_t *GetPageDirectory() { return (uint64_t *)globalPagedir; }
+inline uint64_t *GetPageDirectory() { return (uint64_t *)globalPagedir; }
 
-uint64_t *GetTaskPageDirectory(void *taskPtr) {
-  Task *task = (Task *)taskPtr;
-
+inline uint64_t *GetTaskPageDirectory(const void *taskPtr) {
+  const Task *task = (const Task *)taskPtr;
   TaskInfoPagedir *info = task->infoPd;
   spinlockAcquire(&info->LOCK_PD);
   uint64_t *ret = task->pagedirOverride ? task->pagedirOverride : info->pagedir;
   spinlockRelease(&info->LOCK_PD);
-
   return ret;
 }
 
-void invalidate(uint64_t vaddr) { asm volatile("invlpg %0" ::"m"(vaddr)); }
+inline void invalidate(uint64_t vaddr) { asm volatile("invlpg %0" ::"m"(vaddr)); }
 
 size_t PagingPhysAllocate() {
   size_t phys = PhysicalAllocate(1);
-
   void *virt = (void *)(phys + HHDMoffset);
   memset(virt, 0, PAGE_SIZE);
-
   return phys;
 }
 
@@ -172,7 +167,7 @@ void VirtualMap(uint64_t virt_addr, uint64_t phys_addr, uint64_t flags) {
   VirtualMapL(globalPagedir, virt_addr, phys_addr, flags);
 }
 
-void VirtualMapL(uint64_t *pagedir, uint64_t virt_addr, uint64_t phys_addr,
+void VirtualMapL(uint64_t *restrict pagedir, uint64_t virt_addr, uint64_t phys_addr,
                  uint64_t flags) {
   if (virt_addr % PAGE_SIZE) {
     debugf("[paging] Tried to map non-aligned address! virt{%lx} phys{%lx}\n",
@@ -181,42 +176,40 @@ void VirtualMapL(uint64_t *pagedir, uint64_t virt_addr, uint64_t phys_addr,
   }
   virt_addr = AMD64_MM_STRIPSX(virt_addr);
 
-  uint32_t pml4_index = PML4E(virt_addr);
-  uint32_t pdp_index = PDPTE(virt_addr);
-  uint32_t pd_index = PDE(virt_addr);
-  uint32_t pt_index = PTE(virt_addr);
+  const uint32_t pml4_index = PML4E(virt_addr);
+  const uint32_t pdp_index = PDPTE(virt_addr);
+  const uint32_t pd_index = PDE(virt_addr);
+  const uint32_t pt_index = PTE(virt_addr);
 
   spinlockCntWriteAcquire(&WLOCK_PAGING);
+  size_t *pdp, *pd, *pt;
   if (!(pagedir[pml4_index] & PF_PRESENT)) {
     size_t target = PagingPhysAllocate();
     pagedir[pml4_index] = target | PF_PRESENT | PF_RW | PF_USER;
   }
-  size_t *pdp = (size_t *)(PTE_GET_ADDR(pagedir[pml4_index]) + HHDMoffset);
+  pdp = (size_t *)(PTE_GET_ADDR(pagedir[pml4_index]) + HHDMoffset);
 
   if (!(pdp[pdp_index] & PF_PRESENT)) {
     size_t target = PagingPhysAllocate();
     pdp[pdp_index] = target | PF_PRESENT | PF_RW | PF_USER;
   }
-  size_t *pd = (size_t *)(PTE_GET_ADDR(pdp[pdp_index]) + HHDMoffset);
+  pd = (size_t *)(PTE_GET_ADDR(pdp[pdp_index]) + HHDMoffset);
 
   if (!(pd[pd_index] & PF_PRESENT)) {
     size_t target = PagingPhysAllocate();
     pd[pd_index] = target | PF_PRESENT | PF_RW | PF_USER;
   }
-  size_t *pt = (size_t *)(PTE_GET_ADDR(pd[pd_index]) + HHDMoffset);
+  pt = (size_t *)(PTE_GET_ADDR(pd[pd_index]) + HHDMoffset);
 
   if (pt[pt_index] & PF_PRESENT &&
       !(PTE_GET_ADDR(pt[pt_index]) >= fb.phys &&
         PTE_GET_ADDR(pt[pt_index]) < fb.phys + (fb.width * fb.height * 4))) {
     PhysicalFree(PTE_GET_ADDR(pt[pt_index]), 1);
-    // debugf("[paging] Overwrite (without unmapping) WARN! virt{%lx}
-    // phys{%lx}\n",
-    //        virt_addr, phys_addr);
   }
   if (!phys_addr) // todo: proper unmapping
     pt[pt_index] = 0;
   else
-    pt[pt_index] = (P_PHYS_ADDR(phys_addr)) | PF_PRESENT | flags; // | PF_RW
+    pt[pt_index] = (P_PHYS_ADDR(phys_addr)) | PF_PRESENT | flags;
 
   invalidate(virt_addr);
   spinlockCntWriteRelease(&WLOCK_PAGING);

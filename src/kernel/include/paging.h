@@ -77,7 +77,7 @@ size_t VirtualToPhysicalL(uint64_t *pagedir, size_t virt_addr);
 size_t VirtualToPhysical(size_t virt_addr);
 
 uint64_t *GetPageDirectory();
-uint64_t *GetTaskPageDirectory(void *task);
+uint64_t *GetTaskPageDirectory(const void *task);
 void      ChangePageDirectory(uint64_t *pd);
 void      ChangePageDirectoryUnsafe(uint64_t *pd);
 void      ChangePageDirectoryFake(uint64_t *pd);
