@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # set -x # show cmds
 set -e # fail globally
+mkdir -p ~/opt/
 
 # Embedded clang-format-19 (verified sha512sum from GitHub actions)
 CLANG_FORMAT_URI="https://github.com/muttleyxd/clang-tools-static-binaries/releases/download/master-46b8640/clang-format-19_linux-amd64"
