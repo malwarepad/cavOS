@@ -10,19 +10,19 @@
 
 Framebuffer fb = {0};
 
-void drawRect(int x, int y, int w, int h, int r, int g,
-              int b) { // Draw a filled rectangle
-  unsigned int offset =
-      (x + y * fb.width) *
-      4; // Finding the location of the pixel in the video array
+void drawRect(int x, int y, int w, int h, int r, int g, int b) {
+  // Optimize: minimize repeated calculations, use pointer arithmetic
+  unsigned int offset = (x + y * fb.width) * 4;
+  uint8_t *row = fb.virt + offset;
   for (int i = 0; i < h; i++) {
-    for (int j = 0; j < w; j++) { // color each line
-      fb.virt[offset + j * 4] = b;
-      fb.virt[offset + j * 4 + 1] = g;
-      fb.virt[offset + j * 4 + 2] = r;
-      fb.virt[offset + j * 4 + 3] = 0;
+    uint8_t *pixel = row;
+    for (int j = 0; j < w; j++, pixel += 4) {
+      pixel[0] = b;
+      pixel[1] = g;
+      pixel[2] = r;
+      pixel[3] = 0;
     }
-    offset += fb.pitch; // switch to the beginnering of next line
+    row += fb.pitch;
   }
 }
 
