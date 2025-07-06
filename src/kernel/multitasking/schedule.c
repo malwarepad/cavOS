@@ -22,134 +22,97 @@ void schedule(uint64_t rsp) {
   if (!tasksInitiated)
     return;
 
-  // try to find a next task
   AsmPassedInterrupt *cpu = (AsmPassedInterrupt *)rsp;
-  Task               *next = currentTask->next;
-  if (!next)
-    next = firstTask;
-
+  Task *next = currentTask->next ? currentTask->next : firstTask;
   int fullRun = 0;
+
+  // Fast path: if next is ready, skip loop
   while (next->state != TASK_STATE_READY) {
     if (signalsRevivableState(next->state) && signalsPendingQuick(next)) {
-      // back to the syscall handler which returns -EINTR (& handles the signal)
       assert(next->registers.cs & GDT_KERNEL_CODE);
-      next->forcefulWakeupTimeUnsafe = 0; // needed
+      next->forcefulWakeupTimeUnsafe = 0;
       next->state = TASK_STATE_READY;
       break;
     }
-    if (next->forcefulWakeupTimeUnsafe &&
-        next->forcefulWakeupTimeUnsafe <= timerTicks) {
-      // no race! the task has to already have been suspended to end up here
+    if (next->forcefulWakeupTimeUnsafe && next->forcefulWakeupTimeUnsafe <= timerTicks) {
       next->state = TASK_STATE_READY;
       next->forcefulWakeupTimeUnsafe = 0;
-      // ^ is here to avoid interference with future statuses
       break;
     }
-    next = next->next;
-    if (!next) {
-      fullRun++;
-      if (fullRun > 2)
-        break;
-      next = firstTask;
-    }
+    next = next->next ? next->next : firstTask;
+    if (++fullRun > 2) break;
   }
 
-  // found no task
-  if (!next)
-    next = dummyTask;
-
+  if (!next) next = dummyTask;
   Task *old = currentTask;
-
   currentTask = next;
 
   if (old->state != TASK_STATE_READY && old->spinlockQueueEntry) {
-    // taskSpinlockExit(). maybe also todo on exit cleanup
     spinlockRelease(old->spinlockQueueEntry);
     old->spinlockQueueEntry = 0;
   }
 
   if (!next->kernel_task) {
-    // per-process timers
-    uint64_t rtAt = atomicRead64(&next->infoSignals->itimerReal.at);
-    uint64_t rtReset = atomicRead64(&next->infoSignals->itimerReal.reset);
-    if (rtAt && rtAt <= timerTicks) {
-      // issue signal
+    // Optimize timer checks: only read atomic values once
+    struct {
+      uint64_t at, reset;
+    } itimerReal = {
+      .at = atomicRead64(&next->infoSignals->itimerReal.at),
+      .reset = atomicRead64(&next->infoSignals->itimerReal.reset)
+    };
+    if (itimerReal.at && itimerReal.at <= timerTicks) {
       atomicBitmapSet(&next->sigPendingList, SIGALRM);
-      if (!rtReset)
-        atomicWrite64(&next->infoSignals->itimerReal.at, 0);
-      else
-        atomicWrite64(&next->infoSignals->itimerReal.at, timerTicks + rtReset);
+      atomicWrite64(&next->infoSignals->itimerReal.at,
+        itimerReal.reset ? timerTicks + itimerReal.reset : 0);
     }
   }
 
 #if SCHEDULE_DEBUG
-  // if (old->id != 0 || next->id != 0)
-  debugf("[scheduler] Switching context: id{%d} -> id{%d}\n", old->id,
-         next->id);
+  debugf("[scheduler] Switching context: id{%d} -> id{%d}\n", old->id, next->id);
   debugf("cpu->usermode_rsp{%lx} rip{%lx} fsbase{%lx} gsbase{%lx}\n",
-         next->registers.usermode_rsp, next->registers.rip, old->fsbase,
-         old->gsbase);
+         next->registers.usermode_rsp, next->registers.rip, old->fsbase, old->gsbase);
 #endif
 
-  // Before doing anything, handle any signals
+  // Handle signals before context switch
   if (!next->kernel_task && !(next->registers.cs & GDT_KERNEL_CODE)) {
     signalsPendingHandleSched(next);
-    if (next->state == TASK_STATE_SIGKILLED) { // killed in the process
+    if (next->state == TASK_STATE_SIGKILLED) {
       currentTask = old;
       return schedule(rsp);
     }
   }
 
-  // Change TSS rsp0 (software multitasking)
+  // Change TSS rsp0 and syscall stack
   tssPtr->rsp0 = next->whileTssRsp;
   threadInfo.syscall_stack = next->whileSyscallRsp;
-
-  // Save MSRIDs (HIGHLY unsure)
-  // old->fsbase = rdmsr(MSRID_FSBASE);
-  // old->gsbase = rdmsr(MSRID_GSBASE);
 
   // Apply new MSRIDs
   wrmsr(MSRID_FSBASE, next->fsbase);
   wrmsr(MSRID_GSBASE, next->gsbase);
   wrmsr(MSRID_KERNEL_GSBASE, (size_t)&threadInfo);
 
-  // Save generic (and non) registers
+  // Save registers
   memcpy(&old->registers, cpu, sizeof(AsmPassedInterrupt));
 
-  // Apply new generic (and non) registers (not needed!)
-  // memcpy(cpu, &next->registers, sizeof(AsmPassedInterrupt));
-
-  // Apply pagetable (not needed!)
-  // ChangePageDirectoryUnsafe(next->pagedir);
-
-  // Save & load appropriate FPU state
+  // Save/load FPU state only for user tasks
   if (!old->kernel_task) {
     asm volatile(" fxsave %0 " ::"m"(old->fpuenv));
     asm("stmxcsr (%%rax)" : : "a"(&old->mxcsr));
   }
-
   if (!next->kernel_task) {
     asm volatile(" fxrstor %0 " ::"m"(next->fpuenv));
     asm("ldmxcsr (%%rax)" : : "a"(&next->mxcsr));
   }
 
-  // Cleanup any old tasks left dead (not needed!)
-  // if (old->state == TASK_STATE_DEAD)
-  //   taskKillCleanup(old);
-
-  // Put next task's registers in tssRsp
+  // Prepare iretq stack
   AsmPassedInterrupt *iretqRsp =
       (AsmPassedInterrupt *)(next->whileTssRsp - sizeof(AsmPassedInterrupt));
   memcpy(iretqRsp, &next->registers, sizeof(AsmPassedInterrupt));
 
-  // Pass off control to our assembly finalization code that:
-  //   - uses the tssRsp to iretq (give control back)
-  //   - applies the new pagetable
-  //   - cleanups old killed task (if necessary)
-  // .. basically replaces all (not needed!) stuff
-  uint64_t *pagedir =
-      next->pagedirOverride ? next->pagedirOverride : next->infoPd->pagedir;
+  // Update pagedir pointer (no full switch, just update global)
+  uint64_t *pagedir = next->pagedirOverride ? next->pagedirOverride : next->infoPd->pagedir;
   ChangePageDirectoryFake(pagedir);
-  // ^ just for globalPagedir to update (note potential race cond)
+
+  // Finalize context switch
   asm_finalize((size_t)iretqRsp, VirtualToPhysical((size_t)pagedir));
 }
