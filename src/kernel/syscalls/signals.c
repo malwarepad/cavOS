@@ -129,7 +129,9 @@ void signalsUcontextToAsmPassed(const struct sigcontext *ucontext,
 
 // fast function to tell if a signal is pending (for constant-pull syscalls)
 bool signalsPendingQuick(void *taskPtr) {
-  Task    *task = (Task *)taskPtr;
+  Task *task = (Task *)taskPtr;
+  if (task->kernel_task)
+    return false;
   sigset_t pendingList = atomicBitmapGet(&task->sigPendingList);
   sigset_t unblockedList = pendingList & ~task->sigBlockList;
   for (int i = 0; i < _NSIG; i++) {
