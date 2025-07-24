@@ -3,6 +3,46 @@
 
 bits    64
 
+
+; macro for pushing all registers (since pusha doesn't exist for 64 bit regs)
+%macro pusha64 0
+        push rax
+        push rbx
+        push rcx
+        push rdx
+        push rsi
+        push rdi
+        push rbp
+        push r8
+        push r9
+        push r10
+        push r11
+        push r12
+        push r13
+        push r14
+        push r15
+%endmacro
+
+; macro for popping all registers (since popa doesn't exist for 64 bit regs)
+%macro popa64 0
+        pop r15
+        pop r14
+        pop r13
+        pop r12
+        pop r11
+        pop r10
+        pop r9
+        pop r8
+        pop rbp
+        pop rdi
+        pop rsi
+        pop rdx
+        pop rcx
+        pop rbx
+        pop rax
+%endmacro
+
+
 global asm_finalize
 asm_finalize:
   ; rdi = switch stack pointer
@@ -15,21 +55,7 @@ asm_finalize:
   ; mov ds, ebp
   mov es, ebp
 
-  pop r15
-  pop r14
-  pop r13
-  pop r12
-  pop r11
-  pop r10
-  pop r9
-  pop r8
-  pop rbp
-  pop rdi
-  pop rsi
-  pop rdx
-  pop rcx
-  pop rbx
-  pop rax
+  popa64
 
   add rsp, 16      ; pop error code and interrupt number
   iretq            ; pops (CS, EIP, EFLAGS) and also (SS, ESP) if privilege change occurs
@@ -55,21 +81,7 @@ syscall_entry:
   push qword 0 ; error
   push qword 0 ; interrupt
 
-  push rax
-  push rbx
-  push rcx
-  push rdx
-  push rsi
-  push rdi
-  push rbp
-  push r8
-  push r9
-  push r10
-  push r11
-  push r12
-  push r13
-  push r14
-  push r15
+  pusha64
 
   mov rbp, ds
   push rbp
@@ -83,21 +95,7 @@ syscall_entry:
   mov ds, ebp
   mov es, ebp
 
-  pop r15
-  pop r14
-  pop r13
-  pop r12
-  pop r11
-  pop r10
-  pop r9
-  pop r8
-  pop rbp
-  pop rdi
-  pop rsi
-  pop rdx
-  pop rcx
-  pop rbx
-  pop rax
+  popa64
 
   add rsp, 16      ; pop error code and interrupt number
   add rsp, 40      ; pop other interrupt stuff
@@ -107,21 +105,7 @@ syscall_entry:
   o64 sysret
 
 isr_common:
-    push rax
-    push rbx
-    push rcx
-    push rdx
-    push rsi
-    push rdi
-    push rbp
-    push r8
-    push r9
-    push r10
-    push r11
-    push r12
-    push r13
-    push r14
-    push r15
+    pusha64
 
     mov rbp, ds
     push rbp
@@ -143,21 +127,7 @@ asm_isr_exit:
     ; mov ds, ebp
     mov es, ebp
 
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop r11
-    pop r10
-    pop r9
-    pop r8
-    pop rbp
-    pop rdi
-    pop rsi
-    pop rdx
-    pop rcx
-    pop rbx
-    pop rax
+    popa64
 
     add rsp, 16      ; pop error code and interrupt number
     iretq            ; pops (CS, EIP, EFLAGS) and also (SS, ESP) if privilege change occurs
