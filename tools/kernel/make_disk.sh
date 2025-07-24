@@ -36,10 +36,10 @@ SIZE_IN_BLOCKS=$((($SIZE_IN_BYTES / 512) * 2 + 500000))
 
 if [ -z "$4" ]; then
 	dd if=/dev/zero of="${3}" bs=512 count=$SIZE_IN_BLOCKS
-	parted "${3}" mklabel msdos
-	parted "${3}" mkpart primary ext4 2048s 68157440B
-	parted "${3}" set 1 boot on
-	parted "${3}" mkpart primary ext4 136314880B 100%
+	sudo parted "${3}" mklabel msdos
+	sudo parted "${3}" mkpart primary ext4 2048s 68157440B
+	sudo parted "${3}" set 1 boot on
+	sudo parted "${3}" mkpart primary ext4 136314880B 100%
 	"$LIMINE_EXEC" bios-install "${3}"
 fi
 
