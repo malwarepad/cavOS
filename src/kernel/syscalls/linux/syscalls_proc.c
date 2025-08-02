@@ -420,6 +420,8 @@ static size_t syscallReboot(int magic1, int magic2, uint32_t cmd, void *arg) {
 static size_t syscallFutex(uint32_t *addr, int op, uint32_t value,
                            struct timespec *utime, uint32_t *addr2,
                            uint32_t value3) {
+  if (currentTask->extras & EXTRAS_DISABLE_FUTEX)
+    return 0;
   return futexSyscall(addr, op, value, utime, addr2, value3);
 }
 

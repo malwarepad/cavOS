@@ -461,6 +461,8 @@ Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
   memcpy(target->fpuenv, currentTask->fpuenv, 512);
   target->mxcsr = currentTask->mxcsr;
 
+  target->extras = currentTask->extras;
+
   if (spinup)
     taskCreateFinish(target);
 

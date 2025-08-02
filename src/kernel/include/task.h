@@ -117,6 +117,8 @@ typedef struct TaskSysInterrupted {
   uint64_t number; // rax
 } TaskSysInterrupted;
 
+#define EXTRAS_DISABLE_FUTEX (1 << 0)
+
 struct Task {
   uint64_t id;
   int      pgid;
@@ -181,6 +183,8 @@ struct Task {
   KilledInfo *firstChildTerminated;
   int         childrenTerminatedAmnt;
   int        *tidptr;
+
+  uint64_t extras; // extra flags
 
   Task *parent;
   Task *next;
