@@ -30,6 +30,13 @@ chroot_establish() {
 	fi
 }
 
+# ! If you ever want to chroot into your target, uncomment the following lines and comment them out again before running make disk !
+# if [[ -z "$1" || ! -d "$1" ]]; then
+#     echo "Error: You must provide a valid directory as the first argument." >&2
+#     exit 1
+# fi
+
 # chroot_establish "$1"
 # sudo chroot "$1/" /usr/bin/env -i HISTFILE=/dev/null /bin/bash
 # chroot_drop "$1"
+# ! End uncomment
