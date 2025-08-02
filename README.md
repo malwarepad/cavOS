@@ -7,9 +7,19 @@ cavOS is an x86_64 POSIX-compliant operating system in C. An active effort of ma
 [![GitHub contributors](https://img.shields.io/github/contributors/malwarepad/cavOS)](https://github.com/malwarepad/cavOS/graphs/contributors)
 [![GitHub commit activity](https://img.shields.io/github/commit-activity/m/malwarepad/cavOS)](https://github.com/malwarepad/cavOS/commits)
 
-## Preview of the OS
-![Preview of the OS](https://raw.malwarepad.com/cavos/images/preview4.png)
-![Preview of the OS](https://raw.malwarepad.com/cavos/images/preview5.png)
+## Previews of the OS
+| Terminal and Xorg utilities                                       | Image viewer and a mesa demo                                      |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------- |
+| ![preview4](https://raw.malwarepad.com/cavos/images/preview4.png) | ![preview5](https://raw.malwarepad.com/cavos/images/preview5.png) |
+
+| Thunar and MPV playing Bad Apple                                  | The games Quake Doom and ClassiCraft                              |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------- |
+| ![preview8](https://raw.malwarepad.com/cavos/images/preview8.png) | ![preview7](https://raw.malwarepad.com/cavos/images/preview7.png) |
+
+| Wikipedia on NetSurf Browser                                      | HexChat on Liberta IRC (encrypted w/TLS)                           |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------ |
+| ![preview6](https://raw.malwarepad.com/cavos/images/preview6.png) | ![preview9)](https://raw.malwarepad.com/cavos/images/preview9.png) |
+
 
 ## Why make your own OS in [insert year]?
 > **because I can.**
@@ -37,8 +47,12 @@ Userspace is my primary focus at the time being, with the kernel being *quite* s
 
 As far as the actual implementation goes, I'm using the `apk` package manager from Alpine Linux and their respective repositories for userspace assembly. Alpine's & musl's philosophy align with the cavOS one and I really see no point in recompiling stuff myself if I don't necessarily have to.
 
-## Is this a Linux distribution?
-No! The cavOS kernel does not share source code or headers with Linux. Some header definitions are obviously present but that is just to support the userspace. Internally the cavOS kernel doesn't have much in common with Linux other than the fact that it's monolithic. This layout may change in the future with cavOS-specific extensions being added as well.
+## Frequently asked questions (FAQ)
+- **Where do I download cavOS?** You don't. It is by no means mature enough for an actual release yet, so you have to compile it yourself. It's not as difficult as other OSes, there are only a few short commands you have to run.
+- **Is this a Linux distribution?** No! The cavOS kernel does not share source code or headers with Linux. Some header definitions are obviously present but that is just to support the userspace. Internally the cavOS kernel doesn't have much in common with Linux other than the fact that it's monolithic. This layout may change in the future with cavOS-specific extensions being added as well.
+- **How do I get inside the GUI?** cavOS utilizes the xorg server (also known as X11 or X.org) to render a graphical UI. In order to start it up from the console, just run `a`.
+- **Why is RAM usage this high?** As you might've already guessed, the RAM usage reported by tools like fastfetch or free are a bit misleading. They don't match up to the typical Linux counterpart, as a lot of mmap() operations belong to other categories (like Buffers/Cached or likewise). This issue will eventually be fixed when features like COW are implemented along with others.
+- **I found issues on the shell before launching the GUI...** Keep in mind that cavOS' TTY equivalent doesn't support that many ASCII codes and is generally badly written. You can open PRs to fix that, but I'm focusing on other stuff at the moment.
 
 ## Documentation
 - **Contributing:** Information about contribution guidelines & suggestions [docs/contributing.md](docs/contributing.md)
