@@ -20,7 +20,8 @@ static size_t syscallRtSigaction(int sig, const struct sigaction *act,
   }
   if (sig >= SIGRTMIN) { // [min, +inf)
     dbgSysStubf("todo real-time signals");
-    return ERR(ENOSYS);
+    // todo: real-time systemcalls are not really ready
+    // return ERR(ENOSYS);
   }
 
   if (oact) {
@@ -36,6 +37,7 @@ static size_t syscallRtSigaction(int sig, const struct sigaction *act,
     if (act->sa_flags & ~(sigactionSupportedFlags)) {
       dbgSigStubf("[signals::sigaction] Unsupported flags! flags{%lx}\n",
                   act->sa_flags);
+      // return 0;
       return ERR(ENOSYS);
     }
 
@@ -101,8 +103,9 @@ static size_t syscallKill(int pid, int sig) {
     return ERR(EINVAL);
 
   if (sig >= SIGRTMIN) {
-    dbgSigStubf("[signals::kill] Todo real-time signals!\n");
-    return ERR(ENOSYS);
+    dbgSysStubf("todo real-time signals");
+    // dbgSigStubf("[signals::kill] Todo real-time signals!\n");
+    // return ERR(ENOSYS);
   }
 
   if (pid > 0) {
@@ -156,10 +159,27 @@ static size_t syscallKill(int pid, int sig) {
   return 0;
 }
 
+#define SYSCALL_TKILL 200
+static size_t syscallTkill(int pid, int sig) {
+  spinlockCntReadAcquire(&TASK_LL_MODIFY);
+  Task *target = firstTask;
+  while (target) {
+    if (target->id == pid)
+      break;
+    target = target->next;
+  }
+  spinlockCntReadRelease(&TASK_LL_MODIFY);
+  if (!target || target->state == TASK_STATE_DEAD)
+    return ERR(ESRCH);
+  atomicBitmapSet(&target->sigPendingList, sig);
+  return 0;
+}
+
 void syscallRegSig() {
   // a
   registerSyscall(SYSCALL_RT_SIGACTION, syscallRtSigaction);
   registerSyscall(SYSCALL_RT_SIGPROCMASK, syscallRtSigprocmask);
   registerSyscall(SYSCALL_RT_SIGRETURN, syscallRtSigreturn);
   registerSyscall(SYSCALL_KILL, syscallKill);
+  registerSyscall(SYSCALL_TKILL, syscallTkill);
 }

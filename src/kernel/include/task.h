@@ -161,6 +161,7 @@ struct Task {
 
   char  *cmdline;
   size_t cmdlineLen;
+  char  *execname; // elf executable name
 
   // Remember, this is per THREAD! It just gets cloned
   sigset_t sigBlockList;

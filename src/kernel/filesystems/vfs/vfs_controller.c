@@ -278,6 +278,18 @@ cleanup:
 }
 
 size_t fsReadlink(void *task, char *path, char *buf, int size) {
+  if (strlength(path) == 14 && memcmp(path, "/proc/self/exe", 15) == 0 &&
+      currentTask->execname) {
+    // todo: hack-y, needs to be done properly sometime!
+    size_t total = strlength(currentTask->execname);
+    size_t toCopy = MIN(size, total);
+    memcpy(buf, currentTask->execname, toCopy);
+    return toCopy;
+    // memcpy(buf, "/usr/libexec/webkit2gtk-4.1/MiniBrowser", 40);
+    // return 40;
+    // memcpy(buf, "/usr/bin/mpv", 13);
+    // return 13;
+  }
   Task *target = task;
   spinlockAcquire(&target->infoFs->LOCK_FS);
   char *safeFilename = fsSanitize(target->infoFs->cwd, path);

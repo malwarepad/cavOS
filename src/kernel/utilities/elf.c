@@ -208,6 +208,7 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
 
   target->cmdline = cmdline;
   target->cmdlineLen = totalLen;
+  target->execname = strdup(filepath);
 
   // libc takes care of tls lmao
   /*if (tls) {

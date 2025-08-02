@@ -153,6 +153,22 @@ int unixSocketAcceptInternalPoll(OpenFile *fd, int events) {
   return revents;
 }
 
+size_t unixSocketAcceptGetpeername(OpenFile *fd, sockaddr_linux *addr,
+                                   uint32_t *len) {
+  UnixSocketPair *pair = fd->dir;
+  if (!pair)
+    return ERR(ENOTCONN);
+
+  int actualLen = sizeof(addr->sa_family) + strlength(pair->filename);
+  int toCopy = MIN(*len, actualLen);
+  if (toCopy < sizeof(addr->sa_family)) // you're POOR!
+    return ERR(EINVAL);
+  addr->sa_family = AF_UNIX;
+  memcpy(addr->sa_data, pair->filename, toCopy - sizeof(addr->sa_family));
+  *len = toCopy;
+  return 0;
+}
+
 size_t unixSocketOpen(void *taskPtr, int type, int protocol) {
   // rest are not supported yet, only SOCK_STREAM
   if (!(type & 1)) {
@@ -665,6 +681,7 @@ VfsHandlers unixSocketHandlers = {.sendto = unixSocketSendto,
 VfsHandlers unixAcceptHandlers = {.sendto = unixSocketAcceptSendto,
                                   .recvfrom = unixSocketAcceptRecvfrom,
                                   .recvmsg = unixSocketAcceptRecvmsg,
+                                  .getpeername = unixSocketAcceptGetpeername,
                                   .duplicate = unixSocketAcceptDuplicate,
                                   .close = unixSocketAcceptClose,
                                   .internalPoll = unixSocketAcceptInternalPoll};

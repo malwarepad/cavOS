@@ -373,6 +373,8 @@ Task *taskFork(AsmPassedInterrupt *cpu, uint64_t rsp, int cloneFlags,
   target->cmdlineLen = currentTask->cmdlineLen;
   target->cmdline = malloc(target->cmdlineLen);
   memcpy(target->cmdline, currentTask->cmdline, target->cmdlineLen);
+  if (currentTask->execname)
+    target->execname = strdup(currentTask->execname);
 
   if (cloneFlags & CLONE_THREAD)
     target->tgid = currentTask->tgid;
