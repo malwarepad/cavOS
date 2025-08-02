@@ -81,8 +81,19 @@ menu "defops"
 "Hide Iconmgr"	f.hideiconmgr
 ""		f.nop
 "Terminal"	f.exec "exec st &"
+"Files"		f.exec "exec thunar &"
 "Nedit"		f.exec "exec nedit &"
+"IRC"		f.exec "exec hexchat &"
+"NetSurf"	f.exec "exec netsurf &"
+""		f.nop
 "Xeyes"		f.exec "exec xeyes &"
+"Xclock"	f.exec "exec xclock -update 1 &"
+"Xcalc" 	f.exec "exec xcalc &"
+"Glxgears" 	f.exec "exec glxgears &"
+""		f.nop
+"Doom"	 	f.exec "exec doom -iwad /doom.wad &"
+"Quake" 	f.exec "exec quakespasm &"
+"ClassiCube" 	f.exec "exec ClassiCube &"
 ""		f.nop
 "Kill"		f.destroy
 "Delete"	f.delete

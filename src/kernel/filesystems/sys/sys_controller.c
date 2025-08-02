@@ -6,6 +6,8 @@
 #include <fb.h>
 #include <syscalls.h>
 
+#include <console.h>
+
 Fakefs rootSys = {0};
 
 typedef struct PciConf {
@@ -124,7 +126,22 @@ void sysSetupPci(FakefsFile *devices) {
   free(out);
 }
 
+// todo: extremely janky system (not considering TTYs like I should) but should
+// work for xorg
+size_t cavosConsoleWrite(OpenFile *fd, uint8_t *buff, size_t len) {
+  size_t i = len - 1; // only index we care about
+  if (buff[i] == 'd')
+    consoleDisabled = true;
+  else if (buff[i] == 'e')
+    consoleDisabled = false;
+  return len;
+}
+VfsHandlers cavosConsoleHandlers = {.write = cavosConsoleWrite};
+
 void sysSetup() {
+  fakefsAddFile(&rootSys, rootSys.rootFile, "cavosConsole", 0,
+                S_IFLNK | S_IRUSR | S_IFREG, &cavosConsoleHandlers);
+
   FakefsFile *bus =
       fakefsAddFile(&rootSys, rootSys.rootFile, "bus", 0,
                     S_IFDIR | S_IRUSR | S_IWUSR, &fakefsRootHandlers);

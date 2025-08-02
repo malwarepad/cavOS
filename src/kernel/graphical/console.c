@@ -20,6 +20,8 @@ int textcolor[] = {255, 255, 255};
 uint32_t width = 0;
 uint32_t height = 0;
 
+atomic_bool consoleDisabled = false;
+
 #define CHAR_HEIGHT (psf->height)
 #define CHAR_WIDTH (8)
 
@@ -119,7 +121,7 @@ void setConsoleY(uint32_t y) {
 }
 
 void drawCharacter(int charnum) {
-  if (!charnum)
+  if (!charnum || consoleDisabled)
     return;
 
   if (ansiHandle(charnum))

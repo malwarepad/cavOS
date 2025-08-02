@@ -9,6 +9,8 @@ uint32_t height;
 extern int bg_color[];
 extern int textcolor[];
 
+atomic_bool consoleDisabled;
+
 #define TTY_CHARACTER_WIDTH 8
 #define TTY_CHARACTER_HEIGHT 16
 
