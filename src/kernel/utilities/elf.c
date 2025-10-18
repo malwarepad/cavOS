@@ -119,6 +119,7 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
 
   size_t interpreterEntry = 0;
   size_t interpreterBase = 0x100000000000; // todo: not hardcode
+  size_t executableBase = 0;               // modified later if needed
   // Loop through the multiple ELF32 program header tables
   for (int i = 0; i < elf_ehdr->e_phnum; i++) {
     Elf64_Phdr *elf_phdr = (Elf64_Phdr *)((size_t)out + elf_ehdr->e_phoff +
@@ -162,7 +163,11 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
     if (elf_phdr->p_type != PT_LOAD)
       continue;
 
-    elfProcessLoad(elf_phdr, out, 0);
+    if (elf_ehdr->e_type == 3) {
+      // ET_DYN
+      executableBase = 0x50000000000; // todo: not hardcode
+    }
+    elfProcessLoad(elf_phdr, out, executableBase);
 
 #if ELF_DEBUG
     debugf("[elf] Program header: type{%d} offset{%x} vaddr{%x} size{%x} "
@@ -192,7 +197,7 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
   Task *target =
       taskCreate(id,
                  interpreterEntry ? (interpreterBase + interpreterEntry)
-                                  : elf_ehdr->e_entry,
+                                  : (executableBase + elf_ehdr->e_entry),
                  false, pagedir, argc, argv);
 
   size_t totalLen = 0;
@@ -240,7 +245,7 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
 
   // User stack generation: the stack itself, AUXs, etc...
   stackGenerateUser(target, argc, argv, envc, envv, out, filesize, elf_ehdr,
-                    interpreterEntry ? 0x100000000000 : 0);
+                    interpreterEntry ? 0x100000000000 : 0, executableBase);
   VirtualFree(out, outSize);
 
   // Align it, just in case...
