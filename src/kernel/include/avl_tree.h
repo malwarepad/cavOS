@@ -20,6 +20,5 @@ avlval AVLLookup(void *root, avlkey key);
 
 void *AVLAllocate(void **AVLfirstPtr, avlkey key, avlval value);
 bool  AVLUnregister(void **AVLfirstPtr, avlkey key);
-bool  AVLFree(void **AVLfirstPtr, avlkey key);
 
 #endif
