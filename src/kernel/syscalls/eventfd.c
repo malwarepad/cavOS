@@ -3,6 +3,7 @@
 #include <kb.h>
 #include <linux.h>
 #include <malloc.h>
+#include <poll.h>
 #include <syscalls.h>
 #include <task.h>
 
@@ -41,6 +42,8 @@ size_t eventFdOpen(uint64_t initValue, int flags) {
 
   return eventFdNumber;
 }
+
+size_t eventFdReportKey(OpenFile *fd) { return (size_t)fd->dir; }
 
 bool eventFdDuplicate(OpenFile *original, OpenFile *orphan) {
   EventFd *eventFd = original->dir;
@@ -85,6 +88,7 @@ size_t eventFdRead(OpenFile *fd, uint8_t *out, size_t limit) {
   atomicWrite64((void *)out, eventFd->counter);
   eventFd->counter = 0;
   spinlockRelease(&eventFd->LOCK_EVENTFD);
+  pollInstanceRing((size_t)fd->dir, EPOLLOUT);
   return 8;
 }
 
@@ -111,6 +115,7 @@ size_t eventFdWrite(OpenFile *fd, uint8_t *in, size_t limit) {
 
   eventFd->counter += toAdd;
   spinlockRelease(&eventFd->LOCK_EVENTFD);
+  pollInstanceRing((size_t)fd->dir, EPOLLIN);
   return 8;
 }
 
@@ -133,4 +138,5 @@ VfsHandlers eventFdHandlers = {.read = eventFdRead,
                                .write = eventFdWrite,
                                .internalPoll = eventFdInternalPoll,
                                .duplicate = eventFdDuplicate,
+                               .reportKey = eventFdReportKey,
                                .close = eventFdClose};

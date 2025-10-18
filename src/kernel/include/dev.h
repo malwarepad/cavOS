@@ -34,6 +34,7 @@ typedef struct DevInputEvent {
 } DevInputEvent;
 
 DevInputEvent devInputEvents[MAX_EVENTS];
+int           lastInputEvent;
 
 DevInputEvent *devInputEventSetup(char *devname);
 void inputGenerateEvent(DevInputEvent *item, uint16_t type, uint16_t code,

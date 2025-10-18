@@ -90,6 +90,7 @@ typedef size_t (*SpecialSendto)(OpenFile *fd, uint8_t *in, size_t limit,
                                 int flags, sockaddr_linux *addr, uint32_t len);
 typedef int (*SpecialInternalPoll)(OpenFile *fd, int events);
 typedef int (*SpecialAddWatchlist)(OpenFile *fd, int rwsLevel, bool add);
+typedef size_t (*SpecialReportKey)(OpenFile *fd);
 
 typedef struct VfsHandlers {
   SpecialReadHandler  read;
@@ -117,6 +118,7 @@ typedef struct VfsHandlers {
 
   // polling
   SpecialInternalPoll internalPoll;
+  SpecialReportKey    reportKey;
   SpecialAddWatchlist addWatchlist;
 
   SpecialDuplicate duplicate;
@@ -166,12 +168,12 @@ struct MountPoint {
   void         *fsInfo;
 };
 
-typedef struct PollItem {
+/*typedef struct PollItem {
   struct PollItem *next;
 
   int   epollEvents;
   void *task; // Task*
-} PollItem;
+} PollItem;*/
 
 #define VFS_CLOSE_FLAG_RETAIN_ID (1 << 0)
 struct OpenFile {

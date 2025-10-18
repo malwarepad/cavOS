@@ -69,20 +69,6 @@ bool LinkedListRemove(void **LLfirstPtr, void *LLtarget) {
   return res;
 }
 
-bool LinkedListDuplicate(void **LLfirstPtrSource, void **LLfirstPtrTarget,
-                         uint32_t structSize) {
-  LLheader *browse = (LLheader *)(LLfirstPtrSource);
-  while (browse) {
-    LLheader *new = LinkedListAllocate(LLfirstPtrTarget, structSize);
-    memcpy((void *)((size_t)new + sizeof(new->next)),
-           (void *)((size_t)browse + sizeof(browse->next)),
-           structSize - sizeof(browse->next));
-    browse = browse->next;
-  }
-
-  return true;
-}
-
 void LinkedListPushFrontUnsafe(void **LLfirstPtr, void *LLtarget) {
   if (*LLfirstPtr == 0) {
     // todo: zero next (checks)
@@ -94,4 +80,15 @@ void LinkedListPushFrontUnsafe(void **LLfirstPtr, void *LLtarget) {
   *LLfirstPtr = LLtarget;
   LLheader *target = (LLheader *)(LLtarget);
   target->next = next;
+}
+
+void LinkedListDestroy(void **LLfirstPtr) {
+  LLheader *browse = (LLheader *)(*LLfirstPtr);
+  while (browse) {
+    void *next = browse->next;
+    free(browse);
+    browse = next;
+  }
+
+  *LLfirstPtr = 0;
 }

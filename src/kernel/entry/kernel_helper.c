@@ -1,6 +1,9 @@
+#include <console.h>
+#include <dev.h>
 #include <kernel_helper.h>
 #include <nic_controller.h>
 #include <paging.h>
+#include <poll.h>
 #include <system.h>
 #include <task.h>
 #include <types.h>
@@ -74,10 +77,22 @@ end:
   spinlockRelease(&LOCK_REAPER);
 }
 
+// todo: find cleaner alternatives to this and to the kernel helper as a whole
+void helperVolatilePoll() {
+  if (!consoleDisabled) // kernel io
+    pollInstanceRing(69, EPOLLIN);
+  for (int i = 0; i < lastInputEvent; i++) {
+    if (atomicRead64(&devInputEvents[i].deviceEvents.readPtr) !=
+        atomicRead64(&devInputEvents[i].deviceEvents.writePtr))
+      pollInstanceRing((size_t)&devInputEvents[i], EPOLLIN);
+  }
+}
+
 void kernelHelpEntry() {
   while (true) {
     helperNet();
     helperReaper();
+    helperVolatilePoll();
 
     handControl();
   }

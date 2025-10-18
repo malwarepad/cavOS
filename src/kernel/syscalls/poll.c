@@ -9,8 +9,156 @@
 #include <task.h>
 #include <timer.h>
 
+// for tmp exclusions
+#include <socket.h>
+
 // Polling APIs & kernel helper utility
 // Copyright (C) 2025 Panagiotis
+
+// poll instance helpers
+void pollInstanceDestroy(PollInstance *instance, bool lockAcquired) {
+  if (!lockAcquired)
+    spinlockAcquire(&LOCK_POLL_ROOT);
+
+  if (pollRoot == instance)
+    pollRoot = instance->next;
+  else {
+    PollInstance *browse = pollRoot;
+    // todo: maybe add some sort of assertion to this
+    while (browse && browse->next) {
+      if (browse->next == instance) {
+        browse->next = instance->next;
+        break;
+      }
+      browse = browse->next;
+    }
+  }
+
+  LinkedListDestroy((void **)&instance->listeners);
+  LinkedListDestroy((void **)&instance->items);
+  free(instance);
+
+  if (!lockAcquired)
+    spinlockRelease(&LOCK_POLL_ROOT);
+}
+
+PollItem *pollItemLookup(PollInstance *instance, uint64_t key) {
+  PollItem *browse = instance->items;
+  while (browse) {
+    if (browse->key == key)
+      break;
+    browse = browse->next;
+  }
+  return browse;
+}
+
+void pollItemAdd(PollInstance *instance, uint64_t key, int epollEvents) {
+  PollItem *target = calloc(sizeof(PollItem), 1);
+  target->key = key;
+  target->epollEvents = epollEvents;
+  LinkedListPushFrontUnsafe((void **)&instance->items, target);
+}
+
+void pollItemRemove(PollInstance *instance, uint64_t key) {
+  PollItem *target = pollItemLookup(instance, key);
+  assert(target);
+  assert(LinkedListRemove((void **)&instance->items, target));
+}
+
+void pollInstanceRingInner(PollInstance *instanceUnsafe, bool involuntary) {
+  // notify all of them, removing them one-by-one
+  TaskListeners *listener = instanceUnsafe->listeners;
+  while (listener) {
+    if (!involuntary && listener->task->state == TASK_STATE_READY) {
+      // involuntarily woken up first
+      assert(listener->task->extras & EXTRAS_INVOLUTARY_WAKEUP);
+      return; // will be ringed by the other thing anyways
+      // todo: ensure we won't be deleted first (future, still valid)
+      continue;
+    }
+    // assert(listener->task->state != TASK_STATE_READY);
+    //   on ^ case, continue
+    // todo: safe wakeup w/asserts on task.c
+    // maybe not needed since the lock is released...
+    assert(!listener->task->spinlockQueueEntry);
+    listener->task->forcefulWakeupTimeUnsafe = 0;
+    listener->task->state = TASK_STATE_READY;
+    TaskListeners *next = listener->next;
+    free(listener);
+    listener = next;
+  }
+
+  // get ready for next fair (+ the previous free())
+  instanceUnsafe->listeners = 0;
+
+  // the next one will go through locks and find it dead
+  instanceUnsafe->listening = false;
+}
+
+// At the moment pollInstanceRing() basically "ignores" epollEvent. You still
+// need to fill it in correctly though. That is because atm there isn't a
+// clear-cut solution for stuff like sockets with different states so it serves
+// more so as a loop restrictor for stuff like (e/p)poll. In the future that
+// won't be the case and more restrictions will be applied.
+
+// Same issue as unix sockets applies w/ptmx
+
+// Another important issue is networking, where I'm not sure how I wanna
+// approach polling & lwip. Atm I'm doing the simplest most straightforward
+// thing which is 1 poll/schedule when a networking socket gets found in the
+// list, as networking requirements are light enough to tolerate this. It will
+// need to be re-evaluated as a whole though.
+
+// Yes, these are notes to my future self.
+
+// make SURE this is OUT OF LOCKS USED IN internalPoll() or smth!
+void pollInstanceRing(size_t key, int epollEvent) {
+  spinlockAcquire(&LOCK_POLL_ROOT); // <- very important thing
+  PollInstance *instance = pollRoot;
+  while (instance) {
+    // pollItemLookup(instance->items, epollEvent)
+    // (epollEvent & value || (epollEvent & ~(EPOLLIN | EPOLLOUT)))
+    PollItem *item = pollItemLookup(instance, key);
+    if (instance->listening && item)
+      pollInstanceRingInner(instance, false);
+
+    instance = instance->next;
+  }
+  spinlockRelease(&LOCK_POLL_ROOT);
+}
+
+// before make SURE to check list WITH LOCK ACQUIRED!
+void pollInstanceWait(PollInstance *instance, size_t expiry) {
+#if !NO_LEGACY_POLL
+  spinlockRelease(&LOCK_POLL_ROOT);
+  handControl();
+  return;
+#endif
+
+  // instance IS locked AND READY
+  // spinlockAcquire(&LOCK_POLL_ROOT);
+  // spinlockAcquire(&instance->LOCK_POLL_INSTANCE);
+  TaskListeners *listener =
+      LinkedListAllocate((void **)&instance->listeners, sizeof(TaskListeners));
+  listener->task = currentTask;
+  if (instance->listening)
+    debugf("[poll::instance] WARN: Experiemental! > 1 listener bound!\n");
+  instance->listening = true;
+  if (expiry)
+    currentTask->forcefulWakeupTimeUnsafe = expiry;
+  taskSpinlockExit(currentTask, &LOCK_POLL_ROOT);
+  currentTask->extras &= ~EXTRAS_INVOLUTARY_WAKEUP; // clear
+  currentTask->state = TASK_STATE_BLOCKED;
+  handControl();
+  assert(!currentTask->forcefulWakeupTimeUnsafe);
+
+  if (currentTask->extras & EXTRAS_INVOLUTARY_WAKEUP) {
+    spinlockAcquire(&LOCK_POLL_ROOT);
+    if (instance->listening) // no race conds here!
+      pollInstanceRingInner(instance, true);
+    spinlockRelease(&LOCK_POLL_ROOT);
+  }
+}
 
 // epoll API
 size_t epollCreate1(int flags) {
@@ -27,6 +175,10 @@ size_t epollCreate1(int flags) {
   Epoll *epoll = LinkedListAllocate((void **)&firstEpoll, sizeof(Epoll));
   spinlockRelease(&LOCK_LL_EPOLL);
   epoll->timesOpened = 1;
+  spinlockAcquire(&LOCK_POLL_ROOT);
+  epoll->instance =
+      LinkedListAllocate((void **)&pollRoot, sizeof(PollInstance));
+  spinlockRelease(&LOCK_POLL_ROOT);
 
   epollNode->handlers = &epollHandlers;
   epollNode->dir = epoll;
@@ -53,6 +205,7 @@ bool epollClose(OpenFile *fd) {
     // destroy this thing
     // todo! interest list cleanup, watchlist(s)
     spinlockAcquire(&LOCK_LL_EPOLL);
+    pollInstanceDestroy(epoll->instance, true);
     assert(LinkedListRemove((void **)(&firstEpoll), epoll));
     spinlockRelease(&LOCK_LL_EPOLL);
     return true;
@@ -76,6 +229,8 @@ void epollCloseNotify(OpenFile *fd) {
     }
     if (browseEpollWatch) {
       // we found it!
+      // todo: get rid of it! (edge case regardless)
+      // todo: probable "leak" with ->instance
       LinkedListRemove((void **)(&browseEpoll->firstEpollWatch),
                        browseEpollWatch);
       spinlockRelease(&browseEpoll->LOCK_EPOLL);
@@ -102,6 +257,7 @@ size_t epollCtl(OpenFile *epollFd, int op, int fd, struct epoll_event *event) {
 
   size_t ret = 0;
   spinlockAcquire(&epoll->LOCK_EPOLL);
+  spinlockAcquire(&LOCK_POLL_ROOT);
 
   OpenFile *fdNode = fsUserGetNode(currentTask, fd);
   if (!fdNode) {
@@ -114,14 +270,19 @@ size_t epollCtl(OpenFile *epollFd, int op, int fd, struct epoll_event *event) {
     ret = ERR(EPERM);
     goto cleanup;
   }
+  assert(fdNode->handlers->reportKey && fdNode->handlers->reportKey(fdNode));
 
   switch (op) {
   case EPOLL_CTL_ADD: {
+    assert(fdNode->handlers != &socketHandlers); // todo legacyMode
     EpollWatch *epollWatch = LinkedListAllocate(
         (void **)(&epoll->firstEpollWatch), sizeof(EpollWatch));
     epollWatch->fd = fdNode;
     epollWatch->watchEvents = event->events;
     epollWatch->userlandData = event->data;
+
+    pollItemAdd(epoll->instance, fdNode->handlers->reportKey(fdNode),
+                event->events);
     break;
   }
   case EPOLL_CTL_MOD: {
@@ -137,6 +298,9 @@ size_t epollCtl(OpenFile *epollFd, int op, int fd, struct epoll_event *event) {
     }
     browse->watchEvents = event->events;
     browse->userlandData = event->data;
+    pollItemRemove(epoll->instance, fdNode->handlers->reportKey(fdNode));
+    pollItemAdd(epoll->instance, fdNode->handlers->reportKey(fdNode),
+                event->events);
     break;
   }
   case EPOLL_CTL_DEL: {
@@ -150,6 +314,7 @@ size_t epollCtl(OpenFile *epollFd, int op, int fd, struct epoll_event *event) {
       ret = ERR(ENOENT);
       goto cleanup;
     }
+    pollItemRemove(epoll->instance, fdNode->handlers->reportKey(fdNode));
     assert(LinkedListRemove((void **)(&epoll->firstEpollWatch), browse));
     break;
   }
@@ -160,6 +325,7 @@ size_t epollCtl(OpenFile *epollFd, int op, int fd, struct epoll_event *event) {
   }
 
 cleanup:
+  spinlockRelease(&LOCK_POLL_ROOT);
   spinlockRelease(&epoll->LOCK_EPOLL);
   return ret;
 }
@@ -177,6 +343,7 @@ size_t epollWait(OpenFile *epollFd, struct epoll_event *events, int maxevents,
   size_t target = timerTicks + timeout;
   do {
     spinlockAcquire(&epoll->LOCK_EPOLL);
+    spinlockAcquire(&LOCK_POLL_ROOT); // these two for pollInstanceWait()
     EpollWatch *browse = epoll->firstEpollWatch;
     while (browse && ready < maxevents) {
       int revents =
@@ -191,11 +358,19 @@ size_t epollWait(OpenFile *epollFd, struct epoll_event *events, int maxevents,
     spinlockRelease(&epoll->LOCK_EPOLL);
 
     sigexit = signalsPendingQuick(currentTask);
-    if (ready > 0 || sigexit) // break immidiately!
+    if (ready > 0 || sigexit) { // break immidiately!
+      spinlockRelease(&LOCK_POLL_ROOT);
       break;
-    handControl();
+    }
+    if (timeout != 0)
+      pollInstanceWait(epoll->instance, timeout == -1 ? 0 : target);
+    else {
+      spinlockRelease(&LOCK_POLL_ROOT);
+    }
+    // handControl();
   } while (timeout != 0 && (timeout == -1 || timerTicks < target));
 
+  // todo (later): check that this is correct for signals
   if (!ready && sigexit)
     return ERR(EINTR);
 
@@ -275,7 +450,16 @@ size_t poll(struct pollfd *fds, int nfds, int timeout) {
   int    ret = 0;
   bool   sigexit = false;
   size_t target = timerTicks + timeout;
+
+  spinlockAcquire(&LOCK_POLL_ROOT);
+  PollInstance *instance =
+      LinkedListAllocate((void **)&pollRoot, sizeof(PollInstance));
+  spinlockRelease(&LOCK_POLL_ROOT);
+  bool first = false;
+  bool legacy = false; // contains networking items
+
   do {
+    spinlockAcquire(&LOCK_POLL_ROOT);
     for (int i = 0; i < nfds; i++) {
       fds[i].revents = 0; // zero it out first
       OpenFile *fd = fsUserGetNode(currentTask, fds[i].fd);
@@ -288,19 +472,50 @@ size_t poll(struct pollfd *fds, int nfds, int timeout) {
         }
         continue;
       }
+      // if (!fd->handlers->reportKey) {
+      //   asm volatile("cli");
+      //   while (1)
+      //     asm volatile("hlt");
+      // }
+      assert(fd->handlers->reportKey && fd->handlers->reportKey(fd));
       int revents = epollToPollComp(
           fd->handlers->internalPoll(fd, pollToEpollComp(fds[i].events)));
       if (revents != 0) {
         fds[i].revents = revents;
         ret++;
       }
+
+      if (!first) {
+        if (fd->handlers == &socketHandlers)
+          legacy = true;
+        size_t    key = fd->handlers->reportKey(fd);
+        PollItem *existing = pollItemLookup(instance, key);
+        if (existing) {
+          // existing->epollEvents |= fds[i].events;
+          pollItemRemove(instance, key);
+          pollItemAdd(instance, key, fds[i].events);
+        } else
+          pollItemAdd(instance, key, fds[i].events);
+      }
     }
+    first = true;
 
     sigexit = signalsPendingQuick(currentTask);
-    if (ret > 0 || sigexit) // return immidiately!
+    if (ret > 0 || sigexit) { // return immidiately!
+      spinlockRelease(&LOCK_POLL_ROOT);
       break;
-    handControl();
+    }
+    if (timeout != 0 && !legacy)
+      pollInstanceWait(instance, timeout == -1 ? 0 : target);
+    else {
+      spinlockRelease(&LOCK_POLL_ROOT);
+      if (legacy)
+        handControl();
+    }
+    // handControl();
   } while (timeout != 0 && (timeout == -1 || timerTicks < target));
+
+  pollInstanceDestroy(instance, false);
 
   if (!ret && sigexit)
     return ERR(EINTR);
