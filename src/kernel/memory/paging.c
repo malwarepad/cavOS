@@ -181,9 +181,6 @@ void VirtualMapL(uint64_t *pagedir, uint64_t virt_addr, uint64_t phys_addr,
   }
   virt_addr = AMD64_MM_STRIPSX(virt_addr);
 
-  if (!virt_addr)
-    debugf("[paging] WARNING! Mapping virt_addr{0}! phys{%lx}\n", phys_addr);
-
   uint32_t pml4_index = PML4E(virt_addr);
   uint32_t pdp_index = PDPTE(virt_addr);
   uint32_t pd_index = PDE(virt_addr);
