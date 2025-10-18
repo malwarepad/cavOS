@@ -533,9 +533,10 @@ size_t ppoll(struct pollfd *fds, int nfds, struct timespec *timeout,
   sigset_t origmask;
   if (sigmask)
     syscallRtSigprocmask(SIG_SETMASK, sigmask, &origmask, sigsetsize);
-  size_t epollRet =
-      poll(fds, nfds,
-           DivRoundUp(timeout->tv_nsec, 1000000) + timeout->tv_sec * 1000);
+  size_t epollRet = poll(
+      fds, nfds,
+      timeout ? (DivRoundUp(timeout->tv_nsec, 1000000) + timeout->tv_sec * 1000)
+              : -1);
   if (sigmask)
     syscallRtSigprocmask(SIG_SETMASK, &origmask, 0, sigsetsize);
 
