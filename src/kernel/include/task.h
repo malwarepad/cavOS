@@ -88,7 +88,7 @@ typedef struct TaskInfoSignal {
   int      utilizedBy;
 
   IntTimerInternal itimerReal; // ITIMER_REAL
-  struct sigaction signals[_NSIG];
+  struct sigaction signals[_NSIG + 1];
 } TaskInfoSignal;
 
 TaskInfoSignal *taskInfoSignalAllocate();
