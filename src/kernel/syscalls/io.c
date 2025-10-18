@@ -131,6 +131,9 @@ int  internalPollHandler(OpenFile *fd, int events) {
   return revents;
 }
 
+// this should be further proof of the above statement
+size_t reportKey(OpenFile *fd) { return 69; }
+
 VfsHandlers stdio = {.open = 0,
                      .close = 0,
                      .read = readHandler,
@@ -139,5 +142,6 @@ VfsHandlers stdio = {.open = 0,
                      .mmap = mmapHandler,
                      .stat = statHandler,
                      .internalPoll = internalPollHandler,
+                     .reportKey = reportKey,
                      .duplicate = 0,
                      .getdents64 = 0};

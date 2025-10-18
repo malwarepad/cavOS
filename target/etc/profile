@@ -5,6 +5,10 @@ export LIBGL_ALWAYS_SOFTWARE=1
 export SHELL=/bin/bash
 export HOME="/root"
 
+# for any sdl apps :p
+# (yes they use futex 6 or smth which we dont support)
+export SDL_AUDIODRIVER=dummy
+
 # if [ $EUID -eq 0 ]; then
 #   export PATH=/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin:/bin
 # fi

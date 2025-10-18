@@ -1,5 +1,6 @@
 #include <dev.h>
 #include <malloc.h>
+#include <poll.h>
 #include <string.h>
 #include <syscalls.h>
 #include <task.h>
@@ -143,6 +144,8 @@ int devInputInternalPoll(OpenFile *fd, int events) {
   return 0;
 }
 
+size_t devInputReportKey(OpenFile *fd) { return (size_t)fd->dir; }
+
 bool devInputEventDuplicate(OpenFile *original, OpenFile *orphan) {
   orphan->dir = original->dir;
 
@@ -168,6 +171,7 @@ VfsHandlers devInputEventHandlers = {.open = devInputEventOpen,
                                      .internalPoll = devInputInternalPoll,
                                      .stat = fakefsFstat,
                                      .duplicate = devInputEventDuplicate,
+                                     .reportKey = devInputReportKey,
                                      .close = devInputEventClose};
 
 DevInputEvent *devInputEventSetup(char *devname) {

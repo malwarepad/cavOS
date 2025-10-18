@@ -312,6 +312,8 @@ size_t socketRecvmsg(OpenFile *fd, struct msghdr_linux *msg, int flags) {
   return lwipOut;
 }
 
+size_t socketReportKey(OpenFile *fd) { return 70; }
+
 VfsHandlers socketHandlers = {.fcntl = socketFcntl,
                               .recvfrom = socketRecvfrom,
                               .recvmsg = socketRecvmsg,
@@ -323,4 +325,5 @@ VfsHandlers socketHandlers = {.fcntl = socketFcntl,
                               .connect = socketConnect,
                               .sendto = socketSendto,
                               .duplicate = socketDuplicate,
+                              .reportKey = socketReportKey,
                               .close = socketClose};

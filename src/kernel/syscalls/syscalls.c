@@ -94,6 +94,16 @@ void syscallHandler(AsmPassedInterrupt *regs) {
 
   if (!handler) {
     regs->rax = ERR(ENOSYS);
+    if (id == 54 ||  // setsockopt
+        id == 222 || // timer_create
+        id == 223 || // timer_settime
+        id == 224 || // timer_gettime
+        id == 225 || // timer_getoverrun
+        id == 226 || // timer_delete
+        id == 324 || // membarrier
+        id == 28     // madvice
+    )
+      regs->rax = 0;
     goto cleanup;
   }
 

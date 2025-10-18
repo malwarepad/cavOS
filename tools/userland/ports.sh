@@ -56,7 +56,9 @@ fi
 # Basic software
 source "${SCRIPTPATH}/../shared/chroot.sh"
 chroot_establish "$USR_PATHNAME/../"
-sudo chroot "target/" /bin/bash --login -c "apk add coreutils tzdata procps vim findutils diffutils patch grep sed gawk gzip xz make file tar nasm python3 gcc musl-dev pciutils fastfetch figlet xorg-server xinit xf86-input-evdev xf86-video-fbdev twm xsetroot xeyes nedit xclock mesa-gl mesa-utils mesa-vulkan-swrast mesa-dri-gallium st curl htop"
+sudo chroot "target/" /bin/bash --login -c "apk add coreutils tzdata procps vim findutils diffutils patch grep sed gawk gzip xz make file tar nasm python3 gcc musl-dev pciutils fastfetch figlet xorg-server xinit xf86-input-evdev xf86-video-fbdev twm xsetroot xeyes nedit xclock mesa-gl mesa-utils mesa-vulkan-swrast mesa-dri-gallium st curl htop feh links hexchat scrot xcalc mpv thunar"
+sudo chroot "target/" /bin/bash --login -c "apk add netsurf --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community/"
+sudo chroot "target/" /bin/bash --login -c "apk add quakespasm --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/"
 chroot_drop "$USR_PATHNAME/../"
 
 # Empty for the time being

@@ -33,6 +33,7 @@ void schedule(uint64_t rsp) {
     if (signalsRevivableState(next->state) && signalsPendingQuick(next)) {
       // back to the syscall handler which returns -EINTR (& handles the signal)
       assert(next->registers.cs & GDT_KERNEL_CODE);
+      next->extras |= EXTRAS_INVOLUTARY_WAKEUP;
       next->forcefulWakeupTimeUnsafe = 0; // needed
       next->state = TASK_STATE_READY;
       break;
@@ -41,6 +42,7 @@ void schedule(uint64_t rsp) {
         next->forcefulWakeupTimeUnsafe <= timerTicks) {
       // no race! the task has to already have been suspended to end up here
       next->state = TASK_STATE_READY;
+      next->extras |= EXTRAS_INVOLUTARY_WAKEUP;
       next->forcefulWakeupTimeUnsafe = 0;
       // ^ is here to avoid interference with future statuses
       break;

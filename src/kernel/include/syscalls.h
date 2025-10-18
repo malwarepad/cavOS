@@ -33,6 +33,9 @@
 #define DEBUG_SIGNALS_STUB 1
 #endif
 
+/* Polling System: Legacy */
+#define NO_LEGACY_POLL 1
+
 void syscallHandler(AsmPassedInterrupt *regs);
 void initiateSyscalls();
 

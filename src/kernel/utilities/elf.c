@@ -208,6 +208,7 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
 
   target->cmdline = cmdline;
   target->cmdlineLen = totalLen;
+  target->execname = strdup(filepath);
 
   // libc takes care of tls lmao
   /*if (tls) {
@@ -250,6 +251,10 @@ Task *elfExecute(char *filepath, uint32_t argc, char **argv, uint32_t envc,
 
   // Just a sane default
   target->parent = currentTask;
+
+  // todo: dirty fix because ClassiCube uses futex 6
+  if (strEql(filepath, "/usr/bin/ClassiCube"))
+    target->extras |= EXTRAS_DISABLE_FUTEX;
 
   if (startup)
     taskCreateFinish(target);

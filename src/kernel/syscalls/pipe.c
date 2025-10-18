@@ -3,6 +3,7 @@
 #include <kb.h>
 #include <linux.h>
 #include <malloc.h>
+#include <poll.h>
 #include <syscalls.h>
 #include <task.h>
 
@@ -123,6 +124,7 @@ size_t pipeRead(OpenFile *fd, uint8_t *out, size_t limit) {
   memmove(pipe->buf, &pipe->buf[toCopy], PIPE_BUFF - toCopy);
   taskUnblock(&pipe->blockingWrite);
   spinlockRelease(&pipe->LOCK);
+  pollInstanceRing((size_t)pipe, EPOLLOUT);
 
   return toCopy;
 }
@@ -152,6 +154,7 @@ size_t pipeWriteInner(OpenFile *fd, uint8_t *in, size_t limit) {
   pipe->assigned += limit;
   taskUnblock(&pipe->blockingRead);
   spinlockRelease(&pipe->LOCK);
+  pollInstanceRing((size_t)pipe, EPOLLIN);
 
   return limit;
 }
@@ -206,10 +209,16 @@ int pipeInternalPoll(OpenFile *fd, int events) {
     if (!pipe->readFds)
       out |= EPOLLERR;
     else if (pipe->assigned < PIPE_BUFF)
-      out |= POLLOUT;
+      out |= EPOLLOUT;
   }
   spinlockRelease(&pipe->LOCK);
   return out;
+}
+
+size_t pipeReportKey(OpenFile *fd) {
+  PipeSpecific *spec = (PipeSpecific *)fd->dir;
+  PipeInfo     *pipe = spec->info;
+  return (size_t)pipe;
 }
 
 bool pipeCloseEnd(OpenFile *readFd) {
@@ -222,11 +231,19 @@ bool pipeCloseEnd(OpenFile *readFd) {
   else
     pipe->readFds--;
 
-  if (!pipe->writeFds) // edge case
+  int pollWith = 0;
+  if (!pipe->writeFds) { // edge case
     taskUnblock(&pipe->blockingRead);
-  if (!pipe->readFds) // edge case (more aggressive)
+    pollWith |= EPOLLHUP;
+  }
+  if (!pipe->readFds) { // edge case (more aggressive)
     taskUnblock(&pipe->blockingWrite);
+    pollWith |= EPOLLERR;
+  }
   spinlockRelease(&pipe->LOCK);
+
+  if (pollWith)
+    pollInstanceRing((size_t)pipe, pollWith);
 
   if (!pipe->readFds && !pipe->writeFds) {
     spinlockAcquire(&pipe->LOCK);
@@ -271,6 +288,7 @@ VfsHandlers pipeReadEnd = {.open = 0,
                            .read = pipeRead,
                            .write = pipeBadWrite,
                            .internalPoll = pipeInternalPoll,
+                           .reportKey = pipeReportKey,
                            .getdents64 = 0};
 VfsHandlers pipeWriteEnd = {.open = 0,
                             .close = pipeCloseEnd,
@@ -281,4 +299,5 @@ VfsHandlers pipeWriteEnd = {.open = 0,
                             .read = pipeBadRead,
                             .write = pipeWrite,
                             .internalPoll = pipeInternalPoll,
+                            .reportKey = pipeReportKey,
                             .getdents64 = 0};

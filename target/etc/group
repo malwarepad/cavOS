@@ -2,3 +2,4 @@ root:x:0:
 
 klogd:x:100:klogd
 shadow:x:42:
+messagebus:x:101:messagebus

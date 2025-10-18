@@ -88,7 +88,7 @@ typedef struct TaskInfoSignal {
   int      utilizedBy;
 
   IntTimerInternal itimerReal; // ITIMER_REAL
-  struct sigaction signals[_NSIG];
+  struct sigaction signals[_NSIG + 1];
 } TaskInfoSignal;
 
 TaskInfoSignal *taskInfoSignalAllocate();
@@ -116,6 +116,9 @@ typedef struct TaskSysInterrupted {
 
   uint64_t number; // rax
 } TaskSysInterrupted;
+
+#define EXTRAS_DISABLE_FUTEX (1 << 0)
+#define EXTRAS_INVOLUTARY_WAKEUP (1 << 1)
 
 struct Task {
   uint64_t id;
@@ -161,6 +164,7 @@ struct Task {
 
   char  *cmdline;
   size_t cmdlineLen;
+  char  *execname; // elf executable name
 
   // Remember, this is per THREAD! It just gets cloned
   sigset_t sigBlockList;
@@ -180,6 +184,8 @@ struct Task {
   KilledInfo *firstChildTerminated;
   int         childrenTerminatedAmnt;
   int        *tidptr;
+
+  uint64_t extras; // extra flags
 
   Task *parent;
   Task *next;

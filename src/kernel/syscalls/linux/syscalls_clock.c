@@ -6,7 +6,8 @@
 #include <util.h>
 
 #define SYSCALL_NANOSLEEP 35
-static int syscallNanosleep(struct timespec *duration, struct timespec *rem) {
+static size_t syscallNanosleep(struct timespec *duration,
+                               struct timespec *rem) {
   dbgSysExtraf("sec{%ld} nsec{%ld}", duration->tv_sec, duration->tv_nsec);
   if (duration->tv_sec < 0)
     return -EINVAL;
@@ -18,6 +19,8 @@ static int syscallNanosleep(struct timespec *duration, struct timespec *rem) {
     handControl();
   while (currentTask->forcefulWakeupTimeUnsafe > timerTicks);
   assert(!currentTask->forcefulWakeupTimeUnsafe);
+  if (signalsPendingQuick(currentTask))
+    return ERR(EINTR);
   return 0;
 }
 

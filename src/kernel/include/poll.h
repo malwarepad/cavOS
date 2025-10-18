@@ -1,9 +1,45 @@
 #include "spinlock.h"
+#include "task.h"
 #include "types.h"
 #include "vfs.h"
 
 #ifndef POLL_H
 #define POLL_H
+
+// no lock for these two as they HAVE to pass by PollInstance's lock!
+typedef struct TaskListeners {
+  struct TaskListeners *next;
+  Task                 *task;
+} TaskListeners;
+
+// not used. item is the key and epollEvents is the value
+// of an AVL object (nvm)
+typedef struct PollItem {
+  struct PollItem *next;
+
+  uint64_t key;
+  int      epollEvents;
+} PollItem;
+
+typedef struct PollInstance {
+  struct PollInstance *next;
+
+  // Spinlock LOCK_INSTANCE;
+
+  // Spinlock LOCK_POLL_INSTANCE;
+  bool listening;
+
+  TaskListeners *listeners;
+  PollItem      *items; // PollItem*
+
+  int fr;
+  int haha;
+} PollInstance;
+
+PollInstance *pollRoot;
+Spinlock      LOCK_POLL_ROOT;
+
+void pollInstanceRing(size_t key, int epollEvent);
 
 typedef struct EpollWatch {
   struct EpollWatch *next;
@@ -19,6 +55,10 @@ typedef struct Epoll {
 
   Spinlock LOCK_EPOLL;
   int      timesOpened;
+
+  bool legacyMode; // todo
+
+  PollInstance *instance;
 
   EpollWatch *firstEpollWatch;
 } Epoll;

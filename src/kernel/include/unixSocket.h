@@ -11,6 +11,7 @@ VfsHandlers unixAcceptHandlers;
 
 #define AF_UNIX 1
 #define UNIX_SOCK_BUFF_DEFAULT 262144
+#define UNIX_SOCK_POLL_EXTRA (4096 * 16)
 
 #define CONN_DISCONNECTED ((void *)(size_t)(-1))
 
