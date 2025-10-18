@@ -399,10 +399,11 @@ static size_t syscallPselect6(int nfds, fd_set *readfds, fd_set *writefds,
   if (sigmask)
     syscallRtSigprocmask(SIG_SETMASK, sigmask, &origmask, sigsetsize);
 
-  struct timeval timeoutConv = {.tv_sec = timeout->tv_sec,
-                                .tv_usec = DivRoundUp(timeout->tv_nsec, 1000)};
-  size_t         ret = select(nfds, (uint8_t *)readfds, (uint8_t *)writefds,
-                              (uint8_t *)exceptfds, &timeoutConv);
+  struct timeval timeoutConv = {
+      .tv_sec = timeout ? timeout->tv_sec : 0,
+      .tv_usec = timeout ? DivRoundUp(timeout->tv_nsec, 1000) : 0};
+  size_t ret = select(nfds, (uint8_t *)readfds, (uint8_t *)writefds,
+                      (uint8_t *)exceptfds, timeout ? &timeoutConv : 0);
 
   if (sigmask)
     syscallRtSigprocmask(SIG_SETMASK, &origmask, 0, sigsetsize);
