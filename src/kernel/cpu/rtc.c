@@ -7,8 +7,10 @@
 // most code from the excellent https://wiki.osdev.org/CMOS#The_Real-Time_Clock
 // reference
 
-// Change this each year!
-#define CURRENT_YEAR 2024
+// This is used for the century counter, so no need for year-round accurancy. It
+// is a fallback in case the century register doesn't exist/isn't found using
+// the ACPI.
+#define CURRENT_YEAR 2025
 
 int century_register = 0x00; // Set by ACPI table parsing code if possible
 
@@ -32,7 +34,7 @@ unsigned char get_RTC_register(int reg) {
 }
 
 int readFromCMOS(RTC *rtc) {
-  unsigned char century;
+  unsigned char century = 0;
   unsigned char last_second;
   unsigned char last_minute;
   unsigned char last_hour;

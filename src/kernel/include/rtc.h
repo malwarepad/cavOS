@@ -16,4 +16,6 @@ int      readFromCMOS(RTC *rtc);
 uint64_t rtcToUnix(RTC *rtc);
 bool     isLeapYear(int year);
 
+int century_register;
+
 #endif

@@ -1,5 +1,6 @@
 #include <acpi.h>
 #include <linux.h>
+#include <rtc.h>
 #include <system.h>
 #include <uacpi/uacpi.h>
 
@@ -36,6 +37,15 @@ void initiateACPI() {
   if (uacpi_unlikely_error(ret)) {
     debugf("uacpi_namespace_initialize error: %s", uacpi_status_to_string(ret));
     panic();
+  }
+
+  // use the fadt for getting the century register (if it exists)
+  struct acpi_fadt *fadt = 0;
+  if (!uacpi_unlikely_error(uacpi_table_fadt(&fadt))) {
+    century_register = fadt->century;
+    if (century_register)
+      debugf("[acpi::info] Found century register for RTC: register{0x%lx}\n",
+             century_register);
   }
 }
 
