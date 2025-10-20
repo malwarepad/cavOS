@@ -1,4 +1,5 @@
 #include <gdt.h>
+#include <stdint.h>
 #include <util.h>
 
 // GDT & TSS Entry configurator
@@ -9,6 +10,17 @@ static GDTPtr     gdtr;
 static TSSPtr     tss;
 
 TSSPtr *tssPtr = &tss;
+
+void gdt_set_entry(int idx, uint32_t base, uint32_t limit, uint8_t access,
+                   uint8_t granularity) {
+  gdt.descriptors[idx].base_low = (base & 0xffff);
+  gdt.descriptors[idx].base_mid = (base >> 16) & 0xff;
+  gdt.descriptors[idx].access = access;
+  gdt.descriptors[idx].granularity =
+      ((limit >> 16) & 0x0f) | (granularity & 0xf0);
+  gdt.descriptors[idx].base_high = (base >> 24) & 0xff;
+  gdt.descriptors[idx].limit = limit;
+}
 
 void gdt_load_tss(TSSPtr *tss) {
   size_t addr = (size_t)tss;
@@ -44,80 +56,35 @@ void gdt_reload() {
 
 void initiateGDT() {
   // Null descriptor. (0)
-  gdt.descriptors[0].limit = 0;
-  gdt.descriptors[0].base_low = 0;
-  gdt.descriptors[0].base_mid = 0;
-  gdt.descriptors[0].access = 0;
-  gdt.descriptors[0].granularity = 0;
-  gdt.descriptors[0].base_high = 0;
+  gdt_set_entry(0, 0, 0, 0, 0);
 
   // Kernel code 16. (8)
-  gdt.descriptors[1].limit = 0xffff;
-  gdt.descriptors[1].base_low = 0;
-  gdt.descriptors[1].base_mid = 0;
-  gdt.descriptors[1].access = 0b10011010;
-  gdt.descriptors[1].granularity = 0b00000000;
-  gdt.descriptors[1].base_high = 0;
+  gdt_set_entry(1, 0, 0xffff, 0b10011010, 0);
 
   // Kernel data 16. (16)
-  gdt.descriptors[2].limit = 0xffff;
-  gdt.descriptors[2].base_low = 0;
-  gdt.descriptors[2].base_mid = 0;
-  gdt.descriptors[2].access = 0b10010010;
-  gdt.descriptors[2].granularity = 0b00000000;
-  gdt.descriptors[2].base_high = 0;
+  gdt_set_entry(2, 0, 0xffff, 0b10010010, 0);
 
   // Kernel code 32. (24)
-  gdt.descriptors[3].limit = 0xffff;
-  gdt.descriptors[3].base_low = 0;
-  gdt.descriptors[3].base_mid = 0;
-  gdt.descriptors[3].access = 0b10011010;
-  gdt.descriptors[3].granularity = 0b11001111;
-  gdt.descriptors[3].base_high = 0;
+  gdt_set_entry(3, 0, 0xffff, 0b10011010, 0b11001111);
 
   // Kernel data 32. (32)
-  gdt.descriptors[4].limit = 0xffff;
-  gdt.descriptors[4].base_low = 0;
-  gdt.descriptors[4].base_mid = 0;
-  gdt.descriptors[4].access = 0b10010010;
-  gdt.descriptors[4].granularity = 0b11001111;
-  gdt.descriptors[4].base_high = 0;
+  gdt_set_entry(4, 0, 0xffff, 0b10010010, 0b11001111);
 
   // Kernel code 64. (40)
-  gdt.descriptors[5].limit = 0;
-  gdt.descriptors[5].base_low = 0;
-  gdt.descriptors[5].base_mid = 0;
-  gdt.descriptors[5].access = 0b10011010;
-  gdt.descriptors[5].granularity = 0b00100000;
-  gdt.descriptors[5].base_high = 0;
+  gdt_set_entry(5, 0, 0, 0b10011010, 0b00100000);
 
   // Kernel data 64. (48)
-  gdt.descriptors[6].limit = 0;
-  gdt.descriptors[6].base_low = 0;
-  gdt.descriptors[6].base_mid = 0;
-  gdt.descriptors[6].access = 0b10010010;
-  gdt.descriptors[6].granularity = 0;
-  gdt.descriptors[6].base_high = 0;
+  gdt_set_entry(6, 0, 0, 0b10010010, 0);
 
   // SYSENTER
   gdt.descriptors[7] = (GDTEntry){0}; // (56)
   gdt.descriptors[8] = (GDTEntry){0}; // (64)
 
   // User code 64. (72)
-  gdt.descriptors[10].limit = 0;
-  gdt.descriptors[10].base_low = 0;
-  gdt.descriptors[10].base_mid = 0;
-  gdt.descriptors[10].access = 0b11111010;
-  gdt.descriptors[10].granularity = 0b00100000;
-  gdt.descriptors[10].base_high = 0;
+  gdt_set_entry(10, 0, 0, 0b11111010, 0b00100000);
 
   // User data 64. (80)
-  gdt.descriptors[9].limit = 0;
-  gdt.descriptors[9].base_low = 0;
-  gdt.descriptors[9].base_mid = 0;
-  gdt.descriptors[9].access = 0b11110010;
-  gdt.descriptors[9].granularity = 0;
-  gdt.descriptors[9].base_high = 0;
+  gdt_set_entry(9, 0, 0, 0b11110010, 0);
 
   // TSS. (88)
   gdt.tss.length = 104;
