@@ -240,15 +240,14 @@ bool pipeCloseEnd(OpenFile *readFd) {
     taskUnblock(&pipe->blockingWrite);
     pollWith |= EPOLLERR;
   }
-  spinlockRelease(&pipe->LOCK);
+
+  if (!pipe->readFds && !pipe->writeFds)
+    free(pipe);
+  else
+    spinlockRelease(&pipe->LOCK);
 
   if (pollWith)
     pollInstanceRing((size_t)pipe, pollWith);
-
-  if (!pipe->readFds && !pipe->writeFds) {
-    spinlockAcquire(&pipe->LOCK);
-    free(pipe);
-  }
 
   free(spec);
 

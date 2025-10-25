@@ -126,7 +126,7 @@ bool asciiProcess(int charnum) {
   case 'J':
     switch (asciiChar1) {
     case 0: { // no
-      int restWidth = fb.width - (width + TTY_CHARACTER_WIDTH);
+      int restWidth = fb.width - width;
       if (restWidth > 0)
         drawRect(width, height, restWidth, TTY_CHARACTER_HEIGHT, bg_color[0],
                  bg_color[1], bg_color[2]);
