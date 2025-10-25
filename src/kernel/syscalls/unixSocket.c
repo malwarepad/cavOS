@@ -184,6 +184,7 @@ size_t unixSocketAcceptGetpeername(OpenFile *fd, sockaddr_linux *addr,
 
 size_t unixSocketOpen(void *taskPtr, int type, int protocol) {
   // rest are not supported yet, only SOCK_STREAM
+  // todo: stuff like SOCK_SEQPACKET are still passing!
   if (!(type & 1)) {
     dbgSysStubf("unsupported type{%x}", type);
     return ERR(ENOSYS);
@@ -603,6 +604,33 @@ size_t unixSocketRecvmsg(OpenFile *fd, struct msghdr_linux *msg, int flags) {
   return cnt;
 }
 
+size_t unixSocketSendmsg(OpenFile *fd, struct msghdr_linux *msg, int flags) {
+  if (msg->msg_name || msg->msg_namelen > 0) {
+    dbgSysStubf("todo optional addr");
+    return ERR(ENOSYS);
+  }
+  assert(!msg->msg_controllen && !msg->msg_flags);
+  size_t cnt = 0;
+  bool   noblock = flags & MSG_DONTWAIT;
+  for (int i = 0; i < msg->msg_iovlen; i++) {
+    struct iovec *curr =
+        (struct iovec *)((size_t)msg->msg_iov + i * sizeof(struct iovec));
+    if (cnt > 0 && fd->handlers->internalPoll) {
+      // check syscalls_fs.c for why this is necessary
+      if (!(fd->handlers->internalPoll(fd, EPOLLOUT) & EPOLLOUT))
+        return cnt;
+    }
+    size_t singleCnt = unixSocketSendto(fd, curr->iov_base, curr->iov_len,
+                                        noblock ? MSG_DONTWAIT : 0, 0, 0);
+    if (RET_IS_ERR(singleCnt))
+      return singleCnt;
+
+    cnt += singleCnt;
+  }
+
+  return cnt;
+} // wooo
+
 size_t unixSocketAcceptRecvmsg(OpenFile *fd, struct msghdr_linux *msg,
                                int flags) {
   if (msg->msg_name || msg->msg_namelen > 0) {
@@ -703,6 +731,7 @@ VfsHandlers unixSocketHandlers = {.sendto = unixSocketSendto,
                                   .connect = unixSocketConnect,
                                   .getpeername = unixSocketGetpeername,
                                   .recvmsg = unixSocketRecvmsg,
+                                  .sendmsg = unixSocketSendmsg,
                                   .duplicate = unixSocketDuplicate,
                                   .close = unixSocketClose,
                                   .reportKey = unixSocketReportKey,

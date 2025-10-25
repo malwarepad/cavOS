@@ -213,6 +213,17 @@ static size_t syscallRecvfrom(int fd, void *buff, size_t len, int flags,
                                       addrlen);
 }
 
+#define SYSCALL_SENDMSG 46
+static size_t syscallSendmsg(int fd, struct msghdr_linux *msg, int flags) {
+  OpenFile *fileNode = fsUserGetNode(currentTask, fd);
+  if (!fileNode)
+    return ERR(EBADF);
+
+  if (!fileNode->handlers->sendmsg)
+    return ERR(ENOTSOCK);
+  return fileNode->handlers->sendmsg(fileNode, msg, flags);
+}
+
 #define SYSCALL_RECVMSG 47
 static size_t syscallRecvmsg(int fd, struct msghdr_linux *msg, int flags) {
   OpenFile *fileNode = fsUserGetNode(currentTask, fd);
@@ -234,6 +245,7 @@ void syscallsRegNet() {
   registerSyscall(SYSCALL_SENDTO, syscallSendto);
   registerSyscall(SYSCALL_RECVFROM, syscallRecvfrom);
   registerSyscall(SYSCALL_RECVMSG, syscallRecvmsg);
+  registerSyscall(SYSCALL_SENDMSG, syscallSendmsg);
   registerSyscall(SYSCALL_LISTEN, syscallListen);
   registerSyscall(SYSCALL_GETSOCKOPT, syscallGetsockopt);
   registerSyscall(SYSCALL_GETPEERNAME, syscallGetpeername);
