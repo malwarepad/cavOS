@@ -24,7 +24,7 @@ void taskAttachDefTermios(Task *task) {
   task->term.c_iflag = BRKINT | ICRNL | INPCK | ISTRIP | IXON;
   task->term.c_oflag = OPOST;
   task->term.c_cflag = CS8 | CREAD | CLOCAL;
-  task->term.c_lflag = ECHO | ICANON | IEXTEN | ISIG;
+  task->term.c_lflag = ECHO | ICANON | IEXTEN | ISIG | ECHOCTL;
   task->term.c_line = 0;
   task->term.c_cc[VINTR] = 3;     // Ctrl-C
   task->term.c_cc[VQUIT] = 28;    // Ctrl-task->term.c_cc[VERASE] = 127; // DEL

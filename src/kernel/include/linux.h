@@ -410,6 +410,7 @@ typedef struct rusage {
 #define ECHONL 0000100 /* Echo NL.  */
 #define NOFLSH 0000200 /* Disable flush after interrupt or quit.  */
 #define TOSTOP 0000400 /* Send SIGTTOU for background output.  */
+#define __USE_MISC 1
 #ifdef __USE_MISC
 #define ECHOCTL                                                                \
   0001000 /* If ECHO is also set, terminal special characters                  \
