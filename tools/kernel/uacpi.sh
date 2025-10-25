@@ -9,7 +9,7 @@ PROJECT_ROOT="${SCRIPTPATH}/../../"
 cd "${PROJECT_ROOT}/src/kernel/acpi/"
 
 VERSION_FILE="$PROJECT_ROOT/.version_uacpi"
-TARGET_VERSION="2.1.1"
+TARGET_VERSION="3.1.0"
 
 fetchUACPI() {
 	rm -rf uACPI/ repo/ uacpi/ ../include/uacpi/
