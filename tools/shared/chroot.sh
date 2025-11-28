@@ -12,6 +12,7 @@ chroot_drop() {
 	sudo umount -l "$1/proc" || true
 	sudo umount -l "$1/dev/pts" || true
 	sudo umount -l "$1/dev" || true
+	sudo umount -l "$1/tmp/.X11-unix" || true
 }
 
 chroot_establish() {
@@ -28,6 +29,12 @@ chroot_establish() {
 	else
 		sudo mount -t tmpfs -o nosuid,nodev tmpfs "$1/dev/shm"
 	fi
+	# mkdir -p "$1/tmp/.X11-unix"
+	# sudo mount --bind /tmp/.X11-unix "$1/tmp/.X11-unix"
+
+	# host$ xhost + local:
+	# chroot$ export DISPLAY=:1
+	# chroot$ export WEBKIT_DISABLE_COMPOSITING_MODE=1
 }
 
 # ! If you ever want to chroot into your target, uncomment the following lines and comment them out again before running make disk !

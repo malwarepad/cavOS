@@ -65,6 +65,7 @@ chroot_drop "$USR_PATHNAME/../"
 if [[ ! -f "target/usr/share/fonts/Arial.ttf" ]]; then
 	sudo wget -P target/usr/share/fonts https://raw.malwarepad.com/miscellaneous/Arial.ttf
 fi
+sudo rm -rf target/root/.cache/
 
 # Empty for the time being
 echo "" | sudo tee target/usr/lib/os-release

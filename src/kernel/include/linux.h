@@ -484,6 +484,12 @@ typedef struct rusage {
 #define MS_SYNC 4       /* Synchronous memory sync.  */
 #define MS_INVALIDATE 2 /* Invalidate the caches.  */
 
+#define MAP_POPULATE 0x008000 /* populate (prefault) pagetables */
+#define MAP_FIXED_NOREPLACE                                                    \
+  0x100000 /* MAP_FIXED which doesn't unmap underlying mapping */
+#define MAP_GROWSDOWN 0x0100 /* stack-like segment */
+#define MAP_LOCKED 0x2000    /* pages are locked */
+
 // /usr/include/linux/time.h
 // Standard POSIX clocks
 #define CLOCK_REALTIME                                                         \
