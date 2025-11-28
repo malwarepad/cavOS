@@ -115,6 +115,9 @@ void        initiateISR() {
     set_idt_gate(i, (uint64_t)asm_isr_redirect_table[i], 0x8E);
   }
 
+  // Allow userspace to use breakpoints (like int3)
+  set_idt_gate(3, (uint64_t)asm_isr_redirect_table[3], 0xEE);
+
   // APIC Spurious Interrupts
   set_idt_gate(0xff, (uint64_t)isr255, 0x8E);
 
@@ -140,6 +143,13 @@ irqHandler *registerIRQhandler(uint8_t id, void *handler) {
 }
 
 void handleTaskFault(AsmPassedInterrupt *regs) {
+  if (regs->interrupt == 3) {
+    debugf("[isr] Task id{%d} hit a debug interrupt (like int3)\n",
+           currentTask->id);
+    atomicBitmapSet(&currentTask->sigPendingList, SIGTRAP);
+    schedule((uint64_t)regs);
+    return;
+  }
   if (regs->interrupt == 14) {
     uint64_t err_pos;
     asm volatile("movq %%cr2, %0" : "=r"(err_pos));
