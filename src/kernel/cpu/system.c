@@ -1,3 +1,4 @@
+#include <bootloader.h>
 #include <console.h>
 #include <system.h>
 
@@ -142,6 +143,18 @@ bool checkInterrupts() {
   uint16_t flags;
   asm volatile("pushf; pop %0" : "=g"(flags));
   return flags & (1 << 9);
+}
+
+bool isProtectedMemory(uint64_t virt) {
+  if (virt > bootloader.hhdmOffset &&
+      virt < (bootloader.hhdmOffset + bootloader.mmTotal))
+    return true;
+  else if (virt > bootloader.kernelVirtBase &&
+           virt < bootloader.kernelVirtBase + 268435456) {
+    return true;
+  }
+
+  return false;
 }
 
 #include <paging.h>

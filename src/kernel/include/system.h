@@ -26,6 +26,7 @@ void initiateSSE();
 // Generic
 void panic();
 bool checkInterrupts();
+bool isProtectedMemory(uint64_t virt);
 
 // Assert system
 void _assert(bool expression, char *file, int line);
