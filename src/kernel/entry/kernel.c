@@ -57,13 +57,14 @@ void _start(void) {
   initiateVMM();
 
   initiateGDT();
+  LinkedListInit(&dsIrqHandler, sizeof(irqHandler));
   initiateACPI(); // needed for APIC setup
   initiateISR();
   initiatePaging();
 
   debugf("\n====== REACHED SYSTEM ======\n");
   initiateApicTimer(); // mouse needs a timer
-  firstMountPoint = 0;
+  LinkedListInit(&dsMountPoint, sizeof(MountPoint));
   fsMount("/dev/", CONNECTOR_DEV, 0, 0); // mouse & kb need it
   initiateKb();
   initiateMouse();

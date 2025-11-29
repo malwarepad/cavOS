@@ -27,11 +27,11 @@
 extern void weirdTests();
 
 void waitNicIPAssigned() {
-  PCI *pci = firstPCI;
+  PCI *pci = (PCI *)dsPCI.firstObject;
   while (pci) {
     if (pci->category == PCI_DRIVER_CATEGORY_NIC)
       break;
-    pci = pci->next;
+    pci = (PCI *)pci->_ll.next;
   }
   NIC *nic = (NIC *)(pci ? pci->extra : 0);
 

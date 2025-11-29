@@ -27,17 +27,16 @@ bool validateMbr(uint8_t *mbrSector) {
   return mbrSector[510] == 0x55 && mbrSector[511] == 0xaa;
 }
 
+bool diskBytesCb(void *data, void *ctx) {
+  PCI *browse = data;
+  return browse->driver == PCI_DRIVER_AHCI && ((ahci *)browse->extra)->sata;
+}
+
 void diskBytes(uint8_t *target_address, uint32_t LBA, uint32_t sector_count,
                bool write) {
   // todo: yeah, this STILL is NOT ideal
 
-  PCI *browse = firstPCI;
-  while (browse) {
-    if (browse->driver == PCI_DRIVER_AHCI && ((ahci *)browse->extra)->sata)
-      break;
-
-    browse = browse->next;
-  }
+  PCI *browse = LinkedListSearch(&dsPCI, diskBytesCb, 0);
 
   if (!browse) {
     memset(target_address, 0, sector_count * SECTOR_SIZE);

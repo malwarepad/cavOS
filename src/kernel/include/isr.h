@@ -1,3 +1,4 @@
+#include "linked_list.h"
 #include "types.h"
 
 #ifndef ISR_H
@@ -49,13 +50,15 @@ typedef void (*FunctionPtr)(AsmPassedInterrupt *regs);
 // FunctionPtr irqHandlers[16]; // IRQs 0 - 15
 typedef struct irqHandler irqHandler;
 struct irqHandler {
-  irqHandler *next;
+  LLheader _ll;
 
   uint8_t     id;
   FunctionPtr handler;
 
   uint64_t argument; // extra
 };
+
+LLcontrol dsIrqHandler; // struct irqHandler
 
 void        initiateISR();
 irqHandler *registerIRQhandler(uint8_t id, void *handler);

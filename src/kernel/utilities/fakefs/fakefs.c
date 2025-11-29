@@ -8,8 +8,9 @@
 FakefsFile *fakefsAddFile(Fakefs *fakefs, FakefsFile *under, char *filename,
                           char *symlink, uint16_t filetype,
                           VfsHandlers *handlers) {
-  FakefsFile *file = (FakefsFile *)LinkedListAllocate((void **)(&under->inner),
-                                                      sizeof(FakefsFile));
+  FakefsFile *file =
+      (FakefsFile *)LinkedListAllocate(&under->inner, sizeof(FakefsFile));
+  LinkedListInit(&file->inner, sizeof(FakefsFile));
 
   file->filename = filename;
   file->filenameLength = strlength(filename);
@@ -39,29 +40,29 @@ FakefsFile *fakefsTraverse(FakefsFile *start, char *search,
     if (memcmp(search, browse->filename,
                MAX(browse->filenameLength, searchLength)) == 0)
       break;
-    browse = browse->next;
+    browse = (FakefsFile *)browse->_ll.next;
   }
 
   return browse;
 }
 
-void fakefsSetupRoot(FakefsFile **ptr) {
+void fakefsSetupRoot(LLcontrol *root) {
   FakefsFile fakefsRoot = {.filename = "/",
                            .filenameLength = 1,
-                           .next = 0,
-                           .inner = 0,
                            .filetype = S_IFDIR | S_IRUSR | S_IWUSR | S_IXUSR,
                            .symlink = 0,
                            .symlinkLength = 0,
                            .handlers = &fakefsRootHandlers,
                            .size = 3620};
 
-  *ptr = (FakefsFile *)malloc(sizeof(FakefsFile));
-  memcpy(*ptr, &fakefsRoot, sizeof(FakefsFile));
+  LinkedListInit(root, sizeof(FakefsFile));
+  FakefsFile *target = LinkedListAllocate(root, sizeof(FakefsFile));
+  memcpy(target, &fakefsRoot, sizeof(FakefsFile));
+  LinkedListInit(&target->inner, sizeof(FakefsFile));
 }
 
 FakefsFile *fakefsTraversePath(FakefsFile *start, char *path) {
-  FakefsFile *fakefs = start->inner;
+  FakefsFile *fakefs = (FakefsFile *)start->inner.firstObject;
   size_t      len = strlength(path);
 
   if (len == 1) // meaning it's trying to open /
@@ -82,7 +83,7 @@ FakefsFile *fakefsTraversePath(FakefsFile *start, char *path) {
       if (!res || i == (len - 1))
         return res;
 
-      fakefs = res->inner;
+      fakefs = (FakefsFile *)res->inner.firstObject;
       lastslash = i;
     }
   }
@@ -96,7 +97,8 @@ size_t fakefsOpen(char *filename, int flags, int mode, OpenFile *target,
   MountPoint    *mnt = target->mountPoint;
   FakefsOverlay *fakefs = (FakefsOverlay *)mnt->fsInfo;
 
-  FakefsFile *file = fakefsTraversePath(fakefs->fakefs->rootFile, filename);
+  FakefsFile *file = fakefsTraversePath(
+      (FakefsFile *)fakefs->fakefs->rootFile.firstObject, filename);
   if (!file) {
     // debugf("! %s\n", filename);
     return ERR(ENOENT);
@@ -146,7 +148,8 @@ void fakefsStatGeneric(FakefsFile *file, struct stat *target) {
 bool fakefsStat(MountPoint *mnt, char *filename, struct stat *target,
                 char **symlinkResolve) {
   FakefsOverlay *fakefs = (FakefsOverlay *)mnt->fsInfo;
-  FakefsFile    *file = fakefsTraversePath(fakefs->fakefs->rootFile, filename);
+  FakefsFile    *file = fakefsTraversePath(
+      (FakefsFile *)fakefs->fakefs->rootFile.firstObject, filename);
   if (!file)
     return false;
 
@@ -183,7 +186,8 @@ size_t fakefsReadlink(MountPoint *mnt, char *path, char *buf, int size,
     return ERR(EINVAL);
 
   FakefsOverlay *fakefs = (FakefsOverlay *)mnt->fsInfo;
-  FakefsFile    *entry = fakefsTraversePath(fakefs->fakefs->rootFile, path);
+  FakefsFile    *entry = fakefsTraversePath(
+      (FakefsFile *)fakefs->fakefs->rootFile.firstObject, path);
   if (!entry)
     return ERR(ENOENT);
 
@@ -200,10 +204,11 @@ size_t fakefsGetDents64(OpenFile *fd, struct linux_dirent64 *start,
                         unsigned int hardlimit) {
   FakefsOverlay *fakefs = (FakefsOverlay *)fd->mountPoint->fsInfo;
 
-  FakefsFile *weAt = fakefsTraversePath(fakefs->fakefs->rootFile, fd->dirname);
+  FakefsFile *weAt = fakefsTraversePath(
+      (FakefsFile *)fakefs->fakefs->rootFile.firstObject, fd->dirname);
 
   if (!fd->tmp1)
-    fd->tmp1 = (size_t)weAt->inner;
+    fd->tmp1 = (size_t)weAt->inner.firstObject;
 
   if (!fd->tmp1)
     fd->tmp1 = (size_t)(-1); // in case it's empty
@@ -226,7 +231,7 @@ size_t fakefsGetDents64(OpenFile *fd, struct linux_dirent64 *start,
       goto cleanup;
 
   traverse:
-    fd->tmp1 = (size_t)current->next;
+    fd->tmp1 = (size_t)current->_ll.next;
     if (!fd->tmp1)
       fd->tmp1 = (size_t)(-1);
   }

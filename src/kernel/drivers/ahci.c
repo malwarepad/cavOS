@@ -352,8 +352,9 @@ bool ahciWrite(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
   return ahciCmdIssue(ahciPtr, port, slot);
 }
 
+// todo! FIX THIS!!!
 void ahciInterruptHandler(AsmPassedInterrupt *regs) {
-  PCI *browse = firstPCI;
+  PCI *browse = (PCI *)dsPCI.firstObject;
   while (browse) {
     if (browse->driver == PCI_DRIVER_AHCI) {
       ahci *ahciPtr = browse->extra;
@@ -374,7 +375,7 @@ void ahciInterruptHandler(AsmPassedInterrupt *regs) {
       }
     }
 
-    browse = browse->next;
+    browse = (PCI *)browse->_ll.next;
   }
 }
 

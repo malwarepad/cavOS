@@ -50,6 +50,9 @@ size_t pipeOpen(int *fds) {
   info->readFds = 1;
   info->writeFds = 1;
 
+  LinkedListInit(&info->blockingRead.dsBlockedTask, sizeof(BlockedTask));
+  LinkedListInit(&info->blockingWrite.dsBlockedTask, sizeof(BlockedTask));
+
   PipeSpecific *readSpec = (PipeSpecific *)malloc(sizeof(PipeSpecific));
   readSpec->write = false;
   readSpec->info = info;

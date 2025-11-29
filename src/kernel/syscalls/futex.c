@@ -16,8 +16,9 @@
 // Copyright (C) 2025 Panagiotis
 
 typedef struct FutexAsleep {
-  struct FutexAsleep *next;
-  struct Futex       *above;
+  LLheader _ll;
+
+  struct Futex *above;
 
   bool  awoken;
   Task *task;
@@ -26,7 +27,7 @@ typedef struct FutexAsleep {
 typedef struct Futex {
   Spinlock LOCK_PROP;
 
-  FutexAsleep *firstAsleep;
+  LLcontrol firstAsleep; // struct FutexAsleep
   // int          pid; // really it is tgid but whatever
 } Futex;
 
@@ -43,12 +44,14 @@ Futex *futexFind(size_t phys) {
   // not found, create it
   futex = calloc(sizeof(Futex), 1);
   AVLAllocate((void **)&firstFutex, phys, (avlval)futex);
+  LinkedListInit(&futex->firstAsleep, sizeof(FutexAsleep));
 cleanup:
   spinlockAcquire(&futex->LOCK_PROP);
   spinlockRelease(&LOCK_AVL_FUTEX);
   return futex;
 }
 
+// todo: ensure addr exists on-demand (when implemented)
 size_t futexSyscall(uint32_t *addr, int op, uint32_t value,
                     struct timespec *utime, uint32_t *addr2, uint32_t value3) {
   /* Don't use currentTask here as FUTEX_WAKE is used by task exit */
@@ -94,7 +97,7 @@ size_t futexSyscall(uint32_t *addr, int op, uint32_t value,
     //   futex->pid = currentTask->pgid;
 
     FutexAsleep *asleep =
-        LinkedListAllocate((void **)&futex->firstAsleep, sizeof(FutexAsleep));
+        LinkedListAllocate(&futex->firstAsleep, sizeof(FutexAsleep));
     asleep->above = futex;
     asleep->task = currentTask;
 
@@ -122,7 +125,8 @@ size_t futexSyscall(uint32_t *addr, int op, uint32_t value,
     }
 
     // get rid of it, we are done
-    assert(LinkedListRemove((void **)&newfutex->firstAsleep, asleep));
+    assert(
+        LinkedListRemove(&newfutex->firstAsleep, sizeof(FutexAsleep), asleep));
     spinlockRelease(&newfutex->LOCK_PROP);
 
     return ret;
@@ -134,7 +138,7 @@ size_t futexSyscall(uint32_t *addr, int op, uint32_t value,
     (void)currentTask;
 
     Futex       *futex = futexFind(phys);
-    FutexAsleep *browse = futex->firstAsleep;
+    FutexAsleep *browse = (FutexAsleep *)futex->firstAsleep.firstObject;
     int          awokenCnt = 0;
 
     while (browse) {
@@ -145,7 +149,7 @@ size_t futexSyscall(uint32_t *addr, int op, uint32_t value,
         browse->awoken = true;
         awokenCnt++; // ack
       }
-      browse = browse->next;
+      browse = (FutexAsleep *)browse->_ll.next;
     }
     spinlockRelease(&futex->LOCK_PROP);
 
@@ -156,7 +160,7 @@ size_t futexSyscall(uint32_t *addr, int op, uint32_t value,
     Futex *futex = futexFind(phys);
     Futex *futex2 = futexFind(phys2);
 
-    FutexAsleep *browse = futex->firstAsleep;
+    FutexAsleep *browse = (FutexAsleep *)futex->firstAsleep.firstObject;
     int          awokenCnt = 0;
     int          movedCnt = 0;
 
@@ -170,26 +174,27 @@ size_t futexSyscall(uint32_t *addr, int op, uint32_t value,
       } else if (!browse->awoken && movedCnt < (uint32_t)(size_t)(utime)) {
         // move those
         movedCnt++;
-        FutexAsleep *next = browse->next;
-        assert(LinkedListUnregister((void **)&futex->firstAsleep, browse));
-        browse->next = 0;
+        FutexAsleep *next = (FutexAsleep *)browse->_ll.next;
+        assert(LinkedListUnregister(&futex->firstAsleep, sizeof(FutexAsleep),
+                                    browse));
+        browse->_ll.next = 0;
         browse->above = futex2;
         // LinkedListPushFrontUnsafe((void **)&futex2->firstAsleep, browse);
-        FutexAsleep *b = futex2->firstAsleep;
+        FutexAsleep *b = (FutexAsleep *)futex2->firstAsleep.firstObject;
         if (!b)
-          futex2->firstAsleep = browse;
+          futex2->firstAsleep.firstObject = (LLheader *)browse;
         else {
           while (b) {
-            if (!b->next)
+            if (!b->_ll.next)
               break;
-            b = b->next;
+            b = (FutexAsleep *)b->_ll.next;
           }
-          b->next = browse;
+          b->_ll.next = (void *)browse;
         }
         browse = next;
         continue;
       }
-      browse = browse->next;
+      browse = (FutexAsleep *)browse->_ll.next;
     }
     spinlockRelease(&futex2->LOCK_PROP);
     spinlockRelease(&futex->LOCK_PROP);

@@ -52,9 +52,10 @@ void helperReaper() {
     taskInfoFsDiscard(reaperTask->infoFs);
 
     // interrupted syscalls
-    TaskSysInterrupted *intrBrowse = reaperTask->firstSysIntr;
+    TaskSysInterrupted *intrBrowse =
+        (TaskSysInterrupted *)reaperTask->dsSysIntr.firstObject;
     while (intrBrowse) {
-      TaskSysInterrupted *next = intrBrowse->next;
+      TaskSysInterrupted *next = (TaskSysInterrupted *)intrBrowse->_ll.next;
       free(next); // quick n dirty
       intrBrowse = next;
     }

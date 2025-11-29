@@ -36,7 +36,7 @@
 #define LWIP_COMPAT_SOCKETS 0
 
 typedef struct mboxBlock {
-  struct mboxBlock *next;
+  LLheader _ll;
 
   Task *task;
   bool  write;
@@ -45,7 +45,7 @@ typedef struct mboxBlock {
 typedef struct {
   Spinlock LOCK;
 
-  mboxBlock *firstBlock;
+  LLcontrol firstBlock; // struct mboxBlock
 
   bool   invalid;
   int    ptrRead;

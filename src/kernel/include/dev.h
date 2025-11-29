@@ -1,5 +1,6 @@
 #include "circular.h"
 #include "fakefs.h"
+#include "linked_list.h"
 #include "linux.h"
 #include "types.h"
 #include "vfs.h"
@@ -45,7 +46,7 @@ void inputGenerateEvent(DevInputEvent *item, uint16_t type, uint16_t code,
 #define PTY_BUFF_SIZE 4096
 
 typedef struct PtyPair {
-  struct PtyPair *next;
+  LLheader _ll;
 
   Spinlock LOCK_PTY;
 

@@ -7,8 +7,9 @@
 VfsHandlers handleNull;
 
 typedef struct FakefsFile {
-  struct FakefsFile *next;
-  struct FakefsFile *inner;
+  struct LLheader _ll;
+
+  LLcontrol inner; // struct FakefsFile
 
   char *filename;
   int   filenameLength;
@@ -26,15 +27,15 @@ typedef struct FakefsFile {
 } FakefsFile;
 
 typedef struct Fakefs {
-  FakefsFile *rootFile;
-  uint64_t    lastInode;
+  LLcontrol rootFile; // struct FakefsFile
+  uint64_t  lastInode;
 } Fakefs;
 
 typedef struct FakefsOverlay {
   Fakefs *fakefs;
 } FakefsOverlay;
 
-void        fakefsSetupRoot(FakefsFile **ptr);
+void        fakefsSetupRoot(LLcontrol *root);
 FakefsFile *fakefsAddFile(Fakefs *fakefs, FakefsFile *under, char *filename,
                           char *symlink, uint16_t filetype,
                           VfsHandlers *handlers);

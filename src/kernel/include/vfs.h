@@ -1,5 +1,6 @@
 #include "avl_tree.h"
 #include "disk.h"
+#include "linked_list.h"
 #include "linux.h"
 #include "types.h"
 
@@ -146,7 +147,7 @@ typedef size_t (*MntLink)(MountPoint *mnt, char *filename, char *target,
                           char **symlinkResolve, char **symlinkResolveTarget);
 
 struct MountPoint {
-  MountPoint *next;
+  LLheader _ll;
 
   char *prefix;
 
@@ -171,16 +172,8 @@ struct MountPoint {
   void         *fsInfo;
 };
 
-/*typedef struct PollItem {
-  struct PollItem *next;
-
-  int   epollEvents;
-  void *task; // Task*
-} PollItem;*/
-
 #define VFS_CLOSE_FLAG_RETAIN_ID (1 << 0)
 struct OpenFile {
-  // OpenFile *next;
   int id;
 
   Spinlock LOCK_OPERATIONS;
@@ -207,7 +200,7 @@ struct OpenFile {
   void       *fakefs;
 };
 
-MountPoint *firstMountPoint;
+LLcontrol dsMountPoint; // struct MountPoint
 
 #define SEEK_SET 0  // start + offset
 #define SEEK_CURR 1 // current + offset

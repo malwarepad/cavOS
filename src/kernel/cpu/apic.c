@@ -65,15 +65,15 @@ void ioApicWriteRedEntry(uint64_t ioApicVirt, uint8_t entry, uint8_t vector,
   ioApicWrite(ioApicVirt, 0x11 + entry * 2, (uint32_t)dest << 24);
 }
 
+bool ioApicFetchCb(void *data, void *ctx) {
+  IOAPIC *browse = data;
+  uint8_t irq = *(uint8_t *)ctx;
+  // = cause of +1
+  return irq >= browse->ioapicRedStart && irq <= browse->ioapicRedEnd;
+}
+
 IOAPIC *ioApicFetch(uint8_t irq) {
-  IOAPIC *browse = firstIoapic;
-  while (browse) {
-    // = cause of +1
-    if (irq >= browse->ioapicRedStart && irq <= browse->ioapicRedEnd)
-      break;
-    browse = browse->next;
-  }
-  return browse;
+  return LinkedListSearch(&dsIoapic, ioApicFetchCb, &irq);
 }
 
 /* Base stuff */
@@ -334,6 +334,11 @@ uint8_t irqPerCoreAllocate(uint8_t gsi, uint32_t *lapicId) {
   return irqGenericIndex + 32;
 }
 
+void apicPrintCb(void *data, void *ctx) {
+  IOAPIC *apic = data;
+  debugf("ioapic{%lx} ", apic->ioapicPhys);
+}
+
 void initiateAPIC() {
   if (!apicCheck()) {
     debugf("[apic] FATAL! APIC is not supported!\n");
@@ -360,6 +365,8 @@ void initiateAPIC() {
     apicPhys = madt->local_interrupt_controller_address;
   }
 
+  LinkedListInit(&dsIoapic, sizeof(IOAPIC));
+
   // the acpi list itself
   size_t curr = (size_t)madt + sizeof(struct acpi_madt);
   size_t end = curr + madt->hdr.length;
@@ -368,8 +375,7 @@ void initiateAPIC() {
     struct acpi_entry_hdr *browse = (struct acpi_entry_hdr *)curr;
     if (browse->type == ACPI_MADT_ENTRY_TYPE_IOAPIC) {
       struct acpi_madt_ioapic *specialized = (struct acpi_madt_ioapic *)browse;
-      IOAPIC                  *ioapic =
-          (IOAPIC *)LinkedListAllocate((void **)&firstIoapic, sizeof(IOAPIC));
+      IOAPIC *ioapic = (IOAPIC *)LinkedListAllocate(&dsIoapic, sizeof(IOAPIC));
       ioapic->id = specialized->id;
       ioapic->ioapicPhys = specialized->address;
       ioapic->ioapicVirt = bootloader.hhdmOffset + ioapic->ioapicPhys;
@@ -395,11 +401,7 @@ void initiateAPIC() {
   // apicVirt has to be set here due to potential overrides
   apicVirt = bootloader.hhdmOffset + apicPhys;
   debugf("[apic] Detection completed: lapic{%lx} ", apicPhys);
-  IOAPIC *browse = firstIoapic;
-  while (browse) {
-    debugf("ioapic{%lx} ", browse->ioapicPhys);
-    browse = browse->next;
-  }
+  LinkedListTraverse(&dsIoapic, apicPrintCb, 0);
   debugf("\n");
 
   // enable lapic (for the bootstrap core)

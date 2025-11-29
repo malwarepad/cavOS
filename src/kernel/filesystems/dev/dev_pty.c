@@ -18,7 +18,7 @@
 uint8_t *ptyBitmap = 0;
 Spinlock LOCK_PTY_GLOBAL = {0};
 
-PtyPair *firstPtyPair = 0;
+LLcontrol dsPtyPair = {0}; // struct PtyPair
 
 int ptyBitmapDecide() {
   int ret = -1;
@@ -50,7 +50,7 @@ void ptyPairCleanup(PtyPair *pair) {
   ptyBitmapRemove(pair->id);
 
   spinlockAcquire(&LOCK_PTY_GLOBAL);
-  assert(LinkedListRemove((void **)&firstPtyPair, pair));
+  assert(LinkedListRemove(&dsPtyPair, sizeof(PtyPair), pair));
   spinlockRelease(&LOCK_PTY_GLOBAL);
 }
 
@@ -73,8 +73,8 @@ void ptyTermiosDefaults(struct termios *term) {
 }
 
 void initiatePtyInterface() {
+  LinkedListInit(&dsPtyPair, sizeof(PtyPair));
   ptyBitmap = calloc(PTY_MAX / 8, 1);
-  // a
 }
 
 // target MUST be locked beforehand!
@@ -97,7 +97,7 @@ size_t ptmxOpen(char *filename, int flags, int mode, OpenFile *fd,
                 char **symlinkResolve) {
   int id = ptyBitmapDecide(); // here to avoid double locks
   spinlockAcquire(&LOCK_PTY_GLOBAL);
-  PtyPair *pair = LinkedListAllocate((void **)&firstPtyPair, sizeof(PtyPair));
+  PtyPair *pair = LinkedListAllocate(&dsPtyPair, sizeof(PtyPair));
   pair->masterFds = 1;
   pair->id = id;
   pair->bufferMaster = malloc(PTY_BUFF_SIZE);
@@ -278,6 +278,16 @@ void ptsCtrlAssign(PtyPair *pair) {
   // debugf("heck yeah! %d %d\n", currentTask->id, pair->id);
 }
 
+bool pairLookupByIdCb(void *data, void *ctx) {
+  PtyPair *browse = data;
+  uint64_t id = *(uint64_t *)ctx;
+  spinlockAcquire(&browse->LOCK_PTY);
+  if (browse->id == id)
+    return true;
+  spinlockRelease(&browse->LOCK_PTY);
+  return false;
+}
+
 size_t ptsOpen(char *filename, int flags, int mode, OpenFile *fd,
                char **symlinkResolve) {
   int length = strlength(filename);
@@ -291,14 +301,7 @@ size_t ptsOpen(char *filename, int flags, int mode, OpenFile *fd,
 
   uint64_t id = numAtEnd(filename);
   spinlockAcquire(&LOCK_PTY_GLOBAL);
-  PtyPair *browse = firstPtyPair;
-  while (browse) {
-    spinlockAcquire(&browse->LOCK_PTY);
-    if (browse->id == id)
-      break;
-    spinlockRelease(&browse->LOCK_PTY);
-    browse = browse->next;
-  }
+  PtyPair *browse = LinkedListSearch(&dsPtyPair, pairLookupByIdCb, &id);
   spinlockRelease(&LOCK_PTY_GLOBAL);
 
   if (!browse)

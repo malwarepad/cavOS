@@ -20,7 +20,7 @@
 bool fsUnmount(MountPoint *mnt) {
   debugf("[vfs] Tried to unmount!\n");
   panic();
-  LinkedListUnregister((void **)&firstMountPoint, mnt);
+  LinkedListUnregister(&dsMountPoint, sizeof(MountPoint), mnt);
 
   // todo!
   // switch (mnt->filesystem) {
@@ -51,8 +51,8 @@ bool isExt2(mbr_partition *mbr) { return mbr->type == 0x83; }
 // prefix MUST end with '/': /mnt/handle/
 MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
                     uint8_t partition) {
-  MountPoint *mount = (MountPoint *)LinkedListAllocate(
-      (void **)&firstMountPoint, sizeof(MountPoint));
+  MountPoint *mount =
+      (MountPoint *)LinkedListAllocate(&dsMountPoint, sizeof(MountPoint));
 
   uint32_t strlen = strlength(prefix);
   mount->prefix = (char *)(malloc(strlen + 1));
@@ -107,22 +107,27 @@ MountPoint *fsMount(char *prefix, CONNECTOR connector, uint32_t disk,
   return mount;
 }
 
-MountPoint *fsDetermineMountPoint(char *filename) {
-  MountPoint *largestAddr = 0;
-  uint32_t    largestLen = 0;
+typedef struct {
+  char       *filename;
+  MountPoint *largestAddr;
+  uint32_t    largestLen;
+} MountPointCbArgs;
+void fsDetermineMountPointCb(void *data, void *ctx) {
+  MountPoint       *browse = data;
+  MountPointCbArgs *p = ctx;
 
-  MountPoint *browse = firstMountPoint;
-  while (browse) {
-    size_t len = strlength(browse->prefix) - 1; // without trailing /
-    if (len >= largestLen && memcmp(filename, browse->prefix, len) == 0 &&
-        (filename[len] == '/' || filename[len] == '\0')) {
-      largestAddr = browse;
-      largestLen = len;
-    }
-    browse = browse->next;
+  size_t len = strlength(browse->prefix) - 1; // without trailing /
+  if (len >= p->largestLen && memcmp(p->filename, browse->prefix, len) == 0 &&
+      (p->filename[len] == '/' || p->filename[len] == '\0')) {
+    p->largestAddr = browse;
+    p->largestLen = len;
   }
+}
 
-  return largestAddr;
+MountPoint *fsDetermineMountPoint(char *filename) {
+  MountPointCbArgs args = {.filename = filename};
+  LinkedListTraverse(&dsMountPoint, fsDetermineMountPointCb, &args);
+  return args.largestAddr;
 }
 
 // make SURE to free both! also returns non-safe filename, obviously

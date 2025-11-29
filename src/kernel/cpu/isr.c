@@ -15,6 +15,8 @@
 // ISR Entry configurator
 // Copyright (C) 2024 Panagiotis
 
+// todo! DO NOT USE "SAFE" LLs IN VOLATILE CONTEXTS!!!! ._LL HACK ATM!
+
 char *format = "[isr] Kernel panic: %s!\n";
 
 char *exceptions[] = {"Division By Zero",
@@ -103,8 +105,6 @@ void remap_pic() {
   disable_pic();
 }
 
-irqHandler *firstIrqHandler = 0;
-
 extern void isr255();
 void        initiateISR() {
   // IRQs 0 - 15 -> 32 - 48
@@ -131,9 +131,10 @@ void        initiateISR() {
 }
 
 irqHandler *registerIRQhandler(uint8_t id, void *handler) {
+  // todo: safe context here so its warranted but please have another ds!
   // printf("IRQ %d reserved!\n", id);
-  irqHandler *target = (irqHandler *)LinkedListAllocate(
-      (void **)(&firstIrqHandler), sizeof(irqHandler));
+  irqHandler *target =
+      (irqHandler *)LinkedListAllocate(&dsIrqHandler, sizeof(irqHandler));
 
   target->id = id;
   target->handler = handler;
@@ -176,14 +177,14 @@ void handle_interrupt(uint64_t rsp) {
     apicWrite(0xB0, 0);
 
     /* find handler */
-    irqHandler *browse = firstIrqHandler;
+    irqHandler *browse = (irqHandler *)dsIrqHandler.firstObject;
     while (browse) {
       if (browse->id == cpu->interrupt) {
         FunctionPtr handler = browse->handler;
         handler(browse->argument ? (AsmPassedInterrupt *)browse->argument
                                  : cpu);
       }
-      browse = browse->next;
+      browse = (irqHandler *)browse->_ll.next;
     }
   } else if (cpu->interrupt >= 0 && cpu->interrupt <= 31) { // ISR
     // To drop the current execution and give control to the scheduler, set this

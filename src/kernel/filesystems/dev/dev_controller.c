@@ -35,34 +35,35 @@ VfsHandlers handleTty = {.open = devTtyOpen};
 Fakefs rootDev = {0};
 
 void devSetup() {
-  fakefsAddFile(&rootDev, rootDev.rootFile, "stdin", 0,
-                S_IFCHR | S_IRUSR | S_IWUSR, &stdio);
-  fakefsAddFile(&rootDev, rootDev.rootFile, "stdout", 0,
-                S_IFCHR | S_IRUSR | S_IWUSR, &stdio);
-  fakefsAddFile(&rootDev, rootDev.rootFile, "stderr", 0,
-                S_IFCHR | S_IRUSR | S_IWUSR, &stdio);
-  fakefsAddFile(&rootDev, rootDev.rootFile, "tty", 0,
-                S_IFCHR | S_IRUSR | S_IWUSR, &handleTty);
-  fakefsAddFile(&rootDev, rootDev.rootFile, "fb0", 0,
-                S_IFCHR | S_IRUSR | S_IWUSR, &fb0);
-  fakefsAddFile(&rootDev, rootDev.rootFile, "null", 0,
-                S_IFCHR | S_IRUSR | S_IWUSR, &handleNull);
-  fakefsAddFile(&rootDev, rootDev.rootFile, "random", 0,
-                S_IFCHR | S_IRUSR | S_IWUSR, &handleRandom);
-  fakefsAddFile(&rootDev, rootDev.rootFile, "urandom", 0,
-                S_IFCHR | S_IRUSR | S_IWUSR, &handleRandom);
+  FakefsFile *rootFile = (FakefsFile *)rootDev.rootFile.firstObject;
+  fakefsAddFile(&rootDev, rootFile, "stdin", 0, S_IFCHR | S_IRUSR | S_IWUSR,
+                &stdio);
+  fakefsAddFile(&rootDev, rootFile, "stdout", 0, S_IFCHR | S_IRUSR | S_IWUSR,
+                &stdio);
+  fakefsAddFile(&rootDev, rootFile, "stderr", 0, S_IFCHR | S_IRUSR | S_IWUSR,
+                &stdio);
+  fakefsAddFile(&rootDev, rootFile, "tty", 0, S_IFCHR | S_IRUSR | S_IWUSR,
+                &handleTty);
+  fakefsAddFile(&rootDev, rootFile, "fb0", 0, S_IFCHR | S_IRUSR | S_IWUSR,
+                &fb0);
+  fakefsAddFile(&rootDev, rootFile, "null", 0, S_IFCHR | S_IRUSR | S_IWUSR,
+                &handleNull);
+  fakefsAddFile(&rootDev, rootFile, "random", 0, S_IFCHR | S_IRUSR | S_IWUSR,
+                &handleRandom);
+  fakefsAddFile(&rootDev, rootFile, "urandom", 0, S_IFCHR | S_IRUSR | S_IWUSR,
+                &handleRandom);
 
   initiatePtyInterface();
-  fakefsAddFile(&rootDev, rootDev.rootFile, "ptmx", 0,
-                S_IFCHR | S_IRUSR | S_IWUSR, &handlePtmx);
+  fakefsAddFile(&rootDev, rootFile, "ptmx", 0, S_IFCHR | S_IRUSR | S_IWUSR,
+                &handlePtmx);
   FakefsFile *pts =
-      fakefsAddFile(&rootDev, rootDev.rootFile, "pts", 0,
-                    S_IFDIR | S_IRUSR | S_IWUSR, &fakefsRootHandlers);
+      fakefsAddFile(&rootDev, rootFile, "pts", 0, S_IFDIR | S_IRUSR | S_IWUSR,
+                    &fakefsRootHandlers);
   fakefsAddFile(&rootDev, pts, "*", 0, S_IFCHR | S_IRUSR | S_IWUSR, &handlePts);
 
   inputFakedir =
-      fakefsAddFile(&rootDev, rootDev.rootFile, "input", 0,
-                    S_IFDIR | S_IRUSR | S_IWUSR, &fakefsRootHandlers);
+      fakefsAddFile(&rootDev, rootFile, "input", 0, S_IFDIR | S_IRUSR | S_IWUSR,
+                    &fakefsRootHandlers);
 }
 
 bool devMount(MountPoint *mount) {
@@ -76,7 +77,7 @@ bool devMount(MountPoint *mount) {
   FakefsOverlay *dev = (FakefsOverlay *)mount->fsInfo;
 
   dev->fakefs = &rootDev;
-  if (!rootDev.rootFile) {
+  if (!rootDev.rootFile.firstObject) {
     fakefsSetupRoot(&rootDev.rootFile);
     devSetup();
   }

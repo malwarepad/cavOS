@@ -41,7 +41,7 @@ typedef struct UnixSocketPair {
 } UnixSocketPair;
 
 typedef struct UnixSocket {
-  struct UnixSocket *next;
+  LLheader _ll;
 
   Spinlock LOCK_SOCK;
   int      timesOpened;
@@ -61,8 +61,8 @@ typedef struct UnixSocket {
   UnixSocketPair *pair;
 } UnixSocket;
 
-UnixSocket *firstUnixSocket;
-Spinlock    LOCK_LL_UNIX_SOCKET;
+LLcontrol dsUnixSocket; // struct UnixSocket
+Spinlock  LOCK_LL_UNIX_SOCKET;
 
 // (1): we're the last ones to have access to the spinlock and the
 // acceptClose() end might concurrently try to set our ->connected to a

@@ -300,17 +300,18 @@ bool procEachClose(OpenFile *fd) {
 }
 
 void procSetup() {
-  fakefsAddFile(&rootProc, rootProc.rootFile, "meminfo", 0,
+  FakefsFile *rootFile = (FakefsFile *)rootProc.rootFile.firstObject;
+  fakefsAddFile(&rootProc, rootFile, "meminfo", 0,
                 S_IFREG | S_IRUSR | S_IRGRP | S_IROTH, &handleMeminfo);
-  fakefsAddFile(&rootProc, rootProc.rootFile, "uptime", 0,
+  fakefsAddFile(&rootProc, rootFile, "uptime", 0,
                 S_IFREG | S_IRUSR | S_IRGRP | S_IROTH, &handleUptime);
-  fakefsAddFile(&rootProc, rootProc.rootFile, "stat", 0,
+  fakefsAddFile(&rootProc, rootFile, "stat", 0,
                 S_IFREG | S_IRUSR | S_IRGRP | S_IROTH, &handleStat);
   FakefsFile *id =
-      fakefsAddFile(&rootProc, rootProc.rootFile, "*", 0,
+      fakefsAddFile(&rootProc, rootFile, "*", 0,
                     S_IFDIR | S_IRUSR | S_IRGRP | S_IROTH, &fakefsRootHandlers);
   // after the catch-all to avoid addding the below handlers!
-  fakefsAddFile(&rootProc, rootProc.rootFile, "self", 0,
+  fakefsAddFile(&rootProc, rootFile, "self", 0,
                 S_IFDIR | S_IRUSR | S_IRGRP | S_IROTH, &fakefsNoHandlers);
 
   fakefsAddFile(&rootProc, id, "cmdline", 0,
@@ -395,11 +396,11 @@ bool procMount(MountPoint *mount) {
   FakefsOverlay *proc = (FakefsOverlay *)mount->fsInfo;
 
   proc->fakefs = &rootProc;
-  if (!rootProc.rootFile) {
+  if (!rootProc.rootFile.firstObject) {
     fakefsSetupRoot(&rootProc.rootFile);
     procSetup();
   }
-  rootProc.rootFile->handlers = &procRootHandlers;
+  ((FakefsFile *)rootProc.rootFile.firstObject)->handlers = &procRootHandlers;
 
   return true;
 }

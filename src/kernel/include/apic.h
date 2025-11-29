@@ -1,3 +1,4 @@
+#include "linked_list.h"
 #include "pci.h"
 #include "types.h"
 
@@ -26,8 +27,9 @@ uint64_t apicVirt;
 
 // I/O APIC quick access
 typedef struct IOAPIC {
-  struct IOAPIC *next;
-  uint8_t        id;
+  struct LLheader _ll;
+
+  uint8_t id;
 
   uint64_t ioapicPhys;
   uint64_t ioapicVirt;
@@ -35,7 +37,7 @@ typedef struct IOAPIC {
   int ioapicRedStart;
   int ioapicRedEnd; // NOT max!
 } IOAPIC;
-IOAPIC *firstIoapic;
+LLcontrol dsIoapic; // struct IOAPIC
 
 // no way to deallocate vectors, should be good enough
 #define MAX_IRQ 256

@@ -133,7 +133,7 @@ typedef enum PCI_DRIVER_CATEGORY {
 
 typedef struct PCI PCI;
 struct PCI {
-  PCI *next;
+  LLheader _ll;
 
   uint8_t  bus, slot, function;
   uint16_t vendor_id, device_id;
@@ -145,7 +145,7 @@ struct PCI {
   void       *extra;
   irqHandler *irqHandler;
 };
-PCI *firstPCI;
+LLcontrol dsPCI; // struct PCI
 
 #define EXPORT_BYTE(target, first)                                             \
   ((first) ? ((target) & ~0xFF00) : (((target) & ~0x00FF) >> 8))

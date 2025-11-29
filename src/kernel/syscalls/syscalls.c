@@ -3,6 +3,7 @@
 #include <gdt.h>
 #include <isr.h>
 #include <kb.h>
+#include <poll.h>
 #include <schedule.h>
 #include <serial.h>
 #include <string.h>
@@ -10,6 +11,7 @@
 #include <system.h>
 #include <task.h>
 #include <timer.h>
+#include <unixSocket.h>
 #include <util.h>
 
 #include <linked_list.h>
@@ -213,6 +215,9 @@ void initiateSyscalls() {
   syscallsRegNet();
 
   initiateSignalDefs();
+  LinkedListInit(&dsUnixSocket, sizeof(UnixSocket));
+  LinkedListInit(&dsPollRoot, sizeof(PollInstance));
+  LinkedListInit(&dsEpoll, sizeof(Epoll));
   debugf("[syscalls] System calls are ready to fire: %d/%d\n", syscallCnt,
          MAX_SYSCALLS);
 }

@@ -11,15 +11,15 @@
 
 /* PCI abstraction */
 
+bool lookupPCIdeviceCb(void *data, void *ctx) {
+  PCI       *browse = data;
+  PCIdevice *device = ctx;
+  return browse->bus == device->bus && browse->slot == device->slot &&
+         browse->function == device->function;
+}
+
 PCI *lookupPCIdevice(PCIdevice *device) {
-  PCI *browse = firstPCI;
-  while (browse) {
-    if (browse->bus == device->bus && browse->slot == device->slot &&
-        browse->function == device->function)
-      break;
-    browse = browse->next;
-  }
-  return browse;
+  return LinkedListSearch(&dsPCI, lookupPCIdeviceCb, device);
 }
 
 void setupPCIdeviceDriver(PCI *pci, PCI_DRIVER driver,
@@ -185,6 +185,7 @@ void GetGeneralDevice(PCIdevice *device, PCIgeneralDevice *out) {
 
 void initiatePCI() {
   PCIdevice *device = (PCIdevice *)malloc(sizeof(PCIdevice));
+  LinkedListInit(&dsPCI, sizeof(PCI));
 
   for (uint16_t bus = 0; bus < PCI_MAX_BUSES; bus++) {
     for (uint8_t slot = 0; slot < PCI_MAX_DEVICES; slot++) {
@@ -196,7 +197,7 @@ void initiatePCI() {
         if ((device->headerType & ~(1 << 7)) != PCI_DEVICE_GENERAL)
           continue;
 
-        PCI *target = LinkedListAllocate((void **)(&firstPCI), sizeof(PCI));
+        PCI *target = LinkedListAllocate(&dsPCI, sizeof(PCI));
         target->bus = bus;
         target->slot = slot;
         target->function = function;

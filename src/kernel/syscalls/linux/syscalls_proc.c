@@ -288,6 +288,12 @@ static void syscallExitTask(int return_code) {
   taskKill(currentTask->id, return_code);
 }
 
+bool killedInfoByPidCb(void *data, void *ctx) {
+  KilledInfo *info = data;
+  int         pid = *(int *)ctx;
+  return pid == info->pid;
+}
+
 #define SYSCALL_WAIT4 61
 static size_t syscallWait4(int pid, int *wstatus, int options,
                            struct rusage *ru) {
@@ -324,12 +330,8 @@ static size_t syscallWait4(int pid, int *wstatus, int options,
   // check if specific pid item is already there
   if (pid != -1) {
     spinlockAcquire(&currentTask->LOCK_CHILD_TERM);
-    KilledInfo *browse = currentTask->firstChildTerminated;
-    while (browse) {
-      if (browse->pid == pid)
-        break;
-      browse = browse->next;
-    }
+    KilledInfo *browse = LinkedListSearch(&currentTask->dsChildTerminated,
+                                          killedInfoByPidCb, &pid);
     target = browse;
     spinlockRelease(&currentTask->LOCK_CHILD_TERM);
 
@@ -347,12 +349,8 @@ static size_t syscallWait4(int pid, int *wstatus, int options,
       // we're back
       currentTask->waitingForPid = 0; // just for good measure
       spinlockAcquire(&currentTask->LOCK_CHILD_TERM);
-      KilledInfo *browse = currentTask->firstChildTerminated;
-      while (browse) {
-        if (browse->pid == pid)
-          break;
-        browse = browse->next;
-      }
+      KilledInfo *browse = LinkedListSearch(&currentTask->dsChildTerminated,
+                                            killedInfoByPidCb, &pid);
       target = browse;
       spinlockRelease(&currentTask->LOCK_CHILD_TERM);
     }
@@ -368,7 +366,7 @@ static size_t syscallWait4(int pid, int *wstatus, int options,
       if (signalsPendingQuick(currentTask))
         return ERR(EINTR);
     }
-    target = currentTask->firstChildTerminated;
+    target = (KilledInfo *)currentTask->dsChildTerminated.firstObject;
   }
 
   spinlockAcquire(&currentTask->LOCK_CHILD_TERM);
@@ -381,7 +379,7 @@ static size_t syscallWait4(int pid, int *wstatus, int options,
   int ret = target->ret;
 
   // cleanup
-  LinkedListRemove((void **)(&currentTask->firstChildTerminated), target);
+  LinkedListRemove(&currentTask->dsChildTerminated, sizeof(KilledInfo), target);
   currentTask->childrenTerminatedAmnt--;
   spinlockRelease(&currentTask->LOCK_CHILD_TERM);
 

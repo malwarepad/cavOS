@@ -17,7 +17,16 @@
  * +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
  */
 
-void *LinkedListAllocate(void **LLfirstPtr, uint32_t structSize) {
+force_inline void LinkedListNormal(LLcontrol *ll, uint32_t structSize) {
+  assert(ll->signature1 == LL_SIGNATURE_1);
+  assert(ll->signature2 == LL_SIGNATURE_2);
+  assert(ll->structSize == structSize);
+}
+
+void *LinkedListAllocate(LLcontrol *ll, uint32_t structSize) {
+  LinkedListNormal(ll, structSize);
+  void **LLfirstPtr = (void **)(&ll->firstObject);
+
   LLheader *target = (LLheader *)malloc(structSize);
   memset(target, 0, structSize);
 
@@ -40,7 +49,11 @@ void *LinkedListAllocate(void **LLfirstPtr, uint32_t structSize) {
   return target;
 }
 
-bool LinkedListUnregister(void **LLfirstPtr, const void *LLtarget) {
+bool LinkedListUnregister(LLcontrol *ll, uint32_t structSize,
+                          const void *LLtarget) {
+  LinkedListNormal(ll, structSize);
+  void **LLfirstPtr = (void **)(&ll->firstObject);
+
   LLheader *LLfirstCopy = *LLfirstPtr;
 
   LLheader *curr = (LLheader *)(*LLfirstPtr);
@@ -63,16 +76,18 @@ bool LinkedListUnregister(void **LLfirstPtr, const void *LLtarget) {
   return true;
 }
 
-bool LinkedListRemove(void **LLfirstPtr, void *LLtarget) {
-  bool res = LinkedListUnregister(LLfirstPtr, LLtarget);
+bool LinkedListRemove(LLcontrol *ll, uint32_t structSize, void *LLtarget) {
+  LinkedListNormal(ll, structSize);
+  bool res = LinkedListUnregister(ll, structSize, LLtarget);
   free(LLtarget);
   return res;
 }
 
-void LinkedListPushFrontUnsafe(void **LLfirstPtr, void *LLtarget) {
+void LinkedListPushFrontUnsafe(LLcontrol *ll, void *LLtarget) {
+  void **LLfirstPtr = (void **)(&ll->firstObject);
   if (*LLfirstPtr == 0) {
-    // todo: zero next (checks)
     *LLfirstPtr = LLtarget;
+    assert(((LLheader *)LLtarget)->next == 0);
     return;
   }
 
@@ -82,7 +97,10 @@ void LinkedListPushFrontUnsafe(void **LLfirstPtr, void *LLtarget) {
   target->next = next;
 }
 
-void LinkedListDestroy(void **LLfirstPtr) {
+void LinkedListDestroy(LLcontrol *ll, uint32_t structSize) {
+  void **LLfirstPtr = (void **)(&ll->firstObject);
+  LinkedListNormal(ll, structSize);
+
   LLheader *browse = (LLheader *)(*LLfirstPtr);
   while (browse) {
     void *next = browse->next;
@@ -91,4 +109,43 @@ void LinkedListDestroy(void **LLfirstPtr) {
   }
 
   *LLfirstPtr = 0;
+}
+
+void LinkedListInit(LLcontrol *ll, uint32_t structSize) {
+  assert(ll->signature1 != LL_SIGNATURE_1);
+  assert(ll->signature2 != LL_SIGNATURE_2);
+
+  memset(ll, 0, sizeof(LLcontrol));
+
+  ll->signature1 = LL_SIGNATURE_1;
+  ll->signature2 = LL_SIGNATURE_2;
+  ll->structSize = structSize;
+}
+
+void LinkedListTraverse(LLcontrol *ll, void(callback)(void *data, void *ctx),
+                        void      *ctx) {
+  LLheader *browse = (LLheader *)(ll->firstObject);
+  while (browse) {
+    callback(browse, ctx);
+    browse = browse->next;
+  }
+}
+
+void *LinkedListSearch(LLcontrol *ll, bool(isCorrect)(void *data, void *ctx),
+                       void      *ctx) {
+  LLheader *browse = (LLheader *)(ll->firstObject);
+  while (browse) {
+    if (isCorrect(browse, ctx))
+      break;
+    browse = browse->next;
+  }
+  return browse;
+}
+
+bool LinkedListSearchPtrCb(void *data, void *targetPtr) {
+  return data == targetPtr;
+}
+
+void *LinkedListSearchPtr(LLcontrol *ll, void *targetPtr) {
+  return LinkedListSearch(ll, LinkedListSearchPtrCb, targetPtr);
 }

@@ -1,4 +1,6 @@
+#include "avl_tree.h"
 #include "isr.h"
+#include "linked_list.h"
 #include "system.h"
 #include "types.h"
 #include "vfs.h"
@@ -40,7 +42,7 @@ typedef enum TASK_STATE {
 } TASK_STATE;
 
 typedef struct KilledInfo {
-  struct KilledInfo *next;
+  LLheader _ll;
 
   uint64_t pid;
   uint16_t ret;
@@ -61,6 +63,12 @@ TaskInfoFs *taskInfoFsAllocate();
 TaskInfoFs *taskInfoFsClone(TaskInfoFs *old);
 void        taskInfoFsDiscard(TaskInfoFs *target);
 
+typedef struct UserspaceMapping {
+  void  *virt; // it is the key aswell
+  size_t pages;
+  bool   onDemand;
+} UserspaceMapping;
+
 typedef struct TaskInfoPagedir {
   Spinlock LOCK_PD;
   int      utilizedBy;
@@ -70,6 +78,9 @@ typedef struct TaskInfoPagedir {
 
   uint64_t mmap_start;
   uint64_t mmap_end;
+
+  // todo: maybe make it a linked list, might be more efficient
+  AVLheader *mappings; // UserspaceMapping*
 
   uint64_t *pagedir;
 } TaskInfoPagedir;
@@ -112,7 +123,7 @@ TaskInfoFiles *taskInfoFilesAllocate();
 void taskInfoFilesDiscard(TaskInfoFiles *target, void *task);
 
 typedef struct TaskSysInterrupted {
-  struct TaskSysInterrupted *next;
+  LLheader _ll;
 
   uint64_t number; // rax
 } TaskSysInterrupted;
@@ -144,7 +155,7 @@ struct Task {
   AsmPassedInterrupt *syscallRegs;
   uint64_t            syscallRsp;
 
-  TaskSysInterrupted *firstSysIntr;
+  LLcontrol dsSysIntr; // struct TaskSysInterrupted
   // no need for a lock, only we access it directly
 
   // Useful to switch, for when TLS is available
@@ -180,10 +191,10 @@ struct Task {
 
   bool noInformParent;
 
-  Spinlock    LOCK_CHILD_TERM;
-  KilledInfo *firstChildTerminated;
-  int         childrenTerminatedAmnt;
-  int        *tidptr;
+  Spinlock  LOCK_CHILD_TERM;
+  LLcontrol dsChildTerminated; // struct KilledInfo
+  int       childrenTerminatedAmnt;
+  int      *tidptr;
 
   uint64_t extras; // extra flags
 
@@ -201,15 +212,15 @@ Task *dummyTask;
 bool tasksInitiated;
 
 typedef struct BlockedTask {
-  struct BlockedTask *next;
+  LLheader _ll;
 
   Task *task;
 } BlockedTask;
 
 typedef struct Blocking {
   // also needs a parent lock to be reliable! this is just for the LL
-  Spinlock     LOCK_LL_BLOCKED;
-  BlockedTask *firstBlockedTask;
+  Spinlock  LOCK_LL_BLOCKED;
+  LLcontrol dsBlockedTask; // struct BlockedTask
 } Blocking;
 
 // needed for libraries that still depend on some sort of errno

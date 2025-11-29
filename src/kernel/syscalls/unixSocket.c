@@ -200,7 +200,7 @@ size_t unixSocketOpen(void *taskPtr, int type, int protocol) {
   sockNode->handlers = &unixSocketHandlers;
   spinlockAcquire(&LOCK_LL_UNIX_SOCKET);
   UnixSocket *unixSocket =
-      LinkedListAllocate((void **)&firstUnixSocket, sizeof(UnixSocket));
+      LinkedListAllocate(&dsUnixSocket, sizeof(UnixSocket));
   spinlockRelease(&LOCK_LL_UNIX_SOCKET);
   sockNode->dir = unixSocket;
 
@@ -234,18 +234,26 @@ char *unixSocketAddrSafe(sockaddr_linux *addr, size_t len) {
   return safe;
 }
 
+typedef struct {
+  size_t len;
+  char  *filename;
+} UnlinkNotifyCb;
+bool unixSocketUnlinkNotifyCb(void *data, void *ctx) {
+  UnixSocket     *browse = data;
+  UnlinkNotifyCb *p = ctx;
+  spinlockAcquire(&browse->LOCK_SOCK);
+  if (browse->bindAddr && strlength(browse->bindAddr) == p->len &&
+      memcmp(browse->bindAddr, p->filename, p->len) == 0)
+    return true;
+  spinlockRelease(&browse->LOCK_SOCK);
+  return false;
+}
+
 bool unixSocketUnlinkNotify(char *filename) {
-  size_t len = strlength(filename);
+  UnlinkNotifyCb args = {.filename = filename, .len = strlength(filename)};
   spinlockAcquire(&LOCK_LL_UNIX_SOCKET);
-  UnixSocket *browse = firstUnixSocket;
-  while (browse) {
-    spinlockAcquire(&browse->LOCK_SOCK);
-    if (browse->bindAddr && strlength(browse->bindAddr) == len &&
-        memcmp(browse->bindAddr, filename, len) == 0)
-      break;
-    spinlockRelease(&browse->LOCK_SOCK);
-    browse = browse->next;
-  }
+  UnixSocket *browse =
+      LinkedListSearch(&dsUnixSocket, unixSocketUnlinkNotifyCb, &args);
   spinlockRelease(&LOCK_LL_UNIX_SOCKET);
 
   if (browse) {
@@ -255,6 +263,22 @@ bool unixSocketUnlinkNotify(char *filename) {
   }
 
   return !!browse;
+}
+
+typedef struct {
+  char  *safe;
+  size_t safeLen;
+} SocketBindArgs;
+bool unixSocketBindCb(void *data, void *ctx) {
+  UnixSocket     *browse = data;
+  SocketBindArgs *p = ctx;
+
+  spinlockAcquire(&browse->LOCK_SOCK);
+  if (browse->bindAddr && strlength(browse->bindAddr) == p->safeLen &&
+      memcmp(p->safe, browse->bindAddr, p->safeLen) == 0)
+    return true;
+  spinlockRelease(&browse->LOCK_SOCK);
+  return false;
 }
 
 size_t unixSocketBind(OpenFile *fd, sockaddr_linux *addr, size_t len) {
@@ -280,17 +304,9 @@ size_t unixSocketBind(OpenFile *fd, sockaddr_linux *addr, size_t len) {
   }
 
   // make sure there are no duplicates
-  size_t safeLen = strlength(safe);
+  SocketBindArgs args = {.safe = safe, .safeLen = strlength(safe)};
   spinlockAcquire(&LOCK_LL_UNIX_SOCKET);
-  UnixSocket *browse = firstUnixSocket;
-  while (browse) {
-    spinlockAcquire(&browse->LOCK_SOCK);
-    if (browse->bindAddr && strlength(browse->bindAddr) == safeLen &&
-        memcmp(safe, browse->bindAddr, safeLen) == 0)
-      break;
-    spinlockRelease(&browse->LOCK_SOCK);
-    browse = browse->next;
-  }
+  UnixSocket *browse = LinkedListSearch(&dsUnixSocket, unixSocketBindCb, &args);
   spinlockRelease(&LOCK_LL_UNIX_SOCKET);
 
   // found a duplicate!
@@ -357,6 +373,27 @@ size_t unixSocketAccept(OpenFile *fd, sockaddr_linux *addr, uint32_t *len) {
   return acceptFd->id;
 }
 
+typedef struct {
+  UnixSocket *sock;
+  char       *safe;
+  size_t      safeLen;
+} SocketConnectCbArgs;
+bool unixSocketConnectCb(void *data, void *ctx) {
+  UnixSocket          *parent = data;
+  SocketConnectCbArgs *args = ctx;
+
+  if (parent == args->sock)
+    return false;
+
+  spinlockAcquire(&parent->LOCK_SOCK);
+  if (parent->bindAddr && strlength(parent->bindAddr) == args->safeLen &&
+      memcmp(args->safe, parent->bindAddr, args->safeLen) == 0)
+    return true;
+  spinlockRelease(&parent->LOCK_SOCK);
+
+  return false;
+}
+
 size_t unixSocketConnect(OpenFile *fd, sockaddr_linux *addr, uint32_t len) {
   UnixSocket *sock = fd->dir;
   if (sock->connMax != 0) // already ran listen()
@@ -368,26 +405,14 @@ size_t unixSocketConnect(OpenFile *fd, sockaddr_linux *addr, uint32_t len) {
   char *safe = unixSocketAddrSafe(addr, len);
   if (RET_IS_ERR((size_t)(safe)))
     return (size_t)safe;
-  size_t safeLen = strlength(safe);
+  SocketConnectCbArgs args = {
+      .sock = sock, .safe = safe, .safeLen = strlength(safe)};
   dbgSysExtraf("safe{%s}", safe);
 
   // find object
   spinlockAcquire(&LOCK_LL_UNIX_SOCKET);
-  UnixSocket *parent = firstUnixSocket;
-  while (parent) {
-    if (parent == sock) {
-      parent = parent->next;
-      continue;
-    }
-
-    spinlockAcquire(&parent->LOCK_SOCK);
-    if (parent->bindAddr && strlength(parent->bindAddr) == safeLen &&
-        memcmp(safe, parent->bindAddr, safeLen) == 0)
-      break;
-    spinlockRelease(&parent->LOCK_SOCK);
-
-    parent = parent->next;
-  }
+  UnixSocket *parent =
+      LinkedListSearch(&dsUnixSocket, unixSocketConnectCb, &args);
   spinlockRelease(&LOCK_LL_UNIX_SOCKET);
   free(safe); // no longer needed
 
@@ -470,7 +495,7 @@ bool unixSocketClose(OpenFile *fd) {
   if (unixSocket->timesOpened == 0) {
     // destroy it
     spinlockAcquire(&LOCK_LL_UNIX_SOCKET);
-    assert(LinkedListRemove((void **)&firstUnixSocket, unixSocket));
+    assert(LinkedListRemove(&dsUnixSocket, sizeof(UnixSocket), unixSocket));
     spinlockRelease(&LOCK_LL_UNIX_SOCKET);
     goto skip_release;
   }

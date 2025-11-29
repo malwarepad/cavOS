@@ -387,12 +387,14 @@ size_t signalsSigreturnSyscall(void *taskPtr) {
   AsmPassedInterrupt regs = {0};
   signalsUcontextToAsmPassed(ucontext, &regs);
 
-  if (flags & SA_RESTART && regs.rax == ERR(EINTR) && task->firstSysIntr) {
-    TaskSysInterrupted *sysIntr = task->firstSysIntr;
+  if (flags & SA_RESTART && regs.rax == ERR(EINTR) &&
+      task->dsSysIntr.firstObject) {
+    TaskSysInterrupted *sysIntr =
+        (TaskSysInterrupted *)task->dsSysIntr.firstObject;
     assert(sysIntr);
 
     int number = sysIntr->number;
-    LinkedListRemove((void **)&task->firstSysIntr, sysIntr);
+    LinkedListRemove(&task->dsSysIntr, sizeof(TaskSysInterrupted), sysIntr);
 
     if (number == 0 ||   // SYS_read
         number == 1 ||   // SYS_write

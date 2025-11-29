@@ -139,12 +139,13 @@ size_t cavosConsoleWrite(OpenFile *fd, uint8_t *buff, size_t len) {
 VfsHandlers cavosConsoleHandlers = {.write = cavosConsoleWrite};
 
 void sysSetup() {
-  fakefsAddFile(&rootSys, rootSys.rootFile, "cavosConsole", 0,
+  FakefsFile *rootFile = (FakefsFile *)rootSys.rootFile.firstObject;
+  fakefsAddFile(&rootSys, rootFile, "cavosConsole", 0,
                 S_IFLNK | S_IRUSR | S_IFREG, &cavosConsoleHandlers);
 
   FakefsFile *bus =
-      fakefsAddFile(&rootSys, rootSys.rootFile, "bus", 0,
-                    S_IFDIR | S_IRUSR | S_IWUSR, &fakefsRootHandlers);
+      fakefsAddFile(&rootSys, rootFile, "bus", 0, S_IFDIR | S_IRUSR | S_IWUSR,
+                    &fakefsRootHandlers);
   FakefsFile *pci =
       fakefsAddFile(&rootSys, bus, "pci", 0, S_IFDIR | S_IRUSR | S_IWUSR,
                     &fakefsRootHandlers);
@@ -153,8 +154,8 @@ void sysSetup() {
                     &fakefsRootHandlers);
 
   FakefsFile *class =
-      fakefsAddFile(&rootSys, rootSys.rootFile, "class", 0,
-                    S_IFDIR | S_IRUSR | S_IWUSR, &fakefsRootHandlers);
+      fakefsAddFile(&rootSys, rootFile, "class", 0, S_IFDIR | S_IRUSR | S_IWUSR,
+                    &fakefsRootHandlers);
   FakefsFile *graphics =
       fakefsAddFile(&rootSys, class, "graphics", 0, S_IFDIR | S_IRUSR | S_IWUSR,
                     &fakefsRootHandlers);
@@ -182,7 +183,7 @@ bool sysMount(MountPoint *mount) {
   FakefsOverlay *sys = (FakefsOverlay *)mount->fsInfo;
 
   sys->fakefs = &rootSys;
-  if (!rootSys.rootFile) {
+  if (!rootSys.rootFile.firstObject) {
     fakefsSetupRoot(&rootSys.rootFile);
     sysSetup();
   }

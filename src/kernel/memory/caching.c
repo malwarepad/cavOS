@@ -2,15 +2,13 @@
 #include <system.h>
 #include <vfs.h>
 
+void cachingInfoCb(void *data, void *ctx) {
+  MountPoint *fs = data;
+  *(size_t *)ctx += fs->blocksCached;
+}
+
 size_t cachingInfoBlocks() {
   size_t ret = 0;
-
-  // filesystem cache
-  MountPoint *fs = firstMountPoint;
-  while (fs) {
-    ret += fs->blocksCached;
-    fs = fs->next;
-  }
-
+  LinkedListTraverse(&dsMountPoint, cachingInfoCb, &ret);
   return ret;
 }

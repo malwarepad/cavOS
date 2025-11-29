@@ -85,6 +85,7 @@ err_t sys_mbox_new(sys_mbox_t *mbox, int size) {
   mbox->invalid = false;
   mbox->size = size;
   mbox->msges = malloc(sizeof(mbox->msges[0]) * (size + 1));
+  LinkedListInit(&mbox->firstBlock, sizeof(mboxBlock));
   return ERR_OK;
 }
 
@@ -113,13 +114,13 @@ void sys_mbox_post_unsafe(sys_mbox_t *q, void *msg) {
   q->msges[q->ptrWrite] = msg;
   q->ptrWrite = (q->ptrWrite + 1) % q->size;
 
-  mboxBlock *browse = q->firstBlock;
+  mboxBlock *browse = (mboxBlock *)q->firstBlock.firstObject;
   while (browse) {
-    mboxBlock *next = browse->next;
+    mboxBlock *next = (mboxBlock *)(browse->_ll.next);
     if (browse->write == false) {
       browse->task->forcefulWakeupTimeUnsafe = 0;
       browse->task->state = TASK_STATE_READY;
-      LinkedListRemove((void **)&q->firstBlock, browse);
+      LinkedListRemove(&q->firstBlock, sizeof(mboxBlock), browse);
     }
     browse = next;
   }
@@ -170,8 +171,7 @@ u32_t sys_arch_mbox_fetch(sys_mbox_t *q, void **msg, u32_t timeout) {
     }
     if (timeout)
       currentTask->forcefulWakeupTimeUnsafe = timeStart + timeout;
-    mboxBlock *block =
-        LinkedListAllocate((void **)&q->firstBlock, sizeof(mboxBlock));
+    mboxBlock *block = LinkedListAllocate(&q->firstBlock, sizeof(mboxBlock));
     block->task = currentTask;
     block->write = false;
     taskSpinlockExit(currentTask, &q->LOCK);
