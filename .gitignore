@@ -6,6 +6,7 @@ target/usr/lib
 target/lib
 disk.img
 disk.vmdk
+temporarydir
 
 # Libraries
 target/usr/include/ncursesw
