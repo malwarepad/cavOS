@@ -173,6 +173,8 @@ struct Task {
   int      ctrlPty;
   void    *spinlockQueueEntry; // check on kill!
 
+  Semaphore lwipSem;
+
   char  *cmdline;
   size_t cmdlineLen;
   char  *execname; // elf executable name

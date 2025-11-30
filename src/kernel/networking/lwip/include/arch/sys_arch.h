@@ -19,6 +19,10 @@ void     sys_sem_free(sys_sem_t *sem);
 void     sys_sem_set_invalid(sys_sem_t *sem);
 int      sys_sem_valid(sys_sem_t *sem);
 
+err_t      LWIP_NETCONN_THREAD_SEM_ALLOC();
+err_t      LWIP_NETCONN_THREAD_SEM_FREE();
+sys_sem_t *LWIP_NETCONN_THREAD_SEM_GET();
+
 err_t sys_mbox_new(sys_mbox_t *mbox, int size);
 void  sys_mbox_free(sys_mbox_t *mbox);
 void  sys_mbox_set_invalid(sys_mbox_t *mbox);

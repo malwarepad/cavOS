@@ -40,6 +40,18 @@ err_t sys_sem_new(sys_sem_t *sem, uint8_t cnt) {
   return ERR_OK;
 }
 
+err_t LWIP_NETCONN_THREAD_SEM_ALLOC() {
+  sys_sem_new(&currentTask->lwipSem, 0);
+  return ERR_OK;
+}
+
+err_t LWIP_NETCONN_THREAD_SEM_FREE() {
+  sys_sem_new(&currentTask->lwipSem, 0);
+  return ERR_OK;
+}
+
+sys_sem_t *LWIP_NETCONN_THREAD_SEM_GET() { return &currentTask->lwipSem; }
+
 void sys_sem_signal(sys_sem_t *sem) { semaphorePost(sem); }
 
 uint32_t sys_arch_sem_wait(sys_sem_t *sem, uint32_t timeout) {
