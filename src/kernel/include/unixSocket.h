@@ -1,3 +1,4 @@
+#include "circular.h"
 #include "spinlock.h"
 #include "task.h"
 #include "types.h"
@@ -24,8 +25,7 @@ typedef struct UnixSocketPair {
   // accept()/server
   bool     established;
   int      serverFds;
-  uint8_t *serverBuff;
-  int      serverBuffPos;
+  Circular serverBuff;
   int      serverBuffSize;
 
   struct ucred server;
@@ -35,8 +35,7 @@ typedef struct UnixSocketPair {
 
   // connect()/client
   int      clientFds;
-  uint8_t *clientBuff;
-  int      clientBuffPos;
+  Circular clientBuff;
   int      clientBuffSize;
 } UnixSocketPair;
 

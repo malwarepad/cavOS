@@ -38,15 +38,15 @@ UnixSocketPair *unixSocketAllocatePair() {
   UnixSocketPair *pair = calloc(sizeof(UnixSocketPair), 1);
   pair->clientBuffSize = UNIX_SOCK_BUFF_DEFAULT;
   pair->serverBuffSize = UNIX_SOCK_BUFF_DEFAULT;
-  pair->serverBuff = malloc(pair->serverBuffSize);
-  pair->clientBuff = malloc(pair->clientBuffSize);
+  CircularAllocate(&pair->serverBuff, pair->serverBuffSize);
+  CircularAllocate(&pair->clientBuff, pair->clientBuffSize);
   return pair;
 }
 
 void unixSocketFreePair(UnixSocketPair *pair) {
   assert(pair->serverFds == 0 && pair->clientFds == 0);
-  free(pair->clientBuff);
-  free(pair->serverBuff);
+  CircularFree(&pair->clientBuff);
+  CircularFree(&pair->serverBuff);
   free(pair->filename);
   free(pair);
 }
@@ -77,30 +77,26 @@ size_t unixSocketAcceptRecvfrom(OpenFile *fd, uint8_t *out, size_t limit,
   (void)len;
 
   UnixSocketPair *pair = fd->dir;
-  if (!pair->clientFds && pair->serverBuffPos == 0)
+  if (!pair->clientFds && CircularReadPoll(&pair->serverBuff) == 0)
     return 0;
   while (true) {
     spinlockAcquire(&pair->LOCK_PAIR);
-    if (!pair->clientFds && pair->serverBuffPos == 0) {
+    if (!pair->clientFds && CircularReadPoll(&pair->serverBuff) == 0) {
       spinlockRelease(&pair->LOCK_PAIR);
       return 0;
     } else if ((fd->flags & O_NONBLOCK || flags & MSG_DONTWAIT) &&
-               pair->serverBuffPos == 0) {
+               CircularReadPoll(&pair->serverBuff) == 0) {
       spinlockRelease(&pair->LOCK_PAIR);
       return ERR(EWOULDBLOCK);
-    } else if (pair->serverBuffPos > 0)
+    } else if (CircularReadPoll(&pair->serverBuff) > 0)
       break;
     spinlockRelease(&pair->LOCK_PAIR);
   }
 
   // spinlock already acquired
-  size_t toCopy = MIN(limit, pair->serverBuffPos);
-  memcpy(out, pair->serverBuff, toCopy);
-  memmove(pair->serverBuff, &pair->serverBuff[toCopy],
-          pair->serverBuffPos - toCopy);
-  pair->serverBuffPos -= toCopy;
-  bool notify =
-      (pair->serverBuffPos + UNIX_SOCK_POLL_EXTRA) < pair->serverBuffSize;
+  size_t toCopy = MIN(limit, CircularReadPoll(&pair->serverBuff));
+  assert(CircularRead(&pair->serverBuff, out, toCopy) == toCopy);
+  bool notify = CircularWritePoll(&pair->serverBuff) > UNIX_SOCK_POLL_EXTRA;
   spinlockRelease(&pair->LOCK_PAIR);
   if (notify)
     pollInstanceRing((size_t)pair, EPOLLOUT);
@@ -128,17 +124,16 @@ size_t unixSocketAcceptSendto(OpenFile *fd, uint8_t *in, size_t limit,
       atomicBitmapSet(&currentTask->sigPendingList, SIGPIPE);
       return ERR(EPIPE);
     } else if ((fd->flags & O_NONBLOCK || flags & MSG_DONTWAIT) &&
-               (pair->clientBuffPos + limit) > pair->clientBuffSize) {
+               CircularWritePoll(&pair->clientBuff) < limit) {
       spinlockRelease(&pair->LOCK_PAIR);
       return ERR(EWOULDBLOCK);
-    } else if ((pair->clientBuffPos + limit) <= pair->clientBuffSize)
+    } else if (CircularWritePoll(&pair->clientBuff) >= limit)
       break;
     spinlockRelease(&pair->LOCK_PAIR);
   }
 
   // spinlock already acquired
-  memcpy(&pair->clientBuff[pair->clientBuffPos], in, limit);
-  pair->clientBuffPos += limit;
+  assert(CircularWrite(&pair->clientBuff, in, limit) == limit);
   spinlockRelease(&pair->LOCK_PAIR);
   pollInstanceRing((size_t)pair, EPOLLIN);
 
@@ -154,10 +149,10 @@ int unixSocketAcceptInternalPoll(OpenFile *fd, int events) {
     revents |= EPOLLHUP;
 
   if (events & EPOLLOUT && pair->clientFds &&
-      pair->clientBuffPos < pair->clientBuffSize)
+      CircularWritePoll(&pair->clientBuff) > 0)
     revents |= EPOLLOUT;
 
-  if (events & EPOLLIN && pair->serverBuffPos > 0)
+  if (events & EPOLLIN && CircularReadPoll(&pair->serverBuff) > 0)
     revents |= EPOLLIN;
   spinlockRelease(&pair->LOCK_PAIR);
 
@@ -516,28 +511,25 @@ size_t unixSocketRecvfrom(OpenFile *fd, uint8_t *out, size_t limit, int flags,
   UnixSocketPair *pair = socket->pair;
   if (!pair)
     return ERR(ENOTCONN);
-  if (!pair->serverFds && pair->clientBuffPos == 0)
+  if (!pair->serverFds && CircularReadPoll(&pair->clientBuff) == 0)
     return 0;
   while (true) {
     spinlockAcquire(&pair->LOCK_PAIR);
-    if (!pair->serverFds && pair->clientBuffPos == 0) {
+    if (!pair->serverFds && CircularReadPoll(&pair->clientBuff) == 0) {
       spinlockRelease(&pair->LOCK_PAIR);
       return 0;
     } else if ((fd->flags & O_NONBLOCK || flags & MSG_DONTWAIT) &&
-               pair->clientBuffPos == 0) {
+               CircularReadPoll(&pair->clientBuff) == 0) {
       spinlockRelease(&pair->LOCK_PAIR);
       return ERR(EWOULDBLOCK);
-    } else if (pair->clientBuffPos > 0)
+    } else if (CircularReadPoll(&pair->clientBuff) > 0)
       break;
     spinlockRelease(&pair->LOCK_PAIR);
   }
 
   // spinlock already acquired
-  size_t toCopy = MIN(limit, pair->clientBuffPos);
-  memcpy(out, pair->clientBuff, toCopy);
-  memmove(pair->clientBuff, &pair->clientBuff[toCopy],
-          pair->clientBuffPos - toCopy);
-  pair->clientBuffPos -= toCopy;
+  size_t toCopy = MIN(limit, CircularReadPoll(&pair->clientBuff));
+  assert(CircularRead(&pair->clientBuff, out, toCopy) == toCopy);
   spinlockRelease(&pair->LOCK_PAIR);
   pollInstanceRing((size_t)pair, EPOLLOUT);
 
@@ -567,17 +559,16 @@ size_t unixSocketSendto(OpenFile *fd, uint8_t *in, size_t limit, int flags,
       atomicBitmapSet(&currentTask->sigPendingList, SIGPIPE);
       return ERR(EPIPE);
     } else if ((fd->flags & O_NONBLOCK || flags & MSG_DONTWAIT) &&
-               (pair->serverBuffPos + limit) > pair->serverBuffSize) {
+               CircularWritePoll(&pair->serverBuff) < limit) {
       spinlockRelease(&pair->LOCK_PAIR);
       return ERR(EWOULDBLOCK);
-    } else if ((pair->serverBuffPos + limit) <= pair->serverBuffSize)
+    } else if (CircularWritePoll(&pair->serverBuff) >= limit)
       break;
     spinlockRelease(&pair->LOCK_PAIR);
   }
 
   // spinlock already acquired
-  memcpy(&pair->serverBuff[pair->serverBuffPos], in, limit);
-  pair->serverBuffPos += limit;
+  assert(CircularWrite(&pair->serverBuff, in, limit) == limit);
   spinlockRelease(&pair->LOCK_PAIR);
   pollInstanceRing((size_t)pair, EPOLLIN);
 
@@ -706,10 +697,10 @@ int unixSocketInternalPoll(OpenFile *fd, int events) {
       revents |= EPOLLHUP;
 
     if (events & EPOLLOUT && pair->serverFds &&
-        (pair->serverBuffPos + UNIX_SOCK_POLL_EXTRA) < pair->serverBuffSize)
+        CircularWritePoll(&pair->serverBuff) > UNIX_SOCK_POLL_EXTRA)
       revents |= EPOLLOUT;
 
-    if (events & EPOLLIN && pair->clientBuffPos > 0)
+    if (events & EPOLLIN && CircularReadPoll(&pair->clientBuff) > 0)
       revents |= EPOLLIN;
     spinlockRelease(&pair->LOCK_PAIR);
   } else
