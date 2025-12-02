@@ -140,8 +140,8 @@ VfsHandlers cavosConsoleHandlers = {.write = cavosConsoleWrite};
 
 void sysSetup() {
   FakefsFile *rootFile = (FakefsFile *)rootSys.rootFile.firstObject;
-  fakefsAddFile(&rootSys, rootFile, "cavosConsole", 0,
-                S_IFLNK | S_IRUSR | S_IFREG, &cavosConsoleHandlers);
+  fakefsAddFile(&rootSys, rootFile, "cavosConsole", 0, S_IRUSR | S_IFREG,
+                &cavosConsoleHandlers);
 
   FakefsFile *bus =
       fakefsAddFile(&rootSys, rootFile, "bus", 0, S_IFDIR | S_IRUSR | S_IWUSR,
