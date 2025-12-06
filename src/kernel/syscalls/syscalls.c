@@ -130,7 +130,7 @@ void syscallHandler(AsmPassedInterrupt *regs) {
   if (RET_IS_ERR((size_t)ret) && (size_t)ret == ERR(EINTR)) {
     TaskSysInterrupted *sysIntr = calloc(sizeof(TaskSysInterrupted), 1);
     sysIntr->number = regs->rax;
-    LinkedListPushFrontUnsafe((void **)&currentTask->firstSysIntr, sysIntr);
+    LinkedListPushFrontUnsafe(&currentTask->dsSysIntr, sysIntr);
   }
 
   regs->rax = ret;
