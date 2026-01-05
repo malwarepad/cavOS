@@ -44,13 +44,10 @@ uint32_t fat32FATtraverse(FAT32 *fat, uint32_t offset) {
   uint32_t  ret = (*retLocation) & 0x0FFFFFFF; // remember; we're on FAT32
   free(bytes);
 
-  if (ret >= 0x0FFFFFF8) // end of cluster chain
-    return 0;
-
-  if (ret == 0x0FFFFFF7) // invalid/bad cluster
-    return 0;
-
-  return ret;
+  //* Explanation: Only return the variable `ret` if `ret` is bigger than 0x0FFFFFF7
+  // ret >= 0x0FFFFFF8: end of cluster chain
+  // ret == 0x0FFFFFF7: invalid/bad cluster
+  return (ret < 0x0FFFFFF7) * ret;
 }
 
 // +1 for starting
