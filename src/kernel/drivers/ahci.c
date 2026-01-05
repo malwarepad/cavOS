@@ -322,7 +322,7 @@ bool ahciWrite(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
                uint32_t starth, uint32_t count, uint8_t *buff) {
   assert(((size_t)buff % 2) == 0);
   port->is = (uint32_t)-1; // Clear pending interrupt bits
-  int slot = ahciCmdFind(ahciPtr, port);
+  const int slot = ahciCmdFind(ahciPtr, port);
   if (slot == -1)
     return false;
 
