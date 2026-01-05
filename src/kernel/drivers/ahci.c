@@ -248,24 +248,34 @@ void ahciPortRebase(ahci *ahciPtr, HBA_PORT *port, int portno) {
 }
 
 void ahciPortProbe(ahci *ahciPtr, HBA_MEM *abar) {
-  uint32_t pi = abar->pi;
-  for (int i = 0; i < 32; i++) {
-    if (pi & 1) {
-      int dt = ahciPortType(&abar->ports[i]);
-      if (dt == AHCI_DEV_SATA) {
-        debugf("[pci::ahci] SATA drive found at port %d\n", i);
-        ahciPortRebase(ahciPtr, &abar->ports[i], i);
-      } else if (dt == AHCI_DEV_SATAPI) {
-        debugf("[pci::ahci] (unsupported) SATAPI drive found at port %d\n", i);
-      } else if (dt == AHCI_DEV_SEMB) {
-        debugf("[pci::ahci] (unsupported) SEMB drive found at port %d\n", i);
-      } else if (dt == AHCI_DEV_PM) {
-        debugf("[pci::ahci] (unsupported) PM drive found at port %d\n", i);
-      }
-      // otherwise, no drive is in this port
-    }
+  uint32_t portsBitmap = abar->pi;
 
-    pi >>= 1;
+  for (int portIndex = 0; portIndex < 32; portIndex++, portsBitmap >>= 1) {
+    if (!(portsBitmap & 1))
+      continue; // No device in this port
+
+    const int deviceType = ahciPortType(&abar->ports[portIndex]);
+    switch (deviceType) {
+      case AHCI_DEV_SATA:
+        debugf("[pci::ahci] SATA drive found at port %d\n", portIndex);
+        ahciPortRebase(ahciPtr, &abar->ports[portIndex], portIndex);
+        break;
+
+      case AHCI_DEV_SATAPI:
+        debugf("[pci::ahci] (unsupported) SATAPI drive found at port %d\n", portIndex);
+        break;
+
+      case AHCI_DEV_SEMB:
+        debugf("[pci::ahci] (unsupported) SEMB drive found at port %d\n", portIndex);
+        break;
+
+      case AHCI_DEV_PM:
+        debugf("[pci::ahci] (unsupported) PM drive found at port %d\n", portIndex);
+        break;
+
+      default: // No present drive or unknown type
+        break;
+    }
   }
 }
 
