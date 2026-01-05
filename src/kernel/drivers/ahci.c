@@ -346,10 +346,7 @@ bool ahciWrite(ahci *ahciPtr, uint32_t portId, HBA_PORT *port, uint32_t startl,
   cmdfis->countl = count & 0xFF;
   cmdfis->counth = (count >> 8) & 0xFF;
 
-  if (!ahciPortReady(port))
-    return false;
-
-  return ahciCmdIssue(ahciPtr, port, slot);
+  return ahciPortReady(port) && ahciCmdIssue(ahciPtr, port, slot);
 }
 
 // todo! FIX THIS!!!
