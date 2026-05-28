@@ -169,70 +169,94 @@ void freeArgvIfNeeded(char **argv) {
 }
 
 #define SYSCALL_EXECVE 59
-static size_t syscallExecve(char *filename, char **argv, char **envp) {
-  // todo: also check for leader & kill the whole thread group for this
-  assert(currentTask->id == currentTask->tgid);
 
-  assert(argv[0]); // shebang support depends on it atm. check (dep)
-  dbgSysExtraf("filename{%s}", filename);
-  spinlockAcquire(&currentTask->infoFs->LOCK_FS);
-  char *filenameSanitized = fsSanitize(currentTask->infoFs->cwd, filename);
-  spinlockRelease(&currentTask->infoFs->LOCK_FS);
-  uint8_t *buff = calloc(256, 1);
+#define SHEBANG_MAX_DEPTH 8
 
-  // do a read to check for alternatives, elfExecute() still does its checks
-  OpenFile *preScan = fsKernelOpen(filenameSanitized, O_RDONLY, 0);
-  if (!preScan) {
-    free(filenameSanitized);
-    return ERR(ENOENT);
-  }
-  size_t max = fsRead(preScan, buff, 255); // 1 less so there's always a \0
-  fsKernelClose(preScan);
-  if (RET_IS_ERR(max)) {
-    free(filenameSanitized);
-    return max;
-  }
+static size_t syscallExecve(char *filename, char **argvOriginal, char **envp) {
+  char **argv = argvOriginal;
+  int shebangDepth = 0;
+  char *filenameSanitized = NULL;
 
-  if (max > 2 && buff[0] == '#' && buff[1] == '!') {
-    // shebang detected!
-    char *arg2 = (char *)0;
-    int   spaces = 0;
-    for (int i = 0; i < max; i++) {
-      if (buff[i] == ' ') {
-        if (spaces == 0) {
-          buff[i] = '\0'; // needs to be null terminated
-          arg2 = (char *)&buff[i + 1];
-        }
-        spaces++;
-      } else if (buff[i] == '\n') {
-        buff[i] = '\0'; // for the last arg (if none, 256-255=1 calloc)
-        break;          // no longer needed + don't risk above
-      }
+  while (1) {
+    // todo: also check for leader & kill the whole thread group for this
+    assert(currentTask->id == currentTask->tgid);
+
+    assert(argv[0]); // shebang support depends on it atm. check (dep)
+    dbgSysExtraf("filename{%s}", filename);
+    spinlockAcquire(&currentTask->infoFs->LOCK_FS);
+    filenameSanitized = fsSanitize(currentTask->infoFs->cwd, filename);
+    spinlockRelease(&currentTask->infoFs->LOCK_FS);
+    uint8_t *buff = calloc(256, 1);
+
+    OpenFile *preScan = fsKernelOpen(filenameSanitized, O_RDONLY, 0);
+    if (!preScan) {
+      free(buff);
+      free(filenameSanitized);
+      return ERR(ENOENT);
     }
-    int argc = 0;
-    while (argv[argc++])
-      ; // why not just pass argc. truly beyond me...
-    int    amnt = arg2 ? 2 : 1;
-    char **injectedArgv = calloc((amnt + argc + 1) * sizeof(char *), 1);
-    memcpy(&injectedArgv[amnt], argv, argc * sizeof(char *));
-    injectedArgv[amnt] = strdup(filename); // replace [0] w/original (dep)
+    size_t max = fsRead(preScan, buff, 255);
+    fsKernelClose(preScan);
+    if (RET_IS_ERR(max)) {
+      free(buff);
+      free(filenameSanitized);
+      return max;
+    }
 
-    freeArgvIfNeeded(argv); // ! don't use argv anymore
+    if (max > 2 && buff[0] == '#' && buff[1] == '!') {
+      if (shebangDepth >= SHEBANG_MAX_DEPTH) {
+        free(buff);
+        free(filenameSanitized);
+        freeItemsIfNeeded(argv);
+        freeArgvIfNeeded(argv);
+        return ERR(ELOOP);
+      }
+      shebangDepth++;
 
-    char *arg1 = (char *)&buff[2];
-    if (arg2 && arg2[0] != '\0')
-      injectedArgv[1] = strdup(arg2);
-    injectedArgv[0] = strdup(arg1);
+      char *arg2 = (char *)0;
+      int spaces = 0;
+      for (int i = 0; i < max; i++) {
+        if (buff[i] == ' ') {
+          if (spaces == 0) {
+            buff[i] = '\0';
+            arg2 = (char *)&buff[i + 1];
+          }
+          spaces++;
+        } else if (buff[i] == '\n') {
+          buff[i] = '\0';
+          break;
+        }
+      }
 
-    free(buff); // ! don't use anything defined before after this
-    syscallExecve(injectedArgv[0], injectedArgv, envp);
-    assert(false); // won't return, injectedArgv & buff are above HHDM
-  } else if (max > 4 && buff[EI_MAG0] == ELFMAG0 && buff[EI_MAG1] == ELFMAG1 &&
-             buff[EI_MAG2] == ELFMAG2 && buff[EI_MAG3] == ELFMAG3) {
-    // standard elf executable, go on
-  } else {
-    // both unnecessary, won't do anything w/them :^)
-    freeItemsIfNeeded(argv); // depends on the argv so NEEDS to be first
+      int argc = 0;
+      while (argv[argc++]);
+      int    amnt = arg2 ? 2 : 1;
+      char **injectedArgv = calloc((amnt + argc + 1) * sizeof(char *), 1);
+      memcpy(&injectedArgv[amnt], argv, argc * sizeof(char *));
+      injectedArgv[amnt] = strdup(filename);
+
+      freeArgvIfNeeded(argv);
+
+      char *arg1 = (char *)&buff[2];
+      if (arg2 && arg2[0] != '\0')
+        injectedArgv[1] = strdup(arg2);
+      injectedArgv[0] = strdup(arg1);
+
+      free(buff);
+      free(filenameSanitized);
+      filename = injectedArgv[0];
+      argv = injectedArgv;
+      continue;
+    }
+
+    if (max > 4 && buff[EI_MAG0] == ELFMAG0 && buff[EI_MAG1] == ELFMAG1 &&
+                   buff[EI_MAG2] == ELFMAG2 && buff[EI_MAG3] == ELFMAG3) {
+      free(buff);
+      break;
+    }
+
+    free(buff);
+    free(filenameSanitized);
+    freeItemsIfNeeded(argv);
     freeArgvIfNeeded(argv);
     return ERR(ENOEXEC);
   }
@@ -247,8 +271,8 @@ static size_t syscallExecve(char *filename, char **argv, char **envp) {
   free(arguments.valPlace);
   free(environment.ptrPlace);
   free(environment.valPlace);
-  freeItemsIfNeeded(argv); // depends on the argv so NEEDS to be first
-  freeArgvIfNeeded(argv);  // ! don't use ANY argv after this
+  freeItemsIfNeeded(argv);
+  freeArgvIfNeeded(argv);
   if (!ret)
     return ERR(ENOENT);
 
