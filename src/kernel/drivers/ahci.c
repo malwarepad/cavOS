@@ -91,11 +91,16 @@ force_inline bool ahciCmdIssue(ahci *ahciPtr, HBA_PORT *port, int slot) {
   ahciPtr->cmdSlotsPreping &= ~(1 << slot);
 
   // Wait for completion
+  uint64_t deadline = timerTicks + 5000;
   while (1) {
     // In some longer duration reads, it may be helpful to spin on the DPS bit
     // in the PxIS port field as well (1 << 5)
     if ((port->ci & (1 << slot)) == 0)
       break;
+    if (timerTicks >= deadline) {
+      debugf("[ahci] Command timeout on slot %d!\n", slot);
+      return false;
+    }
   }
 
   return true;
