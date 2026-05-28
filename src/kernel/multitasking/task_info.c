@@ -85,11 +85,8 @@ void taskInfoPdDiscard(TaskInfoPagedir *target) {
   target->utilizedBy--;
   if (!target->utilizedBy) {
     PageDirectoryFree(target->pagedir);
-    // todo: find a safe way to free target
-    // cannot be done w/the current layout as it's done inside taskKill and the
-    // scheduler needs it in case it's switched in between (will point to
-    // invalid/unsafe memory). maybe with overrides but we'll see later when the
-    // system is more stable.
+    spinlockRelease(&target->LOCK_PD);
+    free(target);
   } else
     spinlockRelease(&target->LOCK_PD);
 }

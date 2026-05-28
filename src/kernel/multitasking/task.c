@@ -239,14 +239,12 @@ void taskKill(uint32_t id, uint16_t ret) {
   // close any left open files
   taskInfoFilesDiscard(task->infoFiles, task);
 
-  // if (!parentVfork)
-  //   PageDirectoryFree(task->pagedir);
+  task->state = TASK_STATE_DEAD;
+
   taskInfoPdDiscard(task->infoPd);
-  // ^ only changes userspace locations so we don't need to change our pagedir
 
   // the "reaper" thread will finish everything in a safe context
   taskCallReaper(task);
-  task->state = TASK_STATE_DEAD;
 
   if (currentTask == task) {
     asm volatile("sti");
