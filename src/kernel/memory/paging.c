@@ -249,7 +249,7 @@ size_t VirtualToPhysicalL(uint64_t *pagedir, size_t virt_addr) {
   uint32_t pd_index = PDE(virt_addr);
   uint32_t pt_index = PTE(virt_addr);
 
-  // spinlockCntReadAcquire(&WLOCK_PAGING);
+  spinlockCntReadAcquire(&WLOCK_PAGING);
   if (!(pagedir[pml4_index] & PF_PRESENT))
     goto error;
   /*else if (pagedir[pml4_index] & PF_PRESENT &&
@@ -273,13 +273,13 @@ size_t VirtualToPhysicalL(uint64_t *pagedir, size_t virt_addr) {
   size_t *pt = (size_t *)(PTE_GET_ADDR(pd[pd_index]) + HHDMoffset);
 
   if (pt[pt_index] & PF_PRESENT) {
-    // spinlockCntReadRelease(&WLOCK_PAGING);
+    spinlockCntReadRelease(&WLOCK_PAGING);
     return (size_t)(PTE_GET_ADDR(pt[pt_index]) +
                     ((size_t)virt_addr_init & 0xFFF));
   }
 
 error:
-  // spinlockCntReadRelease(&WLOCK_PAGING);
+  spinlockCntReadRelease(&WLOCK_PAGING);
   return 0;
 }
 
