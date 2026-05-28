@@ -249,13 +249,9 @@ void taskKill(uint32_t id, uint16_t ret) {
   task->state = TASK_STATE_DEAD;
 
   if (currentTask == task) {
-    // we're most likely in a syscall context, so...
-    // taskKillCleanup(task); // left for sched
     asm volatile("sti");
-    // wait until we're outta here
-    while (1) {
-      //   debugf("GET ME OUT ");
-    }
+    while (1)
+      handControl();
   }
 }
 
