@@ -134,6 +134,7 @@ size_t netSocketUdpConnect(OpenFile *fd, sockaddr_linux *addr, uint32_t len) {
 
 size_t netSocketUdpSendto(OpenFile *fd, uint8_t *buff, size_t len, int flags,
                           sockaddr_linux *dest_addr, uint32_t addrlen) {
+  // !bug! dest_addr NEEDS to be ignored if the socket is connected!
   UdpSocket *sock = fd->dir;
 
   uint8_t  finalAddr[IPv4_BYTE_SIZE];
@@ -217,7 +218,7 @@ size_t netSocketUdpRecvfrom(OpenFile *fd, uint8_t *out, size_t limit, int flags,
   if (addr && len && *len > 0) {
     sockaddr_in_linux target = {
         .sin_family = 2, .sin_port = switch_endian_16(object->remotePort)};
-    memcpy(&target, object->ip, IPv4_BYTE_SIZE);
+    memcpy(&target.sin_addr, object->ip, IPv4_BYTE_SIZE);
     int toCopyAddr = MIN(*len, sizeof(sockaddr_in_linux));
     memcpy(addr, &target, toCopyAddr);
     *len = toCopyAddr;
@@ -231,10 +232,79 @@ size_t netSocketUdpRecvfrom(OpenFile *fd, uint8_t *out, size_t limit, int flags,
   return toCopy;
 }
 
+#define MSG_TRUNC 0x0100
 size_t netSocketUdpRecvmsg(OpenFile *fd, struct msghdr_linux *msg, int flags) {
-  // todo: this and /usr/bin/testing (along with nc on a domain)
-  assert(false);
-  return -1;
+  if (!msg || !msg->msg_iov || msg->msg_iovlen == 0)
+    return ERR(EINVAL);
+
+  UdpSocket *sock = fd->dir;
+  spinlockAcquire(&sock->LOCK_SOCKET);
+  if (!sock->conn) {
+    spinlockRelease(&sock->LOCK_SOCKET);
+    return ERR(EINVAL);
+  }
+
+  udpBuffer *object = 0;
+  while (true) {
+    spinlockAcquire(&selectedNIC->udp.LOCK_LL_UDP_CONNS);
+    object = LinkedListSearchFirst(&sock->conn->dsBuffers);
+    if (!object) {
+      spinlockRelease(&selectedNIC->udp.LOCK_LL_UDP_CONNS);
+      spinlockRelease(&sock->LOCK_SOCKET);
+      if (signalsPendingQuick(currentTask))
+        return ERR(EINTR);
+      if (fd->flags & O_NONBLOCK || flags & MSG_DONTWAIT)
+        return ERR(EWOULDBLOCK);
+      else
+        pollIndependentAwait(fd, EPOLLIN);
+    } else
+      break;
+  }
+
+  assert(
+      LinkedListUnregister(&sock->conn->dsBuffers, sizeof(udpBuffer), object));
+  sock->conn->totalData -= object->len;
+  spinlockRelease(&selectedNIC->udp.LOCK_LL_UDP_CONNS);
+  spinlockRelease(&sock->LOCK_SOCKET);
+
+  if (msg->msg_name && msg->msg_namelen > 0) {
+    sockaddr_in_linux target = {
+        .sin_family = 2,
+        .sin_port = switch_endian_16(object->remotePort),
+    };
+    memcpy(&target.sin_addr, object->ip, IPv4_BYTE_SIZE);
+
+    size_t toCopy = MIN(msg->msg_namelen, sizeof(sockaddr_in_linux));
+    memcpy(msg->msg_name, &target, toCopy);
+    msg->msg_namelen = toCopy;
+  }
+
+  size_t copied = 0;
+  size_t remaining = object->len;
+
+  for (size_t i = 0; i < msg->msg_iovlen && remaining > 0; i++) {
+    struct iovec *iov = &msg->msg_iov[i];
+    if (!iov->iov_base || iov->iov_len == 0)
+      continue;
+
+    size_t chunk = MIN(iov->iov_len, remaining);
+    memcpy(iov->iov_base, object->buff + copied, chunk);
+
+    copied += chunk;
+    remaining -= chunk;
+  }
+
+  msg->msg_flags = 0;
+  if (remaining > 0)
+    msg->msg_flags |= MSG_TRUNC;
+
+  if (msg->msg_control && msg->msg_controllen > 0)
+    msg->msg_controllen = 0;
+
+  free(object->buff);
+  free(object);
+
+  return copied;
 }
 
 // maybe EPOLLERR On ICMP stuff?
@@ -265,8 +335,27 @@ size_t netSocketUdpReportKey(OpenFile *fd) {
 
 size_t netSocketUdpGetsockname(OpenFile *fd, sockaddr_linux *addr,
                                uint32_t *len) {
-  assert(false);
-  return -1;
+  UdpSocket *sock = fd->dir;
+  spinlockAcquire(&sock->LOCK_SOCKET);
+
+  if (!sock->conn) {
+    spinlockRelease(&sock->LOCK_SOCKET);
+    return ERR(ENOTCONN);
+  }
+
+  assert(*len >= sizeof(sockaddr_in_linux));
+  *len = sizeof(sockaddr_in_linux);
+
+  spinlockAcquire(&selectedNIC->udp.LOCK_LL_UDP_CONNS);
+  sockaddr_in_linux *in = (sockaddr_in_linux *)addr;
+  in->sin_family = 2;
+  in->sin_port = switch_endian_16(sock->conn->localPort);
+  memcpy(in->sin_addr, selectedNIC->ip, 4);
+  memset(in->sin_zero, 0, sizeof(in->sin_zero));
+
+  spinlockRelease(&selectedNIC->udp.LOCK_LL_UDP_CONNS);
+  spinlockRelease(&sock->LOCK_SOCKET);
+  return 0;
 }
 
 size_t netSocketUdpGetsockopt(OpenFile *fd, int levelLinux, int optnameLinux,

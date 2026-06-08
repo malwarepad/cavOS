@@ -7,8 +7,11 @@
 
 void netQueueMainCb(void *data, void *ctx) {
   netQueueItem *item = data;
-  if (item->callback)
+  if (item->callback) {
+    spinlockRelease(&LOCK_LL_NET_QUEUE);
     item->callback(item);
+    spinlockAcquire(&LOCK_LL_NET_QUEUE);
+  }
 }
 
 // every once in a while have this be ran to check various states, maintain

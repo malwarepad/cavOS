@@ -66,7 +66,10 @@ VfsHandlers handleUptime = {
 size_t statRead(OpenFile *fd, uint8_t *out, size_t limit) {
   // todo: more!
   char   buff[1024] = {0};
-  size_t length = snprintf(buff, 1024, "btime %ld\n", timerBootUnix);
+  size_t length = snprintf(
+      buff, 1024,
+      "cpu %ld 0 0 0 0 0 0 0 0 0\ncpu0 0 0 0 0 0 0 0 0 0 0\nbtime %ld\n",
+      timerTicks / 10, timerBootUnix);
 
   size_t toCopy = MIN(length - fd->pointer, limit);
   memcpy(out, buff, toCopy);

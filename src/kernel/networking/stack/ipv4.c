@@ -59,6 +59,9 @@ void netIPv4Handle(void *_nic, void *packet, uint32_t size) {
     return;
   }
 
+  // todo: check for headerLen overflows (keep padding in mind!)
+  // same in tcp
+
   if (memcmp(ipv4->destAddress, nic->ip, IPv4_BYTE_SIZE) != 0 &&
       memcmp(ipv4->destAddress, addressBroadcast, IPv4_BYTE_SIZE) != 0 &&
       memcmp(ipv4->destAddress, addressNull, IPv4_BYTE_SIZE) != 0) {
@@ -76,6 +79,11 @@ void netIPv4Handle(void *_nic, void *packet, uint32_t size) {
     debugf("[net::ipv4] Drop: Checksum validation failed\n");
     return;
   }
+
+  // ipv4 is the first layer where padding can be introduced
+  // a lot of stuff on our stack depends on an accurate packet size, hence this
+  uint32_t padding = size - switch_endian_16(ipv4->length) - NET_IPv4_CARRY;
+  size -= padding;
 
   switch (ipv4->protocol) {
   case IPV4_PROTOCOL_TCP:
@@ -144,7 +152,9 @@ void netIPv4Send(void *_nic, void *packet, uint32_t size, uint8_t protocol,
   if (currentTask != netHelperTask) {
     while (!netArpTranslate(_nic, routeIp, destinationMac))
       handControl(); // todo: some kind of timeout (except the retry one)
-  } else
-    assert(false); // todo (although said code path is not yet needed)
+  } else {
+    if (!netArpTranslate(_nic, routeIp, destinationMac))
+      assert(false); // todo (although said code path is not yet needed)
+  }
   netEthSend(_nic, packet, size, destinationMac, NET_ETHERTYPE_IPV4);
 }

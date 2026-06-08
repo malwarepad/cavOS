@@ -36,6 +36,8 @@ typedef struct IPv4header {
 #define NET_IPv4(packet) ((IPv4header *)((size_t)(packet) + NET_IPv4_CARRY))
 
 void netIPv4Handle(void *_nic, void *packet, uint32_t size);
+bool netIPv4NeedsRouting(uint8_t *localIp, uint8_t *destIp,
+                         uint8_t *subnetMask);
 
 void netIPv4InitBuffer(void *buffer, uint32_t size);
 void netIPv4Send(void *_nic, void *packet, uint32_t size, uint8_t protocol,
