@@ -105,7 +105,7 @@ size_t fat32Read(OpenFile *fd, uint8_t *buff, size_t limit) {
 
   // optimization: we can use consecutive sectors to make our life easier
   int consecStart = -1;
-  int consecEnd = 0;
+  int consecEnd = -1;
 
   // +1 for starting
   for (int i = 0; i < (fatLookupsNeeded + 1); i++) {
@@ -129,7 +129,7 @@ size_t fat32Read(OpenFile *fd, uint8_t *buff, size_t limit) {
     }
 
     uint32_t offsetStarting = dir->ptr % bytesPerCluster; // remainder
-    if (consecEnd) {
+    if (consecEnd >= 0) {
       // optimized consecutive cluster reading
       int      needed = consecEnd - consecStart + 1;
       uint8_t *optimizedBytes = malloc(needed * bytesPerCluster);
@@ -169,7 +169,7 @@ size_t fat32Read(OpenFile *fd, uint8_t *buff, size_t limit) {
 
     // traverse
     consecStart = -1;
-    consecEnd = 0;
+    consecEnd = -1;
   }
 
 cleanup:
