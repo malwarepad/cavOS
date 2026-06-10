@@ -20,7 +20,7 @@ size_t fat32Getdents64(OpenFile *file, struct linux_dirent64 *start,
 
   int bytesPerCluster = LBA_TO_OFFSET(fat->bootsec.sectors_per_cluster);
 
-  uint8_t lfnName[LFN_MAX_TOTAL_CHARS] = {0};
+  uint8_t lfnName[LFN_MAX_TOTAL_CHARS + 1] = {0};
   int     lfnLast = -1;
 
   uint8_t               *bytes = (uint8_t *)malloc(bytesPerCluster);
@@ -91,9 +91,9 @@ size_t fat32Getdents64(OpenFile *file, struct linux_dirent64 *start,
           goto cleanup;
 
         memset(lfnName, 0, LFN_MAX_TOTAL_CHARS); // for good measure
-
-        // traverse...
-        // debugf("%ld\n", dirp->d_reclen);
+      } else if (dir->attrib != FAT_ATTRIB_LFN) {
+        // we've landed on some inbetween entry between lfn-actual dir
+        lfnLast = -1; // needs to be discarded
       }
       fatDir->ptr += sizeof(FAT32DirectoryEntry);
     }

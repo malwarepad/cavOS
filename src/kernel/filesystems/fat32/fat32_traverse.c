@@ -83,6 +83,7 @@ FAT32TraverseResult fat32Traverse(FAT32 *fat, uint32_t initDirectory,
       break;
   }
 
+  free(bytes);
   FAT32TraverseResult ret = {0};
   return ret;
 }
