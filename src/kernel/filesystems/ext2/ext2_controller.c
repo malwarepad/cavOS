@@ -398,8 +398,15 @@ size_t ext2Write(OpenFile *fd, uint8_t *buff, size_t limit) {
 
   ext2CachePush(ext2, dir);
 
-  // todo! memory leak!
   spinlockCntWriteAcquire(&dir->globalObject->WLOCK_CACHE);
+  Ext2CacheObject *cacheBrowse = dir->globalObject->firstCacheObj;
+  while (cacheBrowse) {
+    Ext2CacheObject *next = cacheBrowse->next;
+    VirtualFree(cacheBrowse->buff,
+                DivRoundUp((cacheBrowse->blocks + 1) * ext2->blockSize, BLOCK_SIZE));
+    free(cacheBrowse);
+    cacheBrowse = next;
+  }
   dir->globalObject->firstCacheObj = 0;
   spinlockCntWriteRelease(&dir->globalObject->WLOCK_CACHE);
 

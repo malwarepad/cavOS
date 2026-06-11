@@ -278,11 +278,13 @@ cleanup:
 }
 
 size_t fsReadlink(void *task, char *path, char *buf, int size) {
+  if (size <= 0)
+    return ERR(EINVAL);
   if (strlength(path) == 14 && memcmp(path, "/proc/self/exe", 15) == 0 &&
       currentTask->execname) {
     // todo: hack-y, needs to be done properly sometime!
     size_t total = strlength(currentTask->execname);
-    size_t toCopy = MIN(size, total);
+    size_t toCopy = MIN((size_t)size, total);
     memcpy(buf, currentTask->execname, toCopy);
     return toCopy;
     // memcpy(buf, "/usr/libexec/webkit2gtk-4.1/MiniBrowser", 40);

@@ -30,6 +30,7 @@ size_t readHandler(OpenFile *fd, uint8_t *in, size_t limit) {
   // finalise
   uint32_t fr = currentTask->tmpRecV;
   memcpy(in, kernelBuff, fr);
+  free(kernelBuff);
   if (currentTask->term.c_lflag & ICANON && fr < limit)
     in[fr++] = '\n';
   // only add newline if we can!

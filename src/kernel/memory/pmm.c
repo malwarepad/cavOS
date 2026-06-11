@@ -74,9 +74,14 @@ size_t PhysicalAllocate(int pages) {
 }
 
 void PhysicalFree(size_t ptr, int pages) {
-  // maybe verify no double-frees are occuring..
-
   spinlockAcquire(&LOCK_PMM);
+  for (int i = 0; i < pages; i++) {
+    size_t block = (ptr / BLOCK_SIZE) + i;
+    if (!BitmapGet(&physical, block)) {
+      debugf("[pmm] Double-free detected! ptr{%lx} block{%ld}\n", ptr, block);
+      panic();
+    }
+  }
   MarkRegion(&physical, (void *)ptr, pages * BLOCK_SIZE, 0);
   spinlockRelease(&LOCK_PMM);
 }

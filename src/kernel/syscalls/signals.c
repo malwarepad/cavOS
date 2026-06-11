@@ -164,7 +164,7 @@ int signalsPendingDecide(Task *task) {
   // find a single valid pending signal
   uint64_t pendingList = atomicBitmapGet(&task->sigPendingList);
   for (int i = 0; i < _NSIG; i++) {
-    if (pendingList & (1 << i) && !(task->sigBlockList & (1 << i)))
+    if (pendingList & ((sigset_t)1 << i) && !(task->sigBlockList & ((sigset_t)1 << i)))
       return i;
   }
   return -1;
@@ -217,7 +217,7 @@ void signalsPendingHandleSys(void *taskPtr, uint64_t *rsp,
 
   // (also SA_NODEFER)
   sigset_t oldMask = task->sigBlockList;
-  task->sigBlockList |= (1 << signal) | atomicRead64(&action->sa_mask);
+  task->sigBlockList |= ((sigset_t)1 << signal) | atomicRead64(&action->sa_mask);
   atomicBitmapClear(&task->sigPendingList, signal); // now that it is blocked
 
   // establish a "safe" struct, that we could theoretically safely iretq to
@@ -319,7 +319,7 @@ void signalsPendingHandleSched(void *taskPtr) {
 
   // (also SA_NODEFER)
   sigset_t oldMask = task->sigBlockList;
-  task->sigBlockList |= (1 << signal) | atomicRead64(&action->sa_mask);
+  task->sigBlockList |= ((sigset_t)1 << signal) | atomicRead64(&action->sa_mask);
   atomicBitmapClear(&task->sigPendingList, signal); // now that it is blocked
 
   AsmPassedInterrupt oldstate = {0};
@@ -441,7 +441,7 @@ size_t signalsSigreturnSyscall(void *taskPtr) {
   task->syscallRegs = 0;
   task->syscallRsp = 0;
 
-  task->sigBlockList = ucontext->oldmask & ~((1 << SIGKILL) | (1 << SIGSTOP));
+  task->sigBlockList = ucontext->oldmask & ~(((sigset_t)1 << SIGKILL) | ((sigset_t)1 << SIGSTOP));
   asm_finalize((size_t)iretqRsp,
                VirtualToPhysical((size_t)task->infoPd->pagedir));
 

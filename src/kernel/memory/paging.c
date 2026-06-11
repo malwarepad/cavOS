@@ -249,7 +249,7 @@ size_t VirtualToPhysicalL(uint64_t *pagedir, size_t virt_addr) {
   uint32_t pd_index = PDE(virt_addr);
   uint32_t pt_index = PTE(virt_addr);
 
-  // spinlockCntReadAcquire(&WLOCK_PAGING);
+  spinlockCntReadAcquire(&WLOCK_PAGING);
   if (!(pagedir[pml4_index] & PF_PRESENT))
     goto error;
   /*else if (pagedir[pml4_index] & PF_PRESENT &&
@@ -273,13 +273,13 @@ size_t VirtualToPhysicalL(uint64_t *pagedir, size_t virt_addr) {
   size_t *pt = (size_t *)(PTE_GET_ADDR(pd[pd_index]) + HHDMoffset);
 
   if (pt[pt_index] & PF_PRESENT) {
-    // spinlockCntReadRelease(&WLOCK_PAGING);
+    spinlockCntReadRelease(&WLOCK_PAGING);
     return (size_t)(PTE_GET_ADDR(pt[pt_index]) +
                     ((size_t)virt_addr_init & 0xFFF));
   }
 
 error:
-  // spinlockCntReadRelease(&WLOCK_PAGING);
+  spinlockCntReadRelease(&WLOCK_PAGING);
   return 0;
 }
 
@@ -348,7 +348,7 @@ void PageDirectoryFree(uint64_t *page_dir) {
 }
 
 void PageDirectoryUserDuplicate(uint64_t *source, uint64_t *target) {
-  spinlockCntReadAcquire(&WLOCK_PAGING);
+  spinlockCntWriteAcquire(&WLOCK_PAGING);
   for (int pml4_index = 0; pml4_index < 512; pml4_index++) {
     if (!(source[pml4_index] & PF_PRESENT) || source[pml4_index] & PF_PS)
       continue;
@@ -384,13 +384,35 @@ void PageDirectoryUserDuplicate(uint64_t *source, uint64_t *target) {
 
           memcpy(ptrTarget, ptrSource, PAGE_SIZE);
 
-          spinlockCntReadRelease(&WLOCK_PAGING);
-          VirtualMapL(target, virt, physTarget, PF_RW | PF_USER);
-          spinlockCntReadAcquire(&WLOCK_PAGING);
+          // manually map into target (lock already held as write)
+          uint64_t tvirt = AMD64_MM_STRIPSX(virt);
+          uint32_t tpml4 = PML4E(tvirt);
+          uint32_t tpdp = PDPTE(tvirt);
+          uint32_t tpd = PDE(tvirt);
+          uint32_t tpt = PTE(tvirt);
+
+          if (!(target[tpml4] & PF_PRESENT)) {
+            size_t targ = PagingPhysAllocate();
+            target[tpml4] = targ | PF_PRESENT | PF_RW | PF_USER;
+          }
+          size_t *tpdpPT = (size_t *)(PTE_GET_ADDR(target[tpml4]) + HHDMoffset);
+          if (!(tpdpPT[tpdp] & PF_PRESENT)) {
+            size_t targ = PagingPhysAllocate();
+            tpdpPT[tpdp] = targ | PF_PRESENT | PF_RW | PF_USER;
+          }
+          size_t *tpdPT = (size_t *)(PTE_GET_ADDR(tpdpPT[tpdp]) + HHDMoffset);
+          if (!(tpdPT[tpd] & PF_PRESENT)) {
+            size_t targ = PagingPhysAllocate();
+            tpdPT[tpd] = targ | PF_PRESENT | PF_RW | PF_USER;
+          }
+          size_t *tptPT = (size_t *)(PTE_GET_ADDR(tpdPT[tpd]) + HHDMoffset);
+          tptPT[tpt] = (P_PHYS_ADDR(physTarget)) | PF_PRESENT | PF_RW | PF_USER;
+
+          invalidate(virt);
         }
       }
     }
   }
 
-  spinlockCntReadRelease(&WLOCK_PAGING);
+  spinlockCntWriteRelease(&WLOCK_PAGING);
 }
