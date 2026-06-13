@@ -166,7 +166,7 @@ uint32_t ext2TraversePath(Ext2 *ext2, char *path, Ext2FoundObject **retObj,
           free(start);
         free(inode);
 
-        ret = false;
+        ret = 0;
         goto cleanup;
       }
       bool notdir = !(inode->permission & S_IFDIR);
@@ -180,7 +180,7 @@ uint32_t ext2TraversePath(Ext2 *ext2, char *path, Ext2FoundObject **retObj,
 
       if (notdir) {
         // if by this point it's not a directory, we're screwed
-        ret = false;
+        ret = 0;
         goto cleanup;
       }
 
