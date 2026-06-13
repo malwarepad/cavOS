@@ -539,7 +539,6 @@ size_t ext2Write(OpenFile *fd, uint8_t *buff, size_t limit) {
     dir->inode.size = dir->ptr;
     dir->inode.num_sectors =
         ext2BlockSizeCalculate(ext2, dir->inode.size) / SECTOR_SIZE;
-    // todo: use this field properly considering it has indirect blocks too
     ext2InodeModifyM(ext2, dir->inodeNum, &dir->inode);
   }
 
@@ -736,6 +735,8 @@ bool ext2Close(OpenFile *fd) {
   return true;
 }
 
+// todo: after all locking has been correctly done, this needs to just share the
+// same ->dir. Yes, yes, even on fork()s
 bool ext2DuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan) {
   orphan->dir = malloc(sizeof(Ext2OpenFd));
   memcpy(orphan->dir, original->dir, sizeof(Ext2OpenFd));
@@ -945,9 +946,11 @@ size_t ext2Delete(MountPoint *mnt, char *filename, bool directory,
       Ext2LookupControl control = {0};
       ext2BlockFetchInit(ext2, &control);
       size_t i = 0;
+      size_t blocksTakenUp = DivRoundUp(
+          COMBINE_64(inode->size_high, inode->size), ext2->blockSize);
       while (true) {
         uint32_t block = ext2BlockFetch(ext2, inode, inodeNum, &control, i++);
-        if (!block || (i * ext2->blockSize) >= (inode->num_sectors * 512))
+        if (!block || i >= blocksTakenUp)
           break;
 
         uint32_t group = block / ext2->superblock.blocks_per_group;

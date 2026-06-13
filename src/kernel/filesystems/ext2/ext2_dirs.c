@@ -85,8 +85,8 @@ bool ext2DirAllocate(Ext2 *ext2, uint32_t inodeNum, Ext2Inode *parentDirInode,
                ext2->blockSize / SECTOR_SIZE);
   ext2BlockAssign(ext2, ino, inodeNum, &control, blockNum, newBlock);
 
-  ino->num_sectors += ext2->blockSize / SECTOR_SIZE;
   ino->size += ext2->blockSize;
+  ino->num_sectors = ext2BlockSizeCalculate(ext2, ino->size) / SECTOR_SIZE;
   ext2InodeModifyM(ext2, inodeNum, ino);
 
   ret = true;

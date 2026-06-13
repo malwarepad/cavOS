@@ -65,7 +65,7 @@ size_t ext2Mkdir(MountPoint *mnt, char *dirname, uint32_t mode,
   newInode.gid = 0;
   newInode.hard_links = 1 + 1; // +1 for the . pointing to itself
   // newInode.blocks = ; // should be zero'd
-  newInode.num_sectors = newInode.size / SECTOR_SIZE;
+  newInode.num_sectors = 0;
   newInode.generation = 0;
   newInode.file_acl = 0;
   newInode.dir_acl = 0;
@@ -153,7 +153,7 @@ size_t ext2Touch(MountPoint *mnt, char *filename, uint32_t mode,
   newInode.gid = 0;
   newInode.hard_links = 1;
   // newInode.blocks = ; // should be zero'd
-  newInode.num_sectors = newInode.size / SECTOR_SIZE;
+  newInode.num_sectors = 0;
   newInode.generation = 0;
   newInode.file_acl = 0;
   newInode.dir_acl = 0;
