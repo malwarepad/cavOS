@@ -22,8 +22,7 @@ size_t ext2Mkdir(MountPoint *mnt, char *dirname, uint32_t mode,
     char *parent = malloc(lastSlash + 1);
     memcpy(parent, dirname, lastSlash);
     parent[lastSlash] = '\0';
-    inode =
-        ext2TraversePath(ext2, parent, EXT2_ROOT_INODE, true, symlinkResolve);
+    inode = ext2TraversePath(ext2, parent, 0, true, symlinkResolve);
     free(parent);
   } else // if it's trying to open / just set the inode directly
     inode = 2;
@@ -111,8 +110,7 @@ size_t ext2Touch(MountPoint *mnt, char *filename, uint32_t mode,
     char *parent = malloc(lastSlash + 1);
     memcpy(parent, filename, lastSlash);
     parent[lastSlash] = '\0';
-    inode =
-        ext2TraversePath(ext2, parent, EXT2_ROOT_INODE, true, symlinkResolve);
+    inode = ext2TraversePath(ext2, parent, 0, true, symlinkResolve);
     free(parent);
   } else // if it's trying to open / just set the inode directly
     inode = 2;

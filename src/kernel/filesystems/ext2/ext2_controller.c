@@ -113,6 +113,15 @@ bool ext2Mount(MountPoint *mount) {
   ext2->inodeSizeRounded =
       DivRoundUp(ext2->inodeSize, SECTOR_SIZE) * SECTOR_SIZE;
 
+  // root found object
+  LinkedListInit(&ext2->rootObject, sizeof(Ext2FoundObject));
+  Ext2FoundObject *root =
+      LinkedListAllocate(&ext2->rootObject, sizeof(Ext2FoundObject));
+  root->inode = 2;
+  root->openFds = 69420;
+  root->filename = 0; // null
+  LinkedListInit(&root->inner, sizeof(Ext2FoundObject));
+
   // done :")
   return true;
 
@@ -128,8 +137,8 @@ size_t ext2Open(char *filename, int flags, int mode, OpenFile *fd,
   size_t ret = 0;
   spinlockCntReadAcquire(&ext2->WLOCK_GLOBAL_NOFD);
 
-  uint32_t inode =
-      ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, true, symlinkResolve);
+  Ext2FoundObject *obj = 0;
+  uint32_t inode = ext2TraversePath(ext2, filename, &obj, true, symlinkResolve);
 
   if (!inode && *symlinkResolve) {
     // last entry is a soft symlink that'll have to be resolved back on the
@@ -153,8 +162,8 @@ size_t ext2Open(char *filename, int flags, int mode, OpenFile *fd,
       // escalate permissions & ensure nobody created this before us
       spinlockCntReadRelease(&ext2->WLOCK_GLOBAL_NOFD);
       spinlockCntWriteAcquire(&ext2->WLOCK_GLOBAL_NOFD);
-      if (!(inode = ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, true,
-                                     symlinkResolve))) {
+      if (!(inode =
+                ext2TraversePath(ext2, filename, &obj, true, symlinkResolve))) {
         // create this thing
         size_t touch =
             ext2Touch(fd->mountPoint, filename, mode, symlinkResolve);
@@ -166,8 +175,7 @@ size_t ext2Open(char *filename, int flags, int mode, OpenFile *fd,
         }
 
         // created successfully
-        inode = ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, true,
-                                 symlinkResolve);
+        inode = ext2TraversePath(ext2, filename, &obj, true, symlinkResolve);
       }
       spinlockCntWriteRelease(&ext2->WLOCK_GLOBAL_NOFD);
       spinlockCntReadAcquire(&ext2->WLOCK_GLOBAL_NOFD);
@@ -179,9 +187,8 @@ size_t ext2Open(char *filename, int flags, int mode, OpenFile *fd,
 
   Ext2Inode *inodeFetched = ext2InodeFetch(ext2, inode);
   if (flags & O_DIRECTORY && !(inodeFetched->permission & S_IFDIR)) {
-    free(inodeFetched);
     ret = ERR(ENOTDIR);
-    goto cleanup;
+    goto cleanup_free;
   }
 
   if (flags & O_TRUNC) {
@@ -190,33 +197,13 @@ size_t ext2Open(char *filename, int flags, int mode, OpenFile *fd,
     inodeFetched->num_sectors = 0;
 
     ext2InodeModifyM(ext2, inode, inodeFetched);
-  }
 
-  spinlockAcquire(&ext2->LOCK_OBJECT);
-  Ext2FoundObject *targetObject = ext2->firstObject;
-  while (targetObject) {
-    if (targetObject->inode == inode)
-      break;
-    targetObject = targetObject->next;
-  }
-  spinlockRelease(&ext2->LOCK_OBJECT);
-  if (!targetObject) {
-    targetObject =
-        calloc(sizeof(Ext2FoundObject), 1); // out of the locks in case
-    spinlockAcquire(&ext2->LOCK_OBJECT);
-    targetObject->inode = inode;
-
-    targetObject->next = ext2->firstObject; // dll stuff
-    ext2->firstObject = targetObject;
-    if (targetObject->next)
-      targetObject->next->prev = targetObject;
-    spinlockRelease(&ext2->LOCK_OBJECT);
+    // todo: free the needed data blocks
   }
 
   // we opened a file!
-  spinlockAcquire(&targetObject->LOCK_PROP);
-  targetObject->openFds++;
-  spinlockRelease(&targetObject->LOCK_PROP);
+  assert(obj);
+  // openfds has been already increased on the lookup call!
 
   Ext2OpenFd *dir = (Ext2OpenFd *)malloc(sizeof(Ext2OpenFd));
   memset(dir, 0, sizeof(Ext2OpenFd));
@@ -225,7 +212,7 @@ size_t ext2Open(char *filename, int flags, int mode, OpenFile *fd,
   dir->inodeNum = inode;
   memcpy(&dir->inode, inodeFetched, sizeof(Ext2Inode));
 
-  dir->globalObject = targetObject;
+  dir->globalObject = obj;
 
   if ((dir->inode.permission & 0xF000) == EXT2_S_IFDIR) {
     size_t len = strlength(filename) + 1;
@@ -238,6 +225,7 @@ size_t ext2Open(char *filename, int flags, int mode, OpenFile *fd,
   // pointers & stuff
   dir->ptr = 0;
 
+cleanup_free:
   free(inodeFetched);
 
 cleanup:
@@ -398,8 +386,16 @@ size_t ext2Write(OpenFile *fd, uint8_t *buff, size_t limit) {
 
   ext2CachePush(ext2, dir);
 
-  // todo! memory leak!
+  // todo: also write to cache instead of discarding altogether
   spinlockCntWriteAcquire(&dir->globalObject->WLOCK_CACHE);
+  Ext2CacheObject *browse = dir->globalObject->firstCacheObj;
+  while (browse) {
+    Ext2CacheObject *next = browse->next;
+    VirtualFree(browse->buff,
+                DivRoundUp((browse->blocks + 1) * ext2->blockSize, BLOCK_SIZE));
+    free(browse);
+    browse = next;
+  }
   dir->globalObject->firstCacheObj = 0;
   spinlockCntWriteRelease(&dir->globalObject->WLOCK_CACHE);
 
@@ -635,8 +631,7 @@ bool ext2Stat(MountPoint *mnt, char *filename, struct stat *target,
   Ext2 *ext2 = EXT2_PTR(mnt->fsInfo);
 
   spinlockCntReadAcquire(&ext2->WLOCK_GLOBAL_NOFD);
-  uint32_t inodeNum =
-      ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, true, symlinkResolve);
+  uint32_t inodeNum = ext2TraversePath(ext2, filename, 0, true, symlinkResolve);
   if (!inodeNum) {
     spinlockCntReadRelease(&ext2->WLOCK_GLOBAL_NOFD);
     return false;
@@ -656,7 +651,7 @@ bool ext2Lstat(MountPoint *mnt, char *filename, struct stat *target,
 
   spinlockCntReadAcquire(&ext2->WLOCK_GLOBAL_NOFD);
   uint32_t inodeNum =
-      ext2TraversePath(ext2, filename, EXT2_ROOT_INODE, false, symlinkResolve);
+      ext2TraversePath(ext2, filename, 0, false, symlinkResolve);
   if (!inodeNum) {
     spinlockCntReadRelease(&ext2->WLOCK_GLOBAL_NOFD);
     return false;
@@ -689,8 +684,7 @@ size_t ext2Readlink(MountPoint *mnt, char *path, char *buf, int size,
   Ext2Inode *inode = 0;
   spinlockCntReadAcquire(&ext2->WLOCK_GLOBAL_NOFD);
 
-  uint32_t inodeNum =
-      ext2TraversePath(ext2, path, EXT2_ROOT_INODE, false, symlinkResolve);
+  uint32_t inodeNum = ext2TraversePath(ext2, path, 0, false, symlinkResolve);
   if (!inodeNum) {
     ret = ERR(ENOENT);
     goto cleanup;
@@ -732,14 +726,10 @@ bool ext2Close(OpenFile *fd) {
 
   ext2BlockFetchCleanup(&dir->lookup);
 
-  spinlockAcquire(&dir->globalObject->LOCK_PROP);
-  dir->globalObject->openFds--;
-  char *filenameToBeDeleted = 0;
-  if (!dir->globalObject->openFds && dir->globalObject->filenameToBeDeleted)
-    filenameToBeDeleted = dir->globalObject->filenameToBeDeleted;
-  spinlockRelease(&dir->globalObject->LOCK_PROP);
-
-  if (filenameToBeDeleted)
+  atomic_fetch_sub(&dir->globalObject->openFds, 1);
+  char *filenameToBeDeleted =
+      (char *)atomic_load(&dir->globalObject->filenameToBeDeleted);
+  if (!atomic_load(&dir->globalObject->openFds) && filenameToBeDeleted)
     ext2Delete(fd->mountPoint, filenameToBeDeleted, false, 0);
 
   free(fd->dir);
@@ -770,9 +760,7 @@ bool ext2DuplicateNodeUnsafe(OpenFile *original, OpenFile *orphan) {
     memcpy(orphan->dirname, original->dirname, len);
   }
 
-  spinlockAcquire(&dirOriginal->globalObject->LOCK_PROP);
-  dirOriginal->globalObject->openFds++;
-  spinlockRelease(&dirOriginal->globalObject->LOCK_PROP);
+  atomic_fetch_add(&dirOriginal->globalObject->openFds, 1);
 
   return true;
 }
@@ -837,24 +825,14 @@ size_t ext2Mmap(size_t addr, size_t length, int prot, int flags, OpenFile *fd,
   return virt;
 }
 
-Ext2FoundObject *ext2GlobalFetch(Ext2 *ext2, uint32_t inode) {
-  spinlockAcquire(&ext2->LOCK_OBJECT);
-  Ext2FoundObject *browse = ext2->firstObject;
-  while (browse) {
-    if (browse->inode == inode)
-      break;
-    browse = browse->next;
-  }
-  spinlockRelease(&ext2->LOCK_OBJECT);
-  return browse;
-}
-
 size_t ext2Delete(MountPoint *mnt, char *filename, bool directory,
                   char **symlinkResolve) {
+  Ext2FoundObject *global = 0;
+
   size_t   ret = 0;
   Ext2    *ext2 = EXT2_PTR(mnt->fsInfo);
   uint32_t inodeNum =
-      ext2TraversePath(ext2, filename, 2, false, symlinkResolve);
+      ext2TraversePath(ext2, filename, &global, false, symlinkResolve);
   Ext2Inode *inode = 0;
 
   spinlockCntWriteAcquire(&ext2->WLOCK_GLOBAL_NOFD);
@@ -863,15 +841,17 @@ size_t ext2Delete(MountPoint *mnt, char *filename, bool directory,
     goto cleanup;
   }
 
+  atomic_fetch_sub(&global->openFds, 1); // passing &obj increases it
+
   // todo: bool deleted, remove direntry, wipe on last close
-  Ext2FoundObject *global = ext2GlobalFetch(ext2, inodeNum);
   // todo: better implementation removing direntry, depending on inode
   // we also need to redo the ext2 locks & remove directory assert()
-  if (global && global->openFds) {
+  if (global && atomic_load(&global->openFds)) {
     assert(!directory);
-    int len = strlength(filename) + 1;
-    global->filenameToBeDeleted = malloc(len);
-    memcpy(global->filenameToBeDeleted, filename, len);
+    int   len = strlength(filename) + 1;
+    char *filenameToBeDeleted = malloc(len);
+    memcpy(filenameToBeDeleted, filename, len);
+    atomic_store(&global->filenameToBeDeleted, filenameToBeDeleted);
     ret = 0;
     goto cleanup;
   }
@@ -942,9 +922,12 @@ size_t ext2Delete(MountPoint *mnt, char *filename, bool directory,
     parent[i] = '\0';
   }
 
+  Ext2FoundObject *parentObj = 0;
+
   // shouldn't need symlinkResolve now since the upper one resolved
-  uint32_t parentInodeNum = ext2TraversePath(ext2, parent, 2, false, 0);
-  assert(parentInodeNum);
+  uint32_t parentInodeNum =
+      ext2TraversePath(ext2, parent, &parentObj, false, 0);
+  assert(parentInodeNum && parentObj);
 
   Ext2Inode *parentInode = ext2InodeFetch(ext2, parentInodeNum);
   assert(parentInode && parentInode->permission & S_IFDIR);
@@ -1003,6 +986,12 @@ size_t ext2Delete(MountPoint *mnt, char *filename, bool directory,
             : -1;
   free(parent);
 
+  // remove the global object
+  spinlockAcquire(&ext2->LOCK_OBJECT);
+  free(global->filename);
+  assert(LinkedListRemove(&parentObj->inner, sizeof(Ext2FoundObject), global));
+  spinlockRelease(&ext2->LOCK_OBJECT);
+
 cleanup:
   if (inode)
     free(inode);
@@ -1016,7 +1005,7 @@ size_t ext2Link(MountPoint *mnt, char *filename, char *target,
                 char **symlinkResolve, char **symlinkResolveTarget) {
   Ext2    *ext2 = EXT2_PTR(mnt->fsInfo);
   uint32_t inodeNum =
-      ext2TraversePath(ext2, filename, 2, false, symlinkResolve);
+      ext2TraversePath(ext2, filename, 0, false, symlinkResolve);
   if (!inodeNum)
     return ERR(ENOENT);
 
@@ -1039,7 +1028,7 @@ size_t ext2Link(MountPoint *mnt, char *filename, char *target,
   targetFilename++;       // targetFilename starts afterwards
 
   uint32_t targetDirInodeNum =
-      ext2TraversePath(ext2, targetDir, 2, false, symlinkResolveTarget);
+      ext2TraversePath(ext2, targetDir, 0, false, symlinkResolveTarget);
   if (!targetDirInodeNum) {
     free(inode);
     free(targetDir);

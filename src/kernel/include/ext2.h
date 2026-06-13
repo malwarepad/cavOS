@@ -148,15 +148,22 @@ typedef struct Ext2CacheObject {
 
 // basically something that has been accessed even once in the whole system
 typedef struct Ext2FoundObject {
-  struct Ext2FoundObject *next;
-  struct Ext2FoundObject *prev;
+  struct LLheader _ll;
+
+  LLcontrol inner; // Ext2FoundObject
 
   // id
   uint32_t inode;
-  uint32_t openFds;
+
+  // todo! not yet purgable! only for deletions
+  atomic_int openFds;
+
+  // cache friendly
+  char *filename;
+  int   filenameLen;
 
   // properties lock
-  Spinlock LOCK_PROP;
+  // Spinlock LOCK_PROP;
 
   // global file lock
   SpinlockCnt WLOCK_FILE; // todo
@@ -165,7 +172,7 @@ typedef struct Ext2FoundObject {
   SpinlockCnt WLOCK_CACHE;
 
   // deletion
-  char *filenameToBeDeleted;
+  char *_Atomic filenameToBeDeleted;
 
   // caching
   Ext2CacheObject *firstCacheObj;
@@ -192,8 +199,8 @@ typedef struct Ext2 {
   Ext2Superblock  superblock;
 
   // list for low-memory pruning (LRU discarding system)
-  Spinlock         LOCK_OBJECT;
-  Ext2FoundObject *firstObject;
+  Spinlock  LOCK_OBJECT;
+  LLcontrol rootObject; // Ext2FoundObject
 
   // global lock for when a file descriptor isn't present, limiting reach
   SpinlockCnt WLOCK_GLOBAL_NOFD;
@@ -310,8 +317,8 @@ void     ext2BlockDelete(Ext2 *ext2, uint32_t group, uint32_t index);
 // ext2_traverse.c
 uint32_t ext2Traverse(Ext2 *ext2, size_t initInode, char *search,
                       size_t searchLength);
-uint32_t ext2TraversePath(Ext2 *ext2, char *path, size_t initInode, bool follow,
-                          char **symlinkResolve);
+uint32_t ext2TraversePath(Ext2 *ext2, char *path, Ext2FoundObject **retObj,
+                          bool follow, char **symlinkResolve);
 
 // ext2_inode.c
 Ext2Inode *ext2InodeFetch(Ext2 *ext2, size_t inode);

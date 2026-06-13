@@ -107,19 +107,6 @@ void ext2CacheAddSecurely(MountPoint *mnt, Ext2FoundObject *global,
 }
 
 void ext2CachePush(Ext2 *ext2, Ext2OpenFd *fd) {
-  if (ext2->firstObject == fd->globalObject)
-    return;
-  spinlockAcquire(&ext2->LOCK_OBJECT);
-  Ext2FoundObject *beforeFd = fd->globalObject->prev;
-  Ext2FoundObject *afterFd = fd->globalObject->next;
-  fd->globalObject->next = ext2->firstObject;
-  fd->globalObject->prev = 0;
-  if (beforeFd)
-    beforeFd->next = afterFd;
-  if (afterFd)
-    afterFd->prev = beforeFd;
-  ext2->firstObject = fd->globalObject;
-  if (ext2->firstObject->next)
-    ext2->firstObject->next->prev = ext2->firstObject;
-  spinlockRelease(&ext2->LOCK_OBJECT);
+  // todo: base the LRU off unix timestamps and some sort of daemon
+  // that is instead of the typical push-to-front ordering...
 }
