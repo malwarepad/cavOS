@@ -162,6 +162,8 @@ typedef struct Ext2FoundObject {
   char *filename;
   int   filenameLen;
 
+  uint64_t hash;
+
   // properties lock
   // Spinlock LOCK_PROP;
 

@@ -6,6 +6,7 @@
 #include <util.h>
 
 #include <linked_list.h>
+#include <murmur_hash.h>
 
 uint32_t ext2Traverse(Ext2 *ext2, size_t initInode, char *search,
                       size_t searchLength) {
@@ -60,11 +61,16 @@ cleanup:
 typedef struct Ext2TrCbStr {
   char  *filename;
   size_t len;
+
+  uint64_t hash;
 } Ext2TrCbStr;
 bool ext2TraverseCbStr(void *data, void *ctx) {
   Ext2TrCbStr     *target = ctx;
   Ext2FoundObject *obj = data;
   if (target->len != obj->filenameLen)
+    return false;
+  // use hashing only for rejecting, dont depend on it
+  if (target->hash != obj->hash)
     return false;
   return memcmp(obj->filename, target->filename, target->len) == 0;
 }
@@ -98,6 +104,7 @@ uint32_t ext2TraversePath(Ext2 *ext2, char *path, Ext2FoundObject **retObj,
 
       cb.filename = path + lastslash + 1;
       cb.len = length;
+      cb.hash = murmur_hash(cb.filename, cb.len, 67);
       Ext2FoundObject *objNext =
           LinkedListSearch(&obj->inner, ext2TraverseCbStr, &cb);
 
@@ -122,6 +129,7 @@ uint32_t ext2TraversePath(Ext2 *ext2, char *path, Ext2FoundObject **retObj,
         memcpy(new->filename, cb.filename, cb.len);
         new->filename[cb.len] = '\0';
         new->filenameLen = cb.len;
+        new->hash = cb.hash;
         objNext = new;
         obj = objNext;
       }
