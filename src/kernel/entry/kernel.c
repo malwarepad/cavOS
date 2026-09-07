@@ -93,9 +93,10 @@ void _start(void) {
     printf("[warning] System disk has not been detected!\n");
 
   printf("=========================================\n");
-  printf("==     Cave-Like Operating System      ==\n");
-  printf("==      Copyright MalwarePad 2025      ==\n");
+  printf("=      Cave-Like Operating System       =\n");
+  printf("=       Copyright MalwarePad 2025       =\n");
   printf("=========================================\n\n");
+  printf("\n");
 
   while (1)
     run("/bin/bash", true, 0, 0);
